@@ -1,0 +1,86 @@
+:root {
+  --app-brand-yellow: #e6c14b;
+}
+
+.luxe-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 16px;
+}
+
+.luxe-hero {
+  padding: 18px 22px;
+  margin-bottom: 10px;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.luxe-hero::before {
+  content: none;
+}
+
+.luxe-divider {
+  height: 1px;
+  width: 100%;
+  margin-top: 10px;
+  background: linear-gradient(90deg, transparent, var(--app-brand-yellow), transparent);
+  filter: drop-shadow(0 0 2px rgba(230, 193, 75, 0.5));
+  position: relative;
+  overflow: hidden;
+}
+
+.luxe-divider::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -20%;
+  height: 100%;
+  width: 20%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  filter: blur(0.5px);
+  animation: luxe-shine 2.8s ease-in-out infinite;
+}
+
+@keyframes luxe-shine {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  50% { transform: translateX(500%); opacity: 1; }
+  90% { opacity: 0; }
+  100% { transform: translateX(500%); opacity: 0; }
+}
+
+.shield-logo {
+  filter: drop-shadow(0 0 2px rgba(230, 193, 75, 0.25));
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+.shield-logo:hover {
+  transform: translateY(-1px) scale(1.02);
+  filter: drop-shadow(0 0 6px rgba(230, 193, 75, 0.55));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .luxe-divider::after { animation: none; }
+}
+
+[data-testid="stSpinner"],
+.stSpinner {
+  background: transparent !important;
+}
+
+[data-testid="stSpinner"] > div,
+.stSpinner > div {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+[data-baseweb="spinner"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+

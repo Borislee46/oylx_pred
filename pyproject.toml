@@ -1,0 +1,43 @@
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = [
+  "E203",
+  "E501",
+  "E402",
+  "E731",
+  "E741",
+  "F821",
+  "F841",
+  "F601",
+]
+
+[tool.ruff.format]
+quote-style = "preserve"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+no_implicit_optional = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = false
+follow_imports = "silent"
+exclude = [
+  ".*",
+]
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --maxfail=1 --disable-warnings"
+

@@ -1,0 +1,75 @@
+:root {
+    --theme-green: rgb(0, 106, 96);
+    --theme-green-light: rgb(0, 138, 108);
+    --theme-orange: rgb(247, 171, 0);
+    --theme-orange-light: rgb(243, 152, 0);
+}
+
+.announcement-container {
+    background: linear-gradient(90deg, var(--theme-green) 0%, var(--theme-green-light) 100%);
+    color: white;
+    padding: 12px 0;
+    margin: 20px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.1);
+    line-height: 1.4;
+}
+
+.announcement-scroll {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+}
+
+.announcement-text {
+    display: inline-block;
+    font-size: 16px;
+    font-weight: 500;
+    animation: scroll-left 40s linear infinite;
+}
+
+.announcement-text a {
+    color: var(--theme-orange-light) !important;
+    text-decoration: underline !important;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.announcement-text a:hover {
+    color: var(--theme-orange) !important;
+    text-shadow: 0 0 8px rgba(var(--theme-orange), 0.6);
+}
+
+@keyframes scroll-left {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.announcement-container:hover .announcement-text {
+    animation-play-state: paused;
+}
+
+@media (max-width: 768px) {
+    .announcement-text {
+        font-size: 14px;
+        animation-duration: 35s;
+    }
+}
+
+@media (max-width: 480px) {
+    .announcement-text {
+        font-size: 13px;
+        animation-duration: 30s;
+    }
+    .announcement-container {
+        padding: 10px 0;
+    }
+} 

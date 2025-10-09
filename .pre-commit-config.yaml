@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.3
+    hooks:
+      - id: ruff
+        args: ["--fix", "--line-length", "100"]
+      - id: ruff-format
+        exclude: ^src/pages/hr_dashboard/kpi_metrics\.py$
+  - repo: https://github.com/psf/black
+    rev: 25.9.0
+    hooks:
+      - id: black
+        args: ["--line-length", "100"]
+        exclude: ^src/pages/hr_dashboard/kpi_metrics\.py$
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        additional_dependencies: ["pydantic", "types-requests", "types-python-dateutil"]
+        args: ["--config-file", "pyproject.toml"]
+

@@ -1,0 +1,25 @@
+{
+    "rules": [
+        {
+            "background_keywords": [
+                "经济金融"
+            ],
+            "target_keywords": [
+                "business administration",
+                "mba"
+            ],
+            "adjustment": -1,
+            "enabled": true
+        },
+        {
+            "background_keywords": [
+                "经济金融"
+            ],
+            "target_keywords": [
+                "business management"
+            ],
+            "adjustment": 0.5,
+            "enabled": true
+        }
+    ]
+}
