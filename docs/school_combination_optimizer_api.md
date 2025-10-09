@@ -100,7 +100,7 @@ optimizer = SchoolSelectionOptimizer(
   - `g3`：目标（target）数量下限
   - `g4`：保底（safety）数量下限
   - `g5`：所选数量 ≥ `min_schools`
-  - `g6`：港校约束（特定背景需包含指定港校）
+  - `g6`：TOPN 学校约束（特定背景需包含指定港校）
   - `g7`：跨专业比例上限
   - `g8`：同专业大类最小比例
   - `g9`：TOP3 学校最小数量（高背景高 GPA）
@@ -126,7 +126,7 @@ optimizer = SchoolSelectionOptimizer(
   - 至少包含 `MIN_TOP5_COUNT_FOR_HIGH_BG`（默认 3）所 TOP5 学校（TOP3 + 港理工/港城大）
   - 目的：确保高背景用户的推荐结果包含足够数量的顶级院校，避免被高概率的一般院校"淹没"
 
-###### 港校 reach/safety 约束细则（对应 `g6`）
+###### TOPN 学校 reach/safety 约束细则（对应 `g6`）
 - reach 约束适用：
   - 若 `school_level ∈ {"985","211","1-50","51-100"}` → reach 学校需来自 `TOP3_SCHOOLS`；
   - 若 `school_level == "普通本科"`：
@@ -195,7 +195,7 @@ optimizer = SchoolSelectionOptimizer(
   - `BALANCE_RATIOS = {'safety': 0.3, 'target': 0.4, 'reach': 0.3}`
   - `ADAPTIVE_THRESHOLD_PERCENTILES = {'reach_percentile_val': 10, 'safety_percentile_val': 70}`
   - `MONTE_CARLO_DEFAULTS = {'n_simulations': 5000, 'min_simulations': 1000, 'max_simulations': 10000, 'convergence_threshold': 0.01, 'batch_size': 500}`
-- 港校名单：`TOP3_SCHOOLS`, `TOP5_SCHOOLS`, `TOP8_SCHOOLS`（业务定义集合，用于高背景高 GPA 的保底与优先策略；成员以 `optimizer_config.py` 为准）
+- TOPN 学校名单：`TOP3_SCHOOLS`, `TOP5_SCHOOLS`, `TOP8_SCHOOLS`（业务定义集合，用于高背景高 GPA 的保底与优先策略；成员以 `optimizer_config.py` 为准）
 - TOP 学校最小数量：
   - `MIN_TOP3_COUNT_FOR_HIGH_BG = 2`：高背景高 GPA 用户的 TOP3 最小数量
   - `MIN_TOP5_COUNT_FOR_HIGH_BG = 3`：高背景高 GPA 用户的 TOP5 最小数量
