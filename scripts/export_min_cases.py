@@ -50,6 +50,7 @@ def main():
         "target_major",
         "admitted",
         "gpa",
+        "faculty",
     ]
 
     language_candidates = ["toefl", "ielts"] if args.include_language_cols else []

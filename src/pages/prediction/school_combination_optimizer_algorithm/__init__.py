@@ -1,3 +1,6 @@
+from src.pages.prediction.school_combination_optimizer_algorithm.faculty_based_filter import (
+    filter_schools_by_faculty_rules,
+)
 from src.pages.prediction.school_combination_optimizer_algorithm.monte_carlo import (
     run_monte_carlo_simulation,
 )
@@ -16,4 +19,5 @@ __all__ = [
     "SchoolSelectionOptimizer",
     "visualize_recommendations",
     "run_monte_carlo_simulation",
+    "filter_schools_by_faculty_rules",
 ]

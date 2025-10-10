@@ -41,6 +41,7 @@ def validate_model_and_features(prediction_model):
 
 
 def prepare_input_data(input_data_from_form):
+    from src.utils.app_data_loader import load_raw_cases_data
     from src.utils.school_level_service import get_school_level_service
 
     background_uni_name = input_data_from_form.get("background_university", "")
@@ -49,6 +50,19 @@ def prepare_input_data(input_data_from_form):
 
     input_data = input_data_from_form.copy()
     input_data["school_level"] = school_level
+
+    background_major = input_data.get("background_major")
+    if background_major:
+        try:
+            cases_df = load_raw_cases_data()
+            if cases_df is not None and not cases_df.empty:
+                major_match = cases_df[cases_df["background_major"] == background_major]
+                if not major_match.empty:
+                    faculty = major_match["faculty"].iloc[0]
+                    if faculty:
+                        input_data["faculty"] = faculty
+        except Exception as e:
+            prediction_handler_logger.warning(f"查询背景学院失败: {e}")
 
     return input_data
 

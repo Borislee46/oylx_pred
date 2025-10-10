@@ -77,11 +77,11 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 
 ## 五、智能组合优化（可选）
 - 模块：`src/pages/prediction/school_combination_optimizer_algorithm/`
-- 方法：NSGA-III + TOPN学校强约束 + 蒙特卡洛相关性仿真（支持 batch_size）+ 平衡启发式回退
-- 输入：候选 `[{university, major, probability, is_new_major}]` 与可选相关性矩阵（索引格式 `"{university} - {major}"`）
+- 方法：NSGA-III + 背景/学院规则过滤 + TOPN学校强约束 + 蒙特卡洛相关性仿真（支持 batch_size）+ 平衡启发式回退
+- 输入：候选 `[{university, major, probability, is_new_major}]`、用户背景（专业、学院等）与可选相关性矩阵（索引格式 `"{university} - {major}"`）
 - 输出：多套方案（类型/学校清单/指标/目标值）与自适应阈值
 - 文档：`docs/school_combination_optimizer_api.md`
- - 配置补充：跨专业召回/校准与 prestige 权重等详见文档“配置常量”章节。
+ - 配置补充：跨学院申请规则、概率校准与 prestige 权重等详见文档“配置常量”章节。
  - 其他：支持 `clear_cache()` 清理内部缓存；`visualize_recommendations` 快速可视化；提供 `probability_utils.calibrate_cross_major_probabilities` 跨专业轻度校准。
 
 ---
@@ -137,4 +137,4 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 ---
 
 维护人：lijiapeng8@xdf.cn
-版本：v2.6
+版本：v2.7

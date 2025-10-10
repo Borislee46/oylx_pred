@@ -5,10 +5,10 @@
 ### 模块结构
 - **核心优化**：`optimizer.py`（主优化器）、`problem.py`（问题定义）
 - **指标与选择**：`metrics_calculator.py`（指标计算）、`school_selector.py`（平衡选择）
-- **过滤器**：`candidate_filter.py`（背景分层过滤）、`cross_major_filter.py`（跨专业过滤）
+- **过滤器**：`pre_filter.py`（预处理过滤器）、`candidate_filter.py`（背景分层过滤）、`faculty_based_filter.py`（跨学院规则过滤）
 - **初始化**：`problem_initializer.py`（缓存构建）
-- **工具与配置**：`common_utils.py`（公共工具）、`optimizer_config.py`（配置常量）
-- **辅助模块**：`monte_carlo.py`、`probability_utils.py`、`adaptive_admission_probability_threshold.py`、`major_category_config.py`、`domain_rules.py`、`plan_config.py`、`visualizer.py`、`cache_utils.py`、`reference_direction_cache.py`
+- **工具与配置**：`common_utils.py`（公共工具）、`optimizer_config.py`（配置常量）、`faculty_rules.py`（学院规则定义）
+- **辅助模块**：`monte_carlo.py`、`probability_utils.py`、`adaptive_admission_probability_threshold.py`、`plan_config.py`、`visualizer.py`、`cache_utils.py`、`reference_direction_cache.py`
 - **聚合导出**：`utils.py`（向后兼容的导入聚合器）、`__init__.py`
 
 ### 依赖
@@ -33,7 +33,8 @@
   - `plan_configs`：自定义申请策略列表（可选），不传则使用 `DEFAULT_PLAN_CONFIGS`
   - `cache_capacity`：内部 LRU 缓存容量（指标/仿真缓存）。
 - 方法：
-  - `optimize(all_schools_data: List[Dict[str, Any]], background_major: str, school_level: str | None = None, gpa: float | None = None) -> Tuple[List[Dict[str, Any]], Dict[str, float]]`
+  - `optimize(all_schools_data: List[Dict[str, Any]], background_major: str, background_faculty: str | None, school_level: str | None = None, gpa: float | None = None) -> Tuple[List[Dict[str, Any]], Dict[str, float]]`
+    - 新增 `background_faculty` 参数，用于基于学院规则进行二次过滤。
     - 返回：`(final_recommendations, adaptive_thresholds)`
     - `final_recommendations` 为若干方案（默认 3 种“申请策略X”，来源于 `plan_config.py` 的 `PlanConfig`），每个方案包含：
       - `type: str`（策略名）
@@ -73,7 +74,7 @@ optimizer = SchoolSelectionOptimizer(
   - `balance_score`：与理想配比（安全:目标:冲刺 = 0.3:0.4:0.3）的接近度（越高越好）
   - `major_similarity`：与原专业的平均相似度
   - `new_major_ratio` / `new_major_count`：新专业占比 / 数量
-  - `major_category_score`：专业大类合理性得分（越高越好）
+  - `major_category_score`：专业大类合理性得分（越高越好，基于背景学院与目标学院关系计算）
   - `cross_major_ratio`：跨专业比例
   - `major_category_diversity`：专业大类多样性（不同大类计数）
   - `simulated_rejection_probability` / `simulated_admission_probability`：考虑相关性的蒙特卡洛估计（如果提供相关性矩阵）
@@ -101,10 +102,8 @@ optimizer = SchoolSelectionOptimizer(
   - `g4`：保底（safety）数量下限
   - `g5`：所选数量 ≥ `min_schools`
   - `g6`：TOPN 学校约束（特定背景需包含指定港校）
-  - `g7`：跨专业比例上限
-  - `g8`：同专业大类最小比例
-  - `g9`：TOP3 学校最小数量（高背景高 GPA）
-  - `g10`：TOP5 学校最小数量（高背景高 GPA）
+  - `g7`：TOP3 学校最小数量（高背景高 GPA）
+  - `g8`：TOP5 学校最小数量（高背景高 GPA）
 - 其他：
   - 动态阈值 `adaptive_thresholds` 来自全局概率分位数（见下）
   - 会使用业务相似度缓存与新专业缓存辅助度量
@@ -153,15 +152,20 @@ optimizer = SchoolSelectionOptimizer(
   - 根据背景校级和 GPA 进行分层硬约束过滤（priority 阈值）
   - 应用 TOP8 优先策略
 
-#### 7) 跨专业过滤器（cross_major_filter.py）
-- `filter_schools_by_cross_major_feasibility(schools, background_major, background_major_category, major_category_cache, bg_target_similarity_cache, recall_filter_cfg) -> List[Dict[str, Any]]`
-  - 根据专业相似度和大类关系过滤跨专业候选
+#### 7) 预处理过滤器 (pre_filter.py)
+- `deduplicate_majors(schools: list[dict[str, Any]]) -> list[dict[str, Any]]`
+  - 对同一大学下的相似专业（如 `计算机科学` vs `计算机科学(授课型)`)进行去重，仅保留录取概率最高的一个。
 
-#### 8) 问题初始化器（problem_initializer.py）
-- `build_major_category_cache(background_major, details_df) -> Tuple[str | None, Dict[str, str]]`：构建专业大类缓存
+#### 8) 跨学院规则过滤器 (faculty_based_filter.py)
+- `filter_schools_by_faculty_rules(schools: list, background_faculty: str | None, major_category_cache: dict | None) -> list`
+  - 基于 `faculty_rules.py` 中定义的 `CROSS_FACULTY_RULES`，根据用户的背景学院，过滤掉规则不允许申请的目标学院下的所有专业。
+  - “专业大类”在此处作为“学院”使用。
+
+#### 9) 问题初始化器（problem_initializer.py）
+- `build_major_category_cache(details_df) -> Dict[str, str]`：构建"学校|专业"到"专业大类"（被视为学院）的映射缓存。
 - `build_new_major_cache(all_schools_data) -> Dict[str, Any]`：构建新专业缓存
 
-补充（2025-10-09）：当无法从学校-专业详情表中识别出背景专业的大类时，会进行“关键词回退映射”（保守原则）以便后续跨专业规则生效。例如：
+#### 补充（2025-10-09）：当无法从学校-专业详情表中识别出背景专业的大类时，会进行“关键词回退映射”（保守原则）以便后续跨专业规则生效。例如：
 - 金融/finance → `金融学`
 - 经济/econom/贸（贸易/国际贸易）→ `经济学`
 - business/工商 → `工商管理`
@@ -169,11 +173,11 @@ optimizer = SchoolSelectionOptimizer(
 - 会计/account → `会计学`
 - 市场/marketing → `市场营销`
 
-#### 9) 公共工具（common_utils.py）
+#### 10) 公共工具（common_utils.py）
 - `clip_probability(value, default=0.0) -> float`：概率裁剪到 [0, 1]
 - `normalize_school_name(name) -> str`：学校名称归一化
 
-#### 10) 蒙特卡洛仿真（monte_carlo.py）
+#### 11) 蒙特卡洛仿真（monte_carlo.py）
 - `run_monte_carlo_simulation(selected_schools, correlation_matrix, pair_weight_matrix=None, n_simulations=None, min_simulations=None, max_simulations=None, convergence_threshold=None) -> Tuple[float, float]`
   - 使用 Sobol 序列和相关矩阵，对整体全拒/至少一录取概率做相关性仿真估计；当矩阵缺失或不可逆时，自动回退。
   - 性能：
@@ -182,14 +186,14 @@ optimizer = SchoolSelectionOptimizer(
     - 相同概率组合与相关矩阵切片使用 `_run_monte_carlo_simulation_cached` 结果缓存
   - 可选 `pair_weight_matrix`：当提供时，与子相关矩阵按元素相乘，用于对成对相关性施加业务权重。
 
-#### 11) 自适应阈值（adaptive_admission_probability_threshold.py）
+#### 12) 自适应阈值（adaptive_admission_probability_threshold.py）
 - `calculate_adaptive_thresholds(all_school_probabilities, reach_percentile_val=None, safety_percentile_val=None) -> Dict[str, float]`
   - 根据给定概率分布的分位数估计 `target_lower/safety`，并做边界修正；不足样本时回退到默认阈值。
 
-#### 12) 概率工具（probability_utils.py）
-- `calibrate_cross_major_probabilities(schools: List[Dict], background_major_category: str | None, major_category_cache: Dict[str, str] | None, school_cross_major_factor: Dict[str, float] | None = None, calibration_cfg: Dict | None = None) -> List[Dict]`：对跨专业项进行轻度概率校准（先验、收缩、分位裁剪、同/跨/严格多组乘子）；入参与返回均为字典列表，字段包含 `university/major/probability`。
+#### 13) 概率工具（probability_utils.py）
+- `calibrate_cross_major_probabilities(schools: List[Dict], background_faculty: str | None, major_category_cache: Dict[str, str] | None, school_cross_major_factor: Dict[str, float] | None = None, calibration_cfg: Dict | None = None) -> List[Dict]`：对跨专业项进行轻度概率校准（先验、收缩、分位裁剪、同/跨/严格多组乘子）；入参与返回均为字典列表，字段包含 `university/major/probability`。
 
-#### 13) 配置常量（optimizer_config.py）
+#### 14) 配置常量（optimizer_config.py）
 - 阈值与比例：
   - `SCHOOL_CATEGORY_THRESHOLDS = {'safety': 0.8, 'target_lower': 0.6}`
   - `BALANCE_RATIOS = {'safety': 0.3, 'target': 0.4, 'reach': 0.3}`
@@ -215,21 +219,17 @@ optimizer = SchoolSelectionOptimizer(
     - `target`: 0.4（保持主申比例）
     - `reach`: 0.4（提高冲刺校比例）
 
-#### 14) 专业大类配置（major_category_config.py）
-- 定义专业大类的跨专业推荐限制与严格级别：
-  - 严格：如“医学/法学/艺术学”默认不跨或极少跨专业
-  - 中等严格：如“理学/工程学/计算机”等限制跨专业比例（20%–40%）
-  - 宽松：如“工商管理/管理学/市场营销”等允许较高跨专业比例（50%–70%）
-- 提供函数：
-  - `get_cross_major_limit(category: str) -> float`：获取某专业大类允许的最大跨专业申请比例。
-  - `get_category_similarity_threshold_adjustment(background_category: str, target_category: str) -> float`：计算跨专业申请的相似度惩罚值。该函数会双向检查背景专业与目标专业的严格等级，并根据二者中更严格的等级施加惩罚，以避免从宽松专业到严格专业的申请被错误地推荐。
+#### 15) 跨学院规则 (faculty_rules.py)
+- 定义 `CROSS_FACULTY_RULES` 字典，规定了从一个背景学院可以申请的目标学院集合。
+  - 例如 ` "文学院": {"文学院", "社会科学学院", "教育学院", "商学院", "艺术学院"}`
+- `get_allowed_target_faculties(background_faculty: str) -> set`：获取允许申请的目标学院集合。
 
 #### 补充：跨专业相关配置（optimizer_config.py）
-- `CROSS_MAJOR_RECALL_FILTER`：跨专业召回过滤阈值（同/跨大类相似度最小值、全局最小相似度、严格加成）。
+- `GLOBAL_MIN_SIMILARITY`：全局最低专业相似度，低于此值的候选在优化前被过滤。
 - `CROSS_MAJOR_CALIBRATION`：跨专业概率轻度校准（先验、收缩参数、分位裁剪、同/跨/严格多组乘子）。
-- 其他：`MAJOR_SIMILARITY_WEIGHT`、`SAME_GROUP_MIN_RATIO`、`CONSTRAINT_FLEXIBILITY`、`PRESTIGE_WEIGHT`。
+- 其他：`MAJOR_SIMILARITY_WEIGHT`、`CONSTRAINT_FLEXIBILITY`、`PRESTIGE_WEIGHT`。
 
-#### 15) 包导出（__init__.py）
+#### 16) 包导出（__init__.py）
 - `SchoolSelectionProblem`, `SchoolSelectionOptimizer`, `visualize_recommendations`, `run_monte_carlo_simulation`
 
 ### 典型调用流程
@@ -247,6 +247,7 @@ optimizer = SchoolSelectionOptimizer(population_size=50, n_generations=60, corre
 recommendations, adaptive_thresholds = optimizer.optimize(
     all_schools_data=all_schools_data,
     background_major="计算机科学",
+    background_faculty="工程学院", # 新增
     school_level="普通本科",
     gpa=3.2,
 )
@@ -259,17 +260,22 @@ for rec in recommendations:
 ### 注意事项
 - `probability` 必须在 [0, 1]；当候选过少（< min_schools），可能退化到平衡启发式方案。
 - 相关性矩阵的索引/列名需为 `"{university} - {major}"`，缺失时将回退为独立假设估计。
-- 分层硬约束在构造阶段生效，优化器不会看到被过滤的低等级院校，这可显著提升高背景用户的推荐质量。
+- 过滤器（背景、学院、相似度）在构造阶段生效，优化器不会看到被过滤的院校，这可显著提升推荐质量。
 - 需确保 `school_base` 的 `school_level/priority` 标注准确；可参考 `logs/page3/prediction/school_level_missing.json` 进行清洗补全。
 - 若业务需要放宽/收紧，可在 `optimizer_config.py` 中调整阈值常量（如 `TOP_BG_LEVELS_SET`、`PRIORITY_THRESHOLD_*`）。
-- 跨专业过滤与概率校准可能改变候选规模；当前实现会在该步骤后“重建”问题对象并自适应算法参数，避免索引错位导致的越界。
+- 过滤器与概率校准可能改变候选规模；当前实现会在该步骤后“重建”问题对象并自适应算法参数，避免索引错位导致的越界。
 
 ---
 维护人：lijiapeng8@xdf.cn
-版本：v2.7
-更新日期：2025-10-09
+版本：v2.8
+更新日期：2025-10-10
 
 更新记录：
+- 2025-10-10 v2.8:
+  - 新增基于学院（Faculty）的跨专业申请规则过滤。
+  - 优化流程中增加候选专业去重与全局相似度预过滤。
+  - 更新优化问题的约束条件，移除已废弃的约束。
+  - 同步更新 API 文档的模块结构、函数签名与核心逻辑描述。
 - 2025-10-09 v2.7：
   - 优化器在过滤/校准后重建 `Problem` 并自适应算法参数，修复规模变动引起的潜在越界。
   - 初始化器新增商科关键词回退映射，确保商科背景能正确触发法学等严格大类的排除规则。

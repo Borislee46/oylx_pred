@@ -10,6 +10,9 @@ from src.pages.prediction.prediction_utils import (
     format_school_major_details_from_row,
     get_school_major_details,
 )
+from src.utils.logger import setup_logger
+
+logger = setup_logger("page3", "prediction")
 
 
 def _get_probability_value(probability):
@@ -216,6 +219,17 @@ def visualize_recommendations(
             except Exception:
                 details_list = ["无详细信息" for _ in schools]
 
+            difficulty_list = []
+            for i, school in enumerate(schools):
+                prob = school.get("probability", 0.0)
+                if prob >= current_thresholds["safety"]:
+                    difficulty = "保底"
+                elif prob >= current_thresholds["target_lower"]:
+                    difficulty = "目标"
+                else:
+                    difficulty = "冲刺"
+                difficulty_list.append(difficulty)
+
             df_data = {
                 "logo": [get_logo_path(school.get("university", "")) for school in schools],
                 "目标院校": [school.get("university", "") for school in schools],
@@ -233,18 +247,7 @@ def visualize_recommendations(
                 "概率数值": [school.get("probability", 0.0) for school in schools],
                 "专业类型": [school.get("type", "") for school in schools],
                 "专业详情": details_list,
-                "申请难度": [
-                    (
-                        "保底"
-                        if school.get("probability", 0.0) >= current_thresholds["safety"]
-                        else (
-                            "目标"
-                            if school.get("probability", 0.0) >= current_thresholds["target_lower"]
-                            else "冲刺"
-                        )
-                    )
-                    for school in schools
-                ],
+                "申请难度": difficulty_list,
             }
 
             df = pd.DataFrame(df_data)

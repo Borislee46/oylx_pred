@@ -40,6 +40,14 @@ def extract_calibration_params(model):
                     "method": "sigmoid",
                     "params": {"a": float(calibrator.a_), "b": float(calibrator.b_)},
                 }
+            elif hasattr(calibrator, "X_thresholds_") and hasattr(calibrator, "y_thresholds_"):
+                return {
+                    "method": "isotonic",
+                    "params": {
+                        "x_thresholds": calibrator.X_thresholds_.tolist(),
+                        "y_thresholds": calibrator.y_thresholds_.tolist(),
+                    },
+                }
 
     return None
 
@@ -140,12 +148,16 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
     base_model_params = {}
     base_model_class = None
 
+    scale_pos_weight = 1.0
     if model_name == "xgboost":
         if hasattr(y_train, "iloc") and not y_train.empty:
             n_zeros = len(y_train[y_train == 0])
             n_ones = len(y_train[y_train == 1])
             if n_ones > 0:
                 scale_pos_weight = n_zeros / n_ones
+                print(
+                    f"类别分布 - 负样本: {n_zeros}, 正样本: {n_ones}, scale_pos_weight: {scale_pos_weight:.4f}"
+                )
         else:
             pass
 
@@ -164,7 +176,7 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
                 "gamma": 0.360787817587864,
                 "reg_alpha": 0.6332579825935543,
                 "reg_lambda": 0.1080629839688434,
-                "scale_pos_weight": 1.0,
+                "scale_pos_weight": scale_pos_weight,
                 "monotone_constraints": monotone_constraints,
             }
             base_model_class = XGBClassifier

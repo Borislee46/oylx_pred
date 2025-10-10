@@ -32,6 +32,24 @@ button[data-testid="stBaseButton-headerNoPadding"] {
     display: none !important;
 } 
 
+[data-testid="stSpinner"],
+.stSpinner {
+  background: transparent !important;
+}
+
+[data-testid="stSpinner"] > div,
+.stSpinner > div {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+[data-baseweb="spinner"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 
 
 

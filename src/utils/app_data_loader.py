@@ -38,6 +38,7 @@ def _ensure_required_case_columns(df: pd.DataFrame) -> pd.DataFrame:
         "target_major": "",
         "admitted": 0,
         "gpa": np.nan,
+        "faculty": "",
     }
 
     for col, default_val in required_defaults.items():

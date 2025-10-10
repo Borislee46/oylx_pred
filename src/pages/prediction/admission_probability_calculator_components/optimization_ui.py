@@ -1,5 +1,4 @@
 import concurrent.futures
-import json
 import os
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -101,6 +100,8 @@ class OptimizationUI:
 
             optimization_started_this_run = True
 
+            logger.info(f"优化开始，候选学校数量: {len(df)}")
+
             if len(df) < 2:
                 st.warning("候选学校数量不足，至少需要2所学校才能进行优化")
                 self.session_manager.set(processing_lock=False, lock_start_time=0)
@@ -167,6 +168,7 @@ class OptimizationUI:
                     return
 
                 background_major = input_data.get("background_major", "")
+                background_faculty = input_data.get("faculty")
                 school_level = input_data.get("school_level")
                 gpa_value = input_data.get("gpa")
 
@@ -191,6 +193,7 @@ class OptimizationUI:
                     return optimizer.optimize(
                         all_schools_data=all_schools_data,
                         background_major=background_major,
+                        background_faculty=background_faculty,
                         school_level=school_level,
                         gpa=gpa_value,
                     )
@@ -245,29 +248,6 @@ class OptimizationUI:
                 )
 
                 recommendations, adaptive_thresholds = future.result()
-
-                try:
-                    output_summary = {
-                        "recommendation_count": len(recommendations) if recommendations else 0,
-                        "adaptive_thresholds": adaptive_thresholds or {},
-                        "plans": [
-                            {
-                                "type": r.get("type"),
-                                "schools": [
-                                    {
-                                        "university": s.get("university"),
-                                        "major": s.get("major"),
-                                        "probability": float(s.get("probability", 0.0)),
-                                    }
-                                    for s in (r.get("schools") or [])
-                                ],
-                            }
-                            for r in (recommendations or [])
-                        ],
-                    }
-                    logger.info(f"优化输出: {json.dumps(output_summary, ensure_ascii=False)}")
-                except Exception:
-                    logger.info("优化输出: 日志序列化失败")
 
                 if animate_ui:
                     _animate_step(step_placeholder, "运行 Quasi-Monte Carlo 模拟中", 1.2)

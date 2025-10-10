@@ -4,6 +4,9 @@ from src.pages.prediction.school_combination_optimizer_algorithm.optimizer_confi
     ADAPTIVE_THRESHOLD_PERCENTILES,
     SCHOOL_CATEGORY_THRESHOLDS,
 )
+from src.utils.logger import setup_logger
+
+logger = setup_logger("page3", "prediction")
 
 
 def calculate_adaptive_thresholds(
@@ -15,6 +18,7 @@ def calculate_adaptive_thresholds(
         reach_percentile_val = ADAPTIVE_THRESHOLD_PERCENTILES["reach_percentile_val"]
     if safety_percentile_val is None:
         safety_percentile_val = ADAPTIVE_THRESHOLD_PERCENTILES["safety_percentile_val"]
+
     if not all_school_probabilities or len(all_school_probabilities) < 3:
         return {
             "safety": SCHOOL_CATEGORY_THRESHOLDS["safety"],
@@ -45,4 +49,15 @@ def calculate_adaptive_thresholds(
                 "target_lower": SCHOOL_CATEGORY_THRESHOLDS["target_lower"],
             }
 
-    return {"safety": safety_threshold, "target_lower": target_lower_threshold}
+    max_probability = max(all_school_probabilities) if all_school_probabilities else 0.0
+
+    if safety_percentile_val >= 70 and safety_threshold > max_probability:
+        safety_threshold = max_probability * 0.9
+
+        if target_lower_threshold >= safety_threshold * 0.8:
+            target_lower_threshold = safety_threshold * 0.7
+    else:
+        pass
+
+    result = {"safety": safety_threshold, "target_lower": target_lower_threshold}
+    return result

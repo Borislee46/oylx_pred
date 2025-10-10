@@ -10,9 +10,9 @@ BALANCE_RATIOS = {
 }
 
 BALANCE_RATIOS_HIGH_BG = {
-    "safety": 0.2,
+    "safety": 0.25,
     "target": 0.4,
-    "reach": 0.4,
+    "reach": 0.35,
 }
 
 ADAPTIVE_THRESHOLD_PERCENTILES = {
@@ -21,9 +21,13 @@ ADAPTIVE_THRESHOLD_PERCENTILES = {
 }
 
 ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG = {
-    "reach_percentile_val": 15,
-    "safety_percentile_val": 85,
+    "reach_percentile_val": 20,
+    "safety_percentile_val": 70,
 }
+
+SAFETY_SCHOOL_THRESHOLD = 0.7
+MIN_SAFETY_SCHOOL_COUNT_DEFAULT = 3
+MIN_SAFETY_SCHOOL_COUNT_HIGH_BG = 1
 
 MONTE_CARLO_DEFAULTS = {
     "n_simulations": 5000,
@@ -67,27 +71,10 @@ TOP8_SCHOOLS = [
     "新加坡国立大学",
 ]
 
+GLOBAL_MIN_SIMILARITY = 0.65
 
-CROSS_MAJOR_RECALL_FILTER = {
-    "same_group_similarity_min": 0.75,
-    "cross_group_similarity_min": 0.93,
-    "strict_extra": 0.05,
-    "global_min_similarity": 0.85,
-}
-
-
-CROSS_MAJOR_CALIBRATION = {
-    "prior_p": 0.1,
-    "shrinkage_alpha": 0.3,
-    "clip_quantile": 0.9,
-    "same_group_multiplier": 0.85,
-    "cross_group_multiplier": 0.6,
-    "strict_multiplier": 0.7,
-}
 
 MAJOR_SIMILARITY_WEIGHT = 2.5
-
-SAME_GROUP_MIN_RATIO = 0.7
 
 CONSTRAINT_FLEXIBILITY: dict[str, bool | float | int] = {}
 

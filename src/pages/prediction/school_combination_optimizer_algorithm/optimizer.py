@@ -9,6 +9,7 @@ from pymoo.operators.mutation.bitflip import BitflipMutation
 from pymoo.operators.sampling.rnd import BinaryRandomSampling
 from pymoo.optimize import minimize
 
+from src.pages.prediction.prediction_utils import get_cached_major_similarity
 from src.pages.prediction.school_combination_optimizer_algorithm.adaptive_admission_probability_threshold import (
     calculate_adaptive_thresholds,
 )
@@ -17,16 +18,22 @@ from src.pages.prediction.school_combination_optimizer_algorithm.cache_utils imp
     build_school_set_key,
     build_selection_key,
 )
+from src.pages.prediction.school_combination_optimizer_algorithm.faculty_based_filter import (
+    filter_schools_by_faculty_rules,
+)
 from src.pages.prediction.school_combination_optimizer_algorithm.monte_carlo import (
     run_monte_carlo_simulation,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer_config import (
     BALANCE_RATIOS,
-    CROSS_MAJOR_RECALL_FILTER,
+    GLOBAL_MIN_SIMILARITY,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.plan_config import (
     PlanConfig,
     get_plan_configs,
+)
+from src.pages.prediction.school_combination_optimizer_algorithm.pre_filter import (
+    deduplicate_majors,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.probability_utils import (
     calibrate_cross_major_probabilities,
@@ -39,7 +46,6 @@ from src.pages.prediction.school_combination_optimizer_algorithm.reference_direc
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.utils import (
     calculate_metrics,
-    filter_schools_by_cross_major_feasibility,
     generate_balanced_selection,
     reduce_schools_balanced,
 )
@@ -79,6 +85,7 @@ class SchoolSelectionOptimizer:
         self,
         all_schools_data: list[dict[str, Any]],
         background_major: str,
+        background_faculty: str | None,
         school_level: str = None,
         gpa: float = None,
     ) -> tuple[list[dict[str, Any]], dict[str, float]]:
@@ -86,9 +93,30 @@ class SchoolSelectionOptimizer:
             return [], {}
 
         self.all_schools_data = all_schools_data
-        all_school_probabilities_initial = [
-            school.get("probability", 0.0) for school in all_schools_data
-        ]
+
+        if background_faculty:
+            from src.utils.app_data_loader import load_school_major_details_df
+
+            from .faculty_based_filter import filter_schools_by_faculty_rules
+            from .problem_initializer import build_major_category_cache
+
+            details_df = load_school_major_details_df()
+            major_category_cache = build_major_category_cache(details_df)
+
+            filtered_schools = filter_schools_by_faculty_rules(
+                all_schools_data,
+                background_faculty,
+                major_category_cache,
+            )
+
+            probabilities_for_threshold = [
+                school.get("probability", 0.0) for school in filtered_schools
+            ]
+
+        else:
+            probabilities_for_threshold = [
+                school.get("probability", 0.0) for school in all_schools_data
+            ]
 
         is_high_bg_high_gpa = (
             school_level in {"985", "211", "1-50", "51-100"} and gpa is not None and gpa >= 3.2
@@ -98,14 +126,14 @@ class SchoolSelectionOptimizer:
             from .optimizer_config import ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG
 
             adaptive_thresholds = calculate_adaptive_thresholds(
-                all_school_probabilities_initial,
+                probabilities_for_threshold,
                 reach_percentile_val=ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG["reach_percentile_val"],
                 safety_percentile_val=ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG[
                     "safety_percentile_val"
                 ],
             )
         else:
-            adaptive_thresholds = calculate_adaptive_thresholds(all_school_probabilities_initial)
+            adaptive_thresholds = calculate_adaptive_thresholds(probabilities_for_threshold)
 
         plan_types = get_plan_configs(self.plan_configs)
 
@@ -115,6 +143,7 @@ class SchoolSelectionOptimizer:
                 plan_type,
                 all_schools_data,
                 background_major,
+                background_faculty,
                 school_level,
                 gpa,
                 adaptive_thresholds,
@@ -130,6 +159,7 @@ class SchoolSelectionOptimizer:
         plan_config: PlanConfig,
         all_schools_data: list[dict[str, Any]],
         background_major: str,
+        background_faculty: str | None,
         school_level: str | None,
         gpa: float | None,
         adaptive_thresholds: dict[str, float],
@@ -138,9 +168,12 @@ class SchoolSelectionOptimizer:
         if not all_schools_data or len(all_schools_data) < min_schools:
             return None
 
+        all_schools_data = deduplicate_majors(all_schools_data)
+
         problem = SchoolSelectionProblem(
             all_schools_data,
             background_major,
+            background_faculty,
             plan_config.max_schools,
             adaptive_thresholds,
             school_level=school_level,
@@ -185,27 +218,42 @@ class SchoolSelectionOptimizer:
         )
 
         try:
-            filtered = filter_schools_by_cross_major_feasibility(
+            filtered = filter_schools_by_faculty_rules(
                 all_schools_data,
-                background_major,
-                problem.background_major_category,
+                problem.background_faculty,
                 problem.major_category_cache,
-                problem.bg_target_similarity_cache_data,
-                CROSS_MAJOR_RECALL_FILTER,
             )
 
+            similarity_filtered = []
+            cache = problem.bg_target_similarity_cache_data or {}
+            for s in filtered:
+                target_major = s.get("major", "")
+                if not target_major:
+                    similarity_filtered.append(s)
+                    continue
+
+                sim = get_cached_major_similarity(
+                    target_major=target_major,
+                    background_major=background_major,
+                    cache=cache,
+                )
+
+                cache_key = f"{s.get('university', '')}|{target_major}"
+                target_faculty = problem.major_category_cache.get(cache_key, "未知学院")
+                logger.debug(f"专业: {target_major} (学院: {target_faculty}) - 相似度: {sim:.4f}")
+
+                if sim >= GLOBAL_MIN_SIMILARITY:
+                    similarity_filtered.append(s)
+
             calibrated = calibrate_cross_major_probabilities(
-                filtered,
-                problem.background_major_category,
+                similarity_filtered,
+                problem.background_faculty,
                 problem.major_category_cache,
-                school_cross_major_factor=None,
-                calibration_cfg=None,
             )
 
             if calibrated:
                 all_schools_data = calibrated
 
-                # 使用新规模的候选集合重建 Problem，避免 n_var 与数据长度不一致
                 try:
                     problem.close()
                 except Exception:
@@ -213,19 +261,23 @@ class SchoolSelectionOptimizer:
                 problem = SchoolSelectionProblem(
                     all_schools_data,
                     background_major,
+                    background_faculty,
                     plan_config.max_schools,
                     adaptive_thresholds,
                     school_level=school_level,
                     gpa=gpa,
                     min_schools=min_schools,
                 )
-                dynamic_pop_size, dynamic_n_gen, ref_dirs = _compute_algo_params(len(all_schools_data))
+                dynamic_pop_size, dynamic_n_gen, ref_dirs = _compute_algo_params(
+                    len(all_schools_data)
+                )
 
             res = minimize(problem, algorithm, ("n_gen", dynamic_n_gen), seed=1, verbose=False)
             recommendations = self._process_results(
                 res,
                 all_schools_data,
                 background_major,
+                background_faculty,
                 min_schools,
                 plan_config.max_schools,
                 self.correlation_matrix,
@@ -246,6 +298,7 @@ class SchoolSelectionOptimizer:
         return self._get_fallback_recommendation(
             all_schools_data,
             background_major,
+            background_faculty,
             min_schools,
             plan_config.max_schools,
             adaptive_thresholds,
@@ -256,6 +309,7 @@ class SchoolSelectionOptimizer:
         self,
         all_schools_data: list[dict[str, Any]],
         background_major: str,
+        background_faculty: str | None,
         min_schools: int,
         max_schools: int,
         adaptive_thresholds: dict[str, float],
@@ -278,7 +332,7 @@ class SchoolSelectionOptimizer:
                 adaptive_thresholds,
                 bg_target_similarity_cache=problem.bg_target_similarity_cache_data,
                 new_major_cache=problem.new_major_cache,
-                background_major_category=problem.background_major_category,
+                background_faculty=problem.background_faculty,
                 major_category_cache=problem.major_category_cache,
             )
             self._metric_cache.put(cache_key, metrics.copy())
@@ -314,6 +368,7 @@ class SchoolSelectionOptimizer:
         res,
         all_schools_data: list[dict[str, Any]],
         background_major: str,
+        background_faculty: str | None,
         min_schools: int,
         max_schools: int,
         correlation_matrix: pd.DataFrame,
@@ -325,6 +380,7 @@ class SchoolSelectionOptimizer:
             fallback = self._get_fallback_recommendation(
                 all_schools_data,
                 background_major,
+                background_faculty,
                 min_schools,
                 max_schools,
                 adaptive_thresholds,
@@ -342,6 +398,7 @@ class SchoolSelectionOptimizer:
                 res.F[idx],
                 all_schools_data,
                 background_major,
+                background_faculty,
                 min_schools,
                 max_schools,
                 correlation_matrix,
@@ -355,6 +412,7 @@ class SchoolSelectionOptimizer:
             fallback = self._get_fallback_recommendation(
                 all_schools_data,
                 background_major,
+                background_faculty,
                 min_schools,
                 max_schools,
                 adaptive_thresholds,
@@ -373,6 +431,7 @@ class SchoolSelectionOptimizer:
             fallback = self._get_fallback_recommendation(
                 all_schools_data,
                 background_major,
+                background_faculty,
                 min_schools,
                 max_schools,
                 adaptive_thresholds,
@@ -457,6 +516,7 @@ class SchoolSelectionOptimizer:
         f_values: np.ndarray,
         all_schools_data: list[dict[str, Any]],
         background_major: str,
+        background_faculty: str | None,
         min_schools: int,
         max_schools: int,
         correlation_matrix: pd.DataFrame,
@@ -465,6 +525,27 @@ class SchoolSelectionOptimizer:
     ) -> dict[str, Any] | None:
         selected_indices = np.where(x == 1)[0]
         selected_schools = [all_schools_data[j] for j in selected_indices]
+
+        if background_faculty and adaptive_thresholds:
+            reach_threshold = adaptive_thresholds.get("target_lower", 0.0)
+
+            filtered_selection = []
+            for school in selected_schools:
+                is_reach = school.get("probability", 1.0) < reach_threshold
+                if not is_reach:
+                    filtered_selection.append(school)
+                    continue
+
+                uni = school.get("university", "")
+                major = school.get("major", "")
+                cache_key = f"{uni}|{major}"
+                target_faculty = problem.major_category_cache.get(cache_key)
+
+                if target_faculty == background_faculty:
+                    filtered_selection.append(school)
+
+            selected_schools = filtered_selection
+
         num_selected = len(selected_schools)
 
         if num_selected < min_schools:
@@ -488,7 +569,7 @@ class SchoolSelectionOptimizer:
                 adaptive_thresholds,
                 bg_target_similarity_cache=problem.bg_target_similarity_cache_data,
                 new_major_cache=problem.new_major_cache,
-                background_major_category=problem.background_major_category,
+                background_faculty=problem.background_faculty,
                 major_category_cache=problem.major_category_cache,
             )
             self._metric_cache.put(cache_key, metrics.copy())

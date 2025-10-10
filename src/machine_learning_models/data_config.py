@@ -6,6 +6,7 @@ IRRELEVANT_COLUMNS = [
     "activity_detail",
     "activity_count",
     "background_major_original",
+    "faculty",
 ]
 
 CATEGORICAL_COLUMNS = [

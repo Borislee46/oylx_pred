@@ -97,7 +97,7 @@ def render_target_section(session_manager, form_state_manager, cases_df, logger)
     row2_col1, row2_col2 = st.columns(2)
     with row2_col1:
         helper.render_multiselect(
-            "专业大类（选填）",
+            "所属学院（选填）",
             options=options_for_category_select,
             default_selections=list(selected_categories),
             widget_key="target_major_categories_multiselect",

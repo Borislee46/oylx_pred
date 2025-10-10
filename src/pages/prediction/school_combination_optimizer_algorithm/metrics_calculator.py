@@ -7,10 +7,6 @@ from src.pages.prediction.prediction_utils import get_cached_major_similarity, i
 from src.pages.prediction.school_combination_optimizer_algorithm.common_utils import (
     clip_probability,
 )
-from src.pages.prediction.school_combination_optimizer_algorithm.major_category_config import (
-    get_category_similarity_threshold_adjustment,
-    get_cross_major_limit,
-)
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer_config import (
     BALANCE_RATIOS,
     PRESTIGE_WEIGHT,
@@ -25,7 +21,7 @@ def calculate_metrics(
     adaptive_thresholds: dict[str, float] = None,
     bg_target_similarity_cache: dict = None,
     new_major_cache: dict = None,
-    background_major_category: str = None,
+    background_faculty: str = None,
     major_category_cache: dict = None,
 ) -> dict[str, Any]:
     if not schools:
@@ -62,12 +58,15 @@ def calculate_metrics(
 
     new_major_count, new_major_ratio = _calculate_new_major_stats(schools, new_major_cache)
 
-    major_category_score, cross_major_ratio, major_category_diversity = _calculate_category_stats(
+    (
+        major_category_score,
+        cross_major_ratio,
+        major_category_diversity,
+    ) = _calculate_category_stats(
         schools,
         background_major,
-        background_major_category,
+        background_faculty,
         major_category_cache,
-        bg_target_similarity_cache,
     )
 
     return {
@@ -212,11 +211,10 @@ def _calculate_new_major_stats(
 def _calculate_category_stats(
     schools: list[dict[str, Any]],
     background_major: str,
-    background_major_category: str | None,
+    background_faculty: str | None,
     major_category_cache: dict | None,
-    bg_target_similarity_cache: dict | None,
 ) -> tuple[float, float, int]:
-    if not background_major_category or major_category_cache is None:
+    if not background_faculty or major_category_cache is None:
         return 1.0, 0.0, 0
 
     category_counts: dict[str, int] = {}
@@ -230,74 +228,13 @@ def _calculate_category_stats(
 
         if target_category:
             category_counts[target_category] = category_counts.get(target_category, 0) + 1
-            if target_category == background_major_category:
+            if target_category == background_faculty:
                 same_category_count += 1
 
     cross_major_count = len(schools) - same_category_count
     cross_major_ratio = cross_major_count / len(schools) if len(schools) > 0 else 0.0
     major_category_diversity = len(category_counts)
 
-    cross_major_limit = get_cross_major_limit(background_major_category)
-
-    if cross_major_ratio > cross_major_limit:
-        excess_ratio = cross_major_ratio - cross_major_limit
-        major_category_score = max(0, 1.0 - excess_ratio * 3)
-    else:
-        major_category_score = max(0, 1.0 - cross_major_ratio * 1.2)
-
-    if cross_major_ratio > 0:
-        major_category_score = _apply_cross_major_similarity_penalty(
-            schools,
-            background_major,
-            background_major_category,
-            major_category_cache,
-            bg_target_similarity_cache,
-            major_category_score,
-        )
+    major_category_score = 1.0 - (cross_major_ratio * 0.5)
 
     return major_category_score, cross_major_ratio, major_category_diversity
-
-
-def _apply_cross_major_similarity_penalty(
-    schools: list[dict[str, Any]],
-    background_major: str,
-    background_major_category: str,
-    major_category_cache: dict,
-    bg_target_similarity_cache: dict | None,
-    major_category_score: float,
-) -> float:
-    cross_major_similarity_sum = 0.0
-    cross_major_schools = 0
-    dynamic_threshold_sum = 0.0
-    base_threshold = 0.6
-
-    cache = bg_target_similarity_cache or {}
-
-    for school in schools:
-        university = school.get("university", "")
-        major = school.get("major", "")
-        cache_key = f"{university}|{major}"
-        target_category = major_category_cache.get(cache_key, "")
-
-        if target_category and target_category != background_major_category:
-            target_major = school.get("major", "")
-            similarity = get_cached_major_similarity(
-                target_major=target_major,
-                background_major=background_major,
-                cache=cache,
-            )
-            adjustment = get_category_similarity_threshold_adjustment(
-                background_major_category, target_category
-            )
-            cross_major_similarity_sum += similarity
-            dynamic_threshold_sum += base_threshold + adjustment
-            cross_major_schools += 1
-
-    if cross_major_schools > 0:
-        avg_cross_major_similarity = cross_major_similarity_sum / cross_major_schools
-        avg_dynamic_threshold = dynamic_threshold_sum / cross_major_schools
-        gap = max(0.0, avg_dynamic_threshold - avg_cross_major_similarity)
-        scale = max(0.0, 1.0 - gap * 2.5)
-        major_category_score *= scale
-
-    return major_category_score

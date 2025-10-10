@@ -11,9 +11,6 @@ from src.pages.prediction.school_combination_optimizer_algorithm.candidate_filte
 from src.pages.prediction.school_combination_optimizer_algorithm.common_utils import (
     normalize_school_name,
 )
-from src.pages.prediction.school_combination_optimizer_algorithm.major_category_config import (
-    get_cross_major_limit,
-)
 from src.pages.prediction.school_combination_optimizer_algorithm.metrics_calculator import (
     calculate_metrics,
 )
@@ -39,6 +36,7 @@ class SchoolSelectionProblem(Problem):
         self,
         all_schools_data: list[dict[str, Any]],
         background_major: str,
+        background_faculty: str | None,
         max_schools: int = 10,
         adaptive_thresholds: dict[str, float] = None,
         school_level: str = None,
@@ -50,11 +48,12 @@ class SchoolSelectionProblem(Problem):
         self._norm_top8 = {normalize_school_name(u) for u in TOP8_SCHOOLS}
 
         all_schools_data = filter_candidates_by_background(
-            all_schools_data, school_level, gpa, min_schools
+            all_schools_data, school_level, gpa, min_schools, background_faculty
         )
 
         self.all_schools_data = all_schools_data
         self.background_major = background_major
+        self.background_faculty = background_faculty
         self.max_schools = max_schools
         self.min_schools = max(0, int(min_schools))
 
@@ -73,14 +72,12 @@ class SchoolSelectionProblem(Problem):
         )
 
         n_var = len(self.all_schools_data)
-        super().__init__(n_var=n_var, n_obj=6, n_constr=10, xl=0, xu=1, type_var=np.bool_)
+        super().__init__(n_var=n_var, n_obj=6, n_constr=8, xl=0, xu=1, type_var=np.bool_)
 
         self.bg_target_similarity_cache_data = load_bg_target_similarity_cache()
 
         details_df = load_school_major_details_df()
-        self.background_major_category, self.major_category_cache = build_major_category_cache(
-            background_major, details_df
-        )
+        self.major_category_cache = build_major_category_cache(details_df)
         self.new_major_cache = build_new_major_cache(all_schools_data)
 
         self._precompute_constraint_helpers()
@@ -156,19 +153,10 @@ class SchoolSelectionProblem(Problem):
         g4_min_safety = np.zeros(n_pop)
         g5_min_count = np.zeros(n_pop)
         g6_hk_violation = np.zeros(n_pop)
-        g7_cross_major_violation = np.zeros(n_pop)
-        g8_same_group_min_violation = np.zeros(n_pop)
-        g9_min_top3 = np.zeros(n_pop)
-        g10_min_top5 = np.zeros(n_pop)
+        g7_min_top3 = np.zeros(n_pop)
+        g8_min_top5 = np.zeros(n_pop)
 
         num_selected_vec = np.sum(x, axis=1)
-
-        cross_major_limit = (
-            get_cross_major_limit(self.background_major_category)
-            if self.background_major_category
-            else 0.5
-        )
-        cross_major_limit = max(0.0, min(1.0, cross_major_limit - 0.1))
 
         empty_mask = num_selected_vec == 0
         if np.any(empty_mask):
@@ -191,7 +179,6 @@ class SchoolSelectionProblem(Problem):
                     i,
                     selected_schools,
                     len(selected_indices),
-                    cross_major_limit,
                 )
                 futures.append(future)
 
@@ -213,10 +200,8 @@ class SchoolSelectionProblem(Problem):
                         g4_min_safety[i],
                         g5_min_count[i],
                         g6_hk_violation[i],
-                        g7_cross_major_violation[i],
-                        g8_same_group_min_violation[i],
-                        g9_min_top3[i],
-                        g10_min_top5[i],
+                        g7_min_top3[i],
+                        g8_min_top5[i],
                     ) = constraints
                 except Exception:
                     f1_rejection[i] = 1.0
@@ -261,21 +246,19 @@ class SchoolSelectionProblem(Problem):
                 g4_min_safety,
                 g5_min_count,
                 g6_hk_violation,
-                g7_cross_major_violation,
-                g8_same_group_min_violation,
-                g9_min_top3,
-                g10_min_top5,
+                g7_min_top3,
+                g8_min_top5,
             ]
         )
 
-    def _evaluate_single(self, index, selected_schools, num_selected, cross_major_limit):
+    def _evaluate_single(self, index, selected_schools, num_selected):
         metrics = calculate_metrics(
             schools=selected_schools,
             background_major=self.background_major,
             adaptive_thresholds=self.adaptive_thresholds,
             bg_target_similarity_cache=self.bg_target_similarity_cache_data,
             new_major_cache=self.new_major_cache,
-            background_major_category=self.background_major_category,
+            background_faculty=self.background_faculty,
             major_category_cache=self.major_category_cache,
         )
 
@@ -304,28 +287,6 @@ class SchoolSelectionProblem(Problem):
         min_reach_required = max(1, round(num_selected * ratios["reach"]))
         min_target_required = max(1, round(num_selected * ratios["target"]))
         min_safety_required = max(1, round(num_selected * ratios["safety"]))
-
-        try:
-            from .optimizer_config import CONSTRAINT_FLEXIBILITY, SAME_GROUP_MIN_RATIO
-        except Exception:
-            SAME_GROUP_MIN_RATIO = 0.7
-            CONSTRAINT_FLEXIBILITY = {}
-
-        flexible_same_group_ratio = CONSTRAINT_FLEXIBILITY.get(
-            "min_same_group_ratio", SAME_GROUP_MIN_RATIO
-        )
-
-        same_group_min_violation = 0
-        if self.background_major_category and metrics.get("major_category_diversity", 0) >= 1:
-            cross_ratio = float(metrics.get("cross_major_ratio", 0.0))
-            same_ratio = max(0.0, 1.0 - cross_ratio)
-
-            if CONSTRAINT_FLEXIBILITY.get("adaptive_balance", True) and num_selected <= 5:
-                flexible_same_group_ratio = max(0.4, flexible_same_group_ratio - 0.1)
-
-            if same_ratio + 1e-9 < flexible_same_group_ratio:
-                gap = flexible_same_group_ratio - same_ratio
-                same_group_min_violation = max(1, int(round(gap * num_selected)))
 
         min_top3_violation = 0
         min_top5_violation = 0
@@ -360,8 +321,6 @@ class SchoolSelectionProblem(Problem):
             max(0, min_safety_required - safety_count),
             max(0, self.min_schools - num_selected),
             self._calculate_hk_violation(selected_schools),
-            max(0.0, metrics.get("cross_major_ratio", 0.0) - cross_major_limit),
-            same_group_min_violation,
             min_top3_violation,
             min_top5_violation,
         )

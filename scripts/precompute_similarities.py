@@ -317,7 +317,6 @@ def precompute_similarities():
                 bg_target_cache[key] = similarity
                 pbar.update(1)
 
-    # 将缓存统一保存到项目根目录下的 cache 目录，格式为 feather
     root_cache_dir = os.path.join(project_root, "cache")
     bg_bg_cache_path = os.path.join(root_cache_dir, "background_background_similarity.feather")
     bg_target_cache_path = os.path.join(root_cache_dir, "background_target_similarity.feather")
@@ -335,7 +334,6 @@ def precompute_similarities():
         start_save_time = time.time()
         try:
             os.makedirs(os.path.dirname(path), exist_ok=True)
-            # 将字典转换为 DataFrame 后保存为 feather
             df = pd.DataFrame(
                 {"key": list(cache_data.keys()), "similarity": list(cache_data.values())}
             )
