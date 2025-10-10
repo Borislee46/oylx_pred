@@ -4,12 +4,10 @@ from typing import Any
 
 
 def _normalize_major_name(major_name: str) -> str:
-    return re.sub(r'\s*\(.*\)\s*', '', major_name).strip()
+    return re.sub(r"\s*\(.*\)\s*", "", major_name).strip()
 
 
-def deduplicate_majors(
-    schools: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def deduplicate_majors(schools: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not schools:
         return []
 
