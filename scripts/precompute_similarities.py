@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import sys
 import time
 
@@ -33,7 +32,6 @@ project_root, script_dir = setup_environment()
 
 logging.info("导入本地脚本中的模型工具...")
 from model_utils import compute_embeddings_batch_local, compute_similarity_matrix, get_model
-
 
 try:
     logging.info("尝试相对导入...")

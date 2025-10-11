@@ -13,9 +13,7 @@ def get_model(model_name="google/embeddinggemma-300m", use_quantization=False):
     project_root = os.path.dirname(script_dir)
 
     gemma_local_path = os.path.join(project_root, "src", "services", "embeddinggemma-300m")
-    e5_local_path = os.path.join(
-        project_root, "src", "services", "multilingual-e5-large-instruct"
-    )
+    e5_local_path = os.path.join(project_root, "src", "services", "multilingual-e5-large-instruct")
 
     models_to_try = [
         ("Gemma", gemma_local_path),
@@ -28,7 +26,11 @@ def get_model(model_name="google/embeddinggemma-300m", use_quantization=False):
             try:
                 model = SentenceTransformer(model_path)
 
-                if use_quantization and hasattr(torch, "quantization") and not torch.cuda.is_available():
+                if (
+                    use_quantization
+                    and hasattr(torch, "quantization")
+                    and not torch.cuda.is_available()
+                ):
                     logging.info("应用量化（仅限CPU）...")
                     try:
                         transformer = model._first_module().auto_model
