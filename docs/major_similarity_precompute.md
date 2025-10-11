@@ -1,12 +1,12 @@
-## 专业相似度预计算（E5 Embedding）(https://huggingface.co/intfloat/multilingual-e5-large-instruct)
+## 专业相似度预计算（Gemma Embedding）(https://huggingface.co/google/embeddinggemma-300m)
 
-本说明描述如何使用 E5 嵌入模型预计算专业相似度缓存，以加速预测/推荐阶段的相似度查询（脚本暂不公开，有需要请联系lijiapeng8@xdf.cn）。
+本说明描述如何使用 Gemma 嵌入模型预计算专业相似度缓存，以加速预测/推荐阶段的相似度查询（脚本暂不公开，有需要请联系lijiapeng8@xdf.cn）。
 
 ### 模型与加载（scripts/model_utils.py）
 - 优先本地加载：
-  - E5: `src/services/multilingual-e5-large-instruct`
-  - 备用 MPNet: `src/services/paraphrase-multilingual-mpnet-base-v2`
-- 本地不存在时回退到在线模型（如 `intfloat/multilingual-e5-large-instruct`）。
+  - embeddinggemma: `src/services/embeddinggemma-300m`
+  - 备用 E5: `src/services/multilingual-e5-large-instruct`
+- 本地不存在时回退到在线模型（如 `google/embeddinggemma-300m`）。
 - 支持 GPU/CPU，CPU 可选动态量化（线性层）。
 - 批量大小：`compute_embeddings_batch_local(..., batch_size=64)` 默认 64，可按机器性能调整。
 
@@ -45,6 +45,6 @@ python scripts/precompute_similarities.py
 
 ---
 维护人：lijiapeng8@xdf.cn
-版本：v2.4
+版本：v2.5
 
 

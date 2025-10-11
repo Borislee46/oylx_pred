@@ -35,58 +35,32 @@ logging.info("导入本地脚本中的模型工具...")
 from model_utils import compute_embeddings_batch_local, compute_similarity_matrix, get_model
 
 
-def import_dependencies():
-    try:
-        logging.info("尝试相对导入...")
-        from src.pages.prediction.prediction_utils import get_cached_major_similarity_key
+try:
+    logging.info("尝试相对导入...")
+    from src.pages.prediction.prediction_utils import get_cached_major_similarity_key
+except ImportError as e:
+    logging.error(f"关键依赖导入失败: {e}。请确保脚本从项目根目录运行，或src目录在PYTHONPATH中。")
+    sys.exit(1)
 
-        CASES_DATA_PATH = os.path.join(
-            project_root, "src", "machine_learning_models", "data", "cases.feather"
-        )
-        SCHOOL_MAJOR_DETAILS_PATH = os.path.join(
-            project_root, "src", "machine_learning_models", "data", "school_major_details.feather"
-        )
-        MAJOR_SIMILARITY_CACHE_PATH = os.path.join(
-            project_root,
-            "src",
-            "machine_learning_models",
-            "data",
-            "cache",
-            "major_similarity_cache.json",
-        )
-
-        logging.info("相对导入成功")
-        return (
-            get_cached_major_similarity_key,
-            CASES_DATA_PATH,
-            SCHOOL_MAJOR_DETAILS_PATH,
-            MAJOR_SIMILARITY_CACHE_PATH,
-        )
-
-    except ImportError as e:
-        logging.warning(f"相对导入失败: {e}")
+CASES_DATA_PATH = os.path.join(
+    project_root, "src", "machine_learning_models", "data", "cases.feather"
+)
+SCHOOL_MAJOR_DETAILS_PATH = os.path.join(
+    project_root, "src", "machine_learning_models", "data", "school_major_details.feather"
+)
+MAJOR_SIMILARITY_CACHE_PATH = os.path.join(
+    project_root,
+    "src",
+    "machine_learning_models",
+    "data",
+    "cache",
+    "major_similarity_cache.json",
+)
+logging.info("依赖导入成功")
 
 
-(
-    get_cached_major_similarity_key,
-    CASES_DATA_PATH,
-    SCHOOL_MAJOR_DETAILS_PATH,
-    MAJOR_SIMILARITY_CACHE_PATH,
-) = import_dependencies()
-
-MODEL_NAME = "intfloat/multilingual-e5-large-instruct"
+MODEL_NAME = "google/embeddinggemma-300m"
 BATCH_SIZE = 64
-
-
-def clean_english_major_name_specifically(name: str) -> str:
-    if not isinstance(name, str):
-        return ""
-
-    name_no_chinese = re.sub(r"[\u4e00-\u9fff]+", "", name)
-    cleaned_name = re.sub(r"[^a-zA-Z0-9\s\-\(\)\/\&\.\']+", "", name_no_chinese)
-
-    cleaned_name = re.sub(r"\s+", " ", cleaned_name).strip()
-    return cleaned_name
 
 
 def precompute_similarities():
@@ -107,17 +81,7 @@ def precompute_similarities():
         lower = path.lower()
         if lower.endswith(".feather"):
             return pd.read_feather(path)
-        if lower.endswith(".csv"):
-            return pd.read_csv(path)
-        if lower.endswith(".parquet"):
-            return pd.read_parquet(path)
-        try:
-            return pd.read_feather(path)
-        except Exception:
-            try:
-                return pd.read_csv(path)
-            except Exception:
-                return pd.read_parquet(path)
+        return pd.read_feather(path)
 
     try:
         if os.path.exists(SCHOOL_MAJOR_DETAILS_PATH):

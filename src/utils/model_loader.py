@@ -112,7 +112,7 @@ def load_model_dependencies(
     return xgb_model, feature_names
 
 
-@st.cache_resource(show_spinner="正在加载模型，请稍候...")
+@st.cache_resource(show_spinner=False)
 def load_model(model_name: str = "xgboost") -> tuple[Any | None, list[str] | None]:
     model, feature_names = load_model_dependencies(
         "src/machine_learning_models/pre-trained_models", model_name
