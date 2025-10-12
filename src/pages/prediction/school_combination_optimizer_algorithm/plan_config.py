@@ -10,9 +10,9 @@ class PlanConfig:
 
 
 DEFAULT_PLAN_CONFIGS: List[PlanConfig] = [
-    PlanConfig(name="申请策略1", min_schools=5, max_schools=5),
-    PlanConfig(name="申请策略2", min_schools=6, max_schools=6),
-    PlanConfig(name="申请策略3", min_schools=10, max_schools=10),
+    PlanConfig(name="普通合同申请策略", min_schools=6, max_schools=6),
+    PlanConfig(name="联申合同申请策略", min_schools=9, max_schools=9),
+    PlanConfig(name="高端合同申请策略", min_schools=10, max_schools=10),
 ]
 
 

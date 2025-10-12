@@ -130,7 +130,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 ---
 
 ## 部署说明
-- 单机：`streamlit run main.py` 即可启动。
+- 单机：`streamlit run main.py --server.address localhost` 即可启动。
 - 框架：streamlit前端和python后端耦合（后续可能会解耦django前端+Fastapi后端）。
 - 环境参数：参考config/dev_config.json确认debug模式是否开启，关闭后再check src/utils/env_config_loader.py里的环境配置。
 

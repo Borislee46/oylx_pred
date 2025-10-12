@@ -183,6 +183,36 @@ class SchoolSelectionOptimizer:
 
         all_schools_data = problem.all_schools_data
 
+        # 基于专业相似度对澳门高校进行同校唯一化预过滤
+        try:
+            from .optimizer_config import MACAU_UNIVERSITIES
+            from .pre_filter import deduplicate_universities_by_similarity
+
+            filtered_once = deduplicate_universities_by_similarity(
+                schools=all_schools_data,
+                background_major=background_major,
+                similarity_cache=problem.bg_target_similarity_cache_data,
+                target_universities=MACAU_UNIVERSITIES,
+            )
+            if len(filtered_once) != len(all_schools_data):
+                all_schools_data = filtered_once
+                try:
+                    problem.close()
+                except Exception:
+                    pass
+                problem = SchoolSelectionProblem(
+                    all_schools_data,
+                    background_major,
+                    background_faculty,
+                    plan_config.max_schools,
+                    adaptive_thresholds,
+                    school_level=school_level,
+                    gpa=gpa,
+                    min_schools=min_schools,
+                )
+        except Exception:
+            pass
+
         def _compute_algo_params(problem_size: int) -> tuple[int, int, Any]:
             n_ref = 42
             ref = get_cached_reference_directions("energy", n_dim=6, n_points=n_ref)

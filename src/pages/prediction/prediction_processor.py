@@ -5,6 +5,7 @@ import pandas as pd
 from src.pages.prediction.prediction_types import PredictionInput
 from src.pages.prediction.prediction_utils import (
     get_cached_major_similarities_batch,
+    get_school_major_details,
     get_valid_school_major_set,
     has_school_major_details,
 )
@@ -56,6 +57,57 @@ def generate_prediction_combinations(
     }
 
     return valid_combinations, meta
+
+
+def _filter_part_time_majors(results: list) -> list:
+    if not results:
+        return results
+
+    filtered = []
+    for result in results:
+        major = result.get("major", "").lower()
+        if "part" in major and "time" in major:
+            continue
+        filtered.append(result)
+
+    return filtered
+
+
+def _attach_chinese_names_batch(results: list, details_df_full: pd.DataFrame | None = None) -> list:
+    if not results:
+        return results
+
+    if details_df_full is None:
+        details_df_full = get_school_major_details(None, None, return_df=True)
+
+    if details_df_full is None or details_df_full.empty:
+        for res in results:
+            res["chinese_name"] = ""
+        return results
+
+    query_df = pd.DataFrame(
+        [
+            {"学校": r["university"], "专业英文名称": r["major"]}
+            for r in results
+            if isinstance(r, dict)
+        ]
+    ).drop_duplicates()
+
+    if query_df.empty:
+        for res in results:
+            res["chinese_name"] = ""
+        return results
+
+    merged_df = pd.merge(query_df, details_df_full, on=["学校", "专业英文名称"], how="left")
+    cn_map = pd.Series(
+        merged_df.get("专业中文名称", pd.Series([""] * len(merged_df))).values,
+        index=pd.MultiIndex.from_frame(merged_df[["学校", "专业英文名称"]]),
+    ).to_dict()
+
+    for res in results:
+        res["chinese_name"] = cn_map.get((res.get("university"), res.get("major")), "")
+
+    return results
 
 
 def _calculate_and_attach_similarities(
@@ -114,8 +166,18 @@ def process_prediction_results(
     if not results:
         return [], [], []
 
+    results = _filter_part_time_majors(results)
+
+    if not results:
+        return [], [], []
+
     results_with_similarity = _calculate_and_attach_similarities(
         results, background_major, bg_target_similarity_cache
+    )
+
+    details_df_full = get_school_major_details(None, None, return_df=True)
+    results_with_similarity = _attach_chinese_names_batch(
+        results_with_similarity, details_df_full=details_df_full
     )
 
     top_similarity_results = _get_similar_major_recommendations(

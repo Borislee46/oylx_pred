@@ -71,6 +71,13 @@ TOP8_SCHOOLS = [
     "新加坡国立大学",
 ]
 
+MACAU_UNIVERSITIES = {
+    "澳门大学",
+    "澳门科技大学",
+    "澳门城市大学",
+    "澳门理工大学",
+}
+
 GLOBAL_MIN_SIMILARITY = 0.65
 
 

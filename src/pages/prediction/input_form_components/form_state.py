@@ -164,6 +164,10 @@ class FormStateManager:
             prediction_submit_lock=False,
             last_gpa_warning_key=None,
             last_lang_warning_key=None,
+            cross_faculty_confirmed=False,
+            cross_faculty_cancelled=False,
+            pending_cross_faculty_prediction=False,
+            pending_prediction_data=None,
         )
 
         throttle = 4.0 if change_type == "text" else 1.5
@@ -212,7 +216,10 @@ class FormStateManager:
                 f"用户更改专业大类 - 从 {old_categories} 变更为 {new_categories}"
             )
 
-        session_manager.set(selected_major_categories=new_categories, target_options_cache={})
+        session_manager.set(
+            selected_major_categories=new_categories,
+            target_options_cache={},
+        )
         FormStateManager.on_form_change(session_manager)
 
     @staticmethod
@@ -225,7 +232,10 @@ class FormStateManager:
                 f"用户更改目标院校 - 从 {old_universities} 变更为 {new_universities}"
             )
 
-        session_manager.set(selected_target_universities=new_universities, target_options_cache={})
+        session_manager.set(
+            selected_target_universities=new_universities,
+            target_options_cache={},
+        )
         FormStateManager.on_form_change(session_manager)
 
     @staticmethod
@@ -236,7 +246,10 @@ class FormStateManager:
         if old_majors != new_majors:
             form_state_logger.info(f"用户更改目标专业 - 从 {old_majors} 变更为 {new_majors}")
 
-        session_manager.set(selected_target_majors=new_majors, target_options_cache={})
+        session_manager.set(
+            selected_target_majors=new_majors,
+            target_options_cache={},
+        )
         FormStateManager.on_form_change(session_manager)
 
     @staticmethod

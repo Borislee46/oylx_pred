@@ -6,6 +6,6 @@ def xlsx_to_csv(xlsx_file, csv_file, sheet_name=0):
     df.to_csv(csv_file, index=False, encoding="utf-8")
 
 
-xlsx_file = "src/machine_learning_models/data/school_major_details.xlsx"
-csv_file = "src/machine_learning_models/data/school_major_details.csv"
+xlsx_file = "src/machine_learning_models/data/cases.xlsx"
+csv_file = "src/machine_learning_models/data/cases.csv"
 xlsx_to_csv(xlsx_file, csv_file)

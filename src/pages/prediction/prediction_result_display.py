@@ -9,10 +9,6 @@ from src.pages.prediction.data_sort_config.top_result_ui_config import (
     TOP_CROSS_RESULT_UI_CONFIG,
     TOP_SIM_RESULT_UI_CONFIG,
 )
-from src.pages.prediction.prediction_utils import (
-    format_school_major_details_from_row,
-    get_school_major_details,
-)
 from src.pages.prediction.result_modifier.config import TOP_N_RECOMMENDATIONS
 from src.utils.session_manager import SessionManager
 
@@ -78,72 +74,6 @@ class ResultsDisplay:
 
         st.data_editor(data_to_render, hide_index=True, column_config=column_config, disabled=True)
 
-    def _get_details_in_batch(self, results, details_df_full=None):
-        if not results:
-            return []
-
-        query_df = pd.DataFrame(
-            [
-                {"学校": r["university"], "专业英文名称": r["major"]}
-                for r in results
-                if isinstance(r, dict)
-            ]
-        ).drop_duplicates()
-
-        if query_df.empty:
-            return ["无详细信息"] * len(results)
-
-        if details_df_full is None:
-            details_df_full = get_school_major_details(None, None, return_df=True)
-        if details_df_full is None or details_df_full.empty:
-            return ["无详细信息"] * len(results)
-
-        merged_df = pd.merge(query_df, details_df_full, on=["学校", "专业英文名称"], how="left")
-
-        merged_df["formatted_details"] = merged_df.apply(
-            format_school_major_details_from_row, axis=1
-        )
-
-        details_map = pd.Series(
-            merged_df.formatted_details.values,
-            index=pd.MultiIndex.from_frame(merged_df[["学校", "专业英文名称"]]),
-        ).to_dict()
-
-        return [
-            details_map.get((r.get("university"), r.get("major")), "无详细信息") for r in results
-        ]
-
-    def _get_chinese_names_in_batch(self, results, details_df_full=None):
-        if not results:
-            return []
-
-        query_df = pd.DataFrame(
-            [
-                {"学校": r["university"], "专业英文名称": r["major"]}
-                for r in results
-                if isinstance(r, dict)
-            ]
-        ).drop_duplicates()
-
-        if query_df.empty:
-            return [""] * len(results)
-
-        if details_df_full is None:
-            details_df_full = get_school_major_details(None, None, return_df=True)
-        if details_df_full is None or details_df_full.empty:
-            return [""] * len(results)
-
-        merged_df = pd.merge(query_df, details_df_full, on=["学校", "专业英文名称"], how="left")
-        cn_map = pd.Series(
-            merged_df.get("专业中文名称", pd.Series([""] * len(merged_df))).values,
-            index=pd.MultiIndex.from_frame(merged_df[["学校", "专业英文名称"]]),
-        ).to_dict()
-
-        return [cn_map.get((r.get("university"), r.get("major")), "") for r in results]
-
-    def _format_details_for_display(self, details_str):
-        return details_str if details_str else "无详细信息"
-
     def _create_top_similarity_dataframe(
         self, gpa=None, language_score=None, background_university=None, details_df_full=None
     ):
@@ -160,7 +90,6 @@ class ResultsDisplay:
                 )
             )
 
-        chinese_names = self._get_chinese_names_in_batch(results, details_df_full=details_df_full)
         return pd.DataFrame(
             {
                 "目标院校": [result["university"] for result in results],
@@ -175,7 +104,7 @@ class ResultsDisplay:
                 "录取概率": [
                     self._get_probability_value(result.get("probability")) for result in results
                 ],
-                "专业中文名称": chinese_names,
+                "专业中文名称": [result.get("chinese_name", "") for result in results],
             }
         )
 
@@ -195,8 +124,6 @@ class ResultsDisplay:
                 )
             )
 
-        chinese_names = self._get_chinese_names_in_batch(results, details_df_full=details_df_full)
-
         return pd.DataFrame(
             {
                 "目标院校": [result["university"] for result in results],
@@ -211,7 +138,7 @@ class ResultsDisplay:
                 "录取概率": [
                     self._get_probability_value(result.get("probability", 0)) for result in results
                 ],
-                "专业中文名称": chinese_names,
+                "专业中文名称": [result.get("chinese_name", "") for result in results],
             }
         )
 
@@ -239,8 +166,6 @@ class ResultsDisplay:
         if isinstance(max_items, int) and max_items > 0:
             results = results[:max_items]
 
-        chinese_names = self._get_chinese_names_in_batch(results, details_df_full=details_df_full)
-
         return pd.DataFrame(
             {
                 "目标院校": [result["university"] for result in results],
@@ -255,7 +180,7 @@ class ResultsDisplay:
                 "录取概率": [
                     self._get_probability_value(result.get("probability", 0)) for result in results
                 ],
-                "专业中文名称": chinese_names,
+                "专业中文名称": [result.get("chinese_name", "") for result in results],
             }
         )
 
@@ -272,8 +197,6 @@ class ResultsDisplay:
         combination_count = session_manager.get("combination_count", 0)
         pool_is_large = isinstance(combination_count, int) and combination_count > 100
 
-        details_df_full = get_school_major_details(None, None, return_df=True)
-
         df_user_specified = pd.DataFrame()
         has_user_specified = False
         if not pool_is_large:
@@ -282,17 +205,16 @@ class ResultsDisplay:
                 language_score,
                 background_university,
                 max_items=None,
-                details_df_full=details_df_full,
             )
             has_user_specified = not df_user_specified.empty
 
         df_similarity = self._create_top_similarity_dataframe(
-            gpa, language_score, background_university, details_df_full=details_df_full
+            gpa, language_score, background_university
         )
         has_similarity = not df_similarity.empty
 
         df_cross_major = self._create_top_cross_major_dataframe(
-            gpa, language_score, background_university, details_df_full=details_df_full
+            gpa, language_score, background_university
         )
         has_cross_major = not df_cross_major.empty
 

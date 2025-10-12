@@ -96,5 +96,9 @@ def initialize_session_states(session_manager: SessionManager):
             processing_lock=False,
             prediction_submit_lock=False,
             input_data=None,
+            cross_faculty_confirmed=False,
+            cross_faculty_cancelled=False,
+            pending_cross_faculty_prediction=False,
+            pending_prediction_data=None,
             app_initialized=True,
         )
