@@ -5,23 +5,19 @@ from typing import Any, Dict, Mapping, MutableMapping, Optional, Protocol
 
 
 class Tool(Protocol):
-
     name: str
 
-    def __call__(self, payload: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
-        ...
+    def __call__(self, payload: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]: ...
 
 
 @dataclass
 class ToolSpec:
-
     name: str
     description: str
     input_schema: Optional[Dict[str, Any]] = None
 
 
 class ToolRegistry:
-
     def __init__(self) -> None:
         self._tools: MutableMapping[str, Tool] = {}
         self._specs: MutableMapping[str, ToolSpec] = {}
@@ -54,5 +50,3 @@ __all__ = [
     "ToolRegistry",
     "tool_registry",
 ]
-
-

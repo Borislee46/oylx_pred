@@ -1,10 +1,10 @@
-import requests
-import pandas as pd
 from typing import Any, Dict, Optional
+
+import pandas as pd
+import requests
 
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
-
 
 agent_logger = setup_logger("page3", "prediction")
 
@@ -49,7 +49,10 @@ class AIAgent:
             profile_str = "用户尚未填写背景信息。"
 
         results_str = "用户尚未进行预测。"
-        if hasattr(self.prediction_results, "unified_results") and self.prediction_results.unified_results is not None:
+        if (
+            hasattr(self.prediction_results, "unified_results")
+            and self.prediction_results.unified_results is not None
+        ):
             try:
                 results_summary = self.prediction_results.unified_results.head().to_string()
                 results_str = f"以下是部分预测结果摘要:\n{results_summary}"
@@ -90,7 +93,7 @@ class AIAgent:
                 return content
             else:
                 error_info = response_json.get("error", {})
-                error_message = error_info.get('message', '未知错误')
+                error_message = error_info.get("message", "未知错误")
                 agent_logger.error(f"API returned an error: {error_message}")
                 return f"抱歉，调用模型时出错: {error_message}"
 

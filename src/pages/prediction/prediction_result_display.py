@@ -158,7 +158,11 @@ class ResultsDisplay:
             deltas: list[str] = []
             for result in results:
                 key = (result.get("university"), result.get("major"))
-                prev_p = float(prev_prob_map.get(key, 0.0)) if prev_prob_map and prev_prob_map.get(key) is not None else None
+                prev_p = (
+                    float(prev_prob_map.get(key, 0.0))
+                    if prev_prob_map and prev_prob_map.get(key) is not None
+                    else None
+                )
                 cur_p = float(result.get("probability", 0.0) or 0.0)
                 if prev_p is None:
                     deltas.append("")
@@ -216,7 +220,11 @@ class ResultsDisplay:
             deltas: list[str] = []
             for result in results:
                 key = (result.get("university"), result.get("major"))
-                prev_p = float(prev_prob_map.get(key, 0.0)) if prev_prob_map and prev_prob_map.get(key) is not None else None
+                prev_p = (
+                    float(prev_prob_map.get(key, 0.0))
+                    if prev_prob_map and prev_prob_map.get(key) is not None
+                    else None
+                )
                 cur_p = float(result.get("probability", 0.0) or 0.0)
                 if prev_p is None:
                     deltas.append("")
@@ -278,7 +286,11 @@ class ResultsDisplay:
             deltas: list[str] = []
             for result in results:
                 key = (result.get("university"), result.get("major"))
-                prev_p = float(prev_prob_map.get(key, 0.0)) if prev_prob_map and prev_prob_map.get(key) is not None else None
+                prev_p = (
+                    float(prev_prob_map.get(key, 0.0))
+                    if prev_prob_map and prev_prob_map.get(key) is not None
+                    else None
+                )
                 cur_p = float(result.get("probability", 0.0) or 0.0)
                 if prev_p is None:
                     deltas.append("")
