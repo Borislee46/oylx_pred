@@ -21,6 +21,9 @@ from src.pages.prediction.school_combination_optimizer_algorithm.cache_utils imp
 from src.pages.prediction.school_combination_optimizer_algorithm.faculty_based_filter import (
     filter_schools_by_faculty_rules,
 )
+from src.pages.prediction.school_combination_optimizer_algorithm.metrics_calculator import (
+    calculate_metrics,
+)
 from src.pages.prediction.school_combination_optimizer_algorithm.monte_carlo import (
     run_monte_carlo_simulation,
 )
@@ -43,9 +46,6 @@ from src.pages.prediction.school_combination_optimizer_algorithm.problem import 
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.reference_direction_cache import (
     get_cached_reference_directions,
-)
-from src.pages.prediction.school_combination_optimizer_algorithm.metrics_calculator import (
-    calculate_metrics,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.school_selector import (
     generate_balanced_selection,

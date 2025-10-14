@@ -11,14 +11,14 @@ from src.pages.prediction.school_combination_optimizer_algorithm.optimizer_confi
     PRIORITY_THRESHOLD_TOP_BG_DEFAULT,
     PRIORITY_THRESHOLD_TOP_BG_GPA_GE_2_8,
     PRIORITY_THRESHOLD_TOP_BG_GPA_GE_3_2,
+    SCHOOL_CATEGORY_THRESHOLDS,
     TOP5_SCHOOLS,
     TOP8_SCHOOLS,
     TOP_BG_LEVELS_SET,
-    SCHOOL_CATEGORY_THRESHOLDS,
 )
+from src.utils.app_data_loader import load_raw_cases_data
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import SCHOOL_LEVEL_PRIORITY, get_school_level_service
-from src.utils.app_data_loader import load_raw_cases_data
 
 logger = setup_logger("page3", "prediction")
 
@@ -37,9 +37,7 @@ def _build_target_combo_sample_counts() -> dict[tuple[str, str], int]:
             return {}
 
         counts_series = (
-            df.groupby(["target_university", "target_major"]).size()
-            if not df.empty
-            else None
+            df.groupby(["target_university", "target_major"]).size() if not df.empty else None
         )
         if counts_series is None or counts_series.empty:
             return {}
@@ -89,8 +87,8 @@ def filter_candidates_by_background(
     if is_high_bg_high_gpa:
         filtered_schools = _apply_top8_priority(filtered_schools, min_schools)
 
-    safety_threshold = (
-        (adaptive_thresholds or SCHOOL_CATEGORY_THRESHOLDS).get("safety", SCHOOL_CATEGORY_THRESHOLDS["safety"])
+    safety_threshold = (adaptive_thresholds or SCHOOL_CATEGORY_THRESHOLDS).get(
+        "safety", SCHOOL_CATEGORY_THRESHOLDS["safety"]
     )
 
     filtered_schools = _ensure_safety_schools(
