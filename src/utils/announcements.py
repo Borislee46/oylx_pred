@@ -40,8 +40,8 @@ def get_user_group(
     if is_admin_user:
         groups.append("admin")
 
-    if accessible_modules.get("hk_grad", False):
-        groups.append("hk_grad")
+    if accessible_modules.get("hk", False):
+        groups.append("hk")
 
     if accessible_modules.get("eu_sales_tool", False):
         groups.append("eu_sales_tool")

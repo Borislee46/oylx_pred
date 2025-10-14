@@ -69,20 +69,20 @@ def get_user_accessible_modules(user_email: str) -> dict:
         debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
         if debug_user_email and user_email.lower() == debug_user_email.lower():
             return {
-                "hk_grad": True,
+                "hk": True,
                 "eu_sales_tool": True,
                 "admin": True,
-                "hk_grad_admin": True,
+                "hk_admin": True,
                 "log_admin": True,
                 "hr_dashboard": True,
                 "hr_structure_dashboard": True,
             }
 
     empty_modules = {
-        "hk_grad": False,
+        "hk": False,
         "eu_sales_tool": False,
         "admin": False,
-        "hk_grad_admin": False,
+        "hk_admin": False,
         "log_admin": False,
         "hr_dashboard": False,
         "hr_structure_dashboard": False,
@@ -104,10 +104,10 @@ def get_user_accessible_modules(user_email: str) -> dict:
     is_user_admin = user_email_lower in processed_config["ADMIN_EMAILS_LOWER"]
 
     return {
-        "hk_grad": _check("hk_grad"),
+        "hk": _check("hk"),
         "eu_sales_tool": _check("eu_sales_tool"),
         "admin": is_user_admin,
-        "hk_grad_admin": is_user_admin,
+        "hk_admin": is_user_admin,
         "log_admin": is_user_admin,
         "hr_dashboard": _check("hr_dashboard"),
         "hr_structure_dashboard": _check("hr_structure_dashboard"),

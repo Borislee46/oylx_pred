@@ -22,6 +22,7 @@
   - `experience_details: Dict[str, str]`
 - `PredictionResultItem`（TypedDict，可选字段）
   - `university: str`, `major: str`, `probability: float`, `similarity: float`
+  - 附加字段：`chinese_name: str`（专业中文名称，处理阶段注入）
 - `MetaInfo = Dict[str, Any]`（例如：组合数量与提示消息）
   - 注：当前类型定义文件中 `school_level` 标注为 `int`，但运行时由 `prepare_input_data` 注入为 `str`；后续将统一为 `str`。
 
@@ -49,7 +50,12 @@
     - `meta['combination_count']: int`
     - `meta['combination_message']: str`
 - `process_prediction_results(results: list, background_major: str, bg_target_similarity_cache: dict, num_target_universities: int, cases_df: pd.DataFrame | None = None, user_specified_combinations: list[tuple[str, str]] | None = None) -> Tuple[list, list, list]`
-  - 为结果打上 `similarity`，产出三类结果：相近专业、跨专业、用户指定组合的结果。
+  - 流程与输出：
+    - 先拦截 `part-time` 专业（忽略名称同时包含 "part" 与 "time" 的项目）。
+    - 批量计算并注入 `similarity`（使用缓存与规则修正器）。
+    - 基于学校-专业详情维表批量映射中文名，新增字段 `chinese_name`。
+    - 产出三类结果：相近专业、跨专业、用户指定组合。
+    - 返回的每个结果项至少包含：`university`、`major`、`probability`、`similarity`、`chinese_name`。
 
 ### 并行推理器（src/pages/prediction/run_prediction.py）
 - `run_single_prediction(current_input_data: PredictionInput, prediction_model: PredictionModel, cases_df: pd.DataFrame, bg_target_similarity_cache: dict, expected_features: List[str], all_universities_target: List[str], all_majors_target: List[str], num_target_universities: int) -> Tuple[list, list, list, None]`
@@ -83,28 +89,36 @@
     - 合并去重：`src/pages/prediction/results_handler.py` 中的 `combine_and_deduplicate_results` → `unified_results`；
     - 返回 `PredictionResultModel`。
 
-### 后处理（文本加成）
-- 固定策略：Keyword 与 TF‑IDF 双通道并行计算，逐位置取更大者（MaxOfTwo），并叠加“强信号门控”与结果缓存；整体受 `max_total_boost` 约束。
-- 细节：
-  - TF‑IDF 仅对中段概率（0.2–0.8）生效，并带强信号门控（需命中 `top_tier` 关键词）。
-- 配置项（`src/pages/prediction/result_modifier/config.py`）：
-  - `enabled`/`max_total_boost`/`timeout_ms`
-  - `similarity_thresholds`：TF‑IDF 相似度→加成阈值（如 `[[0.15,0.05]]` 或多档）。
-  - `model_paths.tfidf_vectorizer/tfidf_centroids`
-- 当前推荐：
+### 结果展示（src/pages/prediction/prediction_result_display.py）
+- `class ResultsDisplay`
+  - 展示三类结果为可交互表格，默认列：`目标院校`、`目标专业`、`录取概率`（进度条）、`专业中文名称`。
+  - 当结果项带有 `is_new_major=True` 时，在 `目标专业` 后追加 "(New!)" 并在渲染时高亮。
+  - 排序规则：优先按固定院校顺序，其次同校内按概率降序。
+  - 大组合池（>100）时优先展示 Top N 的相似/跨专业结果；用户指定组合在组合池较小时展示。
+
+### 文本加成（TF‑IDF Logit Uplift）
+- 提供方：`result_modifier/text_boost_provider.py`（外层门控与缓存）与 `providers/logit_uplift_provider.py`（核心增益计算）。
+- 生效条件（门控）：当四段文本相似度向量 `s` 满足 `sum(s) ≥ sim_gate_sum_min` 且 `max(s) ≥ sim_gate_max_min` 时生效。
+- 增益方式：对 `logit(p)` 加上经平滑后的非负增量，仅对中段概率区间（0.2–0.8）生效，并受动态封顶约束。
+- 封顶策略：`cap_boost = max_total_boost × cap_factor(质量) × (1 − 2×|p − 0.5|)`；其中质量分 `quality = 0.7×max(s)+0.3×mean(s)`，`cap_factor = clamp(cap_min_factor, 1.0, quality^cap_quality_gamma)`。
+- 关键配置（`src/pages/prediction/result_modifier/config.py`）：
 ```json
 {
-  "enabled": True,
-  "max_total_boost": 0.05,
-  "timeout_ms": 100,
-  "similarity_thresholds": [[0.15, 0.05]],
+  "enabled": true,
+  "max_total_boost": 0.10,
+  "sim_gate_sum_min": 0.25,
+  "sim_gate_max_min": 0.18,
+  "smoothing": 0.5,
+  "cap_min_factor": 0.05,
+  "cap_quality_gamma": 1.2,
   "model_paths": {
-      "tfidf_vectorizer": "src/machine_learning_models/pre-trained_models/tfidf_vectorizer.joblib",
-      "tfidf_centroids": "src/machine_learning_models/pre-trained_models/tfidf_centroids.npz",
-  },
+    "tfidf_vectorizer": "src/machine_learning_models/pre-trained_models/tfidf_vectorizer.joblib",
+    "tfidf_centroids": "src/machine_learning_models/pre-trained_models/tfidf_centroids.npz",
+    "text_uplift_weights": "src/machine_learning_models/pre-trained_models/text_uplift_weights.json"
+  }
 }
 ```
-- 训练细节（TF‑IDF）：`analyzer='char_wb'`, `ngram_range=(2,4)`, `min_df=2`, `max_features=20000`。
+- 训练与线上一致性（TF‑IDF 向量器）：`analyzer='char_wb'`, `ngram_range=(2,4)`, `min_df=1`, `max_features=20000`；详见 `docs/ml_training_api.md` 的“文本加成训练”。
 
 ### 结果模型（src/utils/session_manager.py）
 - `@dataclass class PredictionResultModel`

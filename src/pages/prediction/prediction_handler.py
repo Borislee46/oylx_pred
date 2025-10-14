@@ -295,6 +295,13 @@ def run_prediction_pipeline(
         )
 
     experience_details = input_data.get("experience_details", {})
+    if isinstance(experience_details, dict):
+        for k in ("research_count", "award_count", "internship_count", "paper_count"):
+            if k in input_data:
+                try:
+                    experience_details[k] = int(input_data.get(k, 0) or 0)
+                except Exception:
+                    experience_details[k] = 0
     if has_meaningful_experience_text(experience_details):
         text_provider = get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
     else:

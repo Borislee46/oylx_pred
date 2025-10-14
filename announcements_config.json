@@ -18,7 +18,7 @@
             "content": "点击访问 <a href='https://qtpbi.staff.xdf.cn/powerbi/index.html#/page/azurepbi/reportview/group/7dae1593-20b4-4dec-9d12-fabf26a23f34/report/fd8d6873-f3d6-4115-8ebd-e19da2f03ebd?pbiReportSettings={%22navContentPaneEnabled%22:true}&toolbarEnabled=true&exportFileEnabled=false&menuId=4a82aec1-7900-4c3d-9916-e875c56fd9c9' target='_blank' style='color: white; text-decoration: underline;'>亚英案例库</a> 查看最新留学案例数据",
             "type": "info",
             "target_groups": [
-                "hk_grad"
+                "hk"
             ],
             "start_date": "2024-12-11",
             "end_date": "2099-12-31",

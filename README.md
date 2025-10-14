@@ -14,7 +14,7 @@
    - **核心**: `prediction_handler` 负责编排整个流水线；`run_prediction` 采用线程/进程池自适应并发（可通过环境变量启用进程池）并进行稳定排序与超时兜底。
 
 4) **结果调整 (Online)**: `src/pages/prediction/result_modifier/`
-   - **核心**: 对模型原始概率进行一系列专家规则微调，包括基于历史案例的 `ProbabilityAdjuster`、针对无实习申商科的 `professional_adjustment`，以及基于软文案的**文本加成** (`keyword` / `tfidf`)。
+   - **核心**: 对模型原始概率进行一系列专家规则微调，包括基于历史案例的 `ProbabilityAdjuster`、针对无实习申商科的 `professional_adjustment`，以及基于 TF‑IDF Logit Uplift 的**文本加成**。
 
 5) **智能优化 (Optional Online)**: `src/pages/prediction/school_combination_optimizer_algorithm/`
    - **核心**: 使用 **NSGA-III 多目标优化算法**结合蒙特卡洛仿真，为用户生成风险和收益平衡的选校组合策略。
@@ -64,14 +64,17 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 ---
 
 ## 四、结果调整（src/pages/prediction/result_modifier）
-- **概率调整**: `ProbabilityAdjuster`（基于历史案例统计，对 GPA/语言分进行保守惩罚）与 `penalize_cross_major_without_cases`（对无历史成功案例的跨专业申请进行惩罚）。
-- **行业规则**: `professional_adjustment`（针对无实习经历申请商科的情况进行调整）。
-- **文本加成策略**: Keyword 与 TF‑IDF 双通道（MaxOfTwo），外层由 `GatedTextBoostProvider` 做门控与缓存，受统一 `max_total_boost` 约束。
-  - 关键词表已补充顶会/顶刊/机构与高价值竞赛（如 `NeurIPS/ICML/ICLR/CVPR/ACL/KDD/SIGMOD/AAAI/IJCAI/Nature Communications/PNAS/TPAMI`；`IMO/IOI/ICPC/丘成桐` 等）。
-  - TF‑IDF 训练：`analyzer='char_wb'`, `ngram_range=(2,4)`, `min_df=2`, `max_features=20000`；训练/推理 `scikit-learn==1.4.2`
-  - TF‑IDF 仅对中段概率（0.2–0.8）加成；带“强信号门控”（需命中 top-tier 关键词）
-  - 组合策略为 MaxOfTwo：同一位置取两者提升更大者。
-- 文档：`docs/result_modifier_api.md`
+ - **概率调整**: `ProbabilityAdjuster`（基于历史案例统计，对 GPA/语言分进行保守惩罚）与 `penalize_cross_major_without_cases`（对无历史成功案例的跨专业申请进行惩罚）。
+ - **行业规则**: `professional_adjustment`（针对无实习经历申请商科的情况进行调整）。
+ - **文本加成（TF‑IDF Logit Uplift）**: 外层 `GatedTextBoostProvider` 做门控与缓存；核心 `LogitUpliftProvider` 基于四段文本相似度与计数交互项计算 logit 增量，并受配置化封顶与平滑约束：
+   - 向量器参数：`analyzer='char_wb'`, `ngram_range=(2,4)`, `min_df=1`, `max_features=20000`（与线上一致）
+   - 门控：`sum(s) ≥ sim_gate_sum_min` 且 `max(s) ≥ sim_gate_max_min` 才生效
+   - 平滑：`smoothing`（默认 0.5）压缩 logit 增量，避免过激
+   - 封顶：仅对中段概率（0.2–0.8）生效；`cap_boost = max_total_boost × cap_factor(质量) × scale(p)`；其中
+     - `scale(p) = 1 − 2×|p − 0.5|`
+     - 质量分数 `quality = 0.7×max(s) + 0.3×mean(s)`，`cap_factor = clamp(cap_min_factor, 1.0, quality^cap_quality_gamma)`
+   - 关键配置：`max_total_boost/sim_gate_sum_min/sim_gate_max_min/smoothing/cap_min_factor/cap_quality_gamma`
+ - 文档：`docs/result_modifier_api.md`
 
 ---
 
@@ -125,6 +128,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 - 模型无法加载：检查 `pre-trained_models/*.model` 及同时间戳的 `*_features.json`/`*_calibration.json` 是否齐全；版本不兼容时重新训练导出。文本 TF‑IDF 模型为 `.joblib`（`tfidf_vectorizer.joblib`）。
 - 特征不对齐：线上与训练的 `feature_names` 必须一致；新增特征需同步训练与发布。
 - 文本加成无效：确认配置 `enabled/model_paths/similarity_thresholds`。
+ - 文本加成无效：确认配置 `enabled/model_paths/sim_gate_sum_min/sim_gate_max_min/smoothing/cap_*` 是否合理，及三件产物是否存在。
 - 相似度均为 0：检查缓存文件是否生成、键名格式是否一致。
 
 ---

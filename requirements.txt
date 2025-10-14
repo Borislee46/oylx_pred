@@ -3,6 +3,6 @@ pandas==2.2.2
 streamlit==1.46.1
 pymoo==0.6.1.5
 scikit-learn==1.4.2
-xgboost==3.0.2
+xgboost-cpu==3.0.2
 plotly==6.3.0
 streamlit-aggrid==1.1.8post1

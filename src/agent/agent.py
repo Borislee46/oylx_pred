@@ -1,0 +1,102 @@
+import requests
+import pandas as pd
+from typing import Any, Dict, Optional
+
+from src.utils.env_config_loader import load_app_config
+from src.utils.logger import setup_logger
+
+
+agent_logger = setup_logger("page3", "prediction")
+
+
+class AIAgent:
+    def __init__(
+        self,
+        user_profile: Optional[Dict[str, Any]],
+        prediction_results: Any,
+        cases_df: pd.DataFrame,
+        config: Optional[Dict[str, Any]] = None,
+    ):
+        self.cases_df = cases_df
+
+        if config is None:
+            app_config = load_app_config()
+        else:
+            app_config = config
+
+        self.api_url = app_config.get("OPEN_AI_BASE_URL")
+        self.api_key = app_config.get("OPEN_AI_API_KEY")
+        self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.1")
+
+        if not self.api_url or not self.api_key:
+            agent_logger.error("错误: AI Agent 的 API URL 或 API Key 未在配置中找到。")
+
+        self.headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+        self.update_context(user_profile, prediction_results)
+
+    def update_context(self, user_profile: Optional[Dict[str, Any]], prediction_results: Any):
+        self.user_profile = user_profile if user_profile else {}
+        self.prediction_results = prediction_results
+
+    def _build_prompt(self, query: str) -> str:
+        profile_str = "\n".join(
+            [f"- {key}: {value}" for key, value in self.user_profile.items() if value]
+        )
+        if not profile_str:
+            profile_str = "用户尚未填写背景信息。"
+
+        results_str = "用户尚未进行预测。"
+        if hasattr(self.prediction_results, "unified_results") and self.prediction_results.unified_results is not None:
+            try:
+                results_summary = self.prediction_results.unified_results.head().to_string()
+                results_str = f"以下是部分预测结果摘要:\n{results_summary}"
+            except Exception:
+                results_str = "无法格式化预测结果。"
+
+        prompt = f"""
+你是一位资深的留学顾问。请根据以下信息，用亲切、专业的口吻回答用户的问题。
+
+[用户信息]
+{profile_str}
+
+[系统预测结果摘要]
+{results_str}
+
+[用户当前问题]
+{query}
+"""
+        return prompt
+
+    def run(self, user_query: str) -> str:
+        prompt = self._build_prompt(user_query)
+
+        data = {
+            "model": self.model,
+            "messages": [{"content": [{"text": prompt, "type": "text"}], "role": "user"}],
+            "thinking": {"type": "disabled"},
+        }
+
+        try:
+            response = requests.post(self.api_url, headers=self.headers, json=data, timeout=30)
+            response.raise_for_status()
+
+            response_json = response.json()
+
+            if response_json.get("choices"):
+                content = response_json["choices"][0].get("message", {}).get("content", "")
+                return content
+            else:
+                error_info = response_json.get("error", {})
+                error_message = error_info.get('message', '未知错误')
+                agent_logger.error(f"API returned an error: {error_message}")
+                return f"抱歉，调用模型时出错: {error_message}"
+
+        except requests.exceptions.RequestException as e:
+            agent_logger.error(f"Error calling LLM API: {e}")
+            return "抱歉，无法连接到 AI 助手。请检查您的网络连接或联系管理员。"
+        except Exception as e:
+            agent_logger.error(f"An unexpected error occurred in AIAgent.run: {e}")
+            return "抱歉，处理您的请求时发生了一个未知错误。"

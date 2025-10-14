@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from src.pages.prediction.result_modifier.config import (
     HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
     UNIVERSITY_COUNT_THRESHOLD,
 )
-from src.pages.prediction.result_modifier.keyword_booster import KeywordBooster
 from src.pages.prediction.result_modifier.probability_adjuster import (
     ProbabilityAdjuster,
     penalize_cross_major_without_cases,
@@ -23,5 +24,4 @@ __all__ = [
     "HIGHER_SIMILARITY_THRESHOLD",
     "UNIVERSITY_COUNT_THRESHOLD",
     "penalize_cross_major_without_cases",
-    "KeywordBooster",
 ]

@@ -47,6 +47,9 @@
 - 在进行跨专业过滤与概率轻校准之后，若候选集合规模发生变化，优化器会“重建”一次 `SchoolSelectionProblem`，并据新规模“自适应”参考方向数量、种群规模与迭代代数，确保 `n_var` 与候选长度严格一致，避免解向量与候选索引不匹配（典型报错：list index out of range）。
 - 若过滤/校准或优化过程中出现异常，将记录日志并回退到启发式的平衡方案（`_get_fallback_recommendation`）。
 
+功能增强（2025-10-12）：
+- 引入澳门院校“一校一专业”预处理：对于 `optimizer_config.MACAU_UNIVERSITIES` 中的学校，按照“专业相似度（背景→目标）优先、录取概率次之”的规则，在同一所大学内仅保留一个专业（见 `pre_filter.deduplicate_universities_by_similarity`）。若预处理导致候选规模变化，优化器会重建 `SchoolSelectionProblem` 并自适应算法参数。
+
 可选：自定义申请策略（plan_config）
 
 ```python
@@ -156,6 +159,9 @@ optimizer = SchoolSelectionOptimizer(
 - `deduplicate_majors(schools: list[dict[str, Any]]) -> list[dict[str, Any]]`
   - 对同一大学下的相似专业（如 `计算机科学` vs `计算机科学(授课型)`)进行去重，仅保留录取概率最高的一个。
 
+- `deduplicate_universities_by_similarity(schools, background_major, similarity_cache, target_universities) -> list[dict]`
+  - 澳门院校“一校一专业”规则：当 `target_universities` 为 `optimizer_config.MACAU_UNIVERSITIES` 时，对每一所澳门大学仅保留一个专业；选择准则为先比较“背景专业→目标专业”的相似度（更高者优先），若相同再比较录取概率（更高者优先）。当无法获取相似度缓存时将保守回退，不进行该裁剪。
+
 #### 8) 跨学院规则过滤器 (faculty_based_filter.py)
 - `filter_schools_by_faculty_rules(schools: list, background_faculty: str | None, major_category_cache: dict | None) -> list`
   - 基于 `faculty_rules.py` 中定义的 `CROSS_FACULTY_RULES`，根据用户的背景学院，过滤掉规则不允许申请的目标学院下的所有专业。
@@ -200,6 +206,7 @@ optimizer = SchoolSelectionOptimizer(
   - `ADAPTIVE_THRESHOLD_PERCENTILES = {'reach_percentile_val': 10, 'safety_percentile_val': 70}`
   - `MONTE_CARLO_DEFAULTS = {'n_simulations': 5000, 'min_simulations': 1000, 'max_simulations': 10000, 'convergence_threshold': 0.01, 'batch_size': 500}`
 - TOPN 学校名单：`TOP3_SCHOOLS`, `TOP5_SCHOOLS`, `TOP8_SCHOOLS`（业务定义集合，用于高背景高 GPA 的保底与优先策略；成员以 `optimizer_config.py` 为准）
+- 澳门院校集合：`MACAU_UNIVERSITIES`（用于“一校一专业”预处理规则）
 - TOP 学校最小数量：
   - `MIN_TOP3_COUNT_FOR_HIGH_BG = 2`：高背景高 GPA 用户的 TOP3 最小数量
   - `MIN_TOP5_COUNT_FOR_HIGH_BG = 3`：高背景高 GPA 用户的 TOP5 最小数量
@@ -264,18 +271,8 @@ for rec in recommendations:
 - 需确保 `school_base` 的 `school_level/priority` 标注准确；可参考 `logs/page3/prediction/school_level_missing.json` 进行清洗补全。
 - 若业务需要放宽/收紧，可在 `optimizer_config.py` 中调整阈值常量（如 `TOP_BG_LEVELS_SET`、`PRIORITY_THRESHOLD_*`）。
 - 过滤器与概率校准可能改变候选规模；当前实现会在该步骤后“重建”问题对象并自适应算法参数，避免索引错位导致的越界。
+- 澳门院校“一校一专业”：同一所澳门大学若在候选集中包含多个专业，将在预处理阶段自动折叠为一个专业（相似度优先、概率次之）。如需强制保留某特定专业，请在输入候选侧先行过滤。
 
 ---
 维护人：lijiapeng8@xdf.cn
-版本：v2.8
-更新日期：2025-10-10
-
-更新记录：
-- 2025-10-10 v2.8:
-  - 新增基于学院（Faculty）的跨专业申请规则过滤。
-  - 优化流程中增加候选专业去重与全局相似度预过滤。
-  - 更新优化问题的约束条件，移除已废弃的约束。
-  - 同步更新 API 文档的模块结构、函数签名与核心逻辑描述。
-- 2025-10-09 v2.7：
-  - 优化器在过滤/校准后重建 `Problem` 并自适应算法参数，修复规模变动引起的潜在越界。
-  - 初始化器新增商科关键词回退映射，确保商科背景能正确触发法学等严格大类的排除规则。
+版本：v2.9

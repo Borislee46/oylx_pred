@@ -183,7 +183,6 @@ class SchoolSelectionOptimizer:
 
         all_schools_data = problem.all_schools_data
 
-        # 基于专业相似度对澳门高校进行同校唯一化预过滤
         try:
             from .optimizer_config import MACAU_UNIVERSITIES
             from .pre_filter import deduplicate_universities_by_similarity

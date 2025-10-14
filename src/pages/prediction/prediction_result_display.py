@@ -31,22 +31,57 @@ class ResultsDisplay:
             st.info("没有可显示的预测结果")
             return
 
+        try:
+            if "变化" in df.columns:
+                if df["变化"].astype(str).str.strip().eq("").all():
+                    df = df.drop(columns=["变化"])
+        except Exception:
+            pass
+
+        try:
+            cols = list(df.columns)
+            if "变化" in cols and "录取概率" in cols:
+                cols.remove("变化")
+                insert_pos = cols.index("录取概率") + 1
+                cols = cols[:insert_pos] + ["变化"] + cols[insert_pos:]
+                df = df[cols]
+        except Exception:
+            pass
+
         apply_styler = False
+        style_columns = []
+
         try:
             if "目标专业" in df.columns:
                 if df["目标专业"].astype(str).str.contains("(New!)", regex=False).any():
                     apply_styler = True
+                    style_columns.append("目标专业")
         except Exception:
-            apply_styler = False
+            pass
+
+        try:
+            if "变化" in df.columns:
+                if df["变化"].astype(str).str.strip().ne("").any():
+                    apply_styler = True
+                    style_columns.append("变化")
+        except Exception:
+            pass
 
         if apply_styler:
 
-            def style_new_major(val):
-                if isinstance(val, str) and "(New!)" in val:
-                    return "color: #FF4B4B; font-weight: bold;"
+            def style_cells(val):
+                if isinstance(val, str):
+                    if "(New!)" in val:
+                        return "color: #FF4B4B; font-weight: bold;"
+                    elif val.startswith("+"):
+                        return "color: #28a745; font-weight: bold;"
+                    elif val.startswith("-") or (val and val[0].isdigit() is False and "-" in val):
+                        return "color: #dc3545; font-weight: bold;"
                 return ""
 
-            data_to_render = df.style.map(style_new_major, subset=["目标专业"])
+            data_to_render = df.style.map(
+                style_cells, subset=style_columns if style_columns else None
+            )
         else:
             data_to_render = df
 
@@ -54,6 +89,8 @@ class ResultsDisplay:
             column_widths = {}
         if "专业详情" in df.columns and "专业详情" not in column_widths:
             column_widths["专业详情"] = "large"
+        if "变化" in df.columns and "变化" not in column_widths:
+            column_widths["变化"] = "small"
 
         column_config = {}
         for col_name in df.columns:
@@ -69,13 +106,23 @@ class ResultsDisplay:
                 column_config[col_name] = st.column_config.ProgressColumn(
                     width=width, help="录取概率", min_value=0, max_value=1, format=" "
                 )
+            elif col_name == "变化":
+                column_config[col_name] = st.column_config.TextColumn(
+                    width=width, help="相对上次的概率变化（±%）"
+                )
             else:
                 column_config[col_name] = st.column_config.TextColumn(width=width)
 
         st.data_editor(data_to_render, hide_index=True, column_config=column_config, disabled=True)
 
     def _create_top_similarity_dataframe(
-        self, gpa=None, language_score=None, background_university=None, details_df_full=None
+        self,
+        gpa=None,
+        language_score=None,
+        background_university=None,
+        details_df_full=None,
+        prev_prob_map: dict | None = None,
+        show_delta: bool = False,
     ):
         if not self.top_similarity_results:
             return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
@@ -90,7 +137,7 @@ class ResultsDisplay:
                 )
             )
 
-        return pd.DataFrame(
+        df = pd.DataFrame(
             {
                 "目标院校": [result["university"] for result in results],
                 "目标专业": [
@@ -107,9 +154,33 @@ class ResultsDisplay:
                 "专业中文名称": [result.get("chinese_name", "") for result in results],
             }
         )
+        if show_delta:
+            deltas: list[str] = []
+            for result in results:
+                key = (result.get("university"), result.get("major"))
+                prev_p = float(prev_prob_map.get(key, 0.0)) if prev_prob_map and prev_prob_map.get(key) is not None else None
+                cur_p = float(result.get("probability", 0.0) or 0.0)
+                if prev_p is None:
+                    deltas.append("")
+                else:
+                    diff_pct = (cur_p - prev_p) * 100.0
+                    if abs(diff_pct) < 0.05:
+                        deltas.append("")
+                    elif diff_pct > 0:
+                        deltas.append(f"+{diff_pct:.1f}%")
+                    else:
+                        deltas.append(f"{diff_pct:.1f}%")
+            df["变化"] = deltas
+        return df
 
     def _create_top_cross_major_dataframe(
-        self, gpa=None, language_score=None, background_university=None, details_df_full=None
+        self,
+        gpa=None,
+        language_score=None,
+        background_university=None,
+        details_df_full=None,
+        prev_prob_map: dict | None = None,
+        show_delta: bool = False,
     ):
         if not self.top_cross_major_results:
             return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
@@ -124,7 +195,7 @@ class ResultsDisplay:
                 )
             )
 
-        return pd.DataFrame(
+        df = pd.DataFrame(
             {
                 "目标院校": [result["university"] for result in results],
                 "目标专业": [
@@ -141,6 +212,24 @@ class ResultsDisplay:
                 "专业中文名称": [result.get("chinese_name", "") for result in results],
             }
         )
+        if show_delta:
+            deltas: list[str] = []
+            for result in results:
+                key = (result.get("university"), result.get("major"))
+                prev_p = float(prev_prob_map.get(key, 0.0)) if prev_prob_map and prev_prob_map.get(key) is not None else None
+                cur_p = float(result.get("probability", 0.0) or 0.0)
+                if prev_p is None:
+                    deltas.append("")
+                else:
+                    diff_pct = (cur_p - prev_p) * 100.0
+                    if abs(diff_pct) < 0.05:
+                        deltas.append("")
+                    elif diff_pct > 0:
+                        deltas.append(f"+{diff_pct:.1f}%")
+                    else:
+                        deltas.append(f"{diff_pct:.1f}%")
+            df["变化"] = deltas
+        return df
 
     def _create_user_specified_dataframe(
         self,
@@ -149,6 +238,8 @@ class ResultsDisplay:
         background_university=None,
         max_items=None,
         details_df_full=None,
+        prev_prob_map: dict | None = None,
+        show_delta: bool = False,
     ):
         if not self.user_specified_results:
             return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
@@ -166,7 +257,7 @@ class ResultsDisplay:
         if isinstance(max_items, int) and max_items > 0:
             results = results[:max_items]
 
-        return pd.DataFrame(
+        df = pd.DataFrame(
             {
                 "目标院校": [result["university"] for result in results],
                 "目标专业": [
@@ -183,6 +274,24 @@ class ResultsDisplay:
                 "专业中文名称": [result.get("chinese_name", "") for result in results],
             }
         )
+        if show_delta:
+            deltas: list[str] = []
+            for result in results:
+                key = (result.get("university"), result.get("major"))
+                prev_p = float(prev_prob_map.get(key, 0.0)) if prev_prob_map and prev_prob_map.get(key) is not None else None
+                cur_p = float(result.get("probability", 0.0) or 0.0)
+                if prev_p is None:
+                    deltas.append("")
+                else:
+                    diff_pct = (cur_p - prev_p) * 100.0
+                    if abs(diff_pct) < 0.05:
+                        deltas.append("")
+                    elif diff_pct > 0:
+                        deltas.append(f"+{diff_pct:.1f}%")
+                    else:
+                        deltas.append(f"{diff_pct:.1f}%")
+            df["变化"] = deltas
+        return df
 
     def display(
         self,
@@ -192,8 +301,33 @@ class ResultsDisplay:
         language_score=None,
         language_type=None,
         background_university=None,
+        background_major=None,
     ):
         session_manager = SessionManager()
+        prev_context_key = session_manager.get("previous_context_key")
+        prev_prob_map = session_manager.get("previous_prob_map", {})
+        form_data_changed = session_manager.get("form_data_changed", False)
+
+        prob_map_to_use = (
+            session_manager.get("prev_prev_prob_map", {}) if form_data_changed else prev_prob_map
+        )
+
+        target_unis_sorted = tuple(sorted(target_universities)) if target_universities else ()
+        target_majs_sorted = tuple(sorted(target_majors)) if target_majors else ()
+        cur_context_key = (
+            background_university,
+            background_major,
+            target_unis_sorted,
+            target_majs_sorted,
+        )
+
+        show_delta = (
+            isinstance(prev_context_key, tuple)
+            and prev_context_key == cur_context_key
+            and isinstance(prob_map_to_use, dict)
+            and bool(prob_map_to_use)
+        )
+
         combination_count = session_manager.get("combination_count", 0)
         pool_is_large = isinstance(combination_count, int) and combination_count > 100
 
@@ -205,16 +339,18 @@ class ResultsDisplay:
                 language_score,
                 background_university,
                 max_items=None,
+                prev_prob_map=prob_map_to_use,
+                show_delta=show_delta,
             )
             has_user_specified = not df_user_specified.empty
 
         df_similarity = self._create_top_similarity_dataframe(
-            gpa, language_score, background_university
+            gpa, language_score, background_university, None, prob_map_to_use, show_delta
         )
         has_similarity = not df_similarity.empty
 
         df_cross_major = self._create_top_cross_major_dataframe(
-            gpa, language_score, background_university
+            gpa, language_score, background_university, None, prob_map_to_use, show_delta
         )
         has_cross_major = not df_cross_major.empty
 

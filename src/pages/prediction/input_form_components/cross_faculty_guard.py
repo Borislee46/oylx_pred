@@ -3,10 +3,9 @@ from typing import Set, Tuple
 import pandas as pd
 import streamlit as st
 
-from src.utils.app_data_loader import load_school_major_details_df, load_raw_cases_data
+from src.utils.app_data_loader import load_raw_cases_data, load_school_major_details_df
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
-
 
 guard_logger = setup_logger("page3", "prediction")
 
@@ -77,9 +76,7 @@ def check_cross_faculty_situation(
 def cross_faculty_confirm_dialog(
     session_manager: SessionManager, background_faculty: str, target_faculties: Set[str]
 ) -> None:
-    st.write(
-        "您明确选择的目标专业包含跨学院方向，是否继续？"
-    )
+    st.write("您明确选择的目标专业包含跨学院方向，是否继续？")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -107,6 +104,7 @@ def cross_faculty_confirm_dialog(
                 submitted=False,
             )
             st.rerun()
+
 
 def quick_cross_faculty_check(
     background_major: str | None,
@@ -156,21 +154,29 @@ def quick_cross_faculty_check(
             has_agg_col = "专业英文名称_聚合" in details_df.columns
             has_std_col = "专业英文名称" in details_df.columns
             has_cat_col = "专业大类" in details_df.columns
-            
+
             if details_df is not None and not details_df.empty and has_cat_col:
                 if has_agg_col and has_std_col:
-                    df = details_df[["专业英文名称_聚合", "专业英文名称", "专业大类"]].dropna(subset=["专业大类"])
-                    
-                    matched_df = df[df["专业英文名称_聚合"].astype(str).isin([str(m) for m in selected_majors])]
+                    df = details_df[["专业英文名称_聚合", "专业英文名称", "专业大类"]].dropna(
+                        subset=["专业大类"]
+                    )
+
+                    matched_df = df[
+                        df["专业英文名称_聚合"].astype(str).isin([str(m) for m in selected_majors])
+                    ]
                     if len(matched_df) < len(selected_majors):
-                        matched_std = df[df["专业英文名称"].astype(str).isin([str(m) for m in selected_majors])]
+                        matched_std = df[
+                            df["专业英文名称"].astype(str).isin([str(m) for m in selected_majors])
+                        ]
                         matched_df = pd.concat([matched_df, matched_std]).drop_duplicates()
                 elif has_std_col:
                     df = details_df[["专业英文名称", "专业大类"]].dropna()
-                    matched_df = df[df["专业英文名称"].astype(str).isin([str(m) for m in selected_majors])]
+                    matched_df = df[
+                        df["专业英文名称"].astype(str).isin([str(m) for m in selected_majors])
+                    ]
                 else:
                     matched_df = pd.DataFrame()
-                
+
                 target_faculties.update(matched_df["专业大类"].astype(str).str.strip().tolist())
         except Exception as e:
             try:
@@ -180,4 +186,3 @@ def quick_cross_faculty_check(
 
     has_cross = any(f for f in target_faculties if f and f != background_faculty)
     return has_cross, background_faculty, target_faculties
-

@@ -57,7 +57,7 @@ MAJOR_SIMILARITY_CACHE_PATH = os.path.join(
 logging.info("依赖导入成功")
 
 
-MODEL_NAME = "google/embeddinggemma-300m"
+MODEL_NAME = "intfloat/multilingual-e5-large-instruct"
 BATCH_SIZE = 64
 
 
@@ -199,16 +199,17 @@ def precompute_similarities():
 
     start_embed_time = time.time()
     try:
-        instructed_embedding_input_list = []
-        for major_name in embedding_input_list:
-            prompt = f"Instruct: Represent this academic major for similarity comparison.\\nQuery: {major_name}"
-            instructed_embedding_input_list.append(prompt)
+        use_e5_style_prompt = "e5" in str(MODEL_NAME).lower()
 
-        embeddings = compute_embeddings_batch_local(
-            instructed_embedding_input_list, model, BATCH_SIZE
-        )
-        if len(embeddings) != len(instructed_embedding_input_list):
-            logging.error("嵌入数量与带指令的专业名称表示数量不匹配。")
+        embedding_inputs = []
+        for major_name in embedding_input_list:
+            text = str(major_name).strip()
+            prompt = f"query: {text}" if use_e5_style_prompt else text
+            embedding_inputs.append(prompt)
+
+        embeddings = compute_embeddings_batch_local(embedding_inputs, model, BATCH_SIZE)
+        if len(embeddings) != len(embedding_inputs):
+            logging.error("嵌入数量与输入文本数量不匹配。")
             sys.exit(1)
         logging.info(f"嵌入计算完成。时间: {time.time() - start_embed_time:.2f}s")
     except Exception as e:

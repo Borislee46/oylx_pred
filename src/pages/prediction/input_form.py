@@ -165,17 +165,6 @@ def _process_successful_submission(
         "experience_details": form_data["experience_details"],
     }
 
-    if form_data["experience_details"]:
-        for exp_type, details in form_data["experience_details"].items():
-            if details and details.strip():
-                exp_type_name = {
-                    "research_details": "科研项目",
-                    "award_details": "获奖情况",
-                    "internship_details": "实习经历",
-                    "paper_details": "论文发表",
-                }.get(exp_type, exp_type)
-                form_logger.info(f"提交表单 - {exp_type_name}详细信息: {details}")
-
     session_manager.set(submitted=True, form_data_changed=False)
     return True, input_data, all_universities_target, all_majors_target, form_data
 

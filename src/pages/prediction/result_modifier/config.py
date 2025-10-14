@@ -1,11 +1,15 @@
 DEFAULT_TEXT_BOOST_CONFIG: dict = {
     "enabled": True,
-    "max_total_boost": 0.05,
-    "timeout_ms": 100,
-    "similarity_thresholds": [[0.15, 0.05]],
+    "max_total_boost": 0.15,
+    "sim_gate_sum_min": 0.10,
+    "sim_gate_max_min": 0.08,
+    "smoothing": 0.7,
+    "cap_min_factor": 0.10,
+    "cap_quality_gamma": 1.2,
     "model_paths": {
         "tfidf_vectorizer": "src/machine_learning_models/pre-trained_models/tfidf_vectorizer.joblib",
         "tfidf_centroids": "src/machine_learning_models/pre-trained_models/tfidf_centroids.npz",
+        "text_uplift_weights": "src/machine_learning_models/pre-trained_models/text_uplift_weights.json",
     },
 }
 
@@ -25,4 +29,5 @@ UNIVERSITY_COUNT_THRESHOLD: int = 5
 TOP_N_RECOMMENDATIONS: int = 50
 
 PROBABILITY_ADJUSTER_CACHE_SIZE: int = 50
-KEYWORD_BOOSTER_CACHE_SIZE: int = 1000
+
+KEYWORD_BOOSTER_CACHE_SIZE: int = 100

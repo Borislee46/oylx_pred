@@ -71,6 +71,64 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
  - 默认数据路径：`src/machine_learning_models/data/cases.feather`。
  - 并行限制：训练脚本内部设置 `LOKY_MAX_CPU_COUNT=4` 以限制并行线程数。
 
+### 文本加成（TF‑IDF + Logit Uplift）训练（scripts/train_text_tfidf.py）
+- 目标：为线上 `LogitUpliftProvider` 生成三类产物，用于“文本提升”后处理：
+  - `tfidf_vectorizer.joblib`：字符级 TF‑IDF 向量器
+  - `tfidf_centroids.npz`：四段文本（科研/获奖/实习/论文）的归一化质心
+  - `text_uplift_weights.json`：非负的增益权重（基础项 + 与计数交互项）
+
+- 输入与预处理：
+  - 数据源：`src/machine_learning_models/data/cases.feather`
+  - 文本列别名归一：
+    - `research_details|research_detail`
+    - `award_details|award_detail`
+    - `internship_details|internship_detail`
+    - `paper_details|paper_detail`
+  - 清洗：去首尾空白（`strip`），不过度正则清洗，以对齐线上 `char_wb` 分词
+
+- 向量器参数（与线上对齐）：
+  - `analyzer='char_wb'`，`ngram_range=(2,4)`，`min_df=1`，`max_features=20000`
+  - `sublinear_tf=True`，`norm='l2'`
+
+- 质心与相似度：
+  - 质心：对每一类文本（科研/获奖/实习/论文）将该列所有文本 TF‑IDF 平均，L2 归一化，落盘为 `.npz`
+  - 样本相似度：将每条样本的四段合并文本映射到 TF‑IDF 向量，与对应质心点积（裁剪到 [0,1]），得到 `sr/sa/si/sp`
+
+- 可选基准概率（p_base）：
+  - 若检测到 `pre-trained_models/xgboost_*.model` 及同名 `_features.json`，则：
+    - 用线上 `FeatureEngineer` 对训练数据做一致特征工程与列对齐
+    - 调用 XGBoost 进行推断；若存在同名 `_calibration.json`（sigmoid），应用 a/b 校准
+    - 得到 `p_base`，并裁剪到 `[1e-6, 1-1e-6]`
+  - 若未检测到，则 `p_base=None`
+
+- 增益权重拟合（非负）：
+  - 目标向量：`y_vec = max(0, logit(y_true) − logit(p_base))`，当 `p_base` 缺失时退化为 `max(0, logit(y_true))`
+  - 设计矩阵 `X`：
+    - 线性项：`[sr, sa, si, sp]`
+    - 交互项：`[sr*log1p(rc), sa*log1p(ac), si*log1p(ic), sp*log1p(pc)]`
+  - 过滤：若 `sum(s) > 0.05` 或 任一计数>0 视为“有效信号”；不足时跳过过滤
+  - 拟合：优先 `nnls` 非负最小二乘，失败回退 `Ridge(alpha=6.0, positive=True)`；负系数最终截为 0
+  - 导出 JSON 键：`b, w_r, w_a, w_i, w_p, u_r, u_a, u_i, u_p`
+
+- 落盘路径（默认）：`src/machine_learning_models/pre-trained_models/`
+  - `tfidf_vectorizer.joblib`（joblib.dump，compress=3）
+  - `tfidf_centroids.npz`（np.savez_compressed，float32）
+  - `text_uplift_weights.json`
+
+- 运行示例：
+```bash
+python scripts/train_text_tfidf.py
+```
+
+- 与线上推理的一致性与部署：
+  - 线上 `LogitUpliftProvider` 将加载上述三件产物，参数门控与封顶逻辑见 `docs/result_modifier_api.md`
+  - 训练后需更新 `DEFAULT_TEXT_BOOST_CONFIG.model_paths` 指向新产物；建议保留旧文件以便回滚
+
+- 诊断与常见问题：
+  - 若线上 `sims` 普遍偏低，优先检查语料是否与业务关键实体对齐（字符 n-gram 能覆盖中英文混写、专有名词）
+  - 若权重近似全 0：检查 `p_base` 与标签是否对齐、过滤是否过严、样本量是否足够
+  - 若线上提升为 0：多因门槛（sum/max）未过或封顶过低，可在配置中调参（`sim_gate_*`、`max_total_boost`、`smoothing`、`cap_*`）
+
 ### 与线上预测的契合点
 - 线上 `PredictionModel` 会加载同一套 `feature_names` 并在推理时对输入进行相同的列对齐与类别编码。
 - 线上优先加载 `.model` 并自动读取同时间戳的 `_calibration.json` 应用概率校准；文本 TF‑IDF 模型统一采用 `.joblib` 存储（`tfidf_vectorizer.joblib`）。
@@ -85,6 +143,6 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 
 ---
 维护人：lijiapeng8@xdf.cn
-版本：v2.6
+版本：v2.7
 
 

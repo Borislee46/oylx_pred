@@ -8,49 +8,42 @@ from tqdm import tqdm
 torch.classes.__path__ = []
 
 
-def get_model(model_name="google/embeddinggemma-300m", use_quantization=False):
+def get_model(model_name="intfloat/multilingual-e5-large-instruct", use_quantization=False):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
 
-    gemma_local_path = os.path.join(project_root, "src", "services", "embeddinggemma-300m")
     e5_local_path = os.path.join(project_root, "src", "services", "multilingual-e5-large-instruct")
 
-    models_to_try = [
-        ("Gemma", gemma_local_path),
-        ("E5", e5_local_path),
-    ]
+    if os.path.exists(e5_local_path):
+        logging.info(f"尝试从路径加载本地 E5 模型: {e5_local_path}")
+        try:
+            model = SentenceTransformer(e5_local_path)
 
-    for model_desc, model_path in models_to_try:
-        if os.path.exists(model_path):
-            logging.info(f"尝试从路径加载本地 {model_desc} 模型: {model_path}")
-            try:
-                model = SentenceTransformer(model_path)
+            if (
+                use_quantization
+                and hasattr(torch, "quantization")
+                and not torch.cuda.is_available()
+            ):
+                logging.info("应用量化（仅限CPU）...")
+                try:
+                    transformer = model._first_module().auto_model
+                    quantized_transformer = torch.quantization.quantize_dynamic(
+                        transformer, {torch.nn.Linear}, dtype=torch.qint8
+                    )
+                    model._first_module().auto_model = quantized_transformer
+                    logging.info("模型量化成功。")
+                except Exception as e_quant:
+                    logging.warning(f"模型量化失败: {str(e_quant)}. 使用原始模型。")
+            elif torch.cuda.is_available():
+                logging.info("检测到CUDA，使用GPU加速。")
+                model = model.to(torch.device("cuda"))
 
-                if (
-                    use_quantization
-                    and hasattr(torch, "quantization")
-                    and not torch.cuda.is_available()
-                ):
-                    logging.info("应用量化（仅限CPU）...")
-                    try:
-                        transformer = model._first_module().auto_model
-                        quantized_transformer = torch.quantization.quantize_dynamic(
-                            transformer, {torch.nn.Linear}, dtype=torch.qint8
-                        )
-                        model._first_module().auto_model = quantized_transformer
-                        logging.info("模型量化成功。")
-                    except Exception as e_quant:
-                        logging.warning(f"模型量化失败: {str(e_quant)}. 使用原始模型。")
-                elif torch.cuda.is_available():
-                    logging.info("检测到CUDA，使用GPU加速。")
-                    model = model.to(torch.device("cuda"))
+            logging.info(f"成功加载本地 E5 模型: {e5_local_path}.")
+            return model
+        except Exception as e_load:
+            logging.warning(f"加载本地 E5 模型失败: {str(e_load)}. 尝试在线模型...")
 
-                logging.info(f"成功加载本地 {model_desc} 模型: {model_path}.")
-                return model
-            except Exception as e_load:
-                logging.warning(f"加载本地模型 {model_path} 失败: {str(e_load)}. 尝试其他选项...")
-
-    logging.warning(f"所有本地模型加载尝试失败。尝试加载在线模型: {model_name}")
+    logging.warning(f"本地 E5 模型加载失败或不存在。尝试加载在线模型: {model_name}")
     try:
         model = SentenceTransformer(model_name)
         if torch.cuda.is_available():
@@ -75,7 +68,11 @@ def compute_embeddings_batch_local(texts, model, batch_size=32):
         for i in tqdm(range(0, len(texts), batch_size), desc="Computing Embeddings"):
             batch_texts = texts[i : i + batch_size]
             embeddings = model.encode(
-                batch_texts, convert_to_tensor=True, batch_size=len(batch_texts), device=device
+                batch_texts,
+                convert_to_tensor=True,
+                batch_size=batch_size,
+                device=device,
+                normalize_embeddings=True,
             )
             all_embeddings.extend(embeddings.cpu())
 
@@ -85,7 +82,6 @@ def compute_embeddings_batch_local(texts, model, batch_size=32):
 def compute_similarity_matrix(embeddings, model_device="cuda"):
     device = torch.device(model_device if torch.cuda.is_available() else "cpu")
     embedding_tensor = torch.stack(embeddings).to(device)
-    embedding_tensor = torch.nn.functional.normalize(embedding_tensor, p=2, dim=1)
     similarity_matrix = torch.mm(embedding_tensor, embedding_tensor.t()).cpu().numpy()
     del embedding_tensor
     if torch.cuda.is_available():

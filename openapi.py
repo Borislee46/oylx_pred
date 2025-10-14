@@ -23,7 +23,7 @@ data = {
             "role": "user",
         }
     ],
-    "thinking": {"type": "enabled"},
+    "thinking": {"type": "disabled"},
 }
 
 response = requests.post(url, headers=headers, json=data)

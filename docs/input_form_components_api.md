@@ -18,6 +18,7 @@
   - 提交按钮：`submit_ui.py`
 - **UI 组合器**：`form_ui.py`（提供 `FormUIComponents` 聚合渲染入口）
 - **UI 辅助工具**：`widget_helpers.py` (v2.3 新增)
+- **跨学院提示拦截**：`cross_faculty_guard.py` (v2.5 新增)
 
 ---
 
@@ -274,5 +275,54 @@ if ui.render_submit_button(disabled_status=False):
     st.toast("已提交，正在计算…")
 ```
 
+---
+
+### 十二、跨学院提示（cross_faculty_guard.py）
+
+- 作用：当用户所选目标专业可能跨出其背景专业所属学院时，弹出确认对话框以二次确认，避免误触发跨学院预测。
+- 依赖数据：
+  - `cases_df` 中背景专业到学院的映射（要求存在列 `background_major`、`faculty`）。
+  - 专业详情表（`load_school_major_details_df()`）中列：`学校`、`专业英文名称`、`专业英文名称_聚合`（可选）、`专业大类`。
+
+- 提供方法：
+  - `check_cross_faculty_situation(background_major, target_majors, target_universities, cases_df) -> (has_cross: bool, background_faculty: str | None, target_faculties: set[str])`
+    - 基于“院校+原始专业”的精确匹配，判断所选目标是否跨学院，适合在已明确“目标院校+原始专业列表”后进行最终校验。
+  - `quick_cross_faculty_check(background_major, selected_categories, selected_majors, cases_df=None, details_df=None) -> (has_cross: bool, background_faculty: str | None, target_faculties: set[str])`
+    - 轻量快速检查：仅依赖“背景专业 + 已选专业大类/聚合专业”，适合提交前进行早期拦截与提示。
+  - `cross_faculty_confirm_dialog(session_manager, background_faculty, target_faculties) -> None`
+    - 使用 `st.dialog` 弹出确认框。文案："您明确选择的目标专业包含跨学院方向，是否继续？"；确认/取消分别写入会话态键并触发 `st.rerun()`。
+
+- 会话态键（由对话框维护）：
+  - `cross_faculty_confirmed: bool`：已确认跨学院继续。
+  - `cross_faculty_cancelled: bool`：取消继续，清理提交态。
+  - `pending_cross_faculty_prediction: bool`：等待跨学院预测的继续流程。
+  - `pending_prediction_data`：可由上游在弹框前临时保存提交上下文（可选）。
+  - `prediction_submit_lock: bool`、`submitted: bool`：提交相关控制位（取消时会复位）。
+
+- 使用建议（典型接入点）：
+  - 提交按钮被点击后、真正执行预测前：优先调用 `quick_cross_faculty_check(...)`；若跨学院且未确认，则弹出 `cross_faculty_confirm_dialog(...)` 并 `st.stop()`。
+  - 若上游已经将聚合专业展开为原始 `target_major`，且目标院校已确定，可改用 `check_cross_faculty_situation(...)` 做更精确判断。
+
+- 最小接入示例：
+```python
+import streamlit as st
+from src.pages.prediction.input_form_components.cross_faculty_guard import (
+    quick_cross_faculty_check,
+    cross_faculty_confirm_dialog,
+)
+
+# 假设已有 session_manager, cases_df
+has_cross, bg_faculty, target_faculties = quick_cross_faculty_check(
+    background_major=session_manager.get("background_major"),
+    selected_categories=session_manager.get("selected_major_categories"),
+    selected_majors=session_manager.get("selected_target_majors"),  # 聚合或原始名均可
+    cases_df=cases_df,
+)
+
+if has_cross and not session_manager.get("cross_faculty_confirmed"):
+    cross_faculty_confirm_dialog(session_manager, bg_faculty, target_faculties)
+    st.stop()  # 等待用户确认；确认后会 rerun
+```
+
 维护人：lijiapeng8@xdf.cn
-版本：v2.4
+版本：v2.5

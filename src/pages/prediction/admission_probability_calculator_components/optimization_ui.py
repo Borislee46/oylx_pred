@@ -250,12 +250,10 @@ class OptimizationUI:
                 recommendations, adaptive_thresholds = future.result()
 
                 if animate_ui:
-                    _animate_step(
-                        step_placeholder, "运行 Quasi-Monte Carlo 仿真模拟真实组合非独立概率中", 1.2
-                    )
+                    _animate_step(step_placeholder, "运行 Quasi-Monte Carlo 仿真模拟中", 1.2)
                 else:
                     step_placeholder.markdown(
-                        "<p style='font-size: 14px; font-weight: normal;'>运行 Quasi-Monte Carlo 仿真模拟真实组合非独立概率中...</p>",
+                        "<p style='font-size: 14px; font-weight: normal;'>运行 Quasi-Monte Carlo 仿真模拟中...</p>",
                         unsafe_allow_html=True,
                     )
 
