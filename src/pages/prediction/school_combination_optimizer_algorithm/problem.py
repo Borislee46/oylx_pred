@@ -48,7 +48,12 @@ class SchoolSelectionProblem(Problem):
         self._norm_top8 = {normalize_school_name(u) for u in TOP8_SCHOOLS}
 
         all_schools_data = filter_candidates_by_background(
-            all_schools_data, school_level, gpa, min_schools, background_faculty
+            all_schools_data,
+            school_level,
+            gpa,
+            min_schools,
+            background_faculty,
+            adaptive_thresholds,
         )
 
         self.all_schools_data = all_schools_data

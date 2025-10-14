@@ -12,7 +12,7 @@ from src.pages.prediction.result_modifier.config import (
 from src.pages.prediction.result_modifier.utils import clip_probability
 
 
-def _get_similar_major_recommendations(
+def get_similar_major_recommendations(
     results_with_similarity: list, num_target_universities: int
 ) -> list:
     if not results_with_similarity:
@@ -48,7 +48,7 @@ def _get_similar_major_recommendations(
     return top_candidates
 
 
-def _get_cross_major_recommendations(
+def get_cross_major_recommendations(
     results_with_similarity: list,
     background_major: str,
     cases_df: pd.DataFrame | None = None,

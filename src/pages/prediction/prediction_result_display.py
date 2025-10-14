@@ -75,7 +75,7 @@ class ResultsDisplay:
                         return "color: #FF4B4B; font-weight: bold;"
                     elif val.startswith("+"):
                         return "color: #28a745; font-weight: bold;"
-                    elif val.startswith("-") or (val and val[0].isdigit() is False and "-" in val):
+                    elif val.startswith("-"):
                         return "color: #dc3545; font-weight: bold;"
                 return ""
 

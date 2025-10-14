@@ -10,8 +10,8 @@ from src.pages.prediction.prediction_utils import (
     has_school_major_details,
 )
 from src.pages.prediction.result_modifier.ranker import (
-    _get_cross_major_recommendations,
-    _get_similar_major_recommendations,
+    get_cross_major_recommendations,
+    get_similar_major_recommendations,
 )
 from src.pages.prediction.result_modifier.similarity_adjuster import adjust_similarity_score
 
@@ -180,11 +180,11 @@ def process_prediction_results(
         results_with_similarity, details_df_full=details_df_full
     )
 
-    top_similarity_results = _get_similar_major_recommendations(
+    top_similarity_results = get_similar_major_recommendations(
         results_with_similarity, num_target_universities
     )
 
-    top_cross_major_results = _get_cross_major_recommendations(
+    top_cross_major_results = get_cross_major_recommendations(
         results_with_similarity, background_major, cases_df, user_specified_combinations
     )
 

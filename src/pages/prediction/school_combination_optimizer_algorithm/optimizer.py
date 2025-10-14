@@ -44,8 +44,10 @@ from src.pages.prediction.school_combination_optimizer_algorithm.problem import 
 from src.pages.prediction.school_combination_optimizer_algorithm.reference_direction_cache import (
     get_cached_reference_directions,
 )
-from src.pages.prediction.school_combination_optimizer_algorithm.utils import (
+from src.pages.prediction.school_combination_optimizer_algorithm.metrics_calculator import (
     calculate_metrics,
+)
+from src.pages.prediction.school_combination_optimizer_algorithm.school_selector import (
     generate_balanced_selection,
     reduce_schools_balanced,
 )

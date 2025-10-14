@@ -100,7 +100,7 @@ DEFAULT_TEXT_BOOST_CONFIG = {
 
 ### 相似度与推荐（similarity_adjuster.py, ranker.py）
 - `adjust_similarity_score(background_major, target_major, similarity)`：根据配置 `config/similarity_adjustment_rules.json` 的关键字规则对相似度小幅修正（0–1 截断）。
-- `_get_similar_major_recommendations`：先按相似度阈值过滤（申请院校数较少≤`UNIVERSITY_COUNT_THRESHOLD=5`时使用更高阈值 `0.92`，否则 `0.89`）；再取前 `TOP_N=50`（按相似度筛）；随后对概率做裁剪；最终按概率降序返回。
+- `get_similar_major_recommendations`：先按相似度阈值过滤（申请院校数较少≤`UNIVERSITY_COUNT_THRESHOLD=5`时使用更高阈值 `0.92`，否则 `0.89`）；再取前 `TOP_N=50`（按相似度筛）；随后对概率做裁剪；最终按概率降序返回。
 - `_get_cross_major_recommendations`：在历史中存在录取案例的跨专业中，筛选 `0.8 < similarity < MIN_SIMILARITY_THRESHOLD` 的候选，并按概率降序返回。
 
 ### 行业专业调整（professional_adjustment.py）
