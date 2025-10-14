@@ -1,31 +1,13 @@
-import streamlit as st
 import streamlit.components.v1 as components
 
 
 def inject_clipboard_guard() -> None:
-    st.markdown(
-        """
-    <style>
-    [data-testid="stDataFrame"],
-    [data-testid="stDataFrame"] * {
-        -webkit-user-select: none !important;
-        -moz-user-select: none !important;
-        -ms-user-select: none !important;
-        user-select: none !important;
-        -webkit-touch-callout: none;
-    }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
-
     components.html(
         """
     <script>
     (function(){
       const PARENT_DOC = (window.parent && window.parent.document) ? window.parent.document : document;
 
-      // 创建焦点陷阱，避免 DataFrame 内元素获得焦点
       let FOCUS_TRAP = null;
       function ensureFocusTrap(doc){
         try {
@@ -87,7 +69,6 @@ def inject_clipboard_guard() -> None:
       function installClipboardGuards(doc, alwaysBlock){
         if (doc.__dfClipboardGuardsInstalled__) return;
         doc.__dfClipboardGuardsInstalled__ = true;
-        // Patch execCommand('copy')
         try {
           const originalExec = doc.execCommand && doc.execCommand.bind(doc);
           if (originalExec) {
@@ -103,7 +84,6 @@ def inject_clipboard_guard() -> None:
             };
           }
         } catch(_) {}
-        // Patch navigator.clipboard.writeText
         try {
           const win = doc.defaultView || window;
           const nav = win.navigator || navigator;
@@ -144,14 +124,12 @@ def inject_clipboard_guard() -> None:
           }
         }
 
-        // 复制相关事件
         doc.addEventListener('copy', preventIfNeeded, true);
         doc.addEventListener('cut', preventIfNeeded, true);
         doc.addEventListener('paste', preventIfNeeded, true);
         doc.addEventListener('beforecopy', preventIfNeeded, true);
         doc.addEventListener('contextmenu', preventIfNeeded, true);
 
-        // 键盘事件全禁用（位于 DataFrame 内）
         const keyHandler = function(e){
           if (shouldBlock(e)) {
             e.preventDefault();
@@ -168,7 +146,6 @@ def inject_clipboard_guard() -> None:
           doc.defaultView.addEventListener('keyup', keyHandler, true);
         }
 
-        // 选区变化时，若位于表格内则清空
         doc.addEventListener('selectionchange', function(){
           try {
             const sel = doc.getSelection ? doc.getSelection() : null;
@@ -177,14 +154,12 @@ def inject_clipboard_guard() -> None:
             const el = node && node.nodeType === 1 ? node : (node ? node.parentElement : null);
             if (alwaysBlock || (el && isInsideDataFrame(el))) {
               sel.removeAllRanges();
-              // 选区清空后将焦点移到陷阱
               const trap = ensureFocusTrap(doc);
               trap && trap.focus && trap.focus();
             }
           } catch(_) {}
         }, true);
 
-        // 焦点进入 DataFrame 时，立即转移到陷阱
         doc.addEventListener('focusin', function(e){
           if (shouldBlock(e)) {
             const trap = ensureFocusTrap(doc);
@@ -194,7 +169,6 @@ def inject_clipboard_guard() -> None:
           }
         }, true);
 
-        // 跟踪鼠标是否悬停在 DataFrame 内
         doc.addEventListener('pointermove', updateHoverFlagFromEvent, true);
         doc.addEventListener('mouseover', updateHoverFlagFromEvent, true);
       }
@@ -216,19 +190,15 @@ def inject_clipboard_guard() -> None:
         });
       }
 
-      // 父文档拦截
       attachBlockers(PARENT_DOC, false);
 
-      // 为 DataFrame 下的同源 iframe 注入拦截
       attachToIframesUnderDataFrame();
 
-      // 监听 DOM 变化，处理动态渲染
       const mo = new MutationObserver(function(){
         attachToIframesUnderDataFrame();
       });
       try { mo.observe(PARENT_DOC, { childList: true, subtree: true }); } catch(_) {}
 
-      // 定时兜底
       setInterval(attachToIframesUnderDataFrame, 1000);
     })();
     </script>

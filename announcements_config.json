@@ -3,7 +3,7 @@
         {
             "id": "welcome",
             "title": "公告",
-            "content": "选校预测系统更新至v2.4，欢迎使用！",
+            "content": "选校预测系统更新至v2.5，欢迎使用！",
             "type": "success",
             "target_groups": [
                 "all"
