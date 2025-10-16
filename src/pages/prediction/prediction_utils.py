@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import List, Set, Tuple, Union
 
 import pandas as pd
 import streamlit as st
@@ -10,30 +11,76 @@ normalize_language_score = FormValidator.normalize_language_score
 denormalize_language_score = FormValidator.denormalize_language_score
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def _get_details_df_version() -> int:
-    df = load_school_major_details_df()
-    if df is None or df.empty:
-        return 0
-    try:
-        from pandas.util import hash_pandas_object
+class SchoolMajorDataManager:
+    def __init__(self):
+        self._details_df = None
+        self._valid_combinations = None
+        self._details_version = None
 
-        return int(hash_pandas_object(df[["学校", "专业英文名称"]]).sum())
-    except Exception:
-        return len(df)
+    @property
+    def details_df(self):
+        if self._details_df is None:
+            self._details_df = load_school_major_details_df()
+        return self._details_df
+
+    @property
+    def details_version(self) -> int:
+        if self._details_version is None:
+            self._details_version = self._compute_details_version()
+        return self._details_version
+
+    def _compute_details_version(self) -> int:
+        df = self.details_df
+        if df is None or df.empty:
+            return 0
+        try:
+            from pandas.util import hash_pandas_object
+
+            return int(hash_pandas_object(df[["学校", "专业英文名称"]]).sum())
+        except Exception:
+            return len(df)
+
+    @property
+    def valid_combinations(self) -> Set[str]:
+        if self._valid_combinations is None:
+            self._valid_combinations = self._load_valid_combinations()
+        return self._valid_combinations
+
+    def _load_valid_combinations(self) -> Set[str]:
+        df = self.details_df
+        if df is None:
+            return set()
+
+        try:
+            if "学校" not in df.columns or "专业英文名称" not in df.columns:
+                return set()
+
+            valid_df = df[["学校", "专业英文名称"]].dropna().astype(str)
+            combination_keys = valid_df["学校"] + "|" + valid_df["专业英文名称"]
+            return set(combination_keys)
+        except Exception:
+            return set()
 
 
-def format_display_value(value, value_type, language_type=None):
+_data_manager = SchoolMajorDataManager()
+
+
+def format_display_value(value, value_type: str, language_type: str = None) -> str:
     try:
         if value_type == "gpa":
             return f"{float(value):.2f}"
         elif value_type == "language_score":
             round_to_half = language_type == "雅思"
-            score = FormValidator.denormalize_language_score(
+            score = denormalize_language_score(
                 float(value), language_type, round_to_half=round_to_half
             )
             return f"{score:.1f} ({language_type})"
-        elif value_type in ["research_count", "award_count", "internship_count", "paper_count"]:
+        elif value_type in [
+            "research_count",
+            "award_count",
+            "internship_count",
+            "paper_count",
+        ]:
             return f"{int(value)} 个"
         else:
             return str(value)
@@ -41,42 +88,41 @@ def format_display_value(value, value_type, language_type=None):
         return str(value)
 
 
-def get_cached_major_similarity(
-    target_major=None, background_major=None, cache=None, major1=None, major2=None
-):
-    first_major = target_major if target_major is not None else major1
-    second_major = background_major if background_major is not None else major2
-    if not first_major or not second_major or cache is None:
-        return 0.0
-
-    key_pair = tuple(sorted([first_major, second_major]))
-    key = f"{key_pair[0]}|{key_pair[1]}"
-    return cache.get(key, 0.0)
-
-
-def get_cached_major_similarities_batch(pairs, cache=None):
-    if not pairs or cache is None:
-        return [0.0] * len(pairs)
-
-    results = []
-    for target_major, background_major in pairs:
-        if not target_major or not background_major:
-            results.append(0.0)
-            continue
-        key_pair = tuple(sorted([target_major, background_major]))
-        key = f"{key_pair[0]}|{key_pair[1]}"
-        results.append(cache.get(key, 0.0))
-
-    return results
-
-
-@lru_cache(maxsize=1000)
-def get_cached_major_similarity_key(major1, major2):
+def _create_major_similarity_key(major1: str, major2: str) -> str:
     key_pair = tuple(sorted([major1, major2]))
     return f"{key_pair[0]}|{key_pair[1]}"
 
 
-def format_school_major_details_from_row(row):
+def get_cached_major_similarity(
+    target_major: str = None,
+    background_major: str = None,
+    cache: dict = None,
+    major1: str = None,
+    major2: str = None,
+) -> float:
+    first_major = target_major or major1
+    second_major = background_major or major2
+
+    if not first_major or not second_major or cache is None:
+        return 0.0
+
+    key = _create_major_similarity_key(first_major, second_major)
+    return cache.get(key, 0.0)
+
+
+def get_cached_major_similarities_batch(
+    pairs: List[Tuple[str, str]], cache: dict = None
+) -> List[float]:
+    if not pairs or cache is None:
+        return [0.0] * len(pairs)
+
+    return [
+        get_cached_major_similarity(major1=target, major2=background, cache=cache)
+        for target, background in pairs
+    ]
+
+
+def format_school_major_details_from_row(row: pd.Series) -> str:
     if row is None or row.empty:
         return "无详细信息"
 
@@ -109,7 +155,7 @@ def format_school_major_details_from_row(row):
     details = []
     for field in key_fields:
         field_value = row.get(field)
-        if pd.notna(field_value) and str(field_value).strip() != "":
+        if pd.notna(field_value) and str(field_value).strip():
             prefix = "专业网址: " if field == "专业网址" else f"{field}: "
             details.append(f"{prefix}{field_value}")
 
@@ -119,91 +165,61 @@ def format_school_major_details_from_row(row):
     if details and details[0].startswith("专业中文名称:"):
         details[0] = details[0].replace("专业中文名称: ", "", 1).strip()
 
-    return "\n".join(details) if details else "无详细信息"
+    return "\n".join(details)
 
 
-def get_school_major_details(university, major, return_df=False):
-    details_df = load_school_major_details_df()
-    if details_df is None:
-        return None
-
+def get_school_major_details(
+    university: str, major: str, return_df: bool = False
+) -> Union[str, pd.DataFrame, None]:
     if return_df:
-        return details_df
+        return _data_manager.details_df
 
-    version = _get_details_df_version()
-    return _get_school_major_details_cached(university, major, version)
+    return _get_school_major_details_cached(university, major, _data_manager.details_version)
 
 
 @lru_cache(maxsize=500)
-def _get_school_major_details_cached(university, major, version):
-    details_df = load_school_major_details_df()
+def _get_school_major_details_cached(university: str, major: str, version: int) -> str:
+    df = _data_manager.details_df
     try:
-        match = details_df[
-            (details_df["学校"] == university) & (details_df["专业英文名称"] == major)
-        ]
+        match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
         if not match.empty:
-            best_match = match.iloc[0]
-            return format_school_major_details_from_row(best_match)
+            return format_school_major_details_from_row(match.iloc[0])
         return "无详细信息"
     except Exception:
         return "获取信息时发生错误"
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def _get_valid_combinations_set(version: int):
-    details_df = load_school_major_details_df()
-    if details_df is None:
-        return set()
-
-    try:
-        if "学校" not in details_df.columns or "专业英文名称" not in details_df.columns:
-            return set()
-
-        valid_df = details_df[["学校", "专业英文名称"]].dropna().astype(str)
-        combination_keys = valid_df["学校"] + "|" + valid_df["专业英文名称"]
-        return set(combination_keys)
-    except Exception:
-        return set()
+def preload_valid_school_major_combinations() -> int:
+    return len(_data_manager.valid_combinations)
 
 
-def preload_valid_school_major_combinations():
-    version = _get_details_df_version()
-    valid_set = _get_valid_combinations_set(version)
-    return len(valid_set)
-
-
-def get_valid_school_major_set() -> set:
-    version = _get_details_df_version()
-    return _get_valid_combinations_set(version)
+def get_valid_school_major_set() -> Set[str]:
+    return _data_manager.valid_combinations
 
 
 @lru_cache(maxsize=1000)
-def has_school_major_details(university, major):
-    version = _get_details_df_version()
+def has_school_major_details(university: str, major: str) -> bool:
     cache_key = f"{university}|{major}"
-    valid_combinations = _get_valid_combinations_set(version)
-    return cache_key in valid_combinations
+    return cache_key in _data_manager.valid_combinations
 
 
 @lru_cache(maxsize=1000)
-def is_new_major(university, major):
-    version = _get_details_df_version()
-    return _is_new_major_cached(university, major, version)
+def is_new_major(university: str, major: str) -> bool:
+    return _is_new_major_cached(university, major, _data_manager.details_version)
 
 
-def _is_new_major_cached(university, major, version):
-    details_df = load_school_major_details_df()
-    if details_df is None:
-        return False
-
+def _is_new_major_cached(university: str, major: str, version: int) -> bool:
+    df = _data_manager.details_df
     try:
-        match = details_df[
-            (details_df["学校"] == university) & (details_df["专业英文名称"] == major)
-        ]
+        match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
         if not match.empty:
-            best_match = match.iloc[0]
-            is_new = best_match.get("新增专业")
+            is_new = match.iloc[0].get("新增专业")
             return pd.notna(is_new) and (is_new == "25fall新增" or is_new == "26fall新增")
         return False
     except Exception:
         return False
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_cached_data_manager() -> SchoolMajorDataManager:
+    return SchoolMajorDataManager()

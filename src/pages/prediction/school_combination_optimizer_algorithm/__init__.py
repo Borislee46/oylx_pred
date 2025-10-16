@@ -1,4 +1,4 @@
-from src.pages.prediction.school_combination_optimizer_algorithm.faculty_based_filter import (
+from src.pages.prediction.school_combination_optimizer_algorithm.filters import (
     filter_schools_by_faculty_rules,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.monte_carlo import (

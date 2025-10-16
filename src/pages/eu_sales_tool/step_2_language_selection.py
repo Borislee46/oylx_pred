@@ -6,7 +6,9 @@ from src.pages.eu_sales_tool.eu_sales_tool_utils.constants import (
     KEY_SELECTED_COUNTRY,
     KEY_SELECTED_LANGUAGE,
 )
-from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import get_standardized_countries
+from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import (
+    get_standardized_countries,
+)
 from src.pages.eu_sales_tool.eu_sales_tool_utils.steps import reset_selections_from_step
 
 
@@ -20,7 +22,10 @@ def render_step_2():
     for i, language in enumerate(country_data["languages"]):
         language_info = f"选择{language}授课，可申请该国使用{language}教学的院校和专业"
         if st.button(
-            f"**{language}**", key=f"lang_{i}_{language}", type="primary", help=language_info
+            f"**{language}**",
+            key=f"lang_{i}_{language}",
+            type="primary",
+            help=language_info,
         ):
             st.session_state[KEY_SELECTED_LANGUAGE] = language
             st.session_state[KEY_CURRENT_STEP] = 3

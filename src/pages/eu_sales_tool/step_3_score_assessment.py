@@ -8,7 +8,9 @@ from src.pages.eu_sales_tool.eu_sales_tool_utils.constants import (
     KEY_SELECTED_COUNTRY,
     KEY_SELECTED_LANGUAGE,
 )
-from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import get_standardized_countries
+from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import (
+    get_standardized_countries,
+)
 from src.pages.eu_sales_tool.eu_sales_tool_utils.steps import reset_selections_from_step
 
 
@@ -24,7 +26,11 @@ def render_step_3():
         ("优秀 (600+)", "高分段，可申请顶尖院校，有更多奖学金机会", "high"),
         ("良好 (500-600)", "中高分段，可申请优质院校，选择范围广泛", "mid"),
         ("一般 (400-500)", "中等分段，有多种选择，可通过预科提升", "low"),
-        ("较低 (<400)", "可通过预科、语言班等多种途径入学，同样有机会进入好学校", "very_low"),
+        (
+            "较低 (<400)",
+            "可通过预科、语言班等多种途径入学，同样有机会进入好学校",
+            "very_low",
+        ),
     ]
 
     for i, (score_range, description, score_key) in enumerate(score_options):

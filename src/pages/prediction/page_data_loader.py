@@ -2,7 +2,6 @@ import streamlit as st
 
 from src.pages.prediction.prediction_model import PredictionModel
 from src.utils.app_data_loader import (
-    load_bg_bg_similarity_cache,
     load_bg_target_similarity_cache,
     load_global_categories_dataframe,
     load_raw_cases_data,
@@ -19,8 +18,6 @@ def get_prediction_model(model_name):
         return None
 
     model_instance = PredictionModel(model_name, global_categories_df=global_categories_df_instance)
-    if hasattr(model_instance, "global_categories_") and model_instance.global_categories_:
-        pass
     return model_instance
 
 
@@ -44,8 +41,3 @@ def cached_get_prediction_model(model_name):
 @st.cache_data
 def cached_load_bg_target_similarity_cache():
     return load_bg_target_similarity_cache()
-
-
-@st.cache_data
-def cached_load_bg_bg_similarity_cache():
-    return load_bg_bg_similarity_cache()

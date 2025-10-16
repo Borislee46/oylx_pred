@@ -28,36 +28,29 @@ SCHOOL_LEVEL_PRIORITY = {
 def _get_school_level_mapping() -> dict[str, dict[str, Any]]:
     school_mapping = {}
 
-    try:
-        df = load_school_base_data()
-        if (
-            isinstance(df, pd.DataFrame)
-            and "学校名称" in df.columns
-            and "school_level" in df.columns
-        ):
-            df_local = df[["学校名称", "school_level"]].copy()
+    df = load_school_base_data()
+    if isinstance(df, pd.DataFrame) and "学校名称" in df.columns and "school_level" in df.columns:
+        df_local = df[["学校名称", "school_level"]].copy()
 
-            df_local["学校名称"] = df_local["学校名称"].astype(str).str.strip()
-            df_local["school_level"] = df_local["school_level"].astype(str).str.strip()
-            mask_unknown = (
-                df_local["school_level"].str.lower().isin(["nan", "none", ""])
-                | df_local["school_level"].isna()
-            )
-            df_local.loc[mask_unknown, "school_level"] = "未知"
+        df_local["学校名称"] = df_local["学校名称"].astype(str).str.strip()
+        df_local["school_level"] = df_local["school_level"].astype(str).str.strip()
+        mask_unknown = (
+            df_local["school_level"].str.lower().isin(["nan", "none", ""])
+            | df_local["school_level"].isna()
+        )
+        df_local.loc[mask_unknown, "school_level"] = "未知"
 
-            names = df_local["学校名称"].tolist()
-            levels = df_local["school_level"].tolist()
-            for school_name, level in zip(names, levels):
-                info = {
-                    "school_level": level,
-                    "priority": SCHOOL_LEVEL_PRIORITY.get(level, SCHOOL_LEVEL_PRIORITY["未知"]),
-                }
-                school_mapping[school_name] = info
-                normalized = _normalize_school_name(school_name)
-                if normalized and normalized not in school_mapping:
-                    school_mapping[normalized] = info
-    except Exception:
-        pass
+        names = df_local["学校名称"].tolist()
+        levels = df_local["school_level"].tolist()
+        for school_name, level in zip(names, levels):
+            info = {
+                "school_level": level,
+                "priority": SCHOOL_LEVEL_PRIORITY.get(level, SCHOOL_LEVEL_PRIORITY["未知"]),
+            }
+            school_mapping[school_name] = info
+            normalized = _normalize_school_name(school_name)
+            if normalized and normalized not in school_mapping:
+                school_mapping[normalized] = info
 
     return school_mapping
 

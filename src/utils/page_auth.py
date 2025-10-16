@@ -1,3 +1,4 @@
+import time
 import urllib.parse
 import uuid
 
@@ -32,8 +33,6 @@ def handle_e2_login(
     is_expired = False
     if is_authenticated and login_time:
         try:
-            import time
-
             is_expired = (time.time() - float(login_time)) > TTL_SECONDS
         except Exception:
             is_expired = True
@@ -71,12 +70,7 @@ def handle_e2_login(
             st.stop()
 
     if is_authenticated and not is_expired:
-        try:
-            import time as _t
-
-            st.session_state["login_time"] = _t.time()
-        except Exception:
-            pass
+        st.session_state["login_time"] = time.time()
 
     user_email = st.session_state.get("e2_user_email", "")
 
@@ -102,3 +96,48 @@ def handle_e2_login(
         page_auth_logger.info(f"用户 {user_email} 所在组 {module_name} 没有访问此功能模块的权限。")
         st.page_link("main.py", label="返回主页")
         st.stop()
+
+
+def perform_logout(redirect_to: str = "main.py") -> None:
+    keys_to_clear = [
+        "e2_user_email",
+        "e2_user_nickname",
+        "is_authenticated",
+        "login_time",
+        "e2_state",
+        "intended_page_after_e2_login",
+    ]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]
+
+        APP_CONFIG = load_app_config()
+        E2_LOGOUT_URL_TEMPLATE = APP_CONFIG.get("E2_LOGOUT_URL_TEMPLATE")
+        E2_LOGIN_URL_TEMPLATE = APP_CONFIG.get("E2_LOGIN_URL_TEMPLATE")
+        E2_X3ID_CONFIG = APP_CONFIG.get("E2_X3ID_CONFIG")
+        E2_CALLBACK_BASE_URL = APP_CONFIG.get("E2_CALLBACK_BASE_URL")
+        STREAMLIT_APP_BASE_URL = APP_CONFIG.get("STREAMLIT_APP_BASE_URL")
+
+        base_return_url = E2_CALLBACK_BASE_URL or STREAMLIT_APP_BASE_URL or ""
+        return_url = urllib.parse.urljoin(base_return_url, redirect_to)
+        encoded_return_url = urllib.parse.quote(return_url, safe="")
+
+        logout_url: str | None = None
+        if E2_LOGOUT_URL_TEMPLATE:
+            logout_url = (
+                f"{E2_LOGOUT_URL_TEMPLATE}?x3id={E2_X3ID_CONFIG}&returnUrl={encoded_return_url}"
+            )
+        elif E2_LOGIN_URL_TEMPLATE and "x3qr" in E2_LOGIN_URL_TEMPLATE:
+            heuristic_logout_base = E2_LOGIN_URL_TEMPLATE.replace("x3qr", "logout")
+            logout_url = (
+                f"{heuristic_logout_base}?x3id={E2_X3ID_CONFIG}&returnUrl={encoded_return_url}"
+            )
+
+        if logout_url:
+            st.markdown(
+                f"""<meta http-equiv=\"refresh\" content=\"0; url={logout_url}\">""",
+                unsafe_allow_html=True,
+            )
+            st.stop()
+
+    st.switch_page(redirect_to)

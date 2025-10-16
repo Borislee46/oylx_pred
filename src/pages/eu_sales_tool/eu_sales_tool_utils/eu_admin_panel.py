@@ -18,7 +18,8 @@ def show_admin_panel():
         return
 
     with st.expander(
-        "业务老师编辑面板（不能编辑的部分请联系 李佳鹏 lijiapeng8@xdf.cn 进行添加）", expanded=False
+        "业务老师编辑面板（不能编辑的部分请联系 李佳鹏 lijiapeng8@xdf.cn 进行添加）",
+        expanded=False,
     ):
         config = st.session_state.get("site_config", load_config_data())
         education_data = st.session_state.get("education_data", load_education_data())

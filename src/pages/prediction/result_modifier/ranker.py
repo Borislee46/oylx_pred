@@ -36,7 +36,9 @@ def get_similar_major_recommendations(
         import heapq
 
         top_candidates = heapq.nlargest(
-            TOP_N_RECOMMENDATIONS, filtered_by_similarity, key=lambda x: x.get("similarity", 0.0)
+            TOP_N_RECOMMENDATIONS,
+            filtered_by_similarity,
+            key=lambda x: x.get("similarity", 0.0),
         )
 
     for c in top_candidates:

@@ -15,78 +15,71 @@ from src.utils.session_manager import SessionManager
 
 class ResultsDisplay:
     def __init__(
-        self, top_similarity_results=None, top_cross_major_results=None, user_specified_results=None
+        self,
+        top_similarity_results=None,
+        top_cross_major_results=None,
+        user_specified_results=None,
     ):
         self.top_similarity_results = top_similarity_results or []
         self.top_cross_major_results = top_cross_major_results or []
         self.user_specified_results = user_specified_results or []
 
+        self.result_types = {
+            "similarity": {
+                "results": self.top_similarity_results,
+                "title": f"相似专业录取率 Top {TOP_N_RECOMMENDATIONS}",
+                "config": TOP_SIM_RESULT_UI_CONFIG,
+            },
+            "cross_major": {
+                "results": self.top_cross_major_results,
+                "title": f"潜力跨专业方向 Top {TOP_N_RECOMMENDATIONS}",
+                "config": TOP_CROSS_RESULT_UI_CONFIG,
+            },
+            "user_specified": {
+                "results": self.user_specified_results,
+                "title": "您指定的目标学校专业预测",
+                "config": TOP_SIM_RESULT_UI_CONFIG,
+            },
+        }
+
     def _get_probability_value(self, probability):
-        if probability is None:
-            return 0.0
-        return float(probability)
+        return float(probability) if probability is not None else 0.0
 
-    def _display_dataframe(self, df, column_widths=None):
+    def _create_styled_dataframe(self, df):
         if df.empty:
-            st.info("没有可显示的预测结果")
-            return
+            return df
 
-        try:
-            if "变化" in df.columns:
-                if df["变化"].astype(str).str.strip().eq("").all():
-                    df = df.drop(columns=["变化"])
-        except Exception:
-            pass
-
-        try:
-            cols = list(df.columns)
-            if "变化" in cols and "录取概率" in cols:
-                cols.remove("变化")
-                insert_pos = cols.index("录取概率") + 1
-                cols = cols[:insert_pos] + ["变化"] + cols[insert_pos:]
-                df = df[cols]
-        except Exception:
-            pass
-
-        apply_styler = False
+        style_needed = False
         style_columns = []
 
-        try:
-            if "目标专业" in df.columns:
-                if df["目标专业"].astype(str).str.contains("(New!)", regex=False).any():
-                    apply_styler = True
-                    style_columns.append("目标专业")
-        except Exception:
-            pass
+        if "目标专业" in df.columns:
+            if df["目标专业"].astype(str).str.contains("(New!)", regex=False).any():
+                style_needed = True
+                style_columns.append("目标专业")
 
-        try:
-            if "变化" in df.columns:
-                if df["变化"].astype(str).str.strip().ne("").any():
-                    apply_styler = True
-                    style_columns.append("变化")
-        except Exception:
-            pass
+        if "变化" in df.columns:
+            if df["变化"].astype(str).str.strip().ne("").any():
+                style_needed = True
+                style_columns.append("变化")
 
-        if apply_styler:
+        if not style_needed:
+            return df
 
-            def style_cells(val):
-                if isinstance(val, str):
-                    if "(New!)" in val:
-                        return "color: #FF4B4B; font-weight: bold;"
-                    elif val.startswith("+"):
-                        return "color: #28a745; font-weight: bold;"
-                    elif val.startswith("-"):
-                        return "color: #dc3545; font-weight: bold;"
-                return ""
+        def style_cells(val):
+            if isinstance(val, str):
+                if "(New!)" in val:
+                    return "color: #FF4B4B; font-weight: bold;"
+                elif val.startswith("+"):
+                    return "color: #28a745; font-weight: bold;"
+                elif val.startswith("-"):
+                    return "color: #dc3545; font-weight: bold;"
+            return ""
 
-            data_to_render = df.style.map(
-                style_cells, subset=style_columns if style_columns else None
-            )
-        else:
-            data_to_render = df
+        return df.style.map(style_cells, subset=style_columns)
 
-        if column_widths is None:
-            column_widths = {}
+    def _get_column_config(self, df, column_widths=None):
+        column_widths = column_widths or {}
+
         if "专业详情" in df.columns and "专业详情" not in column_widths:
             column_widths["专业详情"] = "large"
         if "变化" in df.columns and "变化" not in column_widths:
@@ -94,9 +87,7 @@ class ResultsDisplay:
 
         column_config = {}
         for col_name in df.columns:
-            width = "small"
-            if column_widths and col_name in column_widths:
-                width = column_widths[col_name]
+            width = column_widths.get(col_name, "small")
 
             if col_name == "专业详情":
                 column_config[col_name] = st.column_config.TextColumn(
@@ -113,207 +104,113 @@ class ResultsDisplay:
             else:
                 column_config[col_name] = st.column_config.TextColumn(width=width)
 
-        st.data_editor(data_to_render, hide_index=True, column_config=column_config, disabled=True)
+        return column_config
 
-    def _create_top_similarity_dataframe(
-        self,
-        gpa=None,
-        language_score=None,
-        background_university=None,
-        details_df_full=None,
-        prev_prob_map: dict | None = None,
-        show_delta: bool = False,
-    ):
-        if not self.top_similarity_results:
-            return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
+    def _display_dataframe(self, df, column_widths=None):
+        if df.empty:
+            st.info("没有可显示的预测结果")
+            return
 
-        results = self.top_similarity_results
+        df = self._clean_and_reorder_columns(df)
 
-        if results:
-            results.sort(
-                key=lambda item: (
-                    UNIVERSITY_ORDER_MAP.get(item.get("university"), len(UNIVERSITY_SORT_ORDER)),
-                    -item.get("probability", 0),
-                )
-            )
+        styled_df = self._create_styled_dataframe(df)
 
-        df = pd.DataFrame(
-            {
-                "目标院校": [result["university"] for result in results],
-                "目标专业": [
-                    (
-                        f"{result['major']} (New!)"
-                        if result.get("is_new_major", False)
-                        else result["major"]
-                    )
-                    for result in results
-                ],
-                "录取概率": [
-                    self._get_probability_value(result.get("probability")) for result in results
-                ],
-                "专业中文名称": [result.get("chinese_name", "") for result in results],
-            }
-        )
-        if show_delta:
-            deltas: list[str] = []
-            for result in results:
-                key = (result.get("university"), result.get("major"))
-                prev_p = (
-                    float(prev_prob_map.get(key, 0.0))
-                    if prev_prob_map and prev_prob_map.get(key) is not None
-                    else None
-                )
-                cur_p = float(result.get("probability", 0.0) or 0.0)
-                if prev_p is None:
-                    deltas.append("")
-                else:
-                    diff_pct = (cur_p - prev_p) * 100.0
-                    if abs(diff_pct) < 0.05:
-                        deltas.append("")
-                    elif diff_pct > 0:
-                        deltas.append(f"+{diff_pct:.1f}%")
-                    else:
-                        deltas.append(f"{diff_pct:.1f}%")
-            df["变化"] = deltas
+        column_config = self._get_column_config(df, column_widths)
+
+        st.data_editor(styled_df, hide_index=True, column_config=column_config, disabled=True)
+
+    def _clean_and_reorder_columns(self, df):
+        if "变化" in df.columns and df["变化"].astype(str).str.strip().eq("").all():
+            df = df.drop(columns=["变化"])
+            return df
+
+        if "变化" in df.columns and "录取概率" in df.columns:
+            cols = list(df.columns)
+            cols.remove("变化")
+            insert_pos = cols.index("录取概率") + 1
+            cols = cols[:insert_pos] + ["变化"] + cols[insert_pos:]
+            df = df[cols]
+
         return df
 
-    def _create_top_cross_major_dataframe(
-        self,
-        gpa=None,
-        language_score=None,
-        background_university=None,
-        details_df_full=None,
-        prev_prob_map: dict | None = None,
-        show_delta: bool = False,
-    ):
-        if not self.top_cross_major_results:
-            return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
-
-        results = self.top_cross_major_results
-
-        if results:
-            results.sort(
-                key=lambda item: (
-                    UNIVERSITY_ORDER_MAP.get(item.get("university"), len(UNIVERSITY_SORT_ORDER)),
-                    -item.get("probability", 0),
-                )
-            )
-
-        df = pd.DataFrame(
-            {
-                "目标院校": [result["university"] for result in results],
-                "目标专业": [
-                    (
-                        f"{result['major']} (New!)"
-                        if result.get("is_new_major", False)
-                        else result["major"]
-                    )
-                    for result in results
-                ],
-                "录取概率": [
-                    self._get_probability_value(result.get("probability", 0)) for result in results
-                ],
-                "专业中文名称": [result.get("chinese_name", "") for result in results],
-            }
+    def _calculate_delta(self, result, prev_prob_map):
+        key = (result.get("university"), result.get("major"))
+        prev_p = (
+            float(prev_prob_map.get(key, 0.0))
+            if prev_prob_map and prev_prob_map.get(key) is not None
+            else None
         )
-        if show_delta:
-            deltas: list[str] = []
-            for result in results:
-                key = (result.get("university"), result.get("major"))
-                prev_p = (
-                    float(prev_prob_map.get(key, 0.0))
-                    if prev_prob_map and prev_prob_map.get(key) is not None
-                    else None
-                )
-                cur_p = float(result.get("probability", 0.0) or 0.0)
-                if prev_p is None:
-                    deltas.append("")
-                else:
-                    diff_pct = (cur_p - prev_p) * 100.0
-                    if abs(diff_pct) < 0.05:
-                        deltas.append("")
-                    elif diff_pct > 0:
-                        deltas.append(f"+{diff_pct:.1f}%")
-                    else:
-                        deltas.append(f"{diff_pct:.1f}%")
-            df["变化"] = deltas
-        return df
+        cur_p = float(result.get("probability", 0.0) or 0.0)
 
-    def _create_user_specified_dataframe(
+        if prev_p is None:
+            return ""
+
+        diff_pct = (cur_p - prev_p) * 100.0
+        if abs(diff_pct) < 0.05:
+            return ""
+        elif diff_pct > 0:
+            return f"+{diff_pct:.1f}%"
+        else:
+            return f"{diff_pct:.1f}%"
+
+    def _create_results_dataframe(
         self,
-        gpa=None,
-        language_score=None,
-        background_university=None,
-        max_items=None,
-        details_df_full=None,
+        results: list,
         prev_prob_map: dict | None = None,
         show_delta: bool = False,
+        max_items: int | None = None,
     ):
-        if not self.user_specified_results:
+        if not results:
             return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
 
-        results = self.user_specified_results
-
-        if results:
-            results.sort(
-                key=lambda item: (
-                    UNIVERSITY_ORDER_MAP.get(item.get("university"), len(UNIVERSITY_SORT_ORDER)),
-                    -item.get("probability", 0),
-                )
+        results.sort(
+            key=lambda item: (
+                UNIVERSITY_ORDER_MAP.get(item.get("university"), len(UNIVERSITY_SORT_ORDER)),
+                -self._get_probability_value(item.get("probability")),
             )
+        )
 
         if isinstance(max_items, int) and max_items > 0:
             results = results[:max_items]
 
-        df = pd.DataFrame(
-            {
-                "目标院校": [result["university"] for result in results],
-                "目标专业": [
-                    (
-                        f"{result['major']} (New!)"
-                        if result.get("is_new_major", False)
-                        else result["major"]
-                    )
-                    for result in results
-                ],
-                "录取概率": [
-                    self._get_probability_value(result.get("probability", 0)) for result in results
-                ],
-                "专业中文名称": [result.get("chinese_name", "") for result in results],
-            }
-        )
-        if show_delta:
-            deltas: list[str] = []
-            for result in results:
-                key = (result.get("university"), result.get("major"))
-                prev_p = (
-                    float(prev_prob_map.get(key, 0.0))
-                    if prev_prob_map and prev_prob_map.get(key) is not None
-                    else None
+        data = {
+            "目标院校": [result["university"] for result in results],
+            "目标专业": [
+                (
+                    f"{result['major']} (New!)"
+                    if result.get("is_new_major", False)
+                    else result["major"]
                 )
-                cur_p = float(result.get("probability", 0.0) or 0.0)
-                if prev_p is None:
-                    deltas.append("")
-                else:
-                    diff_pct = (cur_p - prev_p) * 100.0
-                    if abs(diff_pct) < 0.05:
-                        deltas.append("")
-                    elif diff_pct > 0:
-                        deltas.append(f"+{diff_pct:.1f}%")
-                    else:
-                        deltas.append(f"{diff_pct:.1f}%")
-            df["变化"] = deltas
-        return df
+                for result in results
+            ],
+            "录取概率": [
+                self._get_probability_value(result.get("probability")) for result in results
+            ],
+            "专业中文名称": [result.get("chinese_name", "") for result in results],
+        }
 
-    def display(
+        if show_delta:
+            data["变化"] = [self._calculate_delta(result, prev_prob_map) for result in results]
+
+        return pd.DataFrame(data)
+
+    def _get_result_dataframe(
+        self, result_type, prev_prob_map=None, show_delta=False, max_items=None
+    ):
+        config = self.result_types[result_type]
+        return self._create_results_dataframe(
+            results=config["results"],
+            prev_prob_map=prev_prob_map,
+            show_delta=show_delta,
+            max_items=max_items,
+        )
+
+    def _should_show_delta(
         self,
         target_universities,
         target_majors,
-        gpa=None,
-        language_score=None,
-        language_type=None,
-        background_university=None,
-        background_major=None,
+        background_university,
+        background_major,
     ):
         session_manager = SessionManager()
         prev_context_key = session_manager.get("previous_context_key")
@@ -333,11 +230,95 @@ class ResultsDisplay:
             target_majs_sorted,
         )
 
-        show_delta = (
+        return (
             isinstance(prev_context_key, tuple)
             and prev_context_key == cur_context_key
             and isinstance(prob_map_to_use, dict)
             and bool(prob_map_to_use)
+        ), prob_map_to_use
+
+    def _display_results_layout(
+        self, has_user_specified, has_similarity, has_cross_major, pool_is_large
+    ):
+        if pool_is_large:
+            self._display_large_pool_layout(has_similarity, has_cross_major)
+        else:
+            self._display_normal_layout(has_user_specified, has_similarity, has_cross_major)
+
+    def _display_large_pool_layout(self, has_similarity, has_cross_major):
+        if not (has_similarity or has_cross_major):
+            st.info("没有可显示的预测结果。")
+            return
+
+        if has_similarity and has_cross_major:
+            col1, col2 = st.columns(2)
+            with col1:
+                self._display_result_type("similarity")
+            with col2:
+                self._display_result_type("cross_major")
+        elif has_similarity:
+            self._display_result_type("similarity")
+        else:
+            self._display_result_type("cross_major")
+
+    def _display_normal_layout(self, has_user_specified, has_similarity, has_cross_major):
+        if has_user_specified:
+            self._display_result_type("user_specified")
+        elif has_similarity and has_cross_major:
+            col1, col2 = st.columns(2)
+            with col1:
+                self._display_result_type("similarity")
+            with col2:
+                self._display_result_type("cross_major")
+        elif has_similarity:
+            self._display_result_type("similarity")
+        elif has_cross_major:
+            self._display_result_type("cross_major")
+        else:
+            st.info("没有可显示的预测结果。")
+
+    def _display_result_type(self, result_type):
+        config = self.result_types[result_type]
+        st.success(config["title"])
+
+        max_items = None if result_type == "user_specified" else TOP_N_RECOMMENDATIONS
+
+        df = self._get_result_dataframe(
+            result_type,
+            prev_prob_map=self.prob_map_to_use,
+            show_delta=self.show_delta,
+            max_items=max_items,
+        )
+        self._display_dataframe(df, config["config"])
+
+    def display(
+        self,
+        target_universities,
+        target_majors,
+        gpa=None,
+        language_score=None,
+        language_type=None,
+        background_university=None,
+        background_major=None,
+    ):
+        session_manager = SessionManager()
+
+        if not any(
+            [
+                self.top_similarity_results,
+                self.top_cross_major_results,
+                self.user_specified_results,
+            ]
+        ):
+            combination_count = session_manager.get("combination_count", 0)
+            if combination_count > 0:
+                st.info("结果生成中，请稍候…")
+            else:
+                st.info("没有可显示的预测结果。")
+            return
+
+        self.show_delta, self.prob_map_to_use = self._should_show_delta(
+            target_universities, target_majors, background_university, background_major
         )
 
         combination_count = session_manager.get("combination_count", 0)
@@ -346,82 +327,25 @@ class ResultsDisplay:
         df_user_specified = pd.DataFrame()
         has_user_specified = False
         if not pool_is_large:
-            df_user_specified = self._create_user_specified_dataframe(
-                gpa,
-                language_score,
-                background_university,
-                max_items=None,
-                prev_prob_map=prob_map_to_use,
-                show_delta=show_delta,
+            df_user_specified = self._get_result_dataframe(
+                "user_specified",
+                prev_prob_map=self.prob_map_to_use,
+                show_delta=self.show_delta,
             )
             has_user_specified = not df_user_specified.empty
 
-        df_similarity = self._create_top_similarity_dataframe(
-            gpa, language_score, background_university, None, prob_map_to_use, show_delta
+        df_similarity = self._get_result_dataframe(
+            "similarity", prev_prob_map=self.prob_map_to_use, show_delta=self.show_delta
         )
         has_similarity = not df_similarity.empty
 
-        df_cross_major = self._create_top_cross_major_dataframe(
-            gpa, language_score, background_university, None, prob_map_to_use, show_delta
+        df_cross_major = self._get_result_dataframe(
+            "cross_major",
+            prev_prob_map=self.prob_map_to_use,
+            show_delta=self.show_delta,
         )
         has_cross_major = not df_cross_major.empty
 
-        if not has_user_specified and not has_similarity and not has_cross_major:
-            if pool_is_large or session_manager.get("combination_count", 0) > 0:
-                st.info("结果生成中，请稍候…")
-            else:
-                st.info("没有可显示的预测结果。")
-            return
-
-        if pool_is_large:
-            if has_similarity or has_cross_major:
-                if has_similarity and has_cross_major:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.success(f"相似专业录取率 Top {TOP_N_RECOMMENDATIONS}")
-                        column_widths = TOP_SIM_RESULT_UI_CONFIG
-                        self._display_dataframe(df_similarity, column_widths)
-
-                    with col2:
-                        st.success(f"潜力跨专业方向 Top {TOP_N_RECOMMENDATIONS}")
-                        column_widths = TOP_CROSS_RESULT_UI_CONFIG
-                        self._display_dataframe(df_cross_major, column_widths)
-                elif has_similarity:
-                    st.success(f"相似专业录取率 Top {TOP_N_RECOMMENDATIONS}")
-                    column_widths = TOP_SIM_RESULT_UI_CONFIG
-                    self._display_dataframe(df_similarity, column_widths)
-                elif has_cross_major:
-                    st.success(f"潜力跨专业方向 Top {TOP_N_RECOMMENDATIONS}")
-                    column_widths = TOP_CROSS_RESULT_UI_CONFIG
-                    self._display_dataframe(df_cross_major, column_widths)
-            else:
-                st.info("没有可显示的预测结果。")
-            return
-
-        if has_user_specified:
-            st.success("您指定的目标学校专业预测")
-            column_widths_user = TOP_SIM_RESULT_UI_CONFIG
-            self._display_dataframe(df_user_specified, column_widths_user)
-        elif has_similarity or has_cross_major:
-            if has_similarity and has_cross_major:
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.success(f"相似专业录取率 Top {TOP_N_RECOMMENDATIONS}")
-                    column_widths = TOP_SIM_RESULT_UI_CONFIG
-                    self._display_dataframe(df_similarity, column_widths)
-
-                with col2:
-                    st.success(f"潜力跨专业方向 Top {TOP_N_RECOMMENDATIONS}")
-                    column_widths = TOP_CROSS_RESULT_UI_CONFIG
-                    self._display_dataframe(df_cross_major, column_widths)
-            elif has_similarity:
-                st.success(f"相似专业录取率 Top {TOP_N_RECOMMENDATIONS}")
-                column_widths = TOP_SIM_RESULT_UI_CONFIG
-                self._display_dataframe(df_similarity, column_widths)
-            else:
-                st.success(f"潜力跨专业方向 Top {TOP_N_RECOMMENDATIONS}")
-                column_widths = TOP_CROSS_RESULT_UI_CONFIG
-                self._display_dataframe(df_cross_major, column_widths)
-        else:
-            st.info("没有可显示的预测结果。")
-        return
+        self._display_results_layout(
+            has_user_specified, has_similarity, has_cross_major, pool_is_large
+        )

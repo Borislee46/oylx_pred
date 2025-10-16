@@ -33,7 +33,10 @@ class LanguageScoreConverter:
     def toefl_to_ielts(toefl_score):
         if toefl_score is None:
             return None
-        for (min_score, max_score), ielts in LanguageScoreConverter.TOEFL_TO_IELTS_MAP.items():
+        for (
+            min_score,
+            max_score,
+        ), ielts in LanguageScoreConverter.TOEFL_TO_IELTS_MAP.items():
             if min_score <= toefl_score <= max_score:
                 return ielts
         return None
@@ -44,6 +47,7 @@ class LanguageScoreConverter:
             return None
 
         closest_ielts = min(
-            LanguageScoreConverter._SORTED_IELTS_SCORES, key=lambda x: abs(x - ielts_score)
+            LanguageScoreConverter._SORTED_IELTS_SCORES,
+            key=lambda x: abs(x - ielts_score),
         )
         return LanguageScoreConverter.IELTS_TO_TOEFL_MAP.get(closest_ielts)

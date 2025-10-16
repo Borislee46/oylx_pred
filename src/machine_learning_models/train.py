@@ -11,6 +11,27 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 
 
+def get_package_versions():
+    versions = {}
+    packages = ["xgboost", "sklearn", "numpy", "pandas", "scipy", "joblib"]
+    
+    for package in packages:
+        try:
+            if package == "sklearn":
+                import sklearn
+                versions["scikit-learn"] = sklearn.__version__
+            else:
+                module = __import__(package)
+                versions[package] = module.__version__
+        except (ImportError, AttributeError):
+            versions[package] = "not installed"
+    
+    import platform
+    versions["python"] = platform.python_version()
+    
+    return versions
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="xgboost", choices=["xgboost"])
@@ -35,6 +56,8 @@ def main():
     )
     calibration_method_used = calibration_method_from_trainer
 
+    package_versions = get_package_versions()
+
     evaluation_file = utils.save_evaluation_results(
         model_name=args.model,
         metrics=metrics,
@@ -43,6 +66,7 @@ def main():
         model_params=model_params,
         sampling_method=args.sampling_method,
         calibration_method=calibration_method_used,
+        package_versions=package_versions,
     )
 
 

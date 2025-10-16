@@ -121,5 +121,3 @@ def generate_announcement_css() -> str:
         return f"<style>{css}</style>"
     except FileNotFoundError:
         return ""
-
-    return css

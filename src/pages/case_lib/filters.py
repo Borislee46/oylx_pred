@@ -1,8 +1,10 @@
 import pandas as pd
+import streamlit as st
 
 from src.pages.case_lib import config
 
 
+@st.cache_data
 def get_base_filter_options(_df):
     options = {}
 
@@ -117,12 +119,12 @@ def apply_filters(df, selections, filter_options):
     filtered_df = df
 
     if selections["years"] and config.YEAR_COL in filtered_df.columns:
-        years_set = set(selections["years"])
-        filtered_df = filtered_df[filtered_df[config.YEAR_COL].isin(years_set)]
+        filtered_df = filtered_df[filtered_df[config.YEAR_COL].isin(selections["years"])]
 
     if selections["countries"] and config.TARGET_COUNTRY_COL in filtered_df.columns:
-        countries_set = set(selections["countries"])
-        filtered_df = filtered_df[filtered_df[config.TARGET_COUNTRY_COL].isin(countries_set)]
+        filtered_df = filtered_df[
+            filtered_df[config.TARGET_COUNTRY_COL].isin(selections["countries"])
+        ]
 
     if selections["school_levels"]:
         domestic_selections = [
@@ -157,8 +159,9 @@ def apply_filters(df, selections, filter_options):
         filtered_df = filtered_df[numeric_series.between(min_score, max_score, inclusive="both")]
 
     if selections["background_majors"] and config.BACKGROUND_MAJOR_COL in filtered_df.columns:
-        majors_set = set(selections["background_majors"])
-        filtered_df = filtered_df[filtered_df[config.BACKGROUND_MAJOR_COL].isin(majors_set)]
+        filtered_df = filtered_df[
+            filtered_df[config.BACKGROUND_MAJOR_COL].isin(selections["background_majors"])
+        ]
 
     available_target_major_col = filter_options.get("available_target_major_col")
     if (
@@ -166,8 +169,9 @@ def apply_filters(df, selections, filter_options):
         and available_target_major_col
         and available_target_major_col in filtered_df.columns
     ):
-        target_majors_set = set(selections["target_majors"])
-        filtered_df = filtered_df[filtered_df[available_target_major_col].isin(target_majors_set)]
+        filtered_df = filtered_df[
+            filtered_df[available_target_major_col].isin(selections["target_majors"])
+        ]
 
     available_background_uni_col = filter_options.get("available_background_uni_col")
     if (
@@ -175,14 +179,14 @@ def apply_filters(df, selections, filter_options):
         and available_background_uni_col
         and available_background_uni_col in filtered_df.columns
     ):
-        background_unis_set = set(selections["background_unis"])
         filtered_df = filtered_df[
-            filtered_df[available_background_uni_col].isin(background_unis_set)
+            filtered_df[available_background_uni_col].isin(selections["background_unis"])
         ]
 
     if selections["target_unis"] and config.TARGET_UNI_COL in filtered_df.columns:
-        target_unis_set = set(selections["target_unis"])
-        filtered_df = filtered_df[filtered_df[config.TARGET_UNI_COL].isin(target_unis_set)]
+        filtered_df = filtered_df[
+            filtered_df[config.TARGET_UNI_COL].isin(selections["target_unis"])
+        ]
 
     available_system_col = filter_options.get("available_system_col")
     if (
@@ -190,8 +194,7 @@ def apply_filters(df, selections, filter_options):
         and available_system_col
         and available_system_col in filtered_df.columns
     ):
-        systems_set = set(selections["体系"])
-        filtered_df = filtered_df[filtered_df[available_system_col].isin(systems_set)]
+        filtered_df = filtered_df[filtered_df[available_system_col].isin(selections["体系"])]
 
     if selections["admission_statuses"] and config.ADMISSION_STATUS_COL in filtered_df.columns:
         filtered_df = filtered_df[

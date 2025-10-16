@@ -82,6 +82,7 @@ def save_evaluation_results(
     model_params=None,
     sampling_method=None,
     calibration_method=None,
+    package_versions=None,
 ):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -99,6 +100,8 @@ def save_evaluation_results(
         result_data["sampling_method"] = sampling_method
     if calibration_method is not None:
         result_data["calibration_method"] = calibration_method
+    if package_versions is not None:
+        result_data["package_versions"] = package_versions
     result_data_cleaned = replace_nan_with_none(result_data)
     with open(result_filename, "w", encoding="utf-8") as f:
         json.dump(result_data_cleaned, f, ensure_ascii=False, indent=4)

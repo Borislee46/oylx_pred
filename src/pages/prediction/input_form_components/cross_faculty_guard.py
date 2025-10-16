@@ -25,10 +25,7 @@ def check_cross_faculty_situation(
                 if pd.isna(background_faculty) or str(background_faculty).strip() == "":
                     background_faculty = None
         except Exception as e:
-            try:
-                guard_logger.warning(f"查询背景学院失败: {e}")
-            except Exception:
-                pass
+            guard_logger.warning(f"查询背景学院失败: {e}")
 
     if not background_faculty:
         return False, None, set()
@@ -48,10 +45,7 @@ def check_cross_faculty_situation(
                         cache_key = f"{uni}|{maj}"
                         major_category_cache[cache_key] = cat
             except Exception as e:
-                try:
-                    guard_logger.warning(f"构建专业大类缓存失败: {e}")
-                except Exception:
-                    pass
+                guard_logger.warning(f"构建专业大类缓存失败: {e}")
 
     target_faculties: Set[str] = set()
     has_cross_faculty = False
@@ -134,10 +128,7 @@ def quick_cross_faculty_check(
                 if pd.isna(background_faculty) or str(background_faculty).strip() == "":
                     background_faculty = None
     except Exception as e:
-        try:
-            guard_logger.warning(f"查询背景学院失败: {e}")
-        except Exception:
-            pass
+        guard_logger.warning(f"查询背景学院失败: {e}")
 
     if not background_faculty:
         return False, None, set()
@@ -179,10 +170,7 @@ def quick_cross_faculty_check(
 
                 target_faculties.update(matched_df["专业大类"].astype(str).str.strip().tolist())
         except Exception as e:
-            try:
-                guard_logger.error(f"根据目标专业解析专业大类失败: {e}", exc_info=True)
-            except Exception:
-                pass
+            guard_logger.error(f"根据目标专业解析专业大类失败: {e}", exc_info=True)
 
     has_cross = any(f for f in target_faculties if f and f != background_faculty)
     return has_cross, background_faculty, target_faculties

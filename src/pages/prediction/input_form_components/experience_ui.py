@@ -18,7 +18,39 @@ def render_experience_section(session_manager, form_state_manager, logger):
 
     user_history_data = session_manager.get("user_history_data", {})
 
-    def render_experience_item(label_prefix, count_key, details_key, placeholder_text):
+    experience_items = [
+        {
+            "label": "科研",
+            "type": "research",
+            "placeholder": "例如：参与国家重点实验室项目，发表SCI论文等",
+        },
+        {
+            "label": "获奖",
+            "type": "award",
+            "placeholder": "例如：国家奖学金、省级一等奖、国际竞赛金奖等",
+        },
+        {
+            "label": "实习",
+            "type": "internship",
+            "placeholder": "例如：腾讯、阿里巴巴、500强企业实习经历等",
+        },
+        {
+            "label": "论文",
+            "type": "paper",
+            "placeholder": "例如：第一作者SCI论文、核心期刊发表等",
+        },
+    ]
+
+    results = {}
+    details = {}
+
+    for item in experience_items:
+        label_prefix = item["label"]
+        item_type = item["type"]
+        placeholder = item["placeholder"]
+        count_key = f"{item_type}_count"
+        details_key = f"{item_type}_details"
+
         col_count, col_details = st.columns([1, 5], gap="small")
         with col_count:
             count_val = st.number_input(
@@ -30,7 +62,7 @@ def render_experience_section(session_manager, form_state_manager, logger):
                     _log_experience_change,
                     session_manager,
                     form_state_manager,
-                    count_key.split("_")[0],
+                    item_type,
                 ),
                 placeholder="",
                 key=f"{count_key}_input",
@@ -43,37 +75,18 @@ def render_experience_section(session_manager, form_state_manager, logger):
                     _log_experience_details_change,
                     session_manager,
                     form_state_manager,
-                    count_key.split("_")[0],
+                    item_type,
                 ),
-                placeholder=placeholder_text,
+                placeholder=placeholder,
                 key=f"{details_key}_input",
             )
-        return count_val, details_val
+        results[count_key] = count_val
+        details[details_key] = details_val
 
-    research_count, research_details = render_experience_item(
-        "科研",
-        "research_count",
-        "research_details",
-        "例如：参与国家重点实验室项目，发表SCI论文等",
+    return (
+        results["research_count"],
+        results["award_count"],
+        results["internship_count"],
+        results["paper_count"],
+        details,
     )
-    award_count, award_details = render_experience_item(
-        "获奖", "award_count", "award_details", "例如：国家奖学金、省级一等奖、国际竞赛金奖等"
-    )
-    internship_count, internship_details = render_experience_item(
-        "实习",
-        "internship_count",
-        "internship_details",
-        "例如：腾讯、阿里巴巴、500强企业实习经历等",
-    )
-    paper_count, paper_details = render_experience_item(
-        "论文", "paper_count", "paper_details", "例如：第一作者SCI论文、核心期刊发表等"
-    )
-
-    experience_details = {
-        "research_details": session_manager.get_widget_value("research_details_input", ""),
-        "award_details": session_manager.get_widget_value("award_details_input", ""),
-        "internship_details": session_manager.get_widget_value("internship_details_input", ""),
-        "paper_details": session_manager.get_widget_value("paper_details_input", ""),
-    }
-
-    return research_count, award_count, internship_count, paper_count, experience_details

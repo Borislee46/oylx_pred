@@ -20,7 +20,10 @@ def display_feedback_section(session_id):
                     label="点击这里提供详细反馈，帮助我们改进产品，感谢您的支持！",
                 )
             else:
-                st.page_link("pages/hk_feedback.py", label="感谢您的反馈！点击这里留下您的宝贵意见")
+                st.page_link(
+                    "pages/hk_feedback.py",
+                    label="感谢您的反馈！点击这里留下您的宝贵意见",
+                )
     else:
         page_components_logger.warning(
             "st.feedback attribute 找不到. 反馈组件不会被渲染. 如果需要, 请更新 Streamlit 版本."

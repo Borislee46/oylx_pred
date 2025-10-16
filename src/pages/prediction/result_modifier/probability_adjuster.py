@@ -14,7 +14,10 @@ from src.pages.prediction.result_modifier.config import (
     MIN_SIMILARITY_THRESHOLD,
     PROBABILITY_ADJUSTER_CACHE_SIZE,
 )
-from src.pages.prediction.result_modifier.utils import clip_probability, generate_content_hash
+from src.pages.prediction.result_modifier.utils import (
+    clip_probability,
+    generate_content_hash,
+)
 
 
 class ProbabilityAdjuster:

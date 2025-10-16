@@ -1,6 +1,8 @@
 import streamlit as st
 
-from src.pages.prediction.admission_probability_calculator import AdmissionProbabilityCalculator
+from src.pages.prediction.admission_probability_calculator import (
+    AdmissionProbabilityCalculator,
+)
 from src.utils.logger import setup_logger
 from src.utils.session_manager import PredictionResultModel, SessionManager
 

@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.machine_learning_models.categorical_features_processor import prepare_categorical_columns
+from src.machine_learning_models.categorical_features_processor import (
+    prepare_categorical_columns,
+)
 from src.machine_learning_models.data_config import CATEGORICAL_COLUMNS
 from src.utils.logger import setup_logger
 
@@ -45,16 +47,10 @@ def _ensure_required_case_columns(df: pd.DataFrame) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = default_val
 
-    try:
-        if "admitted" in df.columns:
-            df["admitted"] = pd.to_numeric(df["admitted"], errors="coerce").fillna(0).astype(int)
-    except Exception:
-        pass
-    try:
-        if "gpa" in df.columns:
-            df["gpa"] = pd.to_numeric(df["gpa"], errors="coerce")
-    except Exception:
-        pass
+    if "admitted" in df.columns:
+        df["admitted"] = pd.to_numeric(df["admitted"], errors="coerce").fillna(0).astype(int)
+    if "gpa" in df.columns:
+        df["gpa"] = pd.to_numeric(df["gpa"], errors="coerce")
 
     return df
 
@@ -101,25 +97,14 @@ def load_school_major_details_df(
         return pd.DataFrame()
 
 
+def _load_similarity_cache(path: str) -> dict:
+    df = pd.read_feather(path)
+    if {"key", "similarity"}.issubset(df.columns):
+        series = df.set_index("key")["similarity"]
+        return series.to_dict()
+    return {}
+
+
 @st.cache_data
 def load_bg_target_similarity_cache(path="cache/background_target_similarity.feather"):
-    try:
-        df = pd.read_feather(path)
-        if set(["key", "similarity"]).issubset(set(df.columns)):
-            series = df.set_index("key")["similarity"]
-            return series.to_dict()
-        return {}
-    except Exception:
-        return {}
-
-
-@st.cache_data
-def load_bg_bg_similarity_cache(path="cache/background_background_similarity.feather"):
-    try:
-        df = pd.read_feather(path)
-        if set(["key", "similarity"]).issubset(set(df.columns)):
-            series = df.set_index("key")["similarity"]
-            return series.to_dict()
-        return {}
-    except Exception:
-        return {}
+    return _load_similarity_cache(path)

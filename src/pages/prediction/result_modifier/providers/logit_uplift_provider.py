@@ -79,7 +79,12 @@ class LogitUpliftProvider(TextBoostProvider):
         return s.strip()
 
     def _make_signature(self, details: dict[str, Any]) -> str:
-        keys_text = ("research_details", "award_details", "internship_details", "paper_details")
+        keys_text = (
+            "research_details",
+            "award_details",
+            "internship_details",
+            "paper_details",
+        )
         keys_cnt = ("research_count", "award_count", "internship_count", "paper_count")
         obj: dict[str, Any] = {k: self._prep_text(str(details.get(k, ""))) for k in keys_text}
         for k in keys_cnt:
@@ -93,7 +98,12 @@ class LogitUpliftProvider(TextBoostProvider):
 
         texts = {
             k: self._prep_text(details.get(k, ""))
-            for k in ("research_details", "award_details", "internship_details", "paper_details")
+            for k in (
+                "research_details",
+                "award_details",
+                "internship_details",
+                "paper_details",
+            )
         }
         keys = list(texts.keys())
         X = self._vectorizer.transform([texts[k] for k in keys])
@@ -223,7 +233,12 @@ class LogitUpliftProvider(TextBoostProvider):
                 "internship_details": "实习经历",
                 "paper_details": "论文发表",
             }
-            for k in ("research_details", "award_details", "internship_details", "paper_details"):
+            for k in (
+                "research_details",
+                "award_details",
+                "internship_details",
+                "paper_details",
+            ):
                 s = sims.get(k, 0.0)
                 if s > 0.15:
                     parts.append(f"{name_map[k]}: {s:.2f}")

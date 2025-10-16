@@ -1,6 +1,17 @@
 def format_fees(data):
     response = "关于留学费用，相关信息如下：\n"
-    cost_keywords = ["费", "价", "成本", "欧元", "€", "补贴", "奖学金", "薪", "保险", "租"]
+    cost_keywords = [
+        "费",
+        "价",
+        "成本",
+        "欧元",
+        "€",
+        "补贴",
+        "奖学金",
+        "薪",
+        "保险",
+        "租",
+    ]
     relevant_items = []
 
     if isinstance(data, list):

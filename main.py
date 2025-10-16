@@ -31,7 +31,9 @@ def _handle_oauth_callback_if_present() -> None:
 
 def _initialize_page_and_state():
     user_info = init_page(
-        page_title="前途欧亚留学数据科学平台", current_page_path="main.py", layout="centered"
+        page_title="前途欧亚留学数据科学平台",
+        current_page_path="main.py",
+        layout="centered",
     )
 
     user_nickname = user_info["user_nickname"]
@@ -73,9 +75,6 @@ def _render_announcements(user_email: str, is_user_admin: bool, accessible_modul
         user_email, is_user_admin, accessible_modules
     )
     if user_announcements:
-        main_logger.info(
-            f"Displaying {len(user_announcements)} announcements for user '{user_email}'."
-        )
         announcement_css = generate_announcement_css()
         announcement_html = generate_announcement_html(user_announcements)
         st.markdown(announcement_css, unsafe_allow_html=True)
@@ -194,9 +193,6 @@ def _render_global_visibility_css() -> None:
 
 def main() -> None:
     user_info, user_nickname = _initialize_page_and_state()
-    main_logger.info(
-        f"Main page loaded for user '{user_info['user_email']}' ({user_nickname}). Session ID: {st.session_state.session_id}"
-    )
     _render_global_visibility_css()
     user_email = user_info["user_email"]
 

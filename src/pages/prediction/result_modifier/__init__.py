@@ -13,7 +13,9 @@ from src.pages.prediction.result_modifier.ranker import (
     get_cross_major_recommendations,
     get_similar_major_recommendations,
 )
-from src.pages.prediction.result_modifier.similarity_adjuster import adjust_similarity_score
+from src.pages.prediction.result_modifier.similarity_adjuster import (
+    adjust_similarity_score,
+)
 
 __all__ = [
     "ProbabilityAdjuster",

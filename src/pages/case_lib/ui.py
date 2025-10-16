@@ -115,53 +115,92 @@ def display_results(df, selected_chinese_categories):
     display_df = df.head(max_display_count).copy()
 
     if selected_chinese_categories in ["硕士", "博士"]:
-        background_cols_map = {
-            "工作数量": "工作",
-            "发表数量": "论文",
-            "科研数量": "科研",
-            "实习数量": "实习",
-            "活动数量": "活动",
-            "获奖数量": "获奖",
-        }
+        if "background_summary_precomputed" in display_df.columns:
+            display_df["background_summary"] = display_df["background_summary_precomputed"]
+        else:
+            background_cols_map = {
+                "工作数量": "工作",
+                "发表数量": "论文",
+                "科研数量": "科研",
+                "实习数量": "实习",
+                "活动数量": "活动",
+                "获奖数量": "获奖",
+            }
 
-        def create_summary(row):
             summary_parts = []
             for col, prefix in background_cols_map.items():
-                if col in row.index:
-                    value = pd.to_numeric(row[col], errors="coerce")
-                    if pd.notna(value) and value > 0:
-                        summary_parts.append(f"{prefix}{int(value)}")
-            return "".join(summary_parts)
+                if col in display_df.columns:
+                    values = pd.to_numeric(display_df[col], errors="coerce")
+                    valid_values = values.where((values > 0) & values.notna(), pd.NA)
+                    str_values = valid_values.apply(
+                        lambda x: f"{prefix}{int(x)}" if pd.notna(x) else ""
+                    )
+                    summary_parts.append(str_values)
 
-        display_df["background_summary"] = display_df.apply(create_summary, axis=1)
+            if summary_parts:
+                result = summary_parts[0]
+                for part in summary_parts[1:]:
+                    result = result + part
+                display_df["background_summary"] = result
+            else:
+                display_df["background_summary"] = ""
 
     if selected_chinese_categories == "硕士":
-
-        def create_uni_summary(row):
+        if "uni_classification_summary_precomputed" in display_df.columns:
+            display_df["uni_classification_summary"] = display_df[
+                "uni_classification_summary_precomputed"
+            ]
+        else:
             parts = []
-            domestic = row.get("国本院校分类")
-            overseas = row.get("海本QS排名区间")
-            if domestic and str(domestic) not in config.INVALID_VALUES and not pd.isna(domestic):
-                parts.append(str(domestic))
-            if overseas and str(overseas) not in config.INVALID_VALUES and not pd.isna(overseas):
-                parts.append(str(overseas))
-            return "/".join(parts)
+            if "国本院校分类" in display_df.columns:
+                domestic = display_df["国本院校分类"].astype(str)
+                domestic = domestic.where(
+                    ~domestic.isin(config.INVALID_VALUES) & domestic.notna(), ""
+                )
+                parts.append(domestic)
 
-        display_df["uni_classification_summary"] = display_df.apply(create_uni_summary, axis=1)
+            if "海本QS排名区间" in display_df.columns:
+                overseas = display_df["海本QS排名区间"].astype(str)
+                overseas = overseas.where(
+                    ~overseas.isin(config.INVALID_VALUES) & overseas.notna(), ""
+                )
+                parts.append(overseas)
 
-        def create_gre_gmat_summary(row):
+            if len(parts) == 2:
+                result = parts[0] + "/" + parts[1]
+                result = result.str.strip("/").replace("/", "")
+                display_df["uni_classification_summary"] = result
+            elif len(parts) == 1:
+                display_df["uni_classification_summary"] = parts[0]
+            else:
+                display_df["uni_classification_summary"] = ""
+
+        if "gre_gmat_score_precomputed" in display_df.columns:
+            display_df["gre_gmat_score"] = display_df["gre_gmat_score_precomputed"]
+        else:
             parts = []
-            gre_val = pd.to_numeric(row.get("GRE分数"), errors="coerce")
-            gmat_val = pd.to_numeric(row.get("GMAT分数"), errors="coerce")
+            if "GRE分数" in display_df.columns:
+                gre = pd.to_numeric(display_df["GRE分数"], errors="coerce")
+                gre_str = gre.where((gre > 0) & gre.notna(), pd.NA).apply(
+                    lambda x: str(int(x)) if pd.notna(x) else ""
+                )
+                parts.append(gre_str)
 
-            if pd.notna(gre_val) and gre_val > 0:
-                parts.append(str(int(gre_val)))
-            if pd.notna(gmat_val) and gmat_val > 0:
-                parts.append(str(int(gmat_val)))
+            if "GMAT分数" in display_df.columns:
+                gmat = pd.to_numeric(display_df["GMAT分数"], errors="coerce")
+                gmat_str = gmat.where((gmat > 0) & gmat.notna(), pd.NA).apply(
+                    lambda x: str(int(x)) if pd.notna(x) else ""
+                )
+                parts.append(gmat_str)
 
-            return "/".join(parts)
-
-        display_df["gre_gmat_score"] = display_df.apply(create_gre_gmat_summary, axis=1)
+            if len(parts) == 2:
+                result = parts[0] + "/" + parts[1]
+                result = result.str.strip("/").replace("/", "")
+                display_df["gre_gmat_score"] = result
+            elif len(parts) == 1:
+                display_df["gre_gmat_score"] = parts[0]
+            else:
+                display_df["gre_gmat_score"] = ""
 
     display_cols = config.DISPLAY_COLS_CONFIG.get(selected_chinese_categories, [])
 
@@ -182,18 +221,20 @@ def display_results(df, selected_chinese_categories):
 
     gpa_cols_to_format = ["GPA", "GPA分制", "GPA（百分制）"]
 
-    for col in final_display_df.columns:
-        if col in gpa_cols_to_format:
-            numeric_series = pd.to_numeric(final_display_df[col], errors="coerce")
-            final_display_df[col] = numeric_series.apply(
-                lambda x: "" if pd.isna(x) else str(int(x)) if x == int(x) else f"{x:g}"
-            )
-        else:
-            series = final_display_df[col]
-            series = series.astype(object)
-            series = series.where(series.notna(), "")
-            series = series.astype(str).replace({"None": "", "nan": "", "NaN": ""})
-            final_display_df[col] = series
+    gpa_cols_in_df = [col for col in gpa_cols_to_format if col in final_display_df.columns]
+    for col in gpa_cols_in_df:
+        numeric_series = pd.to_numeric(final_display_df[col], errors="coerce")
+        final_display_df[col] = numeric_series.apply(
+            lambda x: "" if pd.isna(x) else str(int(x)) if x == int(x) else f"{x:g}"
+        )
+
+    other_cols = [col for col in final_display_df.columns if col not in gpa_cols_in_df]
+    for col in other_cols:
+        final_display_df[col] = (
+            final_display_df[col]
+            .astype(str)
+            .replace({"None": "", "nan": "", "NaN": "", "None": ""})
+        )
 
     st.markdown('<div class="case-library-content">', unsafe_allow_html=True)
     st.dataframe(final_display_df, hide_index=True, height=1060)

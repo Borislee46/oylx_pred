@@ -33,7 +33,12 @@ def _compute_results_hash(sim_results, cross_results, user_specified_results) ->
 
 
 def display_results_section(
-    input_data, sim_results, cross_results, user_specified_results, cases_df, submitted=True
+    input_data,
+    sim_results,
+    cross_results,
+    user_specified_results,
+    cases_df,
+    submitted=True,
 ):
     if all(x is None for x in [sim_results, cross_results, user_specified_results]):
         return
@@ -75,22 +80,17 @@ def display_results_section(
             target_majs_sorted,
         )
 
-        try:
-            old_prev_map = session_manager.get("previous_prob_map", {})
-            current_prob_map: dict = {}
-            for result in (
-                (user_specified_results or []) + (sim_results or []) + (cross_results or [])
-            ):
-                if isinstance(result, dict):
-                    key = (result.get("university"), result.get("major"))
-                    if key[0] and key[1]:
-                        p = float(result.get("probability", 0.0) or 0.0)
-                        current_prob_map[key] = p
-            session_manager.set(
-                previous_context_key=cur_context_key,
-                prev_prev_prob_map=old_prev_map,
-                previous_prob_map=current_prob_map,
-                last_saved_results_hash=current_results_hash,
-            )
-        except Exception:
-            pass
+        old_prev_map = session_manager.get("previous_prob_map", {})
+        current_prob_map: dict = {}
+        for result in (user_specified_results or []) + (sim_results or []) + (cross_results or []):
+            if isinstance(result, dict):
+                key = (result.get("university"), result.get("major"))
+                if key[0] and key[1]:
+                    p = float(result.get("probability", 0.0) or 0.0)
+                    current_prob_map[key] = p
+        session_manager.set(
+            previous_context_key=cur_context_key,
+            prev_prev_prob_map=old_prev_map,
+            previous_prob_map=current_prob_map,
+            last_saved_results_hash=current_results_hash,
+        )

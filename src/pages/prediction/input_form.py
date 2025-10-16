@@ -34,9 +34,11 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
         col1, col2 = st.columns([1, 1], gap="small")
 
         with col1:
-            background_university, selected_background_major_original, background_major = (
-                ui_components.render_background_section(cases_df)
-            )
+            (
+                background_university,
+                selected_background_major_original,
+                background_major,
+            ) = ui_components.render_background_section(cases_df)
             gpa_raw = ui_components.render_gpa_section()
             (
                 final_target_universities,
@@ -47,9 +49,13 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
 
         with col2:
             language_type, raw_language_score_value = ui_components.render_language_section()
-            research_count, award_count, internship_count, paper_count, experience_details = (
-                ui_components.render_experience_section()
-            )
+            (
+                research_count,
+                award_count,
+                internship_count,
+                paper_count,
+                experience_details,
+            ) = ui_components.render_experience_section()
 
         submit_button = ui_components.render_submit_button(disabled_status)
 
@@ -95,7 +101,13 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
                 )
             )
 
-            return success, processed_input_data, all_unis, all_majors, original_form_data
+            return (
+                success,
+                processed_input_data,
+                all_unis,
+                all_majors,
+                original_form_data,
+            )
 
     return _get_current_form_state(
         session_manager,
@@ -129,7 +141,12 @@ def _get_background_university_for_model(selected_background_university, cases_d
 
 
 def _process_successful_submission(
-    session_manager, form_data, cases_df, all_universities_target, all_majors_target, gpa_converter
+    session_manager,
+    form_data,
+    cases_df,
+    all_universities_target,
+    all_majors_target,
+    gpa_converter,
 ):
     normalized_gpa = FormValidator.normalize_gpa(
         form_data["gpa_raw"],

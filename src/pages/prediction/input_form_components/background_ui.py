@@ -95,7 +95,10 @@ def render_background_section(session_manager, form_state_manager, cases_df, log
         history_key="background_university",
         options_generator_func=lambda: _generate_university_options(session_manager, cases_df),
         on_change_callback=partial(
-            _log_background_university_change, session_manager, form_state_manager, logger
+            _log_background_university_change,
+            session_manager,
+            form_state_manager,
+            logger,
         ),
     )
 

@@ -37,7 +37,10 @@ def render_step_4():
                 help_info += f"专业方向：{', '.join(program['available_majors'][:3])}等"
 
             if st.button(
-                button_text, key=f"study_program_{i}_{program_name}", type="primary", help=help_info
+                button_text,
+                key=f"study_program_{i}_{program_name}",
+                type="primary",
+                help=help_info,
             ):
                 st.session_state[KEY_SELECTED_STUDY_PROGRAM] = program_name
                 st.session_state[KEY_CURRENT_STEP] = 5

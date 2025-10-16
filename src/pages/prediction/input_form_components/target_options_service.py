@@ -31,7 +31,10 @@ def build_target_base_df(
             }
         )
         base_df = pd.merge(
-            base_df, details_subset, on=["target_university", "target_major"], how="left"
+            base_df,
+            details_subset,
+            on=["target_university", "target_major"],
+            how="left",
         )
         if "target_major_agg" not in base_df.columns:
             base_df["target_major_agg"] = base_df["target_major"]
@@ -59,6 +62,25 @@ def _get_options(df: pd.DataFrame, column: str, selections: Set[str]) -> Set[str
     return set(df[column].dropna().unique()).union(selections)
 
 
+def _filter_df_for_options(
+    base_df: pd.DataFrame,
+    countries: Set[str] | None = None,
+    universities: Set[str] | None = None,
+    categories: Set[str] | None = None,
+    majors: Set[str] | None = None,
+) -> pd.DataFrame:
+    df = base_df.copy()
+    if countries and "country" in df.columns:
+        df = df[df["country"].isin(countries)]
+    if universities and "target_university" in df.columns:
+        df = df[df["target_university"].isin(universities)]
+    if categories and "major_category" in df.columns:
+        df = df[df["major_category"].isin(categories)]
+    if majors and "target_major_agg" in df.columns:
+        df = df[df["target_major_agg"].isin(majors)]
+    return df
+
+
 def compute_options(
     base_df: pd.DataFrame,
     selected_countries: Set[str],
@@ -66,50 +88,45 @@ def compute_options(
     selected_categories: Set[str],
     selected_majors: Set[str],
 ) -> tuple[List[str], List[str], List[str], List[str]]:
-    df_for_country = base_df.copy()
-    if selected_universities and "target_university" in df_for_country.columns:
-        df_for_country = df_for_country[
-            df_for_country["target_university"].isin(selected_universities)
-        ]
-    if selected_categories and "major_category" in df_for_country.columns:
-        df_for_country = df_for_country[df_for_country["major_category"].isin(selected_categories)]
-    if selected_majors and "target_major_agg" in df_for_country.columns:
-        df_for_country = df_for_country[df_for_country["target_major_agg"].isin(selected_majors)]
+    df_for_country = _filter_df_for_options(
+        base_df,
+        universities=selected_universities,
+        categories=selected_categories,
+        majors=selected_majors,
+    )
     options_for_country_select = sorted(
         list(_get_options(df_for_country, "country", selected_countries))
     )
 
-    df_for_uni = base_df.copy()
-    if selected_countries and "country" in df_for_uni.columns:
-        df_for_uni = df_for_uni[df_for_uni["country"].isin(selected_countries)]
-    if selected_categories and "major_category" in df_for_uni.columns:
-        df_for_uni = df_for_uni[df_for_uni["major_category"].isin(selected_categories)]
-    if selected_majors and "target_major_agg" in df_for_uni.columns:
-        df_for_uni = df_for_uni[df_for_uni["target_major_agg"].isin(selected_majors)]
+    df_for_uni = _filter_df_for_options(
+        base_df,
+        countries=selected_countries,
+        categories=selected_categories,
+        majors=selected_majors,
+    )
     sort_order_map = {uni: i for i, uni in enumerate(UNIVERSITY_SORT_ORDER)}
     sort_key = lambda uni: (sort_order_map.get(uni, len(UNIVERSITY_SORT_ORDER)), uni)
     options_for_uni_select = sorted(
-        list(_get_options(df_for_uni, "target_university", selected_universities)), key=sort_key
+        list(_get_options(df_for_uni, "target_university", selected_universities)),
+        key=sort_key,
     )
 
-    df_for_cat = base_df.copy()
-    if selected_countries and "country" in df_for_cat.columns:
-        df_for_cat = df_for_cat[df_for_cat["country"].isin(selected_countries)]
-    if selected_universities and "target_university" in df_for_cat.columns:
-        df_for_cat = df_for_cat[df_for_cat["target_university"].isin(selected_universities)]
-    if selected_majors and "target_major_agg" in df_for_cat.columns:
-        df_for_cat = df_for_cat[df_for_cat["target_major_agg"].isin(selected_majors)]
+    df_for_cat = _filter_df_for_options(
+        base_df,
+        countries=selected_countries,
+        universities=selected_universities,
+        majors=selected_majors,
+    )
     options_for_category_select = sorted(
         list(_get_options(df_for_cat, "major_category", selected_categories))
     )
 
-    df_for_major = base_df.copy()
-    if selected_countries and "country" in df_for_major.columns:
-        df_for_major = df_for_major[df_for_major["country"].isin(selected_countries)]
-    if selected_universities and "target_university" in df_for_major.columns:
-        df_for_major = df_for_major[df_for_major["target_university"].isin(selected_universities)]
-    if selected_categories and "major_category" in df_for_major.columns:
-        df_for_major = df_for_major[df_for_major["major_category"].isin(selected_categories)]
+    df_for_major = _filter_df_for_options(
+        base_df,
+        countries=selected_countries,
+        universities=selected_universities,
+        categories=selected_categories,
+    )
     options_for_major_select = sorted(
         list(_get_options(df_for_major, "target_major_agg", selected_majors))
     )

@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 from src.pages.prediction.input_form_components.form_config import GPA_SCALES
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
 from src.utils.logger import setup_logger
@@ -8,15 +6,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class FormValidator:
-    _language_score_cache: Dict[str, Any] = {}
-    _MAX_CACHE_SIZE = 1000
-
-    @staticmethod
-    def _clean_cache_if_needed():
-        if len(FormValidator._language_score_cache) > FormValidator._MAX_CACHE_SIZE:
-            items = list(FormValidator._language_score_cache.items())
-            FormValidator._language_score_cache = dict(items[-FormValidator._MAX_CACHE_SIZE // 2 :])
-
     @staticmethod
     def normalize_language_score(score, language_type):
         try:
@@ -107,7 +96,12 @@ class FormValidator:
             if form_data["language_score_raw"] == 0:
                 error_messages.append(f"{form_data['language_type']}成绩不能为0")
 
-        experience_fields = ["research_count", "award_count", "internship_count", "paper_count"]
+        experience_fields = [
+            "research_count",
+            "award_count",
+            "internship_count",
+            "paper_count",
+        ]
         field_names = ["科研项目数量", "获奖数量", "实习数量", "论文数量"]
 
         for field, name in zip(experience_fields, field_names, strict=False):

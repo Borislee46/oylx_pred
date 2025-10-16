@@ -6,19 +6,16 @@ import streamlit as st
 def get_admitted_combinations_for_major(
     cases_df_tuple: tuple, background_major: str
 ) -> set[tuple[str, str]]:
-    cases_df = pd.DataFrame(
-        list(cases_df_tuple),
-        columns=["admitted", "target_university", "target_major", "background_major"],
-    )
-    if cases_df.empty:
+    if not cases_df_tuple:
         return set()
 
     try:
         bg_major_clean = str(background_major).strip()
-        filtered_cases = cases_df[
-            (cases_df["admitted"] == 1) & (cases_df["background_major"] == bg_major_clean)
-        ]
-        return set(tuple(x) for x in filtered_cases[["target_university", "target_major"]].values)
+        admitted_combinations = set()
+        for row in cases_df_tuple:
+            if row[0] == 1 and row[3] == bg_major_clean:
+                admitted_combinations.add((row[1], row[2]))
+        return admitted_combinations
     except Exception:
         return set()
 
@@ -29,7 +26,12 @@ def get_admitted_combinations_from_dataframe(
     if cases_df is None or cases_df.empty:
         return set()
 
-    required_cols = ["admitted", "target_university", "target_major", "background_major"]
+    required_cols = [
+        "admitted",
+        "target_university",
+        "target_major",
+        "background_major",
+    ]
     if not all(col in cases_df.columns for col in required_cols):
         return set()
 

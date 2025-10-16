@@ -40,7 +40,16 @@ def generate_response(prompt, all_country_data):
         "爱尔兰": ["爱尔兰", "ireland", "irish"],
     }
 
-    ouying_countries = ["丹麦", "芬兰", "匈牙利", "爱尔兰", "荷兰", "挪威", "瑞典", "瑞士"]
+    ouying_countries = [
+        "丹麦",
+        "芬兰",
+        "匈牙利",
+        "爱尔兰",
+        "荷兰",
+        "挪威",
+        "瑞典",
+        "瑞士",
+    ]
 
     if "欧英" in cleaned_prompt:
         st.session_state.conversation_context["ouying_context"] = True

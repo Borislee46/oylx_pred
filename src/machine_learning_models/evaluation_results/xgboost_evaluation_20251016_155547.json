@@ -1,0 +1,60 @@
+{
+    "model_name": "xgboost",
+    "timestamp": "20251016_155547",
+    "metrics": {
+        "accuracy": 0.7063350615683733,
+        "precision": 0.5602947744528808,
+        "recall": 0.6024009603841537,
+        "f1": 0.5805854448686799
+    },
+    "feature_importance": {
+        "target_major": 0.24248194694519043,
+        "background_university": 0.14107105135917664,
+        "language_score": 0.08745656907558441,
+        "gpa": 0.08732838928699493,
+        "award_count": 0.08685528486967087,
+        "target_university": 0.07736918330192566,
+        "background_major": 0.07526545226573944,
+        "research_count": 0.07523124665021896,
+        "paper_count": 0.06869326531887054,
+        "internship_count": 0.05824766680598259
+    },
+    "model_params": {
+        "objective": "binary:logistic",
+        "random_state": 42,
+        "enable_categorical": true,
+        "n_estimators": 375,
+        "max_depth": 10,
+        "learning_rate": 0.16804401335949273,
+        "subsample": 0.8713709892173486,
+        "colsample_bytree": 0.923086999703449,
+        "min_child_weight": 8,
+        "gamma": 0.360787817587864,
+        "reg_alpha": 0.6332579825935543,
+        "reg_lambda": 0.1080629839688434,
+        "scale_pos_weight": 1.0,
+        "monotone_constraints": [
+            0,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+        ]
+    },
+    "sampling_method": "smote",
+    "calibration_method": "sigmoid",
+    "package_versions": {
+        "xgboost": "3.0.2",
+        "scikit-learn": "1.7.2",
+        "numpy": "2.3.1",
+        "pandas": "2.3.1",
+        "scipy": "1.16.2",
+        "joblib": "1.5.2",
+        "python": "3.12.10"
+    }
+}

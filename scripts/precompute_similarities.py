@@ -219,41 +219,6 @@ def precompute_similarities():
     logging.info("基于专业名称表示的嵌入计算相似度矩阵...")
     similarity_matrix = compute_similarity_matrix(embeddings, model_device=model.device)
 
-    logging.info("构建背景专业-背景专业相似度缓存 (用于相似案例)...")
-    bg_bg_cache = {}
-    num_combinations_bg_bg = len(background_major_list_orig) * (
-        len(background_major_list_orig) - 1
-    ) // 2 + len(background_major_list_orig)
-    with tqdm(total=num_combinations_bg_bg, desc="Building BG-BG Cache") as pbar:
-        for i, major1_orig in enumerate(background_major_list_orig):
-            key_self = get_cached_major_similarity_key(major1_orig, major1_orig)
-            major1_repr = original_to_embedding_representation_map.get(major1_orig, "")
-            bg_bg_cache[key_self] = (
-                1.0 if major1_repr and major1_repr in embedding_representation_to_idx_map else 0.0
-            )
-            pbar.update(1)
-
-            for j in range(i + 1, len(background_major_list_orig)):
-                major2_orig = background_major_list_orig[j]
-
-                major1_repr = original_to_embedding_representation_map.get(major1_orig, "")
-                major2_repr = original_to_embedding_representation_map.get(major2_orig, "")
-
-                similarity = 0.0
-                if (
-                    major1_repr
-                    and major2_repr
-                    and major1_repr in embedding_representation_to_idx_map
-                    and major2_repr in embedding_representation_to_idx_map
-                ):
-                    idx1 = embedding_representation_to_idx_map[major1_repr]
-                    idx2 = embedding_representation_to_idx_map[major2_repr]
-                    similarity = similarity_matrix[idx1, idx2].item()
-
-                key = get_cached_major_similarity_key(major1_orig, major2_orig)
-                bg_bg_cache[key] = similarity
-                pbar.update(1)
-
     logging.info("构建背景专业-目标专业相似度缓存 (用于预测)...")
     bg_target_cache = {}
     num_combinations_bg_target = len(background_major_list_orig) * len(target_major_list_orig)
@@ -281,7 +246,6 @@ def precompute_similarities():
                 pbar.update(1)
 
     root_cache_dir = os.path.join(project_root, "cache")
-    bg_bg_cache_path = os.path.join(root_cache_dir, "background_background_similarity.feather")
     bg_target_cache_path = os.path.join(root_cache_dir, "background_target_similarity.feather")
 
     for path in [MAJOR_SIMILARITY_CACHE_PATH, MAJOR_SIMILARITY_CACHE_PATH.replace(".json", ".pkl")]:
@@ -307,7 +271,6 @@ def precompute_similarities():
         except Exception as e:
             logging.error(f"保存{name}失败: {e}")
 
-    save_cache(bg_bg_cache, bg_bg_cache_path, "背景专业-背景专业相似度缓存")
     save_cache(bg_target_cache, bg_target_cache_path, "背景专业-目标专业相似度缓存")
 
     logging.info(f"预计算完成。总时间: {time.time() - start_total_time:.2f}s")

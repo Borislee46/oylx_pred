@@ -61,12 +61,9 @@ class FormStateManager:
         if not session_manager.get("current_user_id") and user_id:
             session_manager.set(current_user_id=user_id)
 
-        try:
-            if user_history_data and not session_manager.get("restore_notice_shown", False):
-                st.toast("已为你恢复上次填写内容")
-                session_manager.set(restore_notice_shown=True)
-        except Exception:
-            pass
+        if user_history_data and not session_manager.get("restore_notice_shown", False):
+            st.toast("已为你恢复上次填写内容")
+            session_manager.set(restore_notice_shown=True)
 
     @staticmethod
     def save_current_form_data(session_manager: SessionManager, form_data: dict) -> bool:
@@ -91,69 +88,55 @@ class FormStateManager:
 
     @staticmethod
     def _snapshot_hash(snapshot: dict) -> str:
-        try:
-            payload = json.dumps(
-                snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-            ).encode("utf-8")
-            return hashlib.md5(payload).hexdigest()
-        except Exception:
-            return str(hash(str(snapshot)))
+        payload = json.dumps(
+            snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        return hashlib.md5(payload).hexdigest()
 
     @staticmethod
     def _auto_save_form_data(
         session_manager: SessionManager, throttle_seconds: float = None
     ) -> None:
-        try:
-            current_form_data = {
-                "selected_target_countries": session_manager.get("selected_target_countries", []),
-                "selected_major_categories": session_manager.get("selected_major_categories", []),
-                "selected_target_universities": session_manager.get(
-                    "selected_target_universities", []
+        current_form_data = {
+            "selected_target_countries": session_manager.get("selected_target_countries", []),
+            "selected_major_categories": session_manager.get("selected_major_categories", []),
+            "selected_target_universities": session_manager.get("selected_target_universities", []),
+            "selected_target_majors": session_manager.get("selected_target_majors", []),
+            "gpa_raw": session_manager.get("gpa_raw_input"),
+            "gpa_scale": session_manager.get("gpa_scale"),
+            "language_type": session_manager.get("language_type"),
+            "language_score_raw": session_manager.get("language_score_input"),
+            "background_university": session_manager.get_widget_value(
+                "background_university_selectbox"
+            ),
+            "background_major_original": session_manager.get_widget_value(
+                "background_major_selectbox"
+            ),
+            "research_count": session_manager.get_widget_value("research_count_input", 0),
+            "award_count": session_manager.get_widget_value("award_count_input", 0),
+            "internship_count": session_manager.get_widget_value("internship_count_input", 0),
+            "paper_count": session_manager.get_widget_value("paper_count_input", 0),
+            "experience_details": {
+                "research_details": session_manager.get_widget_value("research_details_input", ""),
+                "award_details": session_manager.get_widget_value("award_details_input", ""),
+                "internship_details": session_manager.get_widget_value(
+                    "internship_details_input", ""
                 ),
-                "selected_target_majors": session_manager.get("selected_target_majors", []),
-                "gpa_raw": session_manager.get("gpa_raw_input"),
-                "gpa_scale": session_manager.get("gpa_scale"),
-                "language_type": session_manager.get("language_type"),
-                "language_score_raw": session_manager.get("language_score_input"),
-                "background_university": session_manager.get_widget_value(
-                    "background_university_selectbox"
-                ),
-                "background_major_original": session_manager.get_widget_value(
-                    "background_major_selectbox"
-                ),
-                "research_count": session_manager.get_widget_value("research_count_input", 0),
-                "award_count": session_manager.get_widget_value("award_count_input", 0),
-                "internship_count": session_manager.get_widget_value("internship_count_input", 0),
-                "paper_count": session_manager.get_widget_value("paper_count_input", 0),
-                "experience_details": {
-                    "research_details": session_manager.get_widget_value(
-                        "research_details_input", ""
-                    ),
-                    "award_details": session_manager.get_widget_value("award_details_input", ""),
-                    "internship_details": session_manager.get_widget_value(
-                        "internship_details_input", ""
-                    ),
-                    "paper_details": session_manager.get_widget_value("paper_details_input", ""),
-                },
-            }
+                "paper_details": session_manager.get_widget_value("paper_details_input", ""),
+            },
+        }
 
-            now = time.time()
-            last_save_ts = session_manager.get("last_auto_save_ts", 0)
-            last_hash = session_manager.get("last_saved_form_snapshot_hash")
+        now = time.time()
+        last_save_ts = session_manager.get("last_auto_save_ts", 0)
+        last_hash = session_manager.get("last_saved_form_snapshot_hash")
 
-            throttle_seconds = 2.0 if throttle_seconds is None else float(throttle_seconds)
-            cur_hash = FormStateManager._snapshot_hash(current_form_data)
+        throttle_seconds = 2.0 if throttle_seconds is None else float(throttle_seconds)
+        cur_hash = FormStateManager._snapshot_hash(current_form_data)
 
-            if (now - last_save_ts) >= throttle_seconds and cur_hash != last_hash:
-                success = FormStateManager.save_current_form_data(
-                    session_manager, current_form_data
-                )
-                if success:
-                    session_manager.set(
-                        last_auto_save_ts=now, last_saved_form_snapshot_hash=cur_hash
-                    )
-        except Exception as e:
-            form_state_logger.warning(f"自动保存表单数据时出错: {str(e)}")
+        if (now - last_save_ts) >= throttle_seconds and cur_hash != last_hash:
+            success = FormStateManager.save_current_form_data(session_manager, current_form_data)
+            if success:
+                session_manager.set(last_auto_save_ts=now, last_saved_form_snapshot_hash=cur_hash)
 
     @staticmethod
     def on_form_change(session_manager: SessionManager, change_type: str = None) -> None:
@@ -174,83 +157,75 @@ class FormStateManager:
         FormStateManager._auto_save_form_data(session_manager, throttle_seconds=throttle)
 
     @staticmethod
-    def on_target_country_change(session_manager: SessionManager) -> None:
-        old_countries = session_manager.get("selected_target_countries", [])
-        new_countries = session_manager.get_widget_value("target_countries_multiselect", [])
+    def _on_target_selection_change(
+        session_manager: SessionManager,
+        session_state_key: str,
+        widget_key: str,
+        log_message_template: str,
+    ) -> None:
+        old_values = session_manager.get(session_state_key, [])
+        new_values = session_manager.get_widget_value(widget_key, [])
 
-        if old_countries != new_countries:
-            form_state_logger.info(f"用户更改目标国家 - 从 {old_countries} 变更为 {new_countries}")
+        if old_values != new_values:
+            form_state_logger.info(log_message_template.format(old=old_values, new=new_values))
 
-        session_manager.set(selected_target_countries=new_countries)
+        session_manager.set(**{session_state_key: new_values})
 
-        current_selected_unis = session_manager.get("selected_target_universities", [])
+        if session_state_key == "selected_target_countries":
+            current_selected_unis = session_manager.get("selected_target_universities", [])
+            if new_values:
+                country_uni_map = TARGET_COUNTRY_UNIVERSITY_MAP
+                unis_in_selected_countries = [
+                    uni for country in new_values for uni in country_uni_map.get(country, [])
+                ]
+                filtered_unis = [
+                    uni for uni in current_selected_unis if uni in unis_in_selected_countries
+                ]
 
-        if new_countries:
-            country_uni_map = TARGET_COUNTRY_UNIVERSITY_MAP
-
-            unis_in_selected_countries = []
-            for country in new_countries:
-                unis_in_selected_countries.extend(country_uni_map.get(country, []))
-
-            filtered_unis = [
-                uni for uni in current_selected_unis if uni in unis_in_selected_countries
-            ]
-
-            if current_selected_unis != filtered_unis:
-                form_state_logger.info(
-                    f"由于国家变更，目标院校自动筛选 - 从 {current_selected_unis} 筛选为 {filtered_unis}"
-                )
-
-            session_manager.set(selected_target_universities=filtered_unis)
+                if current_selected_unis != filtered_unis:
+                    form_state_logger.info(
+                        f"由于国家变更，目标院校自动筛选 - 从 {current_selected_unis} 筛选为 {filtered_unis}"
+                    )
+                session_manager.set(selected_target_universities=filtered_unis)
 
         session_manager.set(target_options_cache={})
         FormStateManager.on_form_change(session_manager)
 
     @staticmethod
-    def on_major_category_change(session_manager: SessionManager) -> None:
-        old_categories = session_manager.get("selected_major_categories", [])
-        new_categories = session_manager.get_widget_value("target_major_categories_multiselect", [])
-
-        if old_categories != new_categories:
-            form_state_logger.info(
-                f"用户更改专业大类 - 从 {old_categories} 变更为 {new_categories}"
-            )
-
-        session_manager.set(
-            selected_major_categories=new_categories,
-            target_options_cache={},
+    def on_target_country_change(session_manager: SessionManager) -> None:
+        FormStateManager._on_target_selection_change(
+            session_manager,
+            "selected_target_countries",
+            "target_countries_multiselect",
+            "用户更改目标国家 - 从 {old} 变更为 {new}",
         )
-        FormStateManager.on_form_change(session_manager)
+
+    @staticmethod
+    def on_major_category_change(session_manager: SessionManager) -> None:
+        FormStateManager._on_target_selection_change(
+            session_manager,
+            "selected_major_categories",
+            "target_major_categories_multiselect",
+            "用户更改专业大类 - 从 {old} 变更为 {new}",
+        )
 
     @staticmethod
     def on_target_university_change(session_manager: SessionManager) -> None:
-        old_universities = session_manager.get("selected_target_universities", [])
-        new_universities = session_manager.get_widget_value("target_universities_multiselect", [])
-
-        if old_universities != new_universities:
-            form_state_logger.info(
-                f"用户更改目标院校 - 从 {old_universities} 变更为 {new_universities}"
-            )
-
-        session_manager.set(
-            selected_target_universities=new_universities,
-            target_options_cache={},
+        FormStateManager._on_target_selection_change(
+            session_manager,
+            "selected_target_universities",
+            "target_universities_multiselect",
+            "用户更改目标院校 - 从 {old} 变更为 {new}",
         )
-        FormStateManager.on_form_change(session_manager)
 
     @staticmethod
     def on_target_major_change(session_manager: SessionManager) -> None:
-        old_majors = session_manager.get("selected_target_majors", [])
-        new_majors = session_manager.get_widget_value("target_majors_multiselect", [])
-
-        if old_majors != new_majors:
-            form_state_logger.info(f"用户更改目标专业 - 从 {old_majors} 变更为 {new_majors}")
-
-        session_manager.set(
-            selected_target_majors=new_majors,
-            target_options_cache={},
+        FormStateManager._on_target_selection_change(
+            session_manager,
+            "selected_target_majors",
+            "target_majors_multiselect",
+            "用户更改目标专业 - 从 {old} 变更为 {new}",
         )
-        FormStateManager.on_form_change(session_manager)
 
     @staticmethod
     def on_submit_click(session_manager: SessionManager) -> None:
@@ -292,11 +267,8 @@ class FormStateManager:
 
             session_manager.set(language_score_input=converted_score)
 
-            try:
-                if converted_score is not None:
-                    st.session_state["language_score_input_widget"] = converted_score
-            except Exception:
-                pass
+            if converted_score is not None:
+                st.session_state["language_score_input_widget"] = converted_score
 
         session_manager.set(language_type=new_lang_type)
         FormStateManager.on_form_change(session_manager)
@@ -353,10 +325,7 @@ class FormStateManager:
 
             session_manager.set(gpa_raw_input=converted_gpa)
 
-            try:
-                st.session_state["gpa_raw_input_widget"] = converted_gpa
-            except Exception:
-                pass
+            st.session_state["gpa_raw_input_widget"] = converted_gpa
 
         session_manager.set(gpa_scale=new_scale_key)
         FormStateManager.on_form_change(session_manager)

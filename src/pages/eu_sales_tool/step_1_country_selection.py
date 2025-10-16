@@ -6,7 +6,9 @@ from src.pages.eu_sales_tool.eu_sales_tool_utils.constants import (
     KEY_SELECTED_COUNTRY,
     KEY_SHOW_COUNTRY_DETAILS,
 )
-from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import get_standardized_countries
+from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import (
+    get_standardized_countries,
+)
 
 
 def render_step_1():

@@ -13,7 +13,9 @@ from src.pages.eu_sales_tool.eu_sales_tool_utils.constants import (
     LANGUAGE_TO_SYMBOL,
     LANGUAGE_TO_TITLE,
 )
-from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import get_standardized_countries
+from src.pages.eu_sales_tool.eu_sales_tool_utils.get_countries import (
+    get_standardized_countries,
+)
 from src.pages.eu_sales_tool.eu_sales_tool_utils.steps import reset_selections_from_step
 from src.pages.eu_sales_tool.eu_sales_tool_utils.utils import get_image_as_base64
 
@@ -56,7 +58,12 @@ def _render_major_selection(study_program):
     if majors:
         for i, major in enumerate(majors):
             major_help = f"选择 {major} 专业，可申请该项目下所有开设此专业的院校"
-            if st.button(f"**{major}**", key=f"major_{i}_{major}", type="primary", help=major_help):
+            if st.button(
+                f"**{major}**",
+                key=f"major_{i}_{major}",
+                type="primary",
+                help=major_help,
+            ):
                 st.session_state[KEY_SELECTED_PROGRAM] = major
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
@@ -193,7 +200,7 @@ def _render_plan_header(background_style, title_text, language_symbol, country_d
                 font-weight: 500;
                 letter-spacing: 0.5px;
                 font-family: 'Crimson Text', 'Playfair Display', 'Georgia', serif;
-            "><strong style="color: #1a252f; font-weight: 600;">Destination:</strong> {country_data['display_name']}</p>
+            "><strong style="color: #1a252f; font-weight: 600;">Destination:</strong> {country_data["display_name"]}</p>
             <p style="
                 color: #2c3e50; 
                 margin: 12px 0; 

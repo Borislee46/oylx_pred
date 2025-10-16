@@ -10,7 +10,9 @@ from src.pages.prediction.result_modifier.probability_adjuster import (
 from src.pages.prediction.result_modifier.professional_adjustment import (
     adjust_for_professional_majors,
 )
-from src.pages.prediction.result_modifier.text_boost_provider import get_text_boost_provider
+from src.pages.prediction.result_modifier.text_boost_provider import (
+    get_text_boost_provider,
+)
 from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
 from src.pages.prediction.results_handler import (
     combine_and_deduplicate_results,

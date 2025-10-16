@@ -63,7 +63,10 @@ class GPAConverter:
 
     @staticmethod
     def convert_gpa_by_rules(
-        raw_gpa: float, scale_key: str, background_university: str = None, country: str = None
+        raw_gpa: float,
+        scale_key: str,
+        background_university: str = None,
+        country: str = None,
     ) -> float | None:
         if raw_gpa is None or raw_gpa == "":
             return None

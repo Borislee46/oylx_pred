@@ -67,7 +67,12 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
         return False
 
     try:
-        keys = ("research_details", "award_details", "internship_details", "paper_details")
+        keys = (
+            "research_details",
+            "award_details",
+            "internship_details",
+            "paper_details",
+        )
         merged = " ".join(str(experience_details.get(k, "")) for k in keys)
         merged = merged.strip().lower()
         cleaned = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", "", merged)

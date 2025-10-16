@@ -68,11 +68,11 @@ def load_data_by_categories(categories):
     columns_to_standardize.update(config.BACKGROUND_UNI_COLS)
     columns_to_standardize.update(config.TARGET_MAJOR_COLS)
 
+    invalid_set = set(config.INVALID_VALUES + [""])
     for col in [c for c in columns_to_standardize if c in combined_df.columns]:
         if combined_df[col].dtype == "object":
-            combined_df[col] = combined_df[col].astype(str).str.strip()
-            mask = combined_df[col].isin(config.INVALID_VALUES + [""])
-            combined_df.loc[mask, col] = None
+            combined_df[col] = combined_df[col].str.strip()
+            combined_df[col] = combined_df[col].replace(invalid_set, None)
 
     numeric_cols = ["IELTS分数", "TOEFL分数", "GRE分数", "GMAT分数", "IELTS", "TOEFL"]
     for col in [c for c in numeric_cols if c in combined_df.columns]:

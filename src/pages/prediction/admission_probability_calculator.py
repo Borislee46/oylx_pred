@@ -36,6 +36,7 @@ class AdmissionProbabilityCalculator:
             else:
                 self.available_targets_in_corr = set()
                 logger.warning("由于相关系数矩阵未能加载，选校组合分析功能将不可用。")
+
         if self.optimization_ui is None:
             self.optimization_ui = OptimizationUI(self.session_manager, self.correlation_matrix)
 
@@ -49,6 +50,56 @@ class AdmissionProbabilityCalculator:
             similarity_results, cross_major_results, user_specified_results
         )
 
+    def _clear_session_state_on_data_change(self, df_hash: int):
+        """当数据发生变化时清理session状态"""
+        if self.session_manager.get("school_list_hash") != df_hash:
+            keys_to_clear = [
+                "school_selections",
+                "manual_selection_applied",
+                "manual_selection_hash",
+                "optimization_performed",
+                "optimization_recommendations",
+                "adaptive_thresholds",
+                "optimization_input_hash",
+            ]
+            for key in keys_to_clear:
+                self.session_manager.delete(key)
+            self.session_manager.set(school_list_hash=df_hash)
+
+    def _get_selected_schools_data(
+        self, df: pd.DataFrame
+    ) -> tuple[list[dict[str, Any]], list[float]]:
+        """获取选中的学校数据"""
+        school_selections = self.session_manager.get("school_selections", {})
+        school_keys = list(zip(df["目标院校"], df["原始专业名称"], strict=False))
+
+        selected_indices = [
+            i for i, key in enumerate(school_keys) if school_selections.get(key, False)
+        ]
+
+        if not selected_indices:
+            return [], []
+
+        selected_rows = df.iloc[selected_indices]
+        selected_probabilities = selected_rows["调整后概率"].tolist()
+
+        renamed_columns = {
+            "目标院校": "university",
+            "原始专业名称": "major",
+            "调整后概率": "probability",
+        }
+        columns_to_select = ["university", "major", "probability"]
+
+        if "类型" in selected_rows.columns:
+            renamed_columns["类型"] = "type"
+            columns_to_select.append("type")
+
+        selected_results = selected_rows.rename(columns=renamed_columns)[columns_to_select].to_dict(
+            "records"
+        )
+
+        return selected_results, selected_probabilities
+
     def display_school_selection(
         self,
         similarity_results: list[dict[str, Any]],
@@ -58,73 +109,41 @@ class AdmissionProbabilityCalculator:
         language_score: float = None,
         disabled_status: bool = False,
     ) -> tuple[list[dict[str, Any]], list[float]]:
+        # 初始化优化运行状态
         if self.session_manager.get("run_optimization") is None:
             self.session_manager.set(run_optimization=False)
 
+        # 准备数据
         df = self.prepare_selected_schools_data(
             similarity_results=similarity_results,
             cross_major_results=cross_major_results,
             user_specified_results=user_specified_results,
         )
 
-        if not df.empty:
-            df_hash = hash_pandas_object(df[["目标院校", "原始专业名称", "调整后概率"]]).sum()
-
-            if self.session_manager.get("school_list_hash") != df_hash:
-                keys_to_clear = [
-                    "school_selections",
-                    "manual_selection_applied",
-                    "manual_selection_hash",
-                    "optimization_performed",
-                    "optimization_recommendations",
-                    "adaptive_thresholds",
-                    "optimization_input_hash",
-                ]
-                for key in keys_to_clear:
-                    self.session_manager.delete(key)
-
-                self.session_manager.set(school_list_hash=df_hash)
-        else:
+        # 处理空数据情况
+        if df.empty:
             st.info("当前没有可供选择的推荐学校。")
             self.session_manager.delete("school_list_hash")
             return [], []
 
+        # 检查数据变化并清理session状态
+        if not df.empty:
+            df_hash = hash_pandas_object(df[["目标院校", "原始专业名称", "调整后概率"]]).sum()
+            self._clear_session_state_on_data_change(df_hash)
+
+        # 检查是否满足优化条件
         if len(df) < self.min_optimization_threshold:
             return [], []
-        else:
-            self._ensure_correlation_and_ui_initialized()
-            if self.optimization_ui:
-                self.optimization_ui.display_optimization_tab(
-                    df, gpa, language_score, disabled_status
-                )
 
-        school_selections = self.session_manager.get("school_selections", {})
-        school_keys = list(zip(df["目标院校"], df["原始专业名称"], strict=False))
-        selections = [school_selections.get(key, False) for key in school_keys]
-        selected_indices = [i for i, selected in enumerate(selections) if selected]
-        selected_rows = df.iloc[selected_indices] if selected_indices else pd.DataFrame()
+        # 显示优化界面
+        self._ensure_correlation_and_ui_initialized()
+        if self.optimization_ui:
+            self.optimization_ui.display_optimization_tab(df, gpa, language_score, disabled_status)
 
-        if not selected_rows.empty:
-            selected_probabilities = selected_rows["调整后概率"].tolist()
+        # 获取选中的学校数据
+        selected_results, selected_probabilities = self._get_selected_schools_data(df)
 
-            renamed_columns = {
-                "目标院校": "university",
-                "原始专业名称": "major",
-                "调整后概率": "probability",
-            }
-            columns_to_select = ["university", "major", "probability"]
-
-            if "类型" in selected_rows.columns:
-                renamed_columns["类型"] = "type"
-                columns_to_select.append("type")
-
-            selected_results = selected_rows.rename(columns=renamed_columns)[
-                columns_to_select
-            ].to_dict("records")
-        else:
-            selected_results = []
-            selected_probabilities = []
-
+        # 保存到session
         self.session_manager.set(
             selected_school_results=selected_results,
             selected_school_probabilities=selected_probabilities,

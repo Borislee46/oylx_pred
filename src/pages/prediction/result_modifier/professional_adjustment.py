@@ -3,10 +3,13 @@ from src.pages.prediction.result_modifier.config import (
     PROFESSIONAL_REDUCTION_FACTOR,
     PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
+from src.pages.prediction.result_modifier.utils import clip_probability
 
 
 def adjust_for_professional_majors(
-    results: list[dict], internship_count: int, user_specified_majors: list[str] | None = None
+    results: list[dict],
+    internship_count: int,
+    user_specified_majors: list[str] | None = None,
 ) -> list[dict]:
     if not results:
         return []
@@ -43,7 +46,7 @@ def adjust_for_professional_majors(
             if is_user_specified
             else PROFESSIONAL_REDUCTION_FACTOR
         )
-        p = max(0.0, min(1.0, p * factor))
+        p = clip_probability(p * factor)
         result_copy["probability"] = p
         adjusted_results.append(result_copy)
 
