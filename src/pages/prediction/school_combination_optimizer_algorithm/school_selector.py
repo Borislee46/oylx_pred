@@ -91,9 +91,9 @@ def reduce_schools_balanced(
     ideal_target = max_count * BALANCE_RATIOS["target"]
     ideal_reach = max_count * BALANCE_RATIOS["reach"]
 
-    over_safety = max(0, current_safety - ideal_safety)
-    over_target = max(0, current_target - ideal_target)
-    over_reach = max(0, current_reach - ideal_reach)
+    over_safety = int(max(0, current_safety - ideal_safety))
+    over_target = int(max(0, current_target - ideal_target))
+    over_reach = int(max(0, current_reach - ideal_reach))
 
     total_to_remove = len(schools) - max_count
     safety_to_remove, target_to_remove, reach_to_remove = _calculate_removal_distribution(

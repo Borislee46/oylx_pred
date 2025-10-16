@@ -84,7 +84,11 @@ def _attach_chinese_names_batch(results: list, details_df_full: pd.DataFrame | N
     if details_df_full is None:
         details_df_full = get_school_major_details(None, None, return_df=True)
 
-    if details_df_full is None or details_df_full.empty:
+    if (
+        details_df_full is None
+        or not isinstance(details_df_full, pd.DataFrame)
+        or details_df_full.empty
+    ):
         for res in results:
             res["chinese_name"] = ""
             res["faculty"] = ""

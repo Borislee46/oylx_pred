@@ -3,6 +3,7 @@ import os
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -47,7 +48,7 @@ class OptimizationUI:
 
         return not (disabled_status or processing_lock or optimization_performed)
 
-    def _get_help_text(self) -> str:
+    def _get_help_text(self) -> str | None:
         processing_lock = self.session_manager.get("processing_lock", False)
         optimization_performed = self.session_manager.get("optimization_performed", False)
 
@@ -252,7 +253,7 @@ class OptimizationUI:
                 )
 
                 if animate_ui:
-                    result_container = {}
+                    result_container: dict[str, Any] = {}
                     optimization_thread = threading.Thread(
                         target=self._run_optimization_in_thread,
                         args=(

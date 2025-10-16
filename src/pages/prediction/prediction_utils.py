@@ -169,7 +169,7 @@ def format_school_major_details_from_row(row: pd.Series) -> str:
 
 
 def get_school_major_details(
-    university: str, major: str, return_df: bool = False
+    university: str | None, major: str | None, return_df: bool = False
 ) -> Union[str, pd.DataFrame, None]:
     if return_df:
         return _data_manager.details_df

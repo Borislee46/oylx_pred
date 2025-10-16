@@ -87,7 +87,8 @@ class LRUCache(Generic[K, V]):
         if key in self._data:
             self._data.pop(key)
         elif len(self._data) >= self._capacity:
-            self._data.popitem(last=False)
+            first_key = next(iter(self._data))
+            self._data.pop(first_key)
         self._data[key] = value
 
     def clear(self) -> None:

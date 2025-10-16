@@ -276,7 +276,9 @@ def run_prediction_pipeline(
         cross_results, internship_count, user_specified_majors
     )
     user_specified_results = adjust_for_professional_majors(
-        user_specified_results, internship_count, user_specified_majors
+        user_specified_results if isinstance(user_specified_results, list) else [],
+        internship_count,
+        user_specified_majors,
     )
 
     background_major = input_data.get("background_major")
