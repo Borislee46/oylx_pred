@@ -45,8 +45,8 @@ def main():
         os.path.dirname(os.path.abspath(__file__)), "data", "cases.feather"
     )
 
-    X_train, X_test, y_train, y_test, feature_names, sample_weight_train = load_data(
-        data_path_value, sampling_method=args.sampling_method
+    X_train, X_test, y_train, y_test, feature_names, sample_weight_train, level_fallback_mapping = (
+        load_data(data_path_value, sampling_method=args.sampling_method)
     )
 
     model, model_params, calibration_method_from_trainer, calibration_params = train_model(
@@ -54,7 +54,12 @@ def main():
     )
     metrics, feature_importance = evaluate_model(model, X_test, y_test, feature_names)
     saved_files = utils.save_model(
-        model, args.model, feature_names, X_test, calibration_params=calibration_params
+        model,
+        args.model,
+        feature_names,
+        X_test,
+        calibration_params=calibration_params,
+        level_fallback_mapping=level_fallback_mapping,
     )
     calibration_method_used = calibration_method_from_trainer
 

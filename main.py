@@ -22,7 +22,6 @@ APP_VERSION = "v2.3"
 def _handle_oauth_callback_if_present() -> None:
     query_params = st.query_params
     if all(key in query_params for key in ["code", "state", "e2e", "our_app_state_check"]):
-        main_logger.info("Handling E2 OAuth callback.")
         from src.utils.auth.e2_handler import handle_e2_callback
 
         handle_e2_callback()
@@ -64,7 +63,7 @@ def _enforce_access_and_get_modules(user_email: str):
     if auth_config.get("MAINTENANCE_MODE", False) and not is_user_admin:
         st.title("系统维护")
         st.warning("系统目前正在进行维护，除管理员外，所有用户均无法访问。请稍后重试。")
-        main_logger.warning(f"User '{user_email}' access denied due to maintenance mode.")
+        main_logger.warning(f"用户 {user_email} 由于维护模式被拒绝访问。")
         st.stop()
 
     return accessible_modules, is_user_admin
@@ -202,14 +201,14 @@ def main() -> None:
 
     available_buttons = _collect_available_buttons(accessible_modules, is_user_admin, user_email)
     button_names = [name for name, _, _ in available_buttons]
-    main_logger.info(f"User '{user_email}' has access to the following modules: {button_names}")
+    main_logger.info(f"用户 {user_email} 具有以下模块的访问权限: {button_names}")
     # _show_update_notice_if_needed()
 
     if len(available_buttons) > 0:
         _render_buttons_grid(available_buttons)
     else:
         st.info("暂无可用模块，请联系管理员开通权限。")
-        main_logger.info(f"用户 {user_email} 暂无可用模块")
+        main_logger.info(f"用户 {user_email} 暂无可用模块。")
 
 
 _handle_oauth_callback_if_present()

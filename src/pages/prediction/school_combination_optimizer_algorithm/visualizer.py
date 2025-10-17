@@ -94,9 +94,10 @@ class RecommendationVisualizer:
                 <div style="display: flex; width: 100%; height: 12px; border-radius: 6px;">
                     {"".join(segments)}
                 </div>
-                <div style="position: absolute; top: -4px; left: {min(pos, 98)}%; transform: translateX(-50%); 
-                     width: 0; height: 0; border-left: 5px solid transparent; 
-                     border-right: 5px solid transparent; border-top: 8px solid #333;"></div>
+                <div style="position: absolute; top: -6px; left: {min(pos, 98)}%; transform: translateX(-50%); 
+                     width: 0; height: 0; border-left: 8px solid transparent; 
+                     border-right: 8px solid transparent; border-top: 12px solid #000; 
+                     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"></div>
             </div>
             <div>{level_text}: <strong style="color:{level_color};">{level_name}</strong></div>
         </div>"""

@@ -9,14 +9,23 @@ from data_config import (
 )
 from feature_engineer import FeatureEngineer, engineer_features
 from sampling_methods import apply_sampling
+from school_level_mapper import build_school_level_fallback_mapping
 from sklearn.model_selection import train_test_split
 
 
 def load_data(data_path, sampling_method=None):
-    X_train, X_test, y_train, y_test, feature_names, sample_weight_train = load_and_preprocess_data(
-        data_path, sampling_method
+    X_train, X_test, y_train, y_test, feature_names, sample_weight_train, level_fallback_mapping = (
+        load_and_preprocess_data(data_path, sampling_method)
     )
-    return X_train, X_test, y_train, y_test, feature_names, sample_weight_train
+    return (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        feature_names,
+        sample_weight_train,
+        level_fallback_mapping,
+    )
 
 
 def load_and_preprocess_data(data_path, sampling_method=None):
@@ -25,6 +34,11 @@ def load_and_preprocess_data(data_path, sampling_method=None):
         data = pd.read_feather(data_path)
     except Exception:
         data = None
+
+    # 在特征工程之前构建 school_level fallback 映射
+    level_fallback_mapping = {}
+    if data is not None and not data.empty:
+        level_fallback_mapping = build_school_level_fallback_mapping(data)
 
     data = engineer_features(data)
 
@@ -71,4 +85,4 @@ def load_and_preprocess_data(data_path, sampling_method=None):
         )
         X_train, y_train, sw_train = X_train_res, y_train_res, sw_train_res
 
-    return X_train, X_test, y_train, y_test, feature_names, sw_train
+    return X_train, X_test, y_train, y_test, feature_names, sw_train, level_fallback_mapping

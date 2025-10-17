@@ -10,6 +10,7 @@ from src.machine_learning_models.data_config import (
 )
 from src.utils.logger import setup_logger
 from src.utils.model_loader import load_model
+from src.utils.school_level_service import get_school_level_service
 
 page_logger = setup_logger("page3", "prediction")
 
@@ -17,7 +18,7 @@ page_logger = setup_logger("page3", "prediction")
 class PredictionModel:
     def __init__(self, model_type: str, global_categories_df: pd.DataFrame | None = None):
         self.model_type = model_type
-        self.model, self.feature_names = load_model(model_type)
+        self.model, self.feature_names, self.level_fallback_mapping = load_model(model_type)
 
         if self.model is None:
             raise ValueError(f"加载模型 '{model_type}' 失败")
@@ -27,6 +28,12 @@ class PredictionModel:
             page_logger.warning(
                 f"模型 '{model_type}' 未提供 feature_names，将依赖传入的 expected_features"
             )
+
+        self.school_level_service = get_school_level_service()
+
+        if self.level_fallback_mapping is None:
+            self.level_fallback_mapping = {}
+            page_logger.warning("未找到 level_fallback_mapping，未知学校将使用默认编码 -1")
 
         self._setup_global_categories(global_categories_df)
         self._enable_categorical = self._check_categorical_support()
@@ -69,8 +76,32 @@ class PredictionModel:
             return 0
 
         code = index_map.get(str(value), -1)
+
+        if code == -1 and col == "background_university" and self.level_fallback_mapping:
+            original_school = str(value)
+            school_level = self.school_level_service.get_school_level(original_school)
+            fallback_school = self.level_fallback_mapping.get(school_level)
+
+            if fallback_school:
+                fallback_code = index_map.get(str(fallback_school), -1)
+                if fallback_code != -1:
+                    page_logger.info(
+                        f"未知学校 '{original_school}' (level: {school_level}) "
+                        f"使用 fallback 学校 '{fallback_school}' (code: {fallback_code})"
+                    )
+                    return fallback_code
+                else:
+                    page_logger.warning(
+                        f"学校 '{original_school}' 的 fallback 学校 '{fallback_school}' 也未在训练集中，使用 -1"
+                    )
+            else:
+                page_logger.warning(
+                    f"学校 '{original_school}' (level: {school_level}) 无法找到 fallback 学校，使用 -1"
+                )
+
         if code == -1:
             page_logger.warning(f"列 '{col}' 的值 '{value}' 不在训练时的类别中，将使用 -1")
+
         return code
 
     def _preprocess_single_value(self, col: str, value: Any) -> float:

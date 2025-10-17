@@ -59,25 +59,21 @@ def get_cross_major_recommendations(
     if not background_major or not results_with_similarity:
         return []
 
-    try:
-        bg_major_clean = str(background_major).strip()
-        admitted_combinations = get_admitted_combinations_from_dataframe(cases_df, bg_major_clean)
+    bg_major_clean = str(background_major).strip()
+    admitted_combinations = get_admitted_combinations_from_dataframe(cases_df, bg_major_clean)
 
-        if admitted_combinations:
-            admitted_results = [
-                res
-                for res in results_with_similarity
-                if (res.get("university"), res.get("major")) in admitted_combinations
-                and res.get("similarity", 1.0) < MIN_SIMILARITY_THRESHOLD
-                and res.get("similarity", 0.0) > 0.8
-            ]
+    if admitted_combinations:
+        admitted_results = [
+            res
+            for res in results_with_similarity
+            if (res.get("university"), res.get("major")) in admitted_combinations
+            and res.get("similarity", 1.0) < MIN_SIMILARITY_THRESHOLD
+            and res.get("similarity", 0.0) > 0.8
+        ]
 
-            if admitted_results:
-                admitted_results.sort(key=lambda x: x.get("similarity", 1.0))
-                top_least_similar = admitted_results[:TOP_N_RECOMMENDATIONS]
-                top_least_similar.sort(key=lambda x: x.get("probability", 0), reverse=True)
-                return top_least_similar
-        return []
-
-    except Exception:
-        return []
+        if admitted_results:
+            admitted_results.sort(key=lambda x: x.get("similarity", 1.0))
+            top_least_similar = admitted_results[:TOP_N_RECOMMENDATIONS]
+            top_least_similar.sort(key=lambda x: x.get("probability", 0), reverse=True)
+            return top_least_similar
+    return []

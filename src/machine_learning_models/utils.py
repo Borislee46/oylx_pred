@@ -7,7 +7,9 @@ import xgboost as xgb
 from sklearn.calibration import CalibratedClassifierCV
 
 
-def save_model(model, model_name, feature_names, x_test, calibration_params=None):
+def save_model(
+    model, model_name, feature_names, x_test, calibration_params=None, level_fallback_mapping=None
+):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     current_dir = os.path.dirname(os.path.abspath(__file__))
     model_dir = os.path.join(current_dir, "pre-trained_models")
@@ -46,6 +48,15 @@ def save_model(model, model_name, feature_names, x_test, calibration_params=None
                         with open(calib_filename, "w", encoding="utf-8") as f:
                             json.dump(calibration_params, f, ensure_ascii=False, indent=2)
                         filenames_saved.append(calib_filename)
+
+                    # 保存 level_fallback_mapping
+                    if level_fallback_mapping:
+                        fallback_filename = os.path.join(
+                            model_dir, f"{model_name}_{timestamp}_level_fallback.json"
+                        )
+                        with open(fallback_filename, "w", encoding="utf-8") as f:
+                            json.dump(level_fallback_mapping, f, ensure_ascii=False, indent=2)
+                        filenames_saved.append(fallback_filename)
             elif isinstance(model, xgb.XGBClassifier):
                 model_filename = os.path.join(model_dir, f"{model_name}_{timestamp}.model")
                 model.save_model(model_filename)
@@ -57,6 +68,15 @@ def save_model(model, model_name, feature_names, x_test, calibration_params=None
                 with open(features_filename, "w", encoding="utf-8") as f:
                     json.dump(feature_names, f, ensure_ascii=False, indent=2)
                 filenames_saved.append(features_filename)
+
+                # 保存 level_fallback_mapping
+                if level_fallback_mapping:
+                    fallback_filename = os.path.join(
+                        model_dir, f"{model_name}_{timestamp}_level_fallback.json"
+                    )
+                    with open(fallback_filename, "w", encoding="utf-8") as f:
+                        json.dump(level_fallback_mapping, f, ensure_ascii=False, indent=2)
+                    filenames_saved.append(fallback_filename)
         except Exception:
             raise ValueError(f"保存模型 {model_name} 失败")
 

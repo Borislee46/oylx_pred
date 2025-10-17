@@ -49,17 +49,8 @@ def generate_prediction_combinations(
         ]
 
     combination_count = len(valid_combinations)
-    if combination_count == 0:
-        message = "根据您的选择，没有找到有效的学校和专业组合进行分析"
-    elif combination_count > 100:
-        message = f"将分析 {combination_count} 个学校和专业组合，这可能需要一些时间"
-    else:
-        message = f"将分析 {combination_count} 个学校和专业组合"
 
-    meta = {
-        "combination_count": combination_count,
-        "combination_message": message,
-    }
+    meta = {"combination_count": combination_count}
 
     return valid_combinations, meta
 

@@ -35,18 +35,12 @@ def is_effectively_empty(text: str | None) -> bool:
     return len(stripped) == 0
 
 
-def clip_probability(value: Any, default: float = 0.0) -> float:
-    try:
-        return max(0.0, min(1.0, float(value)))
-    except Exception:
-        return default
+def clip_probability(value: Any) -> float:
+    return max(0.0, min(1.0, float(value)))
 
 
 def generate_content_hash(content: str) -> str:
-    try:
-        return hashlib.md5(content.encode("utf-8")).hexdigest()
-    except Exception:
-        return f"fallback_{hash(content)}"
+    return hashlib.md5(content.encode("utf-8")).hexdigest()
 
 
 def has_valid_experience_details(experience_details: dict[str, str] | None) -> bool:
@@ -66,16 +60,13 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
     if experience_details is None:
         return False
 
-    try:
-        keys = (
-            "research_details",
-            "award_details",
-            "internship_details",
-            "paper_details",
-        )
-        merged = " ".join(str(experience_details.get(k, "")) for k in keys)
-        merged = merged.strip().lower()
-        cleaned = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", "", merged)
-        return len(cleaned) >= 2
-    except Exception:
-        return True
+    keys = (
+        "research_details",
+        "award_details",
+        "internship_details",
+        "paper_details",
+    )
+    merged = " ".join(str(experience_details.get(k, "")) for k in keys)
+    merged = merged.strip().lower()
+    cleaned = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", "", merged)
+    return len(cleaned) >= 3

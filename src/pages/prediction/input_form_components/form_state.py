@@ -33,6 +33,8 @@ class FormStateManager:
             if loaded_data:
                 user_history_data = loaded_data
 
+        experience_details = user_history_data.get("experience_details", {})
+
         default_states = {
             "selected_target_universities": user_history_data.get(
                 "selected_target_universities", []
@@ -42,14 +44,24 @@ class FormStateManager:
             "selected_major_categories": user_history_data.get("selected_major_categories", []),
             "submitted": False,
             "form_data_changed": False,
-            "gpa_scale": user_history_data.get("gpa_scale", DEFAULT_GPA_SCALE),
-            "gpa_raw_input": user_history_data.get("gpa_raw"),
-            "language_type": user_history_data.get("language_type", "雅思"),
-            "language_score_input": user_history_data.get("language_score_raw"),
             "last_gpa_warning_key": None,
             "last_lang_warning_key": None,
             "prediction_submit_lock": False,
             "school_base_df": None,
+            "gpa_scale": user_history_data.get("gpa_scale", DEFAULT_GPA_SCALE),
+            "gpa_raw_input": user_history_data.get("gpa_raw"),
+            "language_type": user_history_data.get("language_type", "雅思"),
+            "language_score_input": user_history_data.get("language_score_raw"),
+            "background_university_initial": user_history_data.get("background_university"),
+            "background_major_original_initial": user_history_data.get("background_major_original"),
+            "research_count_initial": user_history_data.get("research_count", 0),
+            "award_count_initial": user_history_data.get("award_count", 0),
+            "internship_count_initial": user_history_data.get("internship_count", 0),
+            "paper_count_initial": user_history_data.get("paper_count", 0),
+            "research_details_initial": experience_details.get("research_details", ""),
+            "award_details_initial": experience_details.get("award_details", ""),
+            "internship_details_initial": experience_details.get("internship_details", ""),
+            "paper_details_initial": experience_details.get("paper_details", ""),
             "current_user_id": user_id,
             "user_history_data": user_history_data,
         }

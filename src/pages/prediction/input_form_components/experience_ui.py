@@ -17,6 +17,7 @@ def render_experience_section(session_manager, form_state_manager, logger):
     st.markdown("**其他经历**")
 
     user_history_data = session_manager.get("user_history_data", {})
+    experience_details_data = user_history_data.get("experience_details", {})
 
     experience_items = [
         {
@@ -70,7 +71,7 @@ def render_experience_section(session_manager, form_state_manager, logger):
         with col_details:
             details_val = st.text_input(
                 f"{label_prefix}详细信息（选填）",
-                value=user_history_data.get(details_key, ""),
+                value=experience_details_data.get(details_key, ""),
                 on_change=partial(
                     _log_experience_details_change,
                     session_manager,

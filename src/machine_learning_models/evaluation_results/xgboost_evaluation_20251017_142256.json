@@ -1,6 +1,6 @@
 {
     "model_name": "xgboost",
-    "timestamp": "20251016_155547",
+    "timestamp": "20251017_142256",
     "metrics": {
         "accuracy": 0.7063350615683733,
         "precision": 0.5602947744528808,

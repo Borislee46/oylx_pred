@@ -50,18 +50,6 @@ UNIVERSITY_SORT_ORDER = [
 
 TARGET_COUNTRIES = list(TARGET_COUNTRY_UNIVERSITY_MAP.keys())
 
-GPA_LOW_THRESHOLDS = {
-    "4.0": 1,
-    "4.3": 1,
-    "4.5": 1,
-    "5.0": 1,
-    "10": 1,
-    "20": 1,
-    "100": 1,
-}
-
-LANGUAGE_LOW_THRESHOLDS = {"雅思": 0.5, "托福": 1}
-
 GPA_WARNING_THRESHOLDS = {
     "4.0": 2,
     "4.3": 2.15,

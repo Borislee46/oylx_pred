@@ -67,9 +67,22 @@ def _load_json_calibration(file_path: str) -> dict[str, Any] | None:
     return None
 
 
+def _load_json_level_fallback(file_path: str) -> dict[str, str] | None:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+    except FileNotFoundError:
+        logger.info(f"level_fallback 文件未找到: {file_path}")
+    except Exception as e:
+        logger.warning(f"加载 level_fallback 文件失败: {e}")
+    return None
+
+
 def load_model_dependencies(
     model_dir: str, model_prefix: str
-) -> tuple[Any | None, list[str] | None]:
+) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:
     abs_model_dir = os.path.abspath(model_dir)
 
     model_glob_pattern = f"{model_prefix}_????????_??????.model"
@@ -78,7 +91,7 @@ def load_model_dependencies(
 
     if not model_files:
         logger.warning(f"未找到 {model_prefix} 模型")
-        return None, None
+        return None, None, None
 
     latest_model_path = max(model_files, key=os.path.getmtime)
     timestamp = (
@@ -87,7 +100,7 @@ def load_model_dependencies(
 
     xgb_model = _load_serialized_xgb(latest_model_path)
     if xgb_model is None:
-        return None, None
+        return None, None, None
 
     features_path = os.path.join(abs_model_dir, f"{model_prefix}_{timestamp}_features.json")
     feature_names = _load_json_features(features_path)
@@ -95,16 +108,22 @@ def load_model_dependencies(
     calib_path = os.path.join(abs_model_dir, f"{model_prefix}_{timestamp}_calibration.json")
     calibration = _load_json_calibration(calib_path)
 
-    if calibration is not None:
-        return _wrap_with_calibration(xgb_model, calibration), feature_names
+    fallback_path = os.path.join(abs_model_dir, f"{model_prefix}_{timestamp}_level_fallback.json")
+    level_fallback_mapping = _load_json_level_fallback(fallback_path)
 
-    return xgb_model, feature_names
+    final_model = (
+        _wrap_with_calibration(xgb_model, calibration) if calibration is not None else xgb_model
+    )
+
+    return final_model, feature_names, level_fallback_mapping
 
 
 @st.cache_resource(show_spinner=False)
-def load_model(model_name: str = "xgboost") -> tuple[Any | None, list[str] | None]:
-    model, feature_names = load_model_dependencies(
+def load_model(
+    model_name: str = "xgboost",
+) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:
+    model, feature_names, level_fallback_mapping = load_model_dependencies(
         "src/machine_learning_models/pre-trained_models", model_name
     )
 
-    return model, feature_names
+    return model, feature_names, level_fallback_mapping

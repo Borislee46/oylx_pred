@@ -130,10 +130,6 @@ class UserFormStorage:
             "award_count",
             "internship_count",
             "paper_count",
-            "research_details",
-            "award_details",
-            "internship_details",
-            "paper_details",
         }
 
         cleaned_data = {}
@@ -143,6 +139,7 @@ class UserFormStorage:
 
         experience_details = form_data.get("experience_details", {})
         if isinstance(experience_details, dict):
+            cleaned_experience = {}
             for detail_field in [
                 "research_details",
                 "award_details",
@@ -151,8 +148,11 @@ class UserFormStorage:
             ]:
                 if detail_field in experience_details:
                     detail_value = experience_details[detail_field]
-                    if detail_value and detail_value.strip():
-                        cleaned_data[detail_field] = detail_value.strip()
+                    if detail_value and isinstance(detail_value, str) and detail_value.strip():
+                        cleaned_experience[detail_field] = detail_value.strip()
+
+            if cleaned_experience:
+                cleaned_data["experience_details"] = cleaned_experience
 
         return cleaned_data
 
