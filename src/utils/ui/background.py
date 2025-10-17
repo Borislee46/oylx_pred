@@ -1,19 +1,13 @@
 import base64
-import os
 
 import streamlit as st
 
 
 @st.cache_data
 def get_base64_of_bin_file(bin_file):
-    if not os.path.exists(bin_file):
-        return None
-    try:
-        with open(bin_file, "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except Exception:
-        return None
+    with open(bin_file, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
 
 def set_page_background(img_path):

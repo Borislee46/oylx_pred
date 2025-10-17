@@ -107,12 +107,6 @@ def filter_schools_by_faculty_rules(
         if _is_school_allowed(school_major, allowed_faculties)
     ]
 
-    logger.info(
-        f"学院规则过滤: 背景学院='{background_faculty}', "
-        f"允许目标学院={allowed_faculties}, "
-        f"过滤前={len(schools)}, 过滤后={len(filtered_schools)}"
-    )
-
     return filtered_schools
 
 
@@ -122,17 +116,9 @@ def _is_school_allowed(
 ) -> bool:
     target_faculty = school.get("faculty", "")
     if not target_faculty:
-        logger.debug(
-            f"专业 {school.get('university')}-{school.get('major')} 的 faculty 字段为空，已过滤"
-        )
         return False
 
     is_allowed = target_faculty in allowed_faculties
-    if not is_allowed:
-        logger.debug(
-            f"专业 {school.get('university')}-{school.get('major')} "
-            f"的学院 '{target_faculty}' 不在允许列表 {allowed_faculties} 中，已过滤"
-        )
 
     return is_allowed
 

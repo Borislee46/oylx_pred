@@ -4,11 +4,8 @@ import os
 
 
 def read_css_file(css_path: str) -> str:
-    try:
-        with open(css_path, encoding="utf-8") as f:
-            return f.read()
-    except FileNotFoundError:
-        return ""
+    with open(css_path, encoding="utf-8") as f:
+        return f.read()
 
 
 def generate_watermark_css(

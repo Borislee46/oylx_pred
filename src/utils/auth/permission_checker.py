@@ -1,9 +1,9 @@
-from src.utils.auth.config_processor import _get_processed_auth_config
-from src.utils.auth.dev_config_loader import _load_dev_config
+from src.utils.auth.config_processor import get_processed_auth_config
+from src.utils.auth.dev_config_loader import load_dev_config
 
 
 def check_user_access_permission(user_email: str) -> bool:
-    dev_config = _load_dev_config()
+    dev_config = load_dev_config()
     if dev_config.get("DEBUG_MODE", False):
         debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
         if debug_user_email and user_email.lower() == debug_user_email.lower():
@@ -12,7 +12,7 @@ def check_user_access_permission(user_email: str) -> bool:
     if not user_email:
         return False
 
-    processed_config = _get_processed_auth_config()
+    processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
 
     if user_email_lower in processed_config["EMAIL_BLACKLIST_LOWER"]:
@@ -26,7 +26,7 @@ def check_user_access_permission(user_email: str) -> bool:
 
 
 def check_module_permission(user_email: str, module_name: str) -> bool:
-    dev_config = _load_dev_config()
+    dev_config = load_dev_config()
     if dev_config.get("DEBUG_MODE", False):
         debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
         if debug_user_email and user_email.lower() == debug_user_email.lower():
@@ -35,7 +35,7 @@ def check_module_permission(user_email: str, module_name: str) -> bool:
     if not check_user_access_permission(user_email):
         return False
 
-    processed_config = _get_processed_auth_config()
+    processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
     module_permissions = processed_config.get("MODULE_PERMISSIONS_LOWER", {})
 
@@ -51,10 +51,10 @@ def is_admin(user_email: str) -> bool:
     if not user_email:
         return False
 
-    processed_config = _get_processed_auth_config()
+    processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
 
-    dev_config = _load_dev_config()
+    dev_config = load_dev_config()
     if dev_config.get("DEBUG_MODE", False):
         debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
         if debug_user_email and user_email_lower == debug_user_email.lower():
@@ -64,7 +64,7 @@ def is_admin(user_email: str) -> bool:
 
 
 def get_user_accessible_modules(user_email: str) -> dict:
-    dev_config = _load_dev_config()
+    dev_config = load_dev_config()
     if dev_config.get("DEBUG_MODE", False):
         debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
         if debug_user_email and user_email.lower() == debug_user_email.lower():
@@ -91,7 +91,7 @@ def get_user_accessible_modules(user_email: str) -> dict:
     if not check_user_access_permission(user_email):
         return empty_modules
 
-    processed_config = _get_processed_auth_config()
+    processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
     module_perms = processed_config["MODULE_PERMISSIONS_LOWER"]
 

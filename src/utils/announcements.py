@@ -11,15 +11,11 @@ ANNOUNCEMENTS_CONFIG_PATH = "announcements_config.json"
 @st.cache_data
 def load_announcements_config() -> dict[str, Any]:
     if os.path.exists(ANNOUNCEMENTS_CONFIG_PATH):
-        try:
-            with open(ANNOUNCEMENTS_CONFIG_PATH, encoding="utf-8") as f:
-                config = json.load(f)
-                if isinstance(config, dict) and "announcements" in config:
-                    return config
-                return {"announcements": []}
-        except (json.JSONDecodeError, FileNotFoundError):
+        with open(ANNOUNCEMENTS_CONFIG_PATH, encoding="utf-8") as f:
+            config = json.load(f)
+            if isinstance(config, dict) and "announcements" in config:
+                return config
             return {"announcements": []}
-
     return {"announcements": []}
 
 
@@ -87,7 +83,6 @@ def generate_announcement_html(announcements: list[dict[str, Any]]) -> str:
     for announcement in announcements:
         title = announcement.get("title", "")
         content = announcement.get("content", "")
-        ann_type = announcement.get("type", "info")
 
         if title and content:
             announcement_items.append(f"{title}: {content}")

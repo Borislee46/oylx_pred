@@ -4,7 +4,7 @@ import uuid
 
 import streamlit as st
 
-from src.utils.auth.dev_config_loader import _load_dev_config
+from src.utils.auth.dev_config_loader import load_dev_config
 from src.utils.auth.permission_checker import (
     check_module_permission,
     check_user_access_permission,
@@ -19,7 +19,7 @@ page_auth_logger = setup_logger("page3", "prediction")
 def handle_e2_login(
     current_page_path: str, module_name: str | None = None, admin_only: bool = False
 ) -> None:
-    dev_config = _load_dev_config()
+    dev_config = load_dev_config()
     if dev_config.get("DEBUG_MODE", False):
         debug_user = dev_config.get("DEBUG_USER", {})
         st.session_state.e2_user_email = debug_user.get("email", "developer@example.com")
@@ -32,10 +32,7 @@ def handle_e2_login(
     login_time = st.session_state.get("login_time")
     is_expired = False
     if is_authenticated and login_time:
-        try:
-            is_expired = (time.time() - float(login_time)) > TTL_SECONDS
-        except Exception:
-            is_expired = True
+        is_expired = (time.time() - float(login_time)) > TTL_SECONDS
 
     if (not is_authenticated) or is_expired:
         with st.spinner("请稍候，正在跳转到E2登录页面..."):

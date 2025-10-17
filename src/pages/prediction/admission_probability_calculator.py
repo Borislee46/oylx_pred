@@ -51,7 +51,6 @@ class AdmissionProbabilityCalculator:
         )
 
     def _clear_session_state_on_data_change(self, df_hash: int):
-        """当数据发生变化时清理session状态"""
         if self.session_manager.get("school_list_hash") != df_hash:
             keys_to_clear = [
                 "school_selections",
@@ -69,7 +68,6 @@ class AdmissionProbabilityCalculator:
     def _get_selected_schools_data(
         self, df: pd.DataFrame
     ) -> tuple[list[dict[str, Any]], list[float]]:
-        """获取选中的学校数据"""
         school_selections = self.session_manager.get("school_selections", {})
         school_keys = list(zip(df["目标院校"], df["原始专业名称"], strict=False))
 
@@ -109,41 +107,33 @@ class AdmissionProbabilityCalculator:
         language_score: float = None,
         disabled_status: bool = False,
     ) -> tuple[list[dict[str, Any]], list[float]]:
-        # 初始化优化运行状态
         if self.session_manager.get("run_optimization") is None:
             self.session_manager.set(run_optimization=False)
 
-        # 准备数据
         df = self.prepare_selected_schools_data(
             similarity_results=similarity_results,
             cross_major_results=cross_major_results,
             user_specified_results=user_specified_results,
         )
 
-        # 处理空数据情况
         if df.empty:
             st.info("当前没有可供选择的推荐学校。")
             self.session_manager.delete("school_list_hash")
             return [], []
 
-        # 检查数据变化并清理session状态
         if not df.empty:
             df_hash = hash_pandas_object(df[["目标院校", "原始专业名称", "调整后概率"]]).sum()
             self._clear_session_state_on_data_change(df_hash)
 
-        # 检查是否满足优化条件
         if len(df) < self.min_optimization_threshold:
             return [], []
 
-        # 显示优化界面
         self._ensure_correlation_and_ui_initialized()
         if self.optimization_ui:
             self.optimization_ui.display_optimization_tab(df, gpa, language_score, disabled_status)
 
-        # 获取选中的学校数据
         selected_results, selected_probabilities = self._get_selected_schools_data(df)
 
-        # 保存到session
         self.session_manager.set(
             selected_school_results=selected_results,
             selected_school_probabilities=selected_probabilities,

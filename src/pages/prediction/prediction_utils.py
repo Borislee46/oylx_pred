@@ -189,10 +189,6 @@ def _get_school_major_details_cached(university: str, major: str, version: int) 
         return "获取信息时发生错误"
 
 
-def preload_valid_school_major_combinations() -> int:
-    return len(_data_manager.valid_combinations)
-
-
 def get_valid_school_major_set() -> Set[str]:
     return _data_manager.valid_combinations
 

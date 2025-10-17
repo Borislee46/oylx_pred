@@ -53,21 +53,15 @@ class PredictionModel:
             self.global_category_index[col] = {str(cat): idx for idx, cat in enumerate(categories)}
 
     def _check_categorical_support(self) -> bool:
-        try:
-            return (
-                bool(self.model.get_xgb_params().get("enable_categorical", False))
-                if hasattr(self.model, "get_xgb_params")
-                else False
-            )
-        except Exception:
-            return False
+        return (
+            bool(self.model.get_xgb_params().get("enable_categorical", False))
+            if hasattr(self.model, "get_xgb_params")
+            else False
+        )
 
     def _log_transform_value(self, value: Any) -> float:
-        try:
-            numeric_val = pd.to_numeric(value, errors="coerce")
-            return np.log1p(max(0, numeric_val if not pd.isna(numeric_val) else 0))
-        except Exception:
-            return 0.0
+        numeric_val = pd.to_numeric(value, errors="coerce")
+        return np.log1p(max(0, numeric_val if not pd.isna(numeric_val) else 0))
 
     def _get_category_code(self, col: str, value: Any) -> int:
         index_map = self.global_category_index.get(col)
@@ -85,10 +79,7 @@ class PredictionModel:
         elif col in CATEGORICAL_COLUMNS:
             return float(self._get_category_code(col, value))
         else:
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return 0.0
+            return float(value)
 
     @lru_cache(maxsize=128)
     def _get_preprocessed_base_features(self, input_data_tuple: tuple) -> dict[str, float]:
@@ -143,74 +134,27 @@ class PredictionModel:
         if not combinations or not self.model:
             return []
 
-        try:
-            input_data_tuple = tuple(sorted(input_data.items()))
-            preprocessed_base = self._get_preprocessed_base_features(input_data_tuple)
+        input_data_tuple = tuple(sorted(input_data.items()))
+        preprocessed_base = self._get_preprocessed_base_features(input_data_tuple)
 
-            prediction_df = self._create_prediction_dataframe(combinations, preprocessed_base)
+        prediction_df = self._create_prediction_dataframe(combinations, preprocessed_base)
 
-            if prediction_df.empty:
-                page_logger.warning("预测DataFrame为空")
-                return []
-
-            probas = self.model.predict_proba(prediction_df)
-            if probas.ndim == 2 and probas.shape[1] > 1:
-                probas = probas[:, 1]
-
-            return [
-                {"university": univ, "major": major, "probability": float(proba)}
-                for (univ, major), proba in zip(combinations, probas)
-            ]
-
-        except Exception as e:
-            page_logger.error(f"批量预测失败: {e}", exc_info=True)
+        if prediction_df.empty:
+            page_logger.warning("预测DataFrame为空")
             return []
 
-    def preprocess_input(
-        self, input_data: pd.DataFrame | dict, expected_features_list: list
-    ) -> pd.DataFrame:
-        features_to_use = self.feature_names or expected_features_list
-        if not features_to_use:
-            raise ValueError("无法确定预期的特征列表")
+        probas = self.model.predict_proba(prediction_df)
+        if probas.ndim == 2 and probas.shape[1] > 1:
+            probas = probas[:, 1]
 
-        if isinstance(input_data, dict):
-            input_df = pd.DataFrame(
-                {feat: [input_data.get(feat, np.nan)] for feat in features_to_use}
-            )
-        elif isinstance(input_data, pd.DataFrame):
-            input_df = (
-                input_data[features_to_use].copy()
-                if set(features_to_use).issubset(input_data.columns)
-                else pd.DataFrame(columns=features_to_use)
-            )
-        else:
-            raise TypeError(f"不支持的 input_data 类型: {type(input_data)}")
-
-        for col in COUNT_COLUMNS_FOR_LOG_TRANSFORM:
-            if col in input_df.columns:
-                input_df[col] = np.log1p(
-                    pd.to_numeric(input_df[col], errors="coerce").fillna(0).clip(lower=0)
-                )
-
-        for col in CATEGORICAL_COLUMNS:
-            if col in input_df.columns:
-                input_df[col] = input_df[col].astype(str)
-                if col in self.global_categories:
-                    input_df[col] = pd.Categorical(
-                        input_df[col], categories=self.global_categories[col]
-                    )
-                    if input_df[col].isnull().any():
-                        page_logger.warning(f"列 '{col}' 包含训练时未见过的新类别")
-
-        return input_df
+        return [
+            {"university": univ, "major": major, "probability": float(proba)}
+            for (univ, major), proba in zip(combinations, probas)
+        ]
 
     def predict_probability(self, input_df: pd.DataFrame) -> float | None:
         if self.model is None:
             return None
 
-        try:
-            proba = self.model.predict_proba(input_df)[0, 1]
-            return float(proba)
-        except Exception as e:
-            page_logger.error(f"概率预测失败: {e}", exc_info=True)
-            return None
+        proba = self.model.predict_proba(input_df)[0, 1]
+        return float(proba)

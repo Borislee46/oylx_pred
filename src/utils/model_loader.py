@@ -8,16 +8,17 @@ import numpy as np
 import streamlit as st
 import xgboost as xgb
 
+from src.utils.logger import setup_logger
+
+logger = setup_logger("page3", "prediction")
+
 warnings.filterwarnings("ignore")
 
 
 def _load_serialized_xgb(file_path: str) -> xgb.XGBClassifier | None:
-    try:
-        model = xgb.XGBClassifier()
-        model.load_model(file_path)
-        return model
-    except Exception:
-        return None
+    model = xgb.XGBClassifier()
+    model.load_model(file_path)
+    return model
 
 
 class _CalibratedPredictor:
@@ -32,50 +33,38 @@ class _CalibratedPredictor:
         p1 = base_proba[:, 1]
         method = self.calibration.get("method")
         params = self.calibration.get("params", {})
-        try:
-            if method == "sigmoid":
-                a = float(params.get("a"))
-                b = float(params.get("b"))
-                calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
-            elif method == "isotonic":
-                x_thr = params.get("x_thresholds", [])
-                y_thr = params.get("y_thresholds", [])
-                calibrated_p1 = np.interp(p1, x_thr, y_thr)
-            else:
-                calibrated_p1 = p1
-        except Exception:
-            calibrated_p1 = p1
+        if method == "sigmoid":
+            a = float(params.get("a"))
+            b = float(params.get("b"))
+            calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
+        elif method == "isotonic":
+            x_thr = params.get("x_thresholds", [])
+            y_thr = params.get("y_thresholds", [])
+            calibrated_p1 = np.interp(p1, x_thr, y_thr)
+        else:
+            logger.warning(f"未知校准方法: {method}")
         p0 = 1.0 - calibrated_p1
         return np.vstack([p0, calibrated_p1]).T
 
 
 def _wrap_with_calibration(model: Any, calibration: dict[str, Any]) -> Any:
-    try:
-        return _CalibratedPredictor(model, calibration)
-    except Exception:
-        return model
+    return _CalibratedPredictor(model, calibration)
 
 
 def _load_json_features(file_path: str) -> list[str] | None:
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            features = json.load(f)
-        if isinstance(features, list):
-            return features
-        return None
-    except Exception:
-        return None
+    with open(file_path, "r", encoding="utf-8") as f:
+        features = json.load(f)
+    if isinstance(features, list):
+        return features
+    return None
 
 
 def _load_json_calibration(file_path: str) -> dict[str, Any] | None:
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict) and "method" in data and "params" in data:
-            return data
-        return None
-    except Exception:
-        return None
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "method" in data and "params" in data:
+        return data
+    return None
 
 
 def load_model_dependencies(
@@ -88,7 +77,7 @@ def load_model_dependencies(
     model_files = glob.glob(model_search_path)
 
     if not model_files:
-        print(f"未找到 {model_prefix} 模型")
+        logger.warning(f"未找到 {model_prefix} 模型")
         return None, None
 
     latest_model_path = max(model_files, key=os.path.getmtime)

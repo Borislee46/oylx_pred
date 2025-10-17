@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import TypedDict
 
 
 class PredictionInput(TypedDict, total=False):
@@ -14,13 +14,3 @@ class PredictionInput(TypedDict, total=False):
     paper_count: int
     school_level: int
     experience_details: dict[str, str]
-
-
-class PredictionResultItem(TypedDict, total=False):
-    university: str
-    major: str
-    probability: float
-    similarity: float
-
-
-MetaInfo = dict[str, Any]

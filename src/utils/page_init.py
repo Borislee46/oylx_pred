@@ -19,7 +19,6 @@ def init_page(
     skip_watermark: bool = False,
     module_name: str | None = None,
     admin_only: bool = False,
-    skip_background: bool = False,
 ):
     st.set_page_config(
         page_title=page_title,
@@ -38,12 +37,6 @@ def init_page(
                 st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
         except FileNotFoundError:
             pass
-
-    # if not skip_background:
-    #     try:
-    #         set_page_background("assets/background_pic.jpg")
-    #     except Exception as e:
-    #         page_init_logger.warning(f"设置背景失败: {e}")
 
     if not skip_auth:
         handle_e2_login(current_page_path, module_name=module_name, admin_only=admin_only)

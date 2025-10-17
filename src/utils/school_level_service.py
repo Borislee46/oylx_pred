@@ -48,9 +48,6 @@ def _get_school_level_mapping() -> dict[str, dict[str, Any]]:
                 "priority": SCHOOL_LEVEL_PRIORITY.get(level, SCHOOL_LEVEL_PRIORITY["未知"]),
             }
             school_mapping[school_name] = info
-            normalized = _normalize_school_name(school_name)
-            if normalized and normalized not in school_mapping:
-                school_mapping[normalized] = info
 
     return school_mapping
 
@@ -68,15 +65,9 @@ class SchoolLevelService:
             }
 
         cleaned_name = str(school_name).strip()
-        canonical = SCHOOL_ALIASES.get(cleaned_name, cleaned_name)
-        normalized = _normalize_school_name(canonical)
 
         if cleaned_name in mapping:
             return mapping[cleaned_name]
-        if canonical in mapping:
-            return mapping[canonical]
-        if normalized in mapping:
-            return mapping[normalized]
 
         if "985" in cleaned_name or "211" in cleaned_name:
             inferred_level = "985" if "985" in cleaned_name else "211"
@@ -120,26 +111,3 @@ def get_school_level_service() -> SchoolLevelService:
 
 def get_school_level_for_analyzer(background_uni_name: str) -> str:
     return get_school_level_service().get_school_level(background_uni_name)
-
-
-def _normalize_school_name(name: str) -> str:
-    try:
-        if name is None:
-            return ""
-        s = str(name).strip()
-        s = s.replace("\u00a0", "").replace("\u3000", "")
-        s = "".join(ch for ch in s if not ch.isspace())
-        s = s.replace("（", "(").replace("）", ")")
-        return s
-    except Exception:
-        return str(name or "").strip()
-
-
-SCHOOL_ALIASES: dict[str, str] = {
-    "新加坡 南洋理工大学": "新加坡南洋理工大学",
-    "香港理 工大学": "香港理工大学",
-    "香港岭南 大学": "香港岭南大学",
-    "香港教育 大学": "香港教育大学",
-    "香港中文 大学": "香港中文大学",
-    "香港中文大学 (深圳校区)": "香港中文大学 (深圳校区)",
-}

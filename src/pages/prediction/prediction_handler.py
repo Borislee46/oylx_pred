@@ -184,7 +184,7 @@ def _batch_adjust_results(
     return adjusted_results_list
 
 
-def _compute_list_fingerprint(lst: list) -> tuple[int, int]:
+def compute_list_fingerprint(lst: list) -> tuple[int, int]:
     if not lst:
         return (0, 0)
     try:
@@ -199,7 +199,7 @@ def _compute_list_fingerprint(lst: list) -> tuple[int, int]:
         return (len(lst), 0)
 
 
-def _compute_df_fingerprint(df) -> int:
+def compute_df_fingerprint(df) -> int:
     if df is None or df.empty:
         return 0
     try:
