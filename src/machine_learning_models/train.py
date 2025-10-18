@@ -1,35 +1,25 @@
 import argparse
 import os
+import platform
 import sys
 
+import utils
 from data_loader import load_data
 from model_trainer import evaluate_model, train_model
-
-import utils
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 
 
 def get_package_versions():
-    versions = {}
-    packages = ["xgboost", "sklearn", "numpy", "pandas", "scipy", "joblib"]
+    packages = ["xgboost", "numpy", "pandas", "scipy", "joblib"]
+    versions = {"python": platform.python_version()}
 
     for package in packages:
-        try:
-            if package == "sklearn":
-                import sklearn
-
-                versions["scikit-learn"] = sklearn.__version__
-            else:
-                module = __import__(package)
-                versions[package] = module.__version__
-        except (ImportError, AttributeError):
-            versions[package] = "not installed"
-
-    import platform
-
-    versions["python"] = platform.python_version()
+        module = __import__(package)
+        versions[package] = module.__version__
+    import sklearn
+    versions["scikit-learn"] = sklearn.__version__
 
     return versions
 
@@ -41,19 +31,19 @@ def main():
     parser.add_argument("--auto_tune", action="store_true")
     args = parser.parse_args()
 
-    data_path_value = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "data", "cases.feather"
-    )
+    data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "cases.feather")
 
     X_train, X_test, y_train, y_test, feature_names, sample_weight_train, level_fallback_mapping = (
-        load_data(data_path_value, sampling_method=args.sampling_method)
+        load_data(data_path, sampling_method=args.sampling_method)
     )
 
-    model, model_params, calibration_method_from_trainer, calibration_params = train_model(
+    model, model_params, calibration_method, calibration_params = train_model(
         X_train, y_train, args.model, auto_tune=args.auto_tune, sample_weight=sample_weight_train
     )
+
     metrics, feature_importance = evaluate_model(model, X_test, y_test, feature_names)
-    saved_files = utils.save_model(
+
+    utils.save_model(
         model,
         args.model,
         feature_names,
@@ -61,19 +51,16 @@ def main():
         calibration_params=calibration_params,
         level_fallback_mapping=level_fallback_mapping,
     )
-    calibration_method_used = calibration_method_from_trainer
 
-    package_versions = get_package_versions()
-
-    evaluation_file = utils.save_evaluation_results(
+    utils.save_evaluation_results(
         model_name=args.model,
         metrics=metrics,
         feature_importance=feature_importance,
         auto_tune_method="optuna" if args.auto_tune else None,
         model_params=model_params,
         sampling_method=args.sampling_method,
-        calibration_method=calibration_method_used,
-        package_versions=package_versions,
+        calibration_method=calibration_method,
+        package_versions=get_package_versions(),
     )
 
 

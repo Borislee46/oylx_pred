@@ -35,7 +35,6 @@ def load_and_preprocess_data(data_path, sampling_method=None):
     except Exception:
         data = None
 
-    # 在特征工程之前构建 school_level fallback 映射
     level_fallback_mapping = {}
     if data is not None and not data.empty:
         level_fallback_mapping = build_school_level_fallback_mapping(data)

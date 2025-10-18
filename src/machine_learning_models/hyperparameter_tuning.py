@@ -16,47 +16,36 @@ def tune_hyperparameters(
     stratified_kfold = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
 
     def objective(trial):
-        params = {}
-        if model_name == "xgboost":
-            params = {
-                "n_estimators": trial.suggest_int("n_estimators", 100, 500),
-                "max_depth": trial.suggest_int("max_depth", 3, 10),
-                "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
-                "subsample": trial.suggest_float("subsample", 0.5, 1.0),
-                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
-                "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
-                "gamma": trial.suggest_float("gamma", 0, 0.5),
-                "reg_alpha": trial.suggest_float("reg_alpha", 0, 1),
-                "reg_lambda": trial.suggest_float("reg_lambda", 0, 1),
-            }
+        if model_name != "xgboost":
+            raise ValueError(f"模型 {model_name} 未配置用于手动CV的objective函数。")
+        
+        params = {
+            "n_estimators": trial.suggest_int("n_estimators", 100, 500),
+            "max_depth": trial.suggest_int("max_depth", 3, 10),
+            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
+            "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+            "gamma": trial.suggest_float("gamma", 0, 0.5),
+            "reg_alpha": trial.suggest_float("reg_alpha", 0, 1),
+            "reg_lambda": trial.suggest_float("reg_lambda", 0, 1),
+        }
+        
         intermediate_scores = []
-
-        if not (hasattr(X_train, "iloc") and hasattr(y_train, "iloc")):
-            raise TypeError(
-                "X_train 和 y_train 需要是 pandas DataFrame 和 Series，分别用于 .iloc 分割。"
-            )
-
         for step, (train_idx, val_idx) in enumerate(stratified_kfold.split(X_train, y_train)):
             X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
             y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
 
-            current_model_instance = None
-            if model_name == "xgboost":
-                current_model_instance = XGBClassifier(
-                    **params,
-                    random_state=42,
-                    enable_categorical=True,
-                    monotone_constraints=monotone_constraints,
-                )
-            else:
-                raise ValueError(f"模型 {model_name} 未配置用于手动CV的objective函数。")
-
-            current_model_instance.fit(X_fold_train, y_fold_train)
-            score = f1_score(
-                y_fold_val, current_model_instance.predict(X_fold_val), average="binary"
+            model = XGBClassifier(
+                **params,
+                random_state=42,
+                enable_categorical=True,
+                monotone_constraints=monotone_constraints,
             )
+            model.fit(X_fold_train, y_fold_train)
+            
+            score = f1_score(y_fold_val, model.predict(X_fold_val), average="binary")
             intermediate_scores.append(score)
-
             trial.report(score, step)
 
             if trial.should_prune():
