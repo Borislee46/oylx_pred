@@ -16,7 +16,7 @@ from src.utils.logger import setup_logger
 from src.utils.page_init import init_page
 
 main_logger = setup_logger("page3", "prediction")
-APP_VERSION = "v2.3"
+APP_VERSION = "v2.6"
 
 
 def _handle_oauth_callback_if_present() -> None:
@@ -121,7 +121,6 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hk", False):
         available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", "🎓"))
-        available_buttons.append(("案例库极速版", "pages/case_lib.py", "⚡"))
 
     if accessible_modules.get("eu_sales_tool", False):
         available_buttons.append(("欧洲留学前期工具", "pages/eu_sales_tool.py", "🇪🇺"))
@@ -188,11 +187,11 @@ def main() -> None:
 
     available_buttons = _collect_available_buttons(accessible_modules, is_user_admin, user_email)
     button_names = [name for name, _, _ in available_buttons]
-    main_logger.info(f"用户 {user_email} 具有以下模块的访问权限: {button_names}")
     # _show_update_notice_if_needed()
 
     if len(available_buttons) > 0:
         _render_buttons_grid(available_buttons)
+        main_logger.info(f"用户 {user_email} 具有以下模块的访问权限: {button_names}")
     else:
         st.info("暂无可用模块，请联系管理员开通权限。")
         main_logger.info(f"用户 {user_email} 暂无可用模块。")

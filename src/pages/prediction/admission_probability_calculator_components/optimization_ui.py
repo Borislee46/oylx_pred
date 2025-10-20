@@ -98,11 +98,11 @@ class OptimizationUI:
             help=self._get_help_text(),
             key=f"optimize_button_{session_id}",
         )
-
         optimization_started_this_run = False
         if self.session_manager.get("run_optimization", False):
             self.session_manager.set(run_optimization=False)
             optimization_started_this_run = True
+            logger.info("开始智能优化选校")
 
             if len(df) < 2:
                 st.warning("候选学校数量不足，至少需要2所学校才能进行优化")
