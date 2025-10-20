@@ -40,14 +40,14 @@
 DEFAULT_TEXT_BOOST_CONFIG = {
     "enabled": True,
     # 最大总提升上限（在 p≈0.5 处达到上限；两端随 p 衰减）
-    "max_total_boost": 0.10,
+    "max_total_boost": 0.15,
     # 相似度门槛（任一不达标则不生效）
-    "sim_gate_sum_min": 0.25,
-    "sim_gate_max_min": 0.18,
+    "sim_gate_sum_min": 0.10,
+    "sim_gate_max_min": 0.08,
     # 平滑系数：将 logit 增量压缩，避免过激
-    "smoothing": 0.5,
+    "smoothing": 0.7,
     # 封顶乘子最小值（低质量文本的上限占比），范围 (0,1]
-    "cap_min_factor": 0.05,
+    "cap_min_factor": 0.10,
     # 质量对封顶的非线性：>1 强化强文本；=1 线性；<1 平滑
     "cap_quality_gamma": 1.2,
     "model_paths": {
@@ -62,13 +62,13 @@ DEFAULT_TEXT_BOOST_CONFIG = {
   - 概率调整：`probability_adjuster.py` 使用 `GPA_MINIMUM`、`LANGUAGE_MINIMUM`、`CROSS_MAJOR_PENALTY_FACTOR`。
   - 职业型专业：`professional_adjustment.py` 使用 `PROFESSIONAL_*` 参数。
   - 相似度阈值：`config.py` 集中定义，`ranker.py` 等处引用。
-  - 公共工具：`utils.py` 提供 `is_effectively_empty`、`clip_probability`、`generate_content_hash` 等函数，被多个模块复用。
+  - 公共工具：`utils.py` 提供 `is_effectively_empty`、`clip_probability`、`generate_content_hash`、`has_valid_experience_details`、`has_meaningful_experience_text` 等函数，被多个模块复用。
   - 文本加成：`text_boost_provider.py` 使用 `DEFAULT_TEXT_BOOST_CONFIG`。
 
 ### 文本加成（Text Boost）
 - 入口函数：`get_text_boost_provider(config) -> TextBoostProvider`
   - `config.enabled`：关闭/开启
-  - `config.max_total_boost`：动态封顶最大值（默认 0.10，可调）；基础形状随概率远离中段而衰减
+  - `config.max_total_boost`：动态封顶最大值（默认 0.15，可调）；基础形状随概率远离中段而衰减
   - `config.sim_gate_sum_min` / `config.sim_gate_max_min`：文本相似度的生效门槛
   - `config.smoothing`：对 logit 增量的平滑系数（0~1），避免过激
   - `config.cap_min_factor` / `config.cap_quality_gamma`：基于文本“质量分数”的封顶调节
@@ -101,7 +101,7 @@ DEFAULT_TEXT_BOOST_CONFIG = {
 ### 相似度与推荐（similarity_adjuster.py, ranker.py）
 - `adjust_similarity_score(background_major, target_major, similarity)`：根据配置 `config/similarity_adjustment_rules.json` 的关键字规则对相似度小幅修正（0–1 截断）。
 - `get_similar_major_recommendations`：先按相似度阈值过滤（申请院校数较少≤`UNIVERSITY_COUNT_THRESHOLD=5`时使用更高阈值 `0.92`，否则 `0.89`）；再取前 `TOP_N=50`（按相似度筛）；随后对概率做裁剪；最终按概率降序返回。
-- `_get_cross_major_recommendations`：在历史中存在录取案例的跨专业中，筛选 `0.8 < similarity < MIN_SIMILARITY_THRESHOLD` 的候选，并按概率降序返回。
+- `get_cross_major_recommendations`：在历史中存在录取案例的跨专业中，筛选 `0.8 < similarity < MIN_SIMILARITY_THRESHOLD` 的候选，并按概率降序返回。
 
 ### 行业专业调整（professional_adjustment.py）
 - 对职业类项目（如 MBA/BA）在缺少实习经历时降低概率；若用户显式指定该类专业，降幅较轻。
@@ -118,14 +118,14 @@ DEFAULT_TEXT_BOOST_CONFIG = {
 ### 设计边界与原则
 - 后处理与主模型解耦，不改变样本排序的主导因素，仅做小幅、可解释的加减分。
 - `max_total_boost` 控制总增益；TF‑IDF 仅对中段概率生效，避免极端情况被放大。
-- 任何代价较高的计算（如 TF‑IDF）都带缓存与超时（默认 100ms）。
+- 任何代价较高的计算（如 TF‑IDF）都带缓存；无显式超时。
 
 ### 评估快照（5000 样本）
 - 平均加权耗时 ≈ 0.16–0.22ms/样本；AUC 变化 ≈ -0.00033；Top@K 轻微波动（Top@50 -2、Top@100 +1、Top@200 +1）。
 
 ### 常见用法与注意事项
-- 只做“小幅、可解释”的修正：避免替代主模型排序；`max_total_boost` 建议 0.02–0.10（默认 0.10，可按业务调低/调高）。
-- 文本加成只在中段概率生效（0.2–0.8），并带强信号门控，避免弱文本误放大。
+- 只做“小幅、可解释”的修正：避免替代主模型排序；`max_total_boost` 建议 0.02–0.15（默认 0.15，可按业务调低/调高）。
+- 文本加成只在中段概率生效（0.1–0.9），并带强信号门控，避免弱文本误放大。
 - 跨专业惩罚 `penalize_cross_major_without_cases`：仅在用户显式“指定跨专业组合”且历史无成功案例时生效；自动推荐结果不受该惩罚影响。
 - 关键词表维护：优先高辨识度名词，定期审查，避免误触。
  - 平均加权耗时 ≈ 0.16–0.22ms/样本；AUC 变化极小；Top@K 轻微波动。

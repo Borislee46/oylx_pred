@@ -85,10 +85,10 @@ GLOBAL_MIN_SIMILARITY = 0.90
 PRESTIGE_WEIGHT = 3.0
 
 OBJECTIVE_WEIGHTS = {
-    "rejection_probability": 1.0,
-    "diversity": 2.5,
-    "balance_score": 2.0,
-    "major_similarity": 1.0,
+    "rejection_probability": 0.9,
+    "diversity": 5.0,
+    "balance_score": 1.0,
+    "major_similarity": 2.0,
     "new_major_ratio": 0.5,
 }
 

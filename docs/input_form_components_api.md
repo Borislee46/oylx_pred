@@ -91,7 +91,7 @@
 - `LANGUAGE_TYPES`：`["雅思", "托福"]`
 - `LANGUAGE_SCORE_RANGES`：分数范围、步长与显示格式
 - `UNIVERSITY_SORT_ORDER`、`TARGET_COUNTRY_UNIVERSITY_MAP`、`TARGET_COUNTRIES`
-- 低分/告警阈值：`GPA_LOW_THRESHOLDS`、`LANGUAGE_LOW_THRESHOLDS`、`GPA_WARNING_THRESHOLDS`、`LANGUAGE_WARNING_THRESHOLDS`
+- 告警阈值：`GPA_WARNING_THRESHOLDS`、`LANGUAGE_WARNING_THRESHOLDS`
 
 ---
 
@@ -126,6 +126,8 @@
 - `target_options_cache`: {selection_key → {`country`, `university`, `category`, `major`}}（基于四级筛选键的选项缓存）。
 - `background_universities_cache`: 背景院校候选集（并集来源）。
 - `background_majors_cache`: {`majors_display`, `major_map`}（原始→标准专业名映射与显示列表）。
+- `lang_conversion_cache`: 语言分数互转缓存（雅思↔托福）。
+- `gpa_conversion_cache`: GPA 分制互转缓存（旧/新分制+当前值作为键）。
 
 ---
 

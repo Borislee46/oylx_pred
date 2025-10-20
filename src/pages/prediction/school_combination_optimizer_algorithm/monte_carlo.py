@@ -197,10 +197,12 @@ def _calculate_converged_probability(
         prev_prob = cumulative_rejections[n - window_size] / (n - window_size)
         curr_prob = cumulative_rejections[n] / n
 
+        extreme_early = (curr_prob < 0.005 or curr_prob > 0.995) and n >= int(min_simulations * 1.5)
+
         if (
             abs(curr_prob - prev_prob) < convergence_threshold
-            or (curr_prob < 0.01 or curr_prob > 0.99)
-            and n >= min_simulations * 2
+            or ((curr_prob < 0.01 or curr_prob > 0.99) and n >= min_simulations * 2)
+            or extreme_early
         ):
             converged_n = n
             break

@@ -1,3 +1,7 @@
+from dataclasses import dataclass
+from typing import Any
+
+import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.prediction_model import PredictionModel
@@ -41,3 +45,20 @@ def cached_get_prediction_model(model_name):
 @st.cache_data
 def cached_load_bg_target_similarity_cache():
     return load_bg_target_similarity_cache()
+
+
+@dataclass
+class machine_learning_model:
+    prediction_model: Any
+    loaded_feature_names: list[str]
+    cases_df: pd.DataFrame
+
+    @classmethod
+    @st.cache_resource
+    def resource_loader(cls) -> "machine_learning_model":
+        from src.pages.prediction.prediction_handler import validate_model_and_features
+
+        model = cached_get_prediction_model("xgboost")
+        features = validate_model_and_features(model)
+        cases = cached_load_cases_data()
+        return cls(prediction_model=model, loaded_feature_names=features, cases_df=cases)

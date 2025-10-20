@@ -71,8 +71,18 @@ def calculate_metrics(
 
 def _get_empty_metrics() -> dict[str, Any]:
     return {
-        key: (1.0 if "rejection" in key else 0.0) if "prob" in key else 0
-        for key in calculate_metrics.__annotations__["return"].__args__[0].__annotations__
+        "rejection_probability": 1.0,
+        "admission_probability": 0.0,
+        "diversity": 0,
+        "safety_count": 0,
+        "target_count": 0,
+        "reach_count": 0,
+        "balance_score": 0.0,
+        "major_similarity": 0.0,
+        "new_major_ratio": 0.0,
+        "new_major_count": 0,
+        "simulated_rejection_probability": None,
+        "simulated_admission_probability": None,
     }
 
 

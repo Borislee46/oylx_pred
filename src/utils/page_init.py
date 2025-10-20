@@ -11,7 +11,7 @@ def init_page(
     page_title: str,
     current_page_path: str,
     layout: str = "wide",
-    initial_sidebar_state: str = "auto",
+    initial_sidebar_state: str = "collapsed",
     default_nickname: str = "访客",
     additional_css_files: list[str] | None = None,
     watermark_config: dict | None = None,
@@ -19,6 +19,7 @@ def init_page(
     skip_watermark: bool = False,
     module_name: str | None = None,
     admin_only: bool = False,
+    hide_sidebar: bool = False,
 ):
     st.set_page_config(
         page_title=page_title,
@@ -26,6 +27,18 @@ def init_page(
         initial_sidebar_state=initial_sidebar_state,
         page_icon="assets/favicon.ico",
     )
+
+    if hide_sidebar:
+        st.markdown(
+            """
+            <style>
+            [data-testid="stSidebarNav"] { display: none !important; }
+            section[data-testid="stSidebar"] { display: none !important; }
+            [data-testid="collapsedControl"] { display: none !important; }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
 
     css_files_to_load = ["assets/style.css"]
     if additional_css_files:

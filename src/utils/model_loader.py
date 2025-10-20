@@ -43,6 +43,7 @@ class _CalibratedPredictor:
             calibrated_p1 = np.interp(p1, x_thr, y_thr)
         else:
             logger.warning(f"未知校准方法: {method}")
+            return base_proba
         p0 = 1.0 - calibrated_p1
         return np.vstack([p0, calibrated_p1]).T
 
@@ -51,41 +52,12 @@ def _wrap_with_calibration(model: Any, calibration: dict[str, Any]) -> Any:
     return _CalibratedPredictor(model, calibration)
 
 
-def _load_json_features(file_path: str) -> list[str] | None:
-    with open(file_path, "r", encoding="utf-8") as f:
-        features = json.load(f)
-    if isinstance(features, list):
-        return features
-    return None
-
-
-def _load_json_calibration(file_path: str) -> dict[str, Any] | None:
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    if isinstance(data, dict) and "method" in data and "params" in data:
-        return data
-    return None
-
-
-def _load_json_level_fallback(file_path: str) -> dict[str, str] | None:
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict):
-            return data
-    except FileNotFoundError:
-        logger.info(f"level_fallback 文件未找到: {file_path}")
-    except Exception as e:
-        logger.warning(f"加载 level_fallback 文件失败: {e}")
-    return None
-
-
 def load_model_dependencies(
     model_dir: str, model_prefix: str
 ) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:
     abs_model_dir = os.path.abspath(model_dir)
 
-    model_glob_pattern = f"{model_prefix}_????????_??????.model"
+    model_glob_pattern = f"{model_prefix}_????????_??????.ubj"
     model_search_path = os.path.join(abs_model_dir, model_glob_pattern)
     model_files = glob.glob(model_search_path)
 
@@ -94,22 +66,26 @@ def load_model_dependencies(
         return None, None, None
 
     latest_model_path = max(model_files, key=os.path.getmtime)
-    timestamp = (
-        os.path.basename(latest_model_path).replace(f"{model_prefix}_", "").replace(".model", "")
-    )
-
     xgb_model = _load_serialized_xgb(latest_model_path)
     if xgb_model is None:
         return None, None, None
 
-    features_path = os.path.join(abs_model_dir, f"{model_prefix}_{timestamp}_features.json")
-    feature_names = _load_json_features(features_path)
+    booster = xgb_model.get_booster()
 
-    calib_path = os.path.join(abs_model_dir, f"{model_prefix}_{timestamp}_calibration.json")
-    calibration = _load_json_calibration(calib_path)
+    feature_names: list[str] | None = None
+    feature_names_str = booster.attr("feature_names")
+    if feature_names_str:
+        feature_names = json.loads(feature_names_str)
 
-    fallback_path = os.path.join(abs_model_dir, f"{model_prefix}_{timestamp}_level_fallback.json")
-    level_fallback_mapping = _load_json_level_fallback(fallback_path)
+    calibration: dict[str, Any] | None = None
+    calibration_str = booster.attr("calibration_params")
+    if calibration_str:
+        calibration = json.loads(calibration_str)
+
+    level_fallback_mapping: dict[str, str] | None = None
+    fallback_str = booster.attr("level_fallback_mapping")
+    if fallback_str:
+        level_fallback_mapping = json.loads(fallback_str)
 
     final_model = (
         _wrap_with_calibration(xgb_model, calibration) if calibration is not None else xgb_model
@@ -118,7 +94,7 @@ def load_model_dependencies(
     return final_model, feature_names, level_fallback_mapping
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource
 def load_model(
     model_name: str = "xgboost",
 ) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:

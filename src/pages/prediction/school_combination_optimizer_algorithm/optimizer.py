@@ -44,7 +44,9 @@ from src.pages.prediction.school_combination_optimizer_algorithm.utils import (
     build_selection_key,
     calculate_adaptive_thresholds,
     calibrate_cross_major_probabilities,
+    clip_probability,
     get_cached_reference_directions,
+    normalize_major_name,
 )
 from src.utils.app_data_loader import load_school_major_details_df
 from src.utils.logger import setup_logger
@@ -105,11 +107,17 @@ class SchoolSelectionOptimizer:
 
     def _calculate_adaptive_thresholds(self, context: OptimizationContext) -> dict[str, float]:
         def get_probabilities():
-            return [school.get("probability", 0.0) for school in context.all_schools_data]
+            return [
+                clip_probability(school.get("probability", 0.0))
+                for school in context.all_schools_data
+            ]
 
         probabilities = self._safe_execute(
             get_probabilities,
-            lambda: [school.get("probability", 0.0) for school in context.all_schools_data],
+            lambda: [
+                clip_probability(school.get("probability", 0.0))
+                for school in context.all_schools_data
+            ],
             "错误计算自适应阈值的概率",
         )
 
@@ -132,6 +140,11 @@ class SchoolSelectionOptimizer:
     def _apply_all_filters(
         self, schools_data: list[dict], context: OptimizationContext
     ) -> list[dict]:
+        schools_data = [
+            ({**s, "major_norm": normalize_major_name(s.get("major", ""))} if s else s)
+            for s in schools_data
+        ]
+
         def similarity_filter(schools):
             return deduplicate_universities_by_similarity(
                 schools, context.background_major, None, MACAU_UNIVERSITIES
@@ -186,18 +199,9 @@ class SchoolSelectionOptimizer:
         )
 
     def _compute_algo_params(self, problem_size: int) -> tuple[int, int, Any]:
-        if problem_size < 10:
-            n_ref, pop, n_gen = 10, 20, 20
-        elif problem_size < 20:
-            n_ref, pop, n_gen = 15, max(15, min(problem_size * 2, 30)), 25
-        elif problem_size < 50:
-            n_ref, pop, n_gen = 28, max(28, min(problem_size, 40)), 35
-        else:
-            n_ref, pop, n_gen = (
-                42,
-                max(42, min(50, self.population_size)),
-                min(40, self.n_generations),
-            )
+        n_ref = 42
+        pop = self.population_size
+        n_gen = self.n_generations
         ref = get_cached_reference_directions("energy", n_dim=5, n_points=n_ref)
         return pop, n_gen, ref
 
@@ -249,13 +253,11 @@ class SchoolSelectionOptimizer:
                     major_category_cache=problem.major_category_cache,
                 ),
             )
-
             sim_rej_prob, sim_adm_prob = self._get_cached_data(
                 "simulation",
                 build_school_set_key(selected_schools),
                 lambda: run_monte_carlo_simulation(selected_schools, self.correlation_matrix),
             )
-
             metrics.update(
                 {
                     "simulated_rejection_probability": sim_rej_prob,
@@ -284,7 +286,7 @@ class SchoolSelectionOptimizer:
 
     def _default_objective_values(self, metrics: dict) -> list[float]:
         return [
-            metrics.get("rejection_probability", 1.0) * 0.5,
+            metrics.get("rejection_probability", 1.0),
             -metrics.get("diversity", 0),
             -metrics.get("balance_score", -1000),
             -metrics.get("major_similarity", 0),
@@ -304,27 +306,57 @@ class SchoolSelectionOptimizer:
         if not hasattr(res, "X") or res.X is None or not hasattr(res, "F") or res.F is None:
             return []
 
-        X, F, CV = res.X, res.F, getattr(res, "CV", None)
-        balance_scores = []
+        X, F = res.X, res.F
+        n_solutions, n_candidates = X.shape[0], X.shape[1]
 
-        for i in range(len(X)):
-            if np.sum(X[i]) < min_schools:
-                balance_scores.append(-float("inf"))
-                continue
+        selected_counts = np.sum(X, axis=1)
 
-            selected_indices = np.where(X[i] == 1)[0]
-            probabilities = [problem.all_schools_data[j]["probability"] for j in selected_indices]
-            balance_scores.append(self._calculate_balance_score(probabilities, len(probabilities)))
+        balance_scores = np.full(n_solutions, -np.inf, dtype=float)
 
-        feasible_mask = self._get_feasible_mask(res, len(X))
+        if self.context and self.context.adaptive_thresholds:
+            probs_vec = np.array(
+                [
+                    clip_probability(problem.all_schools_data[j].get("probability", 0.0))
+                    for j in range(n_candidates)
+                ],
+                dtype=float,
+            )
+            safety_thresh = self.context.adaptive_thresholds.get("safety", 0.75)
+            target_thresh = self.context.adaptive_thresholds.get("target_lower", 0.55)
+
+            safety_mask = (probs_vec >= safety_thresh).astype(int)
+            target_mask = ((probs_vec >= target_thresh) & (probs_vec < safety_thresh)).astype(int)
+            reach_mask = (probs_vec < target_thresh).astype(int)
+
+            safety_counts = X @ safety_mask
+            target_counts = X @ target_mask
+            reach_counts = X @ reach_mask
+
+            ideal_safety = selected_counts * BALANCE_RATIOS["safety"]
+            ideal_target = selected_counts * BALANCE_RATIOS["target"]
+            ideal_reach = selected_counts * BALANCE_RATIOS["reach"]
+
+            balance_scores = -(
+                (safety_counts - ideal_safety) ** 2
+                + (target_counts - ideal_target) ** 2
+                + (reach_counts - ideal_reach) ** 2
+            )
+
+        balance_scores[selected_counts < min_schools] = -np.inf
+
+        feasible_mask = self._get_feasible_mask(res, n_solutions)
         candidate_indices = (
-            np.arange(len(X))[feasible_mask] if feasible_mask is not None else np.arange(len(X))
+            np.arange(n_solutions)[feasible_mask]
+            if feasible_mask is not None
+            else np.arange(n_solutions)
         )
 
-        if not len(candidate_indices):
+        if candidate_indices.size == 0:
             return []
 
-        return self._sort_and_select_candidates(candidate_indices, balance_scores, F, limit)
+        return self._sort_and_select_candidates(
+            candidate_indices, balance_scores.tolist(), F, limit
+        )
 
     def _calculate_balance_score(self, probabilities: list[float], total: int) -> float:
         if not self.context.adaptive_thresholds:
@@ -405,7 +437,7 @@ class SchoolSelectionOptimizer:
         filtered_selection = []
 
         for school in schools:
-            is_reach = school.get("probability", 1.0) < reach_threshold
+            is_reach = clip_probability(school.get("probability", 1.0)) < reach_threshold
             if not is_reach:
                 filtered_selection.append(school)
                 continue

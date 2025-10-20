@@ -19,21 +19,26 @@ def extract_calibration_params(model):
 
     cc = model.calibrated_classifiers_[0]
     calibrators = getattr(cc, "calibrators", None)
-    
+
     if not calibrators:
         return None
 
     if len(calibrators) == 1:
         calibrator = calibrators[0]
     else:
-        pos_index = cc.classes_.tolist().index(1) if hasattr(cc, "classes_") and 1 in cc.classes_ else 1
+        pos_index = (
+            cc.classes_.tolist().index(1) if hasattr(cc, "classes_") and 1 in cc.classes_ else 1
+        )
         calibrator = calibrators[pos_index] if pos_index < len(calibrators) else None
 
     if calibrator is None:
         return None
 
     if hasattr(calibrator, "a_") and hasattr(calibrator, "b_"):
-        return {"method": "sigmoid", "params": {"a": float(calibrator.a_), "b": float(calibrator.b_)}}
+        return {
+            "method": "sigmoid",
+            "params": {"a": float(calibrator.a_), "b": float(calibrator.b_)},
+        }
     elif hasattr(calibrator, "X_thresholds_") and hasattr(calibrator, "y_thresholds_"):
         return {
             "method": "isotonic",
@@ -89,9 +94,7 @@ def _extract_feature_importance(model, feature_names):
 def _build_importance_dict(importances, feature_names):
     indices = np.argsort(importances)[::-1]
     return {
-        feature_names[idx]: float(importances[idx])
-        for idx in indices
-        if idx < len(feature_names)
+        feature_names[idx]: float(importances[idx]) for idx in indices if idx < len(feature_names)
     }
 
 
@@ -115,7 +118,6 @@ def _calculate_scale_pos_weight(y_train):
         n_ones = len(y_train[y_train == 1])
         if n_ones > 0:
             scale_pos_weight = n_zeros / n_ones
-            print(f"类别分布 - 负样本: {n_zeros}, 正样本: {n_ones}, scale_pos_weight: {scale_pos_weight:.4f}")
             return scale_pos_weight
     return 1.0
 
@@ -131,7 +133,7 @@ def _create_base_estimator(model_class, params, model_name):
 def _prepare_sample_weight(sample_weight, indices):
     if sample_weight is None:
         return {}
-    
+
     try:
         sw = sample_weight.astype("float32") if hasattr(sample_weight, "astype") else sample_weight
         sw_subset = sw.iloc[indices] if hasattr(sw, "iloc") else sw
@@ -143,9 +145,11 @@ def _prepare_sample_weight(sample_weight, indices):
 def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None):
     categorical_feature_names = [col for col in CATEGORICAL_COLUMNS if col in X_train.columns]
 
-    monotone_constraints = _build_monotone_constraints(
-        X_train.columns.tolist(), categorical_feature_names
-    ) if model_name == "xgboost" else None
+    monotone_constraints = (
+        _build_monotone_constraints(X_train.columns.tolist(), categorical_feature_names)
+        if model_name == "xgboost"
+        else None
+    )
 
     scale_pos_weight = _calculate_scale_pos_weight(y_train) if model_name == "xgboost" else 1.0
 
@@ -177,11 +181,13 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
 
     if model_name == "xgboost":
         if auto_tune:
-            model_params.update({
-                "objective": "binary:logistic",
-                "random_state": 42,
-                "enable_categorical": True,
-            })
+            model_params.update(
+                {
+                    "objective": "binary:logistic",
+                    "random_state": 42,
+                    "enable_categorical": True,
+                }
+            )
         model_params["scale_pos_weight"] = scale_pos_weight
         model_params["monotone_constraints"] = monotone_constraints
 
@@ -198,7 +204,9 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
     fit_params = _prepare_sample_weight(sample_weight, train_idx)
     base_estimator.fit(X_tr, y_tr, **fit_params)
 
-    calibrated_model = CalibratedClassifierCV(base_estimator, method=CALIBRATION_METHOD, cv="prefit")
+    calibrated_model = CalibratedClassifierCV(
+        base_estimator, method=CALIBRATION_METHOD, cv="prefit"
+    )
     cal_fit_params = _prepare_sample_weight(sample_weight, calib_idx)
     calibrated_model.fit(X_cal, y_cal, **cal_fit_params)
 

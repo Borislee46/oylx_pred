@@ -6,9 +6,12 @@ import streamlit as st
 
 from src.pages.prediction.input_form_components.form_validator import FormValidator
 from src.utils.app_data_loader import load_school_major_details_df
+from src.utils.logger import setup_logger
 
 normalize_language_score = FormValidator.normalize_language_score
 denormalize_language_score = FormValidator.denormalize_language_score
+
+_utils_logger = setup_logger("page3", "prediction")
 
 
 class SchoolMajorDataManager:
@@ -63,6 +66,45 @@ class SchoolMajorDataManager:
 
 
 _data_manager = SchoolMajorDataManager()
+
+
+def get_background_faculty(background_major: str, cases_df: pd.DataFrame | None) -> str | None:
+    if not background_major or cases_df is None or cases_df.empty:
+        return None
+    try:
+        major_match = cases_df[cases_df["background_major"] == background_major]
+        if not major_match.empty and "faculty" in major_match.columns:
+            faculty = major_match["faculty"].iloc[0]
+            if pd.notna(faculty) and str(faculty).strip():
+                return faculty
+    except Exception as e:
+        _utils_logger.warning(f"查询背景学院失败: {e}")
+    return None
+
+
+def format_list_field(field_list: list[str]) -> str:
+    if not field_list:
+        return ""
+    return (
+        ", ".join(field_list)
+        if len(field_list) <= 3
+        else f"{', '.join(field_list[:3])} 等 {len(field_list) - 3} 项"
+    )
+
+
+def format_field(value) -> str:
+    if value is None or value == "":
+        return ""
+    return str(value)
+
+
+def format_float(value, decimals: int = 2):
+    try:
+        if value is None or value == "":
+            return ""
+        return round(float(value), decimals)
+    except Exception:
+        return value
 
 
 def format_display_value(value, value_type: str, language_type: str = None) -> str:
@@ -180,13 +222,10 @@ def get_school_major_details(
 @lru_cache(maxsize=500)
 def _get_school_major_details_cached(university: str, major: str, version: int) -> str:
     df = _data_manager.details_df
-    try:
-        match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
-        if not match.empty:
-            return format_school_major_details_from_row(match.iloc[0])
-        return "无详细信息"
-    except Exception:
-        return "获取信息时发生错误"
+    match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
+    if not match.empty:
+        return format_school_major_details_from_row(match.iloc[0])
+    return "无详细信息"
 
 
 def get_valid_school_major_set() -> Set[str]:
@@ -206,16 +245,13 @@ def is_new_major(university: str, major: str) -> bool:
 
 def _is_new_major_cached(university: str, major: str, version: int) -> bool:
     df = _data_manager.details_df
-    try:
-        match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
-        if not match.empty:
-            is_new = match.iloc[0].get("新增专业")
-            return pd.notna(is_new) and (is_new == "25fall新增" or is_new == "26fall新增")
-        return False
-    except Exception:
-        return False
+    match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
+    if not match.empty:
+        is_new = match.iloc[0].get("新增专业")
+        return pd.notna(is_new) and (is_new == "25fall新增" or is_new == "26fall新增")
+    return False
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=3600)
 def get_cached_data_manager() -> SchoolMajorDataManager:
     return SchoolMajorDataManager()

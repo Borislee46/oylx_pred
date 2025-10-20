@@ -25,13 +25,11 @@
 - 相似度：
   - 编码阶段已做 L2 归一化（`normalize_embeddings=True`），相似度使用向量点积（等价于余弦）。
 - 缓存键与存储：
-  - 键：`prediction_utils.get_cached_major_similarity_key(major_A, major_B)`（按字母序排序后拼接为 `major1|major2`）。
-  - 键函数位置：`src/pages/prediction/prediction_utils.py#get_cached_major_similarity_key`
+  - 键规则：按字母序排序后拼接为 `major1|major2`（参考 `src/pages/prediction/prediction_utils.py#_create_major_similarity_key` 与 `scripts/precompute_similarities.py#_create_major_similarity_key`）。
   - 输出文件（feather）：
-    - `cache/background_background_similarity.feather`
     - `cache/background_target_similarity.feather`
-  - 文件结构：两列 `key`、`similarity`，线上由 `utils.app_data_loader.load_bg_*_similarity_cache` 读取。
-  - 兼容性清理：会自动删除旧的 `src/machine_learning_models/data/cache/major_similarity_cache.{json,pkl}`。
+  - 文件结构：两列 `key`、`similarity`；线上由 `utils.app_data_loader.load_bg_target_similarity_cache` 读取为字典。
+  - 兼容性：历史 `src/machine_learning_models/data/cache/major_similarity_cache.{json,pkl}` 已废弃，当前脚本不做自动清理。
 
 #### 模型与提示词
 - 预计算脚本固定采用 E5，并使用 `query:` 提示词风格。
@@ -52,10 +50,10 @@
 python scripts/precompute_similarities.py
 ```
 
-完成后，两类缓存将被写入根目录 `cache/`，供线上 `utils.app_data_loader.load_bg_target_similarity_cache` 等加载使用。
+完成后，缓存将被写入根目录 `cache/`，供线上 `utils.app_data_loader.load_bg_target_similarity_cache` 加载使用。
 
 ---
 维护人：lijiapeng8@xdf.cn
-版本：v2.7
+版本：v2.8
 
 

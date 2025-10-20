@@ -8,6 +8,7 @@
 - 并行推理器：`src/pages/prediction/run_prediction.py`
 - 统一编排入口：`src/pages/prediction/prediction_handler.py`
 - 结果模型定义：`src/utils/session_manager.py`（`PredictionResultModel`）
+ - 结果展示：`src/pages/prediction/prediction_result_display.py`
 
 ### 数据类型（src/pages/prediction/prediction_types.py）
 - `PredictionInput`（TypedDict，可选字段）
@@ -20,27 +21,26 @@
   - `internship_count, research_count, award_count, paper_count: int`
   - `school_level: str`  # 例如："985" | "211" | "1-50" | "51-100" | "普通本科"
   - `experience_details: Dict[str, str]`
-- `PredictionResultItem`（TypedDict，可选字段）
-  - `university: str`, `major: str`, `probability: float`, `similarity: float`
-  - 附加字段：`chinese_name: str`（专业中文名称，处理阶段注入）
-- `MetaInfo = Dict[str, Any]`（例如：组合数量与提示消息）
-  - 注：当前类型定义文件中 `school_level` 标注为 `int`，但运行时由 `prepare_input_data` 注入为 `str`；后续将统一为 `str`。
+- 结果项字典（运行期结构）
+  - 基本字段：`university: str`, `major: str`, `probability: float`, `similarity: float`
+  - 处理阶段注入：`chinese_name: str`、`faculty: str`、`is_new_major: bool`
+- `MetaInfo = Dict[str, Any]`
+  - 当前包含：`combination_count: int`
+  - 注：类型定义文件中 `school_level` 标注为 `int`，但运行时由 `prepare_input_data` 注入为 `str`；同时会在可用时注入 `faculty: str`。
 
 ### 资源加载（src/pages/prediction/page_data_loader.py）
 - `cached_get_prediction_model(model_name: str) -> PredictionModel`
   - 说明：加载并缓存模型与全局类别映射（来自 `utils.app_data_loader`）。
 - `cached_load_cases_data() -> pd.DataFrame`
-  - 说明：优先加载 `cases_min.feather`，失败回退到 `cases.feather`；自动补齐缺失必需列并做基本类型清洗（如 `admitted`/`gpa`），由 `utils.app_data_loader.load_raw_cases_data` 完成。
+  - 说明：加载 `cases_min.feather`(压缩后的数据集，只取app必要的表头)；由 `utils.app_data_loader.load_raw_cases_data` 完成。
 - `cached_load_bg_target_similarity_cache() -> dict`
   - 说明：加载并缓存“原专业-目标专业”相似度缓存（默认从根目录 `cache/background_target_similarity.feather` 读取）。
 
 ### 模型封装（src/pages/prediction/prediction_model.py）
 - `class PredictionModel(model_type: str, global_categories_df: Optional[pd.DataFrame])`
-  - 内部：`load_model(model_type)`、`feature_names`、`global_categories_`（分类特征全局类别）。
-- `predict_batch(input_data: Dict[str, Any], combinations: List[Tuple[str, str]], expected_features: List[str]) -> List[PredictionResultItem]`
-  - 批量推理；自动分批；输出每个 `(university, major)` 的概率。
-- `preprocess_input(input_data: pd.DataFrame | dict, expected_features_list: list) -> pd.DataFrame`
-  - 对数化计数列；分类列按全局类别编码；补齐缺失列并对齐列序。
+  - 内部：`load_model(model_type)`、`feature_names`、全局类别映射与编码支持。
+- `predict_batch(input_data: Dict[str, Any], combinations: List[Tuple[str, str]], expected_features: List[str]) -> List[dict]`
+  - 批量推理；自动编码分类特征与对数化计数列；输出每个 `(university, major)` 的概率。
 - `predict_probability(input_df: pd.DataFrame) -> float | None`
   - 单样本概率预测。
 
@@ -48,14 +48,13 @@
 - `generate_prediction_combinations(input_data: PredictionInput, all_universities_target: List[str], all_majors_target: List[str]) -> Tuple[List[Tuple[str, str]], MetaInfo]`
   - 纯函数：生成有效 `(university, major)` 组合（过滤无详情项），并返回 `meta`：
     - `meta['combination_count']: int`
-    - `meta['combination_message']: str`
-- `process_prediction_results(results: list, background_major: str, bg_target_similarity_cache: dict, num_target_universities: int, cases_df: pd.DataFrame | None = None, user_specified_combinations: list[tuple[str, str]] | None = None) -> Tuple[list, list, list]`
+- `process_prediction_results(results: list, background_major: str, bg_target_similarity_cache: dict, num_target_universities: int, cases_df: pd.DataFrame | None = None, user_specified_combinations: list[tuple[str, str]] | None = None, background_faculty: str | None = None) -> Tuple[list, list, list]`
   - 流程与输出：
     - 先拦截 `part-time` 专业（忽略名称同时包含 "part" 与 "time" 的项目）。
     - 批量计算并注入 `similarity`（使用缓存与规则修正器）。
-    - 基于学校-专业详情维表批量映射中文名，新增字段 `chinese_name`。
+    - 当提供 `background_faculty` 时，按院系规则对学校进行过滤。
     - 产出三类结果：相近专业、跨专业、用户指定组合。
-    - 返回的每个结果项至少包含：`university`、`major`、`probability`、`similarity`、`chinese_name`。
+    - 返回的每个结果项至少包含：`university`、`major`、`probability`、`similarity`、`chinese_name`、`faculty`。
 
 ### 并行推理器（src/pages/prediction/run_prediction.py）
 - `run_single_prediction(current_input_data: PredictionInput, prediction_model: PredictionModel, cases_df: pd.DataFrame, bg_target_similarity_cache: dict, expected_features: List[str], all_universities_target: List[str], all_majors_target: List[str], num_target_universities: int) -> Tuple[list, list, list, None]`
@@ -64,12 +63,13 @@
     2) 基于线程/进程池自适应并发批量 `predict_batch`（可通过环境变量 `PREDICTION_USE_PROCESS_POOL=1` 启用进程池），并对结果做稳定排序（概率降序→学校→专业）。
     3) 处理为三类结果并返回（最后一个返回值保留为 `None`）。
   - 鲁棒性：子任务设超时；异常不阻断整体，但记录日志。
+  - 并发控制：支持 `PREDICTION_USE_PROCESS_POOL=1` 切换进程池；`PREDICTION_MAX_WORKERS` 限制并发数。
 
 ### 编排入口（src/pages/prediction/prediction_handler.py）
 - `validate_model_and_features(prediction_model: PredictionModel) -> List[str] | None`
   - 校验模型与特征名；页面层会给出中文错误提示。
 - `prepare_input_data(input_data_from_form: dict) -> dict`
-  - 注入 `school_level` 等派生字段（依赖 `utils.school_level_service`）。
+  - 注入 `school_level` 与可用时的 `faculty` 字段（依赖 `utils.school_level_service` 与案例数据）。
 - `run_prediction_pipeline(
     input_data: PredictionInput,
     model_name: str,
@@ -82,7 +82,7 @@
     - 内部按 `model_name` 读取并缓存模型；`cases_df` 与候选全集通过指纹参数复用缓存。
     - 调用 `run_single_prediction` 获取三类结果；
     - 行业专业规则修正：`adjust_for_professional_majors`；
-    - 跨专业惩罚：`penalize_cross_major_without_cases`；
+    - 跨专业惩罚：`penalize_cross_major_without_cases`（主要作用于用户指定组合）；
     - 概率调整：当提供 `gpa` 与 `language_score` 时，使用 `ProbabilityAdjuster` 做概率校正；
     - 文本加成：`get_text_boost_provider(...).apply`；
     - 新专业标记：批量写入 `is_new_major` 标记以供前端展示；
@@ -91,7 +91,7 @@
 
 ### 结果展示（src/pages/prediction/prediction_result_display.py）
 - `class ResultsDisplay`
-  - 展示三类结果为可交互表格，默认列：`目标院校`、`目标专业`、`录取概率`（进度条）、`专业中文名称`。
+  - 展示三类结果为可交互表格，默认列：`目标院校`、`目标专业`、`录取概率`（进度条）、`专业中文名称`；在连续预测上下文中可展示 `变化` 列（概率变化）。
   - 当结果项带有 `is_new_major=True` 时，在 `目标专业` 后追加 "(New!)" 并在渲染时高亮。
   - 排序规则：优先按固定院校顺序，其次同校内按概率降序。
   - 大组合池（>100）时优先展示 Top N 的相似/跨专业结果；用户指定组合在组合池较小时展示。
@@ -105,11 +105,11 @@
 ```json
 {
   "enabled": true,
-  "max_total_boost": 0.10,
-  "sim_gate_sum_min": 0.25,
-  "sim_gate_max_min": 0.18,
-  "smoothing": 0.5,
-  "cap_min_factor": 0.05,
+  "max_total_boost": 0.15,
+  "sim_gate_sum_min": 0.10,
+  "sim_gate_max_min": 0.08,
+  "smoothing": 0.7,
+  "cap_min_factor": 0.10,
   "cap_quality_gamma": 1.2,
   "model_paths": {
     "tfidf_vectorizer": "src/machine_learning_models/pre-trained_models/tfidf_vectorizer.joblib",
@@ -204,4 +204,4 @@ st.dataframe(res.unified_results.head(20) if res.unified_results is not None els
 ```
 ---
 维护人：lijiapeng8@xdf.cn
-版本：v2.4
+版本：v2.5

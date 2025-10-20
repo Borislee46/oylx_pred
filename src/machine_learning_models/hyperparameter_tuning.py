@@ -18,7 +18,7 @@ def tune_hyperparameters(
     def objective(trial):
         if model_name != "xgboost":
             raise ValueError(f"模型 {model_name} 未配置用于手动CV的objective函数。")
-        
+
         params = {
             "n_estimators": trial.suggest_int("n_estimators", 100, 500),
             "max_depth": trial.suggest_int("max_depth", 3, 10),
@@ -30,7 +30,7 @@ def tune_hyperparameters(
             "reg_alpha": trial.suggest_float("reg_alpha", 0, 1),
             "reg_lambda": trial.suggest_float("reg_lambda", 0, 1),
         }
-        
+
         intermediate_scores = []
         for step, (train_idx, val_idx) in enumerate(stratified_kfold.split(X_train, y_train)):
             X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
@@ -43,7 +43,7 @@ def tune_hyperparameters(
                 monotone_constraints=monotone_constraints,
             )
             model.fit(X_fold_train, y_fold_train)
-            
+
             score = f1_score(y_fold_val, model.predict(X_fold_val), average="binary")
             intermediate_scores.append(score)
             trial.report(score, step)

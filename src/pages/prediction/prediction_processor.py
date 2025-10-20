@@ -1,5 +1,3 @@
-from typing import Any
-
 import pandas as pd
 
 from src.pages.prediction.prediction_types import PredictionInput
@@ -22,7 +20,7 @@ def generate_prediction_combinations(
     input_data: PredictionInput,
     all_universities_target: list[str],
     all_majors_target: list[str],
-) -> tuple[list[tuple[str, str]], dict[str, Any]]:
+) -> tuple[list[tuple[str, str]], dict[str, int]]:
     target_universities = input_data.get("target_universities", []) or []
     target_majors = input_data.get("target_majors", []) or []
 
@@ -40,12 +38,11 @@ def generate_prediction_combinations(
         ]
     else:
         valid_set = get_valid_school_major_set()
-        prefix_patterns = [f"{univ}|" for univ in universities_to_consider]
         valid_combinations = [
             (univ, major)
-            for univ, prefix in zip(universities_to_consider, prefix_patterns)
+            for univ in universities_to_consider
             for major in majors_to_consider
-            if prefix + major in valid_set
+            if f"{univ}|{major}" in valid_set
         ]
 
     combination_count = len(valid_combinations)
@@ -145,7 +142,7 @@ def _calculate_and_attach_similarities(
             similarity_pairs, cache=bg_target_similarity_cache
         )
 
-        for idx, similarity in zip(valid_indices, batch_similarities, strict=False):
+        for idx, similarity in zip(valid_indices, batch_similarities):
             result = valid_results[idx]
             target_major = result.get("major", "")
 

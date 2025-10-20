@@ -1,58 +1,58 @@
-from __future__ import annotations
+from typing import Any, Dict
 
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Protocol
-
-
-@dataclass(frozen=True)
-class SystemPrompt:
-    content: str
+DEFAULT_SYSTEM_PROMPT = (
+    """你是一位资深的留学顾问。请根据以下信息，用亲切、专业的口吻回答用户的问题。"""
+)
 
 
-@dataclass(frozen=True)
-class UserPrompt:
-    content: str
+def format_user_profile(profile: Dict[str, Any]) -> str:
+    if not profile:
+        return "用户尚未填写背景信息。"
+
+    profile_lines = [f"- {key}: {value}" for key, value in profile.items() if value]
+    return "\n".join(profile_lines) if profile_lines else "用户尚未填写背景信息。"
 
 
-@dataclass(frozen=True)
-class AssistantPrompt:
-    content: str
+def format_prediction_results(prediction_results: Any) -> str:
+    if (
+        not hasattr(prediction_results, "unified_results")
+        or prediction_results.unified_results is None
+    ):
+        return "用户尚未进行预测。"
+
+    try:
+        results_summary = prediction_results.unified_results.head().to_string()
+        return f"以下是部分预测结果摘要:\n{results_summary}"
+    except Exception:
+        return "无法格式化预测结果。"
 
 
-@dataclass(frozen=True)
-class PromptContext:
-    system: Optional[SystemPrompt]
-    few_shots: List[AssistantPrompt]
-    metadata: Dict[str, Any]
+def build_consultation_prompt(
+    user_query: str,
+    user_profile: Dict[str, Any],
+    prediction_results: Any,
+    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+) -> str:
+    profile_str = format_user_profile(user_profile)
+    results_str = format_prediction_results(prediction_results)
 
+    return f"""
+{system_prompt}
 
-class PromptBuilder(Protocol):
-    def build_messages(
-        self, user_query: str, extra_context: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]: ...
+[用户信息]
+{profile_str}
 
+[系统预测结果摘要]
+{results_str}
 
-class DefaultPromptBuilder:
-    def __init__(self, context: Optional[PromptContext] = None) -> None:
-        self._context = context or PromptContext(system=None, few_shots=[], metadata={})
-
-    def build_messages(
-        self, user_query: str, extra_context: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
-        messages: List[Dict[str, Any]] = []
-        if self._context.system is not None:
-            messages.append({"role": "system", "content": self._context.system.content})
-        for shot in self._context.few_shots:
-            messages.append({"role": "assistant", "content": shot.content})
-        messages.append({"role": "user", "content": user_query})
-        return messages
+[用户当前问题]
+{user_query}
+"""
 
 
 __all__ = [
-    "SystemPrompt",
-    "UserPrompt",
-    "AssistantPrompt",
-    "PromptContext",
-    "PromptBuilder",
-    "DefaultPromptBuilder",
+    "DEFAULT_SYSTEM_PROMPT",
+    "format_user_profile",
+    "format_prediction_results",
+    "build_consultation_prompt",
 ]

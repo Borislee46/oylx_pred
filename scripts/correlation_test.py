@@ -5,20 +5,13 @@ import pandas as pd
 
 
 def load_data(filepath="src/machine_learning_models/data/cases.feather"):
-    try:
-        df = pd.read_feather(filepath)
-        print(f"成功加载 {len(df)} 条记录，来自 {filepath}")
-        required_cols = ["target_university", "target_major", "admitted"]
-        if not all(col in df.columns for col in required_cols):
-            missing = [col for col in required_cols if col not in df.columns]
-            raise ValueError(f"缺少必要的列: {missing}")
-        return df
-    except FileNotFoundError:
-        print(f"错误: 在 {filepath} 未找到文件")
-        return None
-    except Exception as e:
-        print(f"加载数据时出错: {e}")
-        return None
+    df = pd.read_feather(filepath)
+    print(f"成功加载 {len(df)} 条记录，来自 {filepath}")
+    required_cols = ["target_university", "target_major", "admitted"]
+    if not all(col in df.columns for col in required_cols):
+        missing = [col for col in required_cols if col not in df.columns]
+        raise ValueError(f"缺少必要的列: {missing}")
+    return df
 
 
 def calculate_correlation_matrix(

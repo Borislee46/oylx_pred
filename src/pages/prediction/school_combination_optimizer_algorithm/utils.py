@@ -1,3 +1,4 @@
+import re
 from collections import OrderedDict
 from functools import lru_cache
 from typing import (
@@ -60,7 +61,7 @@ def calibrate_cross_major_probabilities(
         calibrated_prob = (
             shrinkage_alpha * prob + (1.0 - shrinkage_alpha) * prior_p
         ) * cross_faculty_multiplier
-        return {**school, "probability": max(0.0, min(1.0, calibrated_prob))}
+        return {**school, "probability": clip_probability(calibrated_prob)}
 
     return [calibrate_school(school) for school in schools]
 
@@ -140,6 +141,13 @@ def build_new_major_cache(all_schools_data: list[dict[str, Any]]) -> Dict[str, A
         for school in all_schools_data
         if school.get("university") and school.get("major")
     }
+
+
+def normalize_major_name(major_name: str | None) -> str:
+    if major_name is None:
+        return ""
+    s = str(major_name)
+    return re.sub(r"\s*\(.*\)\s*", "", s).strip()
 
 
 @lru_cache(maxsize=32)

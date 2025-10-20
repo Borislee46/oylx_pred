@@ -89,7 +89,7 @@ class SchoolSelectionProblem(Problem):
 
     def _setup_hk_constraint_flags(self):
         is_elite = self.school_level in {"985", "211", "1-50", "51-100"}
-        is_ordinary = self.school_level == "普通本科"
+        is_ordinary = self.school_level in {"普通本科", "101-200", "201-300", "301-500", "500之后"}
 
         self.applies_hk_reach_constraint = is_elite or is_ordinary
         self.required_hk_list_for_reach = []
@@ -175,7 +175,7 @@ class SchoolSelectionProblem(Problem):
                 OBJECTIVE_WEIGHTS.get("rejection_probability"),
                 OBJECTIVE_WEIGHTS.get("diversity"),
                 OBJECTIVE_WEIGHTS.get("balance_score"),
-                -OBJECTIVE_WEIGHTS.get("major_similarity"),
+                OBJECTIVE_WEIGHTS.get("major_similarity"),
                 OBJECTIVE_WEIGHTS.get("new_major_ratio"),
             ]
         )
@@ -204,7 +204,7 @@ class SchoolSelectionProblem(Problem):
             -metrics.get("diversity", 0),
             -metrics.get("balance_score", -1000),
             -metrics.get("major_similarity", 0),
-            -metrics.get("new_major_ratio", 0),
+            metrics.get("new_major_ratio", 0),
         )
 
     def _calculate_constraints(self, num_selected, metrics, selected_schools):

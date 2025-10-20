@@ -59,9 +59,6 @@ def display_results_section(
     results_display.display(
         target_universities,
         target_majors,
-        input_data.get("gpa"),
-        input_data.get("language_score"),
-        input_data.get("language_type"),
         background_university=background_university,
         background_major=background_major,
     )

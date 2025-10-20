@@ -17,6 +17,7 @@ from src.pages.prediction.school_combination_optimizer_algorithm.config import (
     get_allowed_target_faculties,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.utils import (
+    normalize_major_name,
     normalize_school_name,
 )
 from src.utils.app_data_loader import load_raw_cases_data
@@ -42,7 +43,8 @@ def deduplicate_majors(schools: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped_schools = defaultdict(list)
     for school in schools:
         if (university := school.get("university")) and (major := school.get("major")):
-            grouped_schools[(university, _normalize_major_name(major))].append(school)
+            major_key = school.get("major_norm") or normalize_major_name(major)
+            grouped_schools[(university, major_key)].append(school)
 
     return [
         (
@@ -60,7 +62,7 @@ def deduplicate_universities_by_similarity(
     similarity_cache: dict,
     target_universities: set[str],
 ) -> list[dict[str, Any]]:
-    if not schools or not background_major or not similarity_cache or not target_universities:
+    if not schools or not background_major or not target_universities:
         return schools
 
     grouped_by_uni: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -93,12 +95,10 @@ def filter_schools_by_faculty_rules(
         return schools
 
     if not background_faculty:
-        logger.warning("背景学院为空，跳过学院规则过滤。")
         return schools
 
     allowed_faculties = get_allowed_target_faculties(background_faculty)
     if not allowed_faculties:
-        logger.warning(f"背景学院 '{background_faculty}' 没有配置跨学院规则，跳过过滤。")
         return schools
 
     filtered_schools = [
@@ -161,7 +161,7 @@ def _determine_max_allowed_priority(school_level: str | None, gpa: float | None)
         else:
             return PRIORITY_THRESHOLD_TOP_BG_DEFAULT
 
-    if school_level == "普通本科":
+    if school_level in {"普通本科", "101-200", "201-300", "301-500", "500之后"}:
         if gpa is not None and gpa >= 3.0:
             return PRIORITY_THRESHOLD_NORMAL_BG_GPA_GE_3_0
         else:

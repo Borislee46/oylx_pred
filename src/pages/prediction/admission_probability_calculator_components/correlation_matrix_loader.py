@@ -17,10 +17,7 @@ MATRIX_PATHS = {
 
 
 def _build_cache_key(file_path: str) -> str:
-    try:
-        mtime = os.path.getmtime(file_path) if os.path.exists(file_path) else 0
-    except Exception:
-        mtime = 0
+    mtime = os.path.getmtime(file_path) if os.path.exists(file_path) else 0
     return f"{file_path}|{mtime}|np={np.__version__}|pd={pd.__version__}"
 
 

@@ -33,6 +33,7 @@ def _initialize_page_and_state():
         page_title="前途欧亚留学数据科学平台",
         current_page_path="main.py",
         layout="centered",
+        hide_sidebar=True,
     )
 
     user_nickname = user_info["user_nickname"]
@@ -177,22 +178,8 @@ def _render_buttons_grid(available_buttons) -> None:
                     st.switch_page(page_path)
 
 
-def _render_global_visibility_css() -> None:
-    st.markdown(
-        """
-    <style>
-    [data-testid="stSidebarNav"] { display: none !important; }
-    section[data-testid="stSidebar"] { display: none !important; }
-    #MainMenu, footer { visibility: hidden; }
-    </style>
-    """,
-        unsafe_allow_html=True,
-    )
-
-
 def main() -> None:
     user_info, user_nickname = _initialize_page_and_state()
-    _render_global_visibility_css()
     user_email = user_info["user_email"]
 
     accessible_modules, is_user_admin = _enforce_access_and_get_modules(user_email)

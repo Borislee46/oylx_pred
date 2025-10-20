@@ -16,16 +16,9 @@ def check_cross_faculty_situation(
     target_universities: list[str],
     cases_df: pd.DataFrame,
 ) -> Tuple[bool, str | None, Set[str]]:
-    background_faculty: str | None = None
-    if background_major and cases_df is not None and not cases_df.empty:
-        try:
-            major_match = cases_df[cases_df["background_major"] == background_major]
-            if not major_match.empty and "faculty" in major_match.columns:
-                background_faculty = major_match["faculty"].iloc[0]
-                if pd.isna(background_faculty) or str(background_faculty).strip() == "":
-                    background_faculty = None
-        except Exception as e:
-            guard_logger.warning(f"查询背景学院失败: {e}")
+    from src.pages.prediction.prediction_utils import get_background_faculty
+
+    background_faculty = get_background_faculty(background_major, cases_df)
 
     if not background_faculty:
         return False, None, set()
@@ -119,16 +112,9 @@ def quick_cross_faculty_check(
         except Exception:
             cases_df = pd.DataFrame()
 
-    background_faculty: str | None = None
-    try:
-        if cases_df is not None and not cases_df.empty:
-            major_match = cases_df[cases_df["background_major"] == background_major]
-            if not major_match.empty and "faculty" in major_match.columns:
-                background_faculty = major_match["faculty"].iloc[0]
-                if pd.isna(background_faculty) or str(background_faculty).strip() == "":
-                    background_faculty = None
-    except Exception as e:
-        guard_logger.warning(f"查询背景学院失败: {e}")
+    from src.pages.prediction.prediction_utils import get_background_faculty
+
+    background_faculty = get_background_faculty(background_major, cases_df)
 
     if not background_faculty:
         return False, None, set()

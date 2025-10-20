@@ -295,9 +295,6 @@ class ResultsDisplay:
         self,
         target_universities,
         target_majors,
-        gpa=None,
-        language_score=None,
-        language_type=None,
         background_university=None,
         background_major=None,
     ):
@@ -324,27 +321,9 @@ class ResultsDisplay:
         combination_count = session_manager.get("combination_count", 0)
         pool_is_large = isinstance(combination_count, int) and combination_count > 100
 
-        df_user_specified = pd.DataFrame()
-        has_user_specified = False
-        if not pool_is_large:
-            df_user_specified = self._get_result_dataframe(
-                "user_specified",
-                prev_prob_map=self.prob_map_to_use,
-                show_delta=self.show_delta,
-            )
-            has_user_specified = not df_user_specified.empty
-
-        df_similarity = self._get_result_dataframe(
-            "similarity", prev_prob_map=self.prob_map_to_use, show_delta=self.show_delta
-        )
-        has_similarity = not df_similarity.empty
-
-        df_cross_major = self._get_result_dataframe(
-            "cross_major",
-            prev_prob_map=self.prob_map_to_use,
-            show_delta=self.show_delta,
-        )
-        has_cross_major = not df_cross_major.empty
+        has_user_specified = (not pool_is_large) and bool(self.user_specified_results)
+        has_similarity = bool(self.top_similarity_results)
+        has_cross_major = bool(self.top_cross_major_results)
 
         self._display_results_layout(
             has_user_specified, has_similarity, has_cross_major, pool_is_large

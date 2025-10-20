@@ -34,8 +34,7 @@
 python -m src.machine_learning_models.train --model xgboost --sampling_method smote
 ```
 - 产物：
-  - 模型：`src/machine_learning_models/pre-trained_models/{model}_{timestamp}.model`
-  - 特征/校准：`{model}_{timestamp}_features.json` / `{model}_{timestamp}_calibration.json`
+  - 模型：`src/machine_learning_models/pre-trained_models/{model}_{timestamp}.ubj`（Booster 内写入 `feature_names/calibration_params/level_fallback_mapping` 等属性；属性缺失时回退读取同名 JSON）
   - 评估：`src/machine_learning_models/evaluation_results/{model}_evaluation_{timestamp}.json`
 - 文档：`docs/ml_training_api.md`
 
@@ -69,7 +68,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
  - **文本加成（TF‑IDF Logit Uplift）**: 外层 `GatedTextBoostProvider` 做门控与缓存；核心 `LogitUpliftProvider` 基于四段文本相似度与计数交互项计算 logit 增量，并受配置化封顶与平滑约束：
    - 向量器参数：`analyzer='char_wb'`, `ngram_range=(2,4)`, `min_df=1`, `max_features=20000`（与线上一致）
    - 门控：`sum(s) ≥ sim_gate_sum_min` 且 `max(s) ≥ sim_gate_max_min` 才生效
-   - 平滑：`smoothing`（默认 0.5）压缩 logit 增量，避免过激
+   - 平滑：`smoothing`（默认 0.7）压缩 logit 增量，避免过激
    - 封顶：仅对中段概率（0.2–0.8）生效；`cap_boost = max_total_boost × cap_factor(质量) × scale(p)`；其中
      - `scale(p) = 1 − 2×|p − 0.5|`
      - 质量分数 `quality = 0.7×max(s) + 0.3×mean(s)`，`cap_factor = clamp(cap_min_factor, 1.0, quality^cap_quality_gamma)`
@@ -125,7 +124,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 ---
 
 ## 常见问题排查
-- 模型无法加载：检查 `pre-trained_models/*.model` 及同时间戳的 `*_features.json`/`*_calibration.json` 是否齐全；版本不兼容时重新训练导出。文本 TF‑IDF 模型为 `.joblib`（`tfidf_vectorizer.joblib`）。
+- 模型无法加载：检查 `pre-trained_models/*.ubj` 是否存在；Booster 属性包含 `feature_names/calibration_params` 等；若属性缺失则回退读取同名 JSON（若存在）。文本 TF‑IDF 模型为 `.joblib`（`tfidf_vectorizer.joblib`）。
 - 特征不对齐：线上与训练的 `feature_names` 必须一致；新增特征需同步训练与发布。
 - 文本加成无效：确认配置 `enabled/model_paths/similarity_thresholds`。
  - 文本加成无效：确认配置 `enabled/model_paths/sim_gate_sum_min/sim_gate_max_min/smoothing/cap_*` 是否合理，及三件产物是否存在。
@@ -141,4 +140,4 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 ---
 
 维护人：lijiapeng8@xdf.cn
-版本：v2.7
+版本：v2.9

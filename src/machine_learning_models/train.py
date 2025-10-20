@@ -3,9 +3,10 @@ import os
 import platform
 import sys
 
-import utils
 from data_loader import load_data
 from model_trainer import evaluate_model, train_model
+
+import utils
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
@@ -19,6 +20,7 @@ def get_package_versions():
         module = __import__(package)
         versions[package] = module.__version__
     import sklearn
+
     versions["scikit-learn"] = sklearn.__version__
 
     return versions
@@ -27,7 +29,7 @@ def get_package_versions():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="xgboost", choices=["xgboost"])
-    parser.add_argument("--sampling_method", type=str, default=None)
+    parser.add_argument("--sampling_method", type=str, default="smote")
     parser.add_argument("--auto_tune", action="store_true")
     args = parser.parse_args()
 
