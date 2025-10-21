@@ -680,7 +680,6 @@
         "zoushiyue@xdf.cn",
         "zuochong@xdf.cn"
     ],
-    "EMAIL_BLACKLIST": [],
     "ADMIN_EMAILS": [
         "cuiting3@xdf.cn",
         "lijiapeng8@xdf.cn"
@@ -712,21 +711,6 @@
             "lijiapeng8@xdf.cn",
             "niuben3@xdf.cn",
             "zhangruolin31@xdf.cn"
-        ],
-        "eu_sales_tool": [
-            "cailing4@xdf.cn",
-            "chensihua@xdf.cn",
-            "cuiting3@xdf.cn",
-            "dingjing3@xdf.cn",
-            "lijiapeng8@xdf.cn",
-            "lishuyan9@xdf.cn",
-            "liwenbo13@xdf.cn",
-            "qinweiting@xdf.cn",
-            "sibo@xdf.cn",
-            "weijiayi8@xdf.cn",
-            "yuenwaifong@xdf.cn",
-            "yuzhongqiu@xdf.cn",
-            "zhouyiyang3@xdf.cn"
         ],
         "hk": [
             "bainan1@xdf.cn",

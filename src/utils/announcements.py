@@ -39,9 +39,6 @@ def get_user_group(
     if accessible_modules.get("hk", False):
         groups.append("hk")
 
-    if accessible_modules.get("eu_sales_tool", False):
-        groups.append("eu_sales_tool")
-
     return groups
 
 

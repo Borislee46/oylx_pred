@@ -16,7 +16,6 @@ from src.utils.logger import setup_logger
 from src.utils.page_init import init_page
 
 main_logger = setup_logger("page3", "prediction")
-APP_VERSION = "v2.6"
 
 
 def _handle_oauth_callback_if_present() -> None:
@@ -81,49 +80,11 @@ def _render_announcements(user_email: str, is_user_admin: bool, accessible_modul
         st.markdown(announcement_html, unsafe_allow_html=True)
 
 
-def _show_update_notice_if_needed() -> None:
-    needs_notice = st.session_state.get("last_seen_version") != APP_VERSION
-    if not needs_notice:
-        return
-
-    def _render_update_content() -> None:
-        st.write("本次更新要点：")
-        st.markdown(
-            """
-- **UI视觉优化**：系统整体UI视觉效果大幅优化，提升使用体验；
-- **预测范围优化**：预测国家/地区维度从中国香港扩展至中国香港、中国澳门、新加坡和马来西亚；
-- **输入表单优化**：输入表单更加智能，并新增误操作提醒功能；
-- **计算效率优化**：引入更合理的缓存机制，预测结果与智能优化选校的计算效率提升20%以上；
-- **预测结果优化**：训练数据集体量扩充至60,000+，新增软实力文本特征参与机器学习训练；
-- **核心指标优化**：数据结果更加精准，系统准确率/召回率/F1值提升至80%以上。
-            """
-        )
-
-    if hasattr(st, "dialog"):
-
-        @st.dialog(f"版本更新 {APP_VERSION}")
-        def _update_dialog() -> None:
-            _render_update_content()
-            if st.button("我已知晓本次更新", key="ack_update_notice_dialog"):
-                st.session_state.last_seen_version = APP_VERSION
-                st.rerun()
-
-        _update_dialog()
-    else:
-        with st.expander(f"版本更新 {APP_VERSION}", expanded=True):
-            _render_update_content()
-            if st.button("我已知晓本次更新", key="ack_update_notice_expander"):
-                st.session_state.last_seen_version = APP_VERSION
-
-
 def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, user_email: str):
     available_buttons = []
 
     if accessible_modules.get("hk", False):
         available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", "🎓"))
-
-    if accessible_modules.get("eu_sales_tool", False):
-        available_buttons.append(("欧洲留学前期工具", "pages/eu_sales_tool.py", "🇪🇺"))
 
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", "⚙️"))
@@ -187,7 +148,6 @@ def main() -> None:
 
     available_buttons = _collect_available_buttons(accessible_modules, is_user_admin, user_email)
     button_names = [name for name, _, _ in available_buttons]
-    # _show_update_notice_if_needed()
 
     if len(available_buttons) > 0:
         _render_buttons_grid(available_buttons)

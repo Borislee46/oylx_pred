@@ -15,9 +15,6 @@ def check_user_access_permission(user_email: str) -> bool:
     processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
 
-    if user_email_lower in processed_config["EMAIL_BLACKLIST_LOWER"]:
-        return False
-
     whitelist = processed_config["EMAIL_WHITELIST_LOWER"]
     if whitelist:
         return user_email_lower in whitelist
@@ -70,7 +67,6 @@ def get_user_accessible_modules(user_email: str) -> dict:
         if debug_user_email and user_email.lower() == debug_user_email.lower():
             return {
                 "hk": True,
-                "eu_sales_tool": True,
                 "admin": True,
                 "hk_admin": True,
                 "log_admin": True,
@@ -80,7 +76,6 @@ def get_user_accessible_modules(user_email: str) -> dict:
 
     empty_modules = {
         "hk": False,
-        "eu_sales_tool": False,
         "admin": False,
         "hk_admin": False,
         "log_admin": False,
@@ -105,7 +100,6 @@ def get_user_accessible_modules(user_email: str) -> dict:
 
     return {
         "hk": _check("hk"),
-        "eu_sales_tool": _check("eu_sales_tool"),
         "admin": is_user_admin,
         "hk_admin": is_user_admin,
         "log_admin": is_user_admin,
