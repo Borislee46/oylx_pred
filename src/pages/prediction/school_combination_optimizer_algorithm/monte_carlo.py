@@ -52,7 +52,7 @@ def _categorize_schools(
 def _get_correlation_matrix(
     correlated_schools: list[dict],
     correlation_matrix: pd.DataFrame,
-    pair_weight_matrix: pd.DataFrame | None = None,
+    _pair_weight_matrix: pd.DataFrame | None = None,
 ) -> tuple | None:
     if not correlated_schools:
         return None
@@ -61,14 +61,6 @@ def _get_correlation_matrix(
 
     sub_corr_df = correlation_matrix.loc[school_keys, school_keys]
     corr_matrix = sub_corr_df.values.astype(float)
-
-    if (
-        pair_weight_matrix is not None
-        and set(school_keys).issubset(pair_weight_matrix.index)
-        and set(school_keys).issubset(pair_weight_matrix.columns)
-    ):
-        weights = pair_weight_matrix.loc[school_keys, school_keys].values.astype(float)
-        corr_matrix *= weights
 
     np.fill_diagonal(corr_matrix, 1.0)
     return tuple(np.round(corr_matrix.flatten(), 6))
