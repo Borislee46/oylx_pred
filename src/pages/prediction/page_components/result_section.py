@@ -6,30 +6,26 @@ from src.utils.session_manager import SessionManager
 
 
 def _compute_results_hash(sim_results, cross_results, user_specified_results) -> str:
-    try:
+    def extract_key_fields(results):
+        if not results:
+            return []
+        return [
+            (
+                r.get("university"),
+                r.get("major"),
+                round(float(r.get("probability", 0.0) or 0.0), 6),
+            )
+            for r in results
+            if isinstance(r, dict)
+        ]
 
-        def extract_key_fields(results):
-            if not results:
-                return []
-            return [
-                (
-                    r.get("university"),
-                    r.get("major"),
-                    round(float(r.get("probability", 0.0) or 0.0), 6),
-                )
-                for r in results
-                if isinstance(r, dict)
-            ]
-
-        combined = {
-            "sim": extract_key_fields(sim_results),
-            "cross": extract_key_fields(cross_results),
-            "user": extract_key_fields(user_specified_results),
-        }
-        content = json.dumps(combined, sort_keys=True, ensure_ascii=False)
-        return hashlib.md5(content.encode()).hexdigest()
-    except Exception:
-        return ""
+    combined = {
+        "sim": extract_key_fields(sim_results),
+        "cross": extract_key_fields(cross_results),
+        "user": extract_key_fields(user_specified_results),
+    }
+    content = json.dumps(combined, sort_keys=True, ensure_ascii=False)
+    return hashlib.md5(content.encode()).hexdigest()
 
 
 def display_results_section(

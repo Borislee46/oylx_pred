@@ -8,10 +8,14 @@ from src.pages.prediction.input_form_components import (
     FormValidator,
     GPAConverter,
 )
+from src.pages.prediction.input_form_components.language_score_processor import (
+    apply_overseas_language_boost,
+)
 from src.pages.prediction.results_handler import reset_prediction_results
 from src.pages.prediction.user_background_analyzer import find_substitute_university
 from src.utils.app_data_loader import load_school_base_data
 from src.utils.logger import setup_logger
+from src.utils.school_level_service import get_school_level_service
 from src.utils.session_manager import SessionManager
 
 form_logger = setup_logger("page3", "prediction")
@@ -70,6 +74,7 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
             "gpa_scale": session_manager.get("gpa_scale"),
             "language_type": language_type,
             "language_score_raw": raw_language_score_value,
+            "language_score_input_error": session_manager.get("language_score_input_error", False),
             "research_count": research_count,
             "award_count": award_count,
             "internship_count": internship_count,
@@ -156,6 +161,15 @@ def _process_successful_submission(
     )
 
     language_score_for_submission = form_data["language_score_raw"]
+    
+    school_service = get_school_level_service()
+    background_university = form_data.get("background_university")
+    is_overseas = school_service.is_overseas_school(background_university) if background_university else False
+    
+    if (language_score_for_submission is None or language_score_for_submission == 0) and is_overseas:
+        language_score_for_submission = apply_overseas_language_boost(
+            background_university, form_data["language_type"]
+        )
 
     final_normalized_lang_score = None
     if language_score_for_submission is not None:
@@ -205,6 +219,14 @@ def _get_current_form_state(
     gpa_converter,
 ):
     current_display_lang_score = raw_language_score_value
+    
+    school_service = get_school_level_service()
+    is_overseas = school_service.is_overseas_school(background_university) if background_university else False
+    
+    if (current_display_lang_score is None or current_display_lang_score == 0) and is_overseas:
+        current_display_lang_score = apply_overseas_language_boost(
+            background_university, language_type
+        )
 
     current_normalized_score = None
     if current_display_lang_score is not None:

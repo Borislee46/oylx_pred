@@ -279,8 +279,12 @@ class FormStateManager:
 
             session_manager.set(language_score_input=converted_score)
 
-            if converted_score is not None:
-                st.session_state["language_score_input_widget"] = converted_score
+            if "language_score_input_widget" in st.session_state:
+                del st.session_state["language_score_input_widget"]
+
+        else:
+            if "language_score_input_widget" in st.session_state:
+                del st.session_state["language_score_input_widget"]
 
         session_manager.set(language_type=new_lang_type)
         FormStateManager.on_form_change(session_manager)

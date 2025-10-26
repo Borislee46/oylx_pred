@@ -1,6 +1,7 @@
 from src.pages.prediction.input_form_components.form_config import GPA_SCALES
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
 from src.utils.logger import setup_logger
+from src.utils.school_level_service import get_school_level_service
 
 logger = setup_logger("page3", "prediction")
 
@@ -88,13 +89,21 @@ class FormValidator:
             if normalized_gpa == 0.0 and form_data["gpa_raw"] > 0:
                 error_messages.append("GPA分制无效")
 
+        school_service = get_school_level_service()
+        background_university = form_data.get("background_university")
+        is_overseas = school_service.is_overseas_school(background_university) if background_university else False
+
+        if form_data.get("language_score_input_error"):
+            error_messages.append("请修正语言成绩输入错误")
+
         if form_data["language_type"] == "雅思" and form_data["language_score_raw"] is not None:
-            if form_data["language_score_raw"] * 10 % 5 != 0:
+            if form_data["language_score_raw"] > 0 and form_data["language_score_raw"] * 10 % 5 != 0:
                 error_messages.append("雅思成绩必须是0.5的倍数")
 
-        if form_data["language_score_raw"] is not None:
-            if form_data["language_score_raw"] == 0:
-                error_messages.append(f"{form_data['language_type']}成绩不能为0")
+        if form_data["language_score_raw"] is not None and form_data["language_score_raw"] > 0:
+            pass
+        elif form_data["language_score_raw"] == 0 and not is_overseas:
+            error_messages.append(f"{form_data['language_type']}成绩不能为0")
 
         experience_fields = [
             "research_count",

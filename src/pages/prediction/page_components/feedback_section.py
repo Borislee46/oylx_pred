@@ -1,7 +1,9 @@
 import streamlit as st
+
 from src.utils.logger import setup_logger
 
 page_components_logger = setup_logger("page3", "prediction")
+
 
 def display_feedback_section(session_id):
     if hasattr(st, "feedback"):

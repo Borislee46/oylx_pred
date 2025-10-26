@@ -3,6 +3,10 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
+from src.pages.prediction.input_form_components.form_config import (
+    LANGUAGE_BOOST_MULTIPLIERS,
+    OVERSEAS_SCHOOL_LEVELS,
+)
 from src.utils.app_data_loader import load_school_base_data
 
 SCHOOL_LEVEL_PRIORITY = {
@@ -97,6 +101,14 @@ class SchoolLevelService:
             return 1
         else:
             return 0
+
+    def is_overseas_school(self, school_name: str) -> bool:
+        school_level = self.get_school_level(school_name)
+        return school_level in OVERSEAS_SCHOOL_LEVELS
+
+    def get_language_boost_multiplier(self, school_name: str) -> float:
+        school_level = self.get_school_level(school_name)
+        return LANGUAGE_BOOST_MULTIPLIERS.get(school_level, 1.0)
 
 
 _school_level_service = None

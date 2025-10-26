@@ -12,6 +12,12 @@ school_level_service = get_school_level_service()
 
 def _log_background_university_change(session_manager, form_state_manager, logger):
     selected_university = session_manager.get_widget_value("background_university_selectbox")
+    session_manager.set(background_university=selected_university)
+    
+    if "language_score_input_widget" in st.session_state:
+        del st.session_state["language_score_input_widget"]
+    session_manager.set(language_score_input=None)
+    
     logger.info(f"用户选择背景院校: {selected_university}")
     form_state_manager.on_form_change(session_manager, change_type="select")
 
@@ -123,4 +129,6 @@ def render_background_section(session_manager, form_state_manager, cases_df, log
         else None
     )
 
+    session_manager.set(background_university=background_university)
+    
     return background_university, selected_background_major_original, background_major

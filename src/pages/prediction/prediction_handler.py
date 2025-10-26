@@ -29,9 +29,7 @@ def validate_model_and_features(prediction_model):
         st.error(
             "关键配置错误：无法加载预测模型或其依赖的全局类别数据。预测功能无法启动。请检查应用日志并联系管理员。"
         )
-        prediction_handler_logger.critical(
-            "预测函数无法继续：prediction_model 为 None (可能由于 global_categories_df 加载失败)。"
-        )
+        prediction_handler_logger.critical("预测函数无法继续：prediction_model 为 None。")
         return None
 
     if hasattr(prediction_model, "feature_names") and prediction_model.feature_names is not None:

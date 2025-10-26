@@ -61,3 +61,19 @@ GPA_WARNING_THRESHOLDS = {
 }
 
 LANGUAGE_WARNING_THRESHOLDS = {"雅思": 5.5, "托福": 65}
+
+OVERSEAS_SCHOOL_LEVELS = ["1-50", "51-100", "101-200", "201-300", "301-500", "500+"]
+
+LANGUAGE_BOOST_MULTIPLIERS = {
+    "1-50": 1.25,
+    "51-100": 1.20,
+    "101-200": 1.15,
+    "201-300": 1.10,
+    "301-500": 1.05,
+    "500+": 1.0,
+}
+
+DEFAULT_LANGUAGE_SCORES = {
+    "雅思": 6.5,
+    "托福": 90,
+}

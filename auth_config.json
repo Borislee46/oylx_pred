@@ -1382,5 +1382,6 @@
             "zuochong@xdf.cn"
         ]
     },
-    "MAINTENANCE_MODE": false
+    "MAINTENANCE_MODE": false,
+    "EMAIL_BLACKLIST": []
 }

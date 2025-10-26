@@ -52,7 +52,7 @@ def render_experience_section(session_manager, form_state_manager, logger):
         count_key = f"{item_type}_count"
         details_key = f"{item_type}_details"
 
-        col_count, col_details = st.columns([1, 5], gap="small")
+        col_count, col_details = st.columns([1, 4], gap="small")
         with col_count:
             count_val = st.number_input(
                 f"{label_prefix}数量",

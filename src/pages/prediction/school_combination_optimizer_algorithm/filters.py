@@ -1,4 +1,3 @@
-import re
 from collections import defaultdict
 from typing import Any
 
@@ -21,30 +20,23 @@ from src.pages.prediction.school_combination_optimizer_algorithm.utils import (
     normalize_school_name,
 )
 from src.utils.app_data_loader import load_raw_cases_data
-from src.utils.logger import setup_logger
 from src.utils.school_level_service import (
     SCHOOL_LEVEL_PRIORITY,
     get_school_level_service,
 )
 
-logger = setup_logger("page3", "prediction")
-
 MIN_SAMPLE_SIZE_THRESHOLD = 30
-
-
-def _normalize_major_name(major_name: str) -> str:
-    return re.sub(r"\s*\(.*\)\s*", "", major_name).strip()
 
 
 def deduplicate_majors(schools: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not schools:
         return []
 
-    grouped_schools = defaultdict(list)
+    grouped = defaultdict(list)
     for school in schools:
-        if (university := school.get("university")) and (major := school.get("major")):
+        if (uni := school.get("university")) and (major := school.get("major")):
             major_key = school.get("major_norm") or normalize_major_name(major)
-            grouped_schools[(university, major_key)].append(school)
+            grouped[(uni, major_key)].append(school)
 
     return [
         (
@@ -52,7 +44,7 @@ def deduplicate_majors(schools: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if len(school_group) == 1
             else max(school_group, key=lambda s: s.get("probability", 0.0))
         )
-        for school_group in grouped_schools.values()
+        for school_group in grouped.values()
     ]
 
 
@@ -65,8 +57,8 @@ def deduplicate_universities_by_similarity(
     if not schools or not background_major or not target_universities:
         return schools
 
-    grouped_by_uni: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
-    others: list[dict[str, Any]] = []
+    grouped_by_uni = defaultdict(list)
+    others = []
 
     for s in schools:
         uni = s.get("university", "")
@@ -76,9 +68,7 @@ def deduplicate_universities_by_similarity(
             others.append(s)
 
     def score(item: dict[str, Any]) -> tuple[float, float]:
-        sim = float(item.get("similarity", 0.0))
-        prob = float(item.get("probability", 0.0) or 0.0)
-        return sim, prob
+        return float(item.get("similarity", 0.0)), float(item.get("probability", 0.0) or 0.0)
 
     picked = [
         items[0] if len(items) == 1 else max(items, key=score) for items in grouped_by_uni.values()
@@ -91,36 +81,14 @@ def filter_schools_by_faculty_rules(
     schools: list[dict[str, Any]],
     background_faculty: str | None,
 ) -> list[dict[str, Any]]:
-    if not schools:
-        return schools
-
-    if not background_faculty:
+    if not schools or not background_faculty:
         return schools
 
     allowed_faculties = get_allowed_target_faculties(background_faculty)
     if not allowed_faculties:
         return schools
 
-    filtered_schools = [
-        school_major
-        for school_major in schools
-        if _is_school_allowed(school_major, allowed_faculties)
-    ]
-
-    return filtered_schools
-
-
-def _is_school_allowed(
-    school: dict[str, Any],
-    allowed_faculties: set[str],
-) -> bool:
-    target_faculty = school.get("faculty", "")
-    if not target_faculty:
-        return False
-
-    is_allowed = target_faculty in allowed_faculties
-
-    return is_allowed
+    return [school for school in schools if school.get("faculty", "") in allowed_faculties]
 
 
 def _build_target_combo_sample_counts() -> dict[tuple[str, str], int]:
@@ -162,10 +130,11 @@ def _determine_max_allowed_priority(school_level: str | None, gpa: float | None)
             return PRIORITY_THRESHOLD_TOP_BG_DEFAULT
 
     if school_level in {"普通本科", "101-200", "201-300", "301-500", "500之后"}:
-        if gpa is not None and gpa >= 3.0:
-            return PRIORITY_THRESHOLD_NORMAL_BG_GPA_GE_3_0
-        else:
-            return PRIORITY_THRESHOLD_NORMAL_BG_DEFAULT
+        return (
+            PRIORITY_THRESHOLD_NORMAL_BG_GPA_GE_3_0
+            if gpa is not None and gpa >= 3.0
+            else PRIORITY_THRESHOLD_NORMAL_BG_DEFAULT
+        )
 
     return None
 
@@ -257,28 +226,22 @@ def _select_additional_safety_schools(
     background_faculty: str | None,
     safety_threshold: float,
 ) -> list[dict[str, Any]]:
-    existing_schools_set = {(s.get("university"), s.get("major")) for s in current_schools}
+    existing_set = {(s.get("university"), s.get("major")) for s in current_schools}
 
-    potential_safety_schools = [
+    potential_safety = [
         s
         for s in all_schools
         if s.get("probability", 0.0) >= safety_threshold
-        and (s.get("university"), s.get("major")) not in existing_schools_set
+        and (s.get("university"), s.get("major")) not in existing_set
     ]
 
     if not background_faculty:
-        return sorted(
-            potential_safety_schools,
-            key=lambda s: s.get("probability", 0.0),
-            reverse=True,
-        )[:needed_count]
+        return sorted(potential_safety, key=lambda s: s.get("probability", 0.0), reverse=True)[
+            :needed_count
+        ]
 
-    same_faculty: list[dict[str, Any]] = []
-    other_faculty: list[dict[str, Any]] = []
-
-    for s in potential_safety_schools:
-        target_faculty = s.get("faculty", "")
-        (same_faculty if target_faculty == background_faculty else other_faculty).append(s)
+    same_faculty = [s for s in potential_safety if s.get("faculty", "") == background_faculty]
+    other_faculty = [s for s in potential_safety if s.get("faculty", "") != background_faculty]
 
     same_faculty.sort(key=lambda s: s.get("probability", 0.0), reverse=True)
     other_faculty.sort(key=lambda s: s.get("probability", 0.0), reverse=True)
