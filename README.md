@@ -1,11 +1,15 @@
-## EasyApply 选校预测系统
+## EasyApply 留学择校系统
 
 本数据产品提供一套从“模型训练 → 表单校验与归一 → 预测编排 → 结果调整 → 智能组合优化（可选）”的端到端解决方案。
+核心亮点为：
+1）极致的I/O和开销，几乎0成本+秒推理。
+2）和业务专家对齐效果，已非常逼近人工选校。
+部分算法的边界case可用agents解或全部换成agent如有足够的资源
 
 ### 架构流程
 1) **模型训练 (Offline)**: `src/machine_learning_models/`
-   - **核心**: 使用 XGBoost 结合 ADASYN/SMOTE 等采样方法处理不平衡数据，并进行概率校准。
-   - **产物**: 生成 `XGBoost` 主模型和 `TF-IDF` 文本模型。
+   - **核心**: 使用 XGBoost 结合 SMOTE 等采样方法处理不平衡数据，并进行概率sigmoid校准。
+   - **产物**: 生成 `XGBoost` 主模型。
 
 2) **用户表单 (Online)**: `src/pages/prediction/input_form_components/`
    - **核心**: `FormStateManager` 管理复杂的UI状态，支持**自动保存**和**历史恢复**。`FormValidator` 和 `GPAConverter` 对用户输入进行严格的校验和智能转换。
@@ -14,10 +18,10 @@
    - **核心**: `prediction_handler` 负责编排整个流水线；`run_prediction` 采用线程/进程池自适应并发（可通过环境变量启用进程池）并进行稳定排序与超时兜底。
 
 4) **结果调整 (Online)**: `src/pages/prediction/result_modifier/`
-   - **核心**: 对模型原始概率进行一系列专家规则微调，包括基于历史案例的 `ProbabilityAdjuster`、针对无实习申商科的 `professional_adjustment`，以及基于 TF‑IDF Logit Uplift 的**文本加成**。
+   - **核心**: 对模型原始概率进行一系列业务专家规则微调，包括基于历史案例的 `ProbabilityAdjuster`、针对无实习申商科的 `professional_adjustment`，以及基于 TF‑IDF Logit Uplift 的**文本加成**（offine）。
 
 5) **智能优化 (Optional Online)**: `src/pages/prediction/school_combination_optimizer_algorithm/`
-   - **核心**: 使用 **NSGA-III 多目标优化算法**结合蒙特卡洛仿真，为用户生成风险和收益平衡的选校组合策略。
+   - **核心**: 使用 **NSGA-III 多目标优化算法**结合高斯copula+蒙特卡洛仿真，为用户生成风险和收益平衡的选校组合策略。
 
 ---
 
@@ -27,8 +31,8 @@
   - 分类列：`background_university/background_major/target_university/target_major`
   - 计数列：`research_count/award_count/internship_count/paper_count`（99%分位截尾 + log1p）
   - 语言列：统一为 `language_score`（toefl/ielts 归一后取 max）
-- 采样：ADASYN、SMOTE/SMOTENC、随机过/欠采样（极端不平衡时回退策略）
-- 训练与校准：XGBoost + 单调约束 + CalibratedClassifierCV(sigmoid, cv='prefit'，训练集内部按 80/20 拆分校准)
+- 采样：SMOTE/SMOTENC、欠采样（极端不平衡时回退策略）
+- 训练与校准：XGBoost + 单调约束(如GPA) + CalibratedClassifierCV(sigmoid, cv='prefit'，训练集内部按 80/20 拆分校准)
 - 入口命令（参数，数据集和详细训练流程暂不公开，有需要请联系lijiapeng8@xdf.cn）：
 ```bash
 python -m src.machine_learning_models.train --model xgboost --sampling_method smote
@@ -89,7 +93,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 ---
 
 ## 配置清单
-- `config/app_config.json`：应用级配置
+- `config/app_config.json`：应用级配置（理论上应当放到os.env里）
 - `config/gpa_conversion_rules.json`：GPA 分制规则（院校/国家 → 区间映射/兜底公式）
 - `config/similarity_adjustment_rules.json`：相似度关键字微调规则
 
