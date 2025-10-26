@@ -161,12 +161,16 @@ def _process_successful_submission(
     )
 
     language_score_for_submission = form_data["language_score_raw"]
-    
+
     school_service = get_school_level_service()
     background_university = form_data.get("background_university")
-    is_overseas = school_service.is_overseas_school(background_university) if background_university else False
-    
-    if (language_score_for_submission is None or language_score_for_submission == 0) and is_overseas:
+    is_overseas = (
+        school_service.is_overseas_school(background_university) if background_university else False
+    )
+
+    if (
+        language_score_for_submission is None or language_score_for_submission == 0
+    ) and is_overseas:
         language_score_for_submission = apply_overseas_language_boost(
             background_university, form_data["language_type"]
         )
@@ -219,10 +223,12 @@ def _get_current_form_state(
     gpa_converter,
 ):
     current_display_lang_score = raw_language_score_value
-    
+
     school_service = get_school_level_service()
-    is_overseas = school_service.is_overseas_school(background_university) if background_university else False
-    
+    is_overseas = (
+        school_service.is_overseas_school(background_university) if background_university else False
+    )
+
     if (current_display_lang_score is None or current_display_lang_score == 0) and is_overseas:
         current_display_lang_score = apply_overseas_language_boost(
             background_university, language_type

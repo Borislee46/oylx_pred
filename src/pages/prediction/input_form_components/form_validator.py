@@ -91,13 +91,20 @@ class FormValidator:
 
         school_service = get_school_level_service()
         background_university = form_data.get("background_university")
-        is_overseas = school_service.is_overseas_school(background_university) if background_university else False
+        is_overseas = (
+            school_service.is_overseas_school(background_university)
+            if background_university
+            else False
+        )
 
         if form_data.get("language_score_input_error"):
             error_messages.append("请修正语言成绩输入错误")
 
         if form_data["language_type"] == "雅思" and form_data["language_score_raw"] is not None:
-            if form_data["language_score_raw"] > 0 and form_data["language_score_raw"] * 10 % 5 != 0:
+            if (
+                form_data["language_score_raw"] > 0
+                and form_data["language_score_raw"] * 10 % 5 != 0
+            ):
                 error_messages.append("雅思成绩必须是0.5的倍数")
 
         if form_data["language_score_raw"] is not None and form_data["language_score_raw"] > 0:
