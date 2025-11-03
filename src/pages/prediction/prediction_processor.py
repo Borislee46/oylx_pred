@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import pandas as pd
 
 from src.pages.prediction.prediction_types import PredictionInput
@@ -23,6 +25,11 @@ from src.pages.prediction.result_modifier.similarity_adjuster import (
 )
 
 
+@lru_cache(maxsize=1)
+def _get_cached_details_df():
+    return get_school_major_details(None, None, return_df=True)
+
+
 def generate_prediction_combinations(
     input_data: PredictionInput,
     all_universities_target: list[str],
@@ -45,10 +52,27 @@ def generate_prediction_combinations(
         ]
     else:
         valid_set = get_valid_school_major_set()
+        if not valid_set:
+            return [], {"combination_count": 0}
+
+        valid_universities = set()
+        valid_majors = set()
+        for key in valid_set:
+            parts = key.split("|", 1)
+            if len(parts) == 2:
+                valid_universities.add(parts[0])
+                valid_majors.add(parts[1])
+
+        universities_filtered = [u for u in universities_to_consider if u in valid_universities]
+        majors_filtered = [m for m in majors_to_consider if m in valid_majors]
+
+        if not universities_filtered or not majors_filtered:
+            return [], {"combination_count": 0}
+
         valid_combinations = [
             (univ, major)
-            for univ in universities_to_consider
-            for major in majors_to_consider
+            for univ in universities_filtered
+            for major in majors_filtered
             if f"{univ}|{major}" in valid_set
         ]
 
@@ -77,7 +101,7 @@ def _attach_chinese_names_batch(results: list, details_df_full: pd.DataFrame | N
         return results
 
     if details_df_full is None:
-        details_df_full = get_school_major_details(None, None, return_df=True)
+        details_df_full = _get_cached_details_df()
 
     if (
         details_df_full is None
@@ -217,7 +241,7 @@ def process_prediction_results(
         filtered_results, background_major, bg_target_similarity_cache
     )
 
-    details_df_full = get_school_major_details(None, None, return_df=True)
+    details_df_full = _get_cached_details_df()
     results_with_similarity = _attach_chinese_names_batch(
         results_with_similarity, details_df_full=details_df_full
     )
