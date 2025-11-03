@@ -191,9 +191,7 @@ def _get_user_specified_results(
         return specified_results[:USER_SPECIFIED_MEDIUM_RANGE_TOP_N]
 
     filtered = [
-        res
-        for res in specified_results
-        if res.get("similarity", 0.0) >= MIN_SIMILARITY_THRESHOLD
+        res for res in specified_results if res.get("similarity", 0.0) >= MIN_SIMILARITY_THRESHOLD
     ]
     filtered.sort(key=lambda x: x.get("probability", 0), reverse=True)
     return filtered[:USER_SPECIFIED_LARGE_RANGE_TOP_N]
