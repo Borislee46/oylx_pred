@@ -308,6 +308,9 @@ def run_single_prediction(
             current_input_data, all_universities_target, session_manager
         )
 
+        cross_faculty_confirmed = session_manager.get("cross_faculty_confirmed", False)
+        background_faculty = None if cross_faculty_confirmed else current_input_data.get("faculty")
+
         results = process_prediction_results(
             results=all_prediction_outputs,
             background_major=current_input_data.get("background_major", ""),
@@ -315,7 +318,7 @@ def run_single_prediction(
             num_target_universities=num_target_universities,
             cases_df=cases_df if cases_df is not None else pd.DataFrame(),
             user_specified_combinations=user_specified_combinations,
-            background_faculty=current_input_data.get("faculty"),
+            background_faculty=background_faculty,
         )
 
         return (*results, None)

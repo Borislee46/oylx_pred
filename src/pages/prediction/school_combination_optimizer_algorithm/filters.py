@@ -88,7 +88,14 @@ def filter_schools_by_faculty_rules(
     if not allowed_faculties:
         return schools
 
-    return [school for school in schools if school.get("faculty", "") in allowed_faculties]
+    filtered = []
+    for school in schools:
+        faculty = school.get("faculty", "").strip()
+        if not faculty:
+            filtered.append(school)
+        elif faculty in allowed_faculties:
+            filtered.append(school)
+    return filtered
 
 
 def _build_target_combo_sample_counts() -> dict[tuple[str, str], int]:

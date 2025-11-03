@@ -7,6 +7,13 @@ from src.pages.prediction.prediction_utils import (
     get_valid_school_major_set,
     has_school_major_details,
 )
+from src.pages.prediction.result_modifier.config import (
+    MIN_SIMILARITY_THRESHOLD,
+    USER_SPECIFIED_LARGE_RANGE_TOP_N,
+    USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD,
+    USER_SPECIFIED_MEDIUM_RANGE_TOP_N,
+    USER_SPECIFIED_SMALL_RANGE_THRESHOLD,
+)
 from src.pages.prediction.result_modifier.ranker import (
     get_cross_major_recommendations,
     get_similar_major_recommendations,
@@ -167,7 +174,29 @@ def _get_user_specified_results(
         return []
 
     specified_set = set(user_specified_combinations)
-    return [res for res in results if (res.get("university"), res.get("major")) in specified_set]
+    specified_results = [
+        res for res in results if (res.get("university"), res.get("major")) in specified_set
+    ]
+
+    if not specified_results:
+        return []
+
+    combination_count = len(user_specified_combinations)
+
+    if combination_count <= USER_SPECIFIED_SMALL_RANGE_THRESHOLD:
+        return specified_results
+
+    if combination_count <= USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD:
+        specified_results.sort(key=lambda x: x.get("probability", 0), reverse=True)
+        return specified_results[:USER_SPECIFIED_MEDIUM_RANGE_TOP_N]
+
+    filtered = [
+        res
+        for res in specified_results
+        if res.get("similarity", 0.0) >= MIN_SIMILARITY_THRESHOLD
+    ]
+    filtered.sort(key=lambda x: x.get("probability", 0), reverse=True)
+    return filtered[:USER_SPECIFIED_LARGE_RANGE_TOP_N]
 
 
 def process_prediction_results(
@@ -195,25 +224,27 @@ def process_prediction_results(
         results_with_similarity, details_df_full=details_df_full
     )
 
+    final_user_specified_results = _get_user_specified_results(
+        results_with_similarity, user_specified_combinations
+    )
+
     if background_faculty:
         from src.pages.prediction.school_combination_optimizer_algorithm.filters import (
             filter_schools_by_faculty_rules,
         )
 
-        results_with_similarity = filter_schools_by_faculty_rules(
+        results_for_recommendations = filter_schools_by_faculty_rules(
             results_with_similarity, background_faculty
         )
+    else:
+        results_for_recommendations = results_with_similarity
 
     top_similarity_results = get_similar_major_recommendations(
-        results_with_similarity, num_target_universities
+        results_for_recommendations, num_target_universities
     )
 
     top_cross_major_results = get_cross_major_recommendations(
-        results_with_similarity, background_major, cases_df, user_specified_combinations
-    )
-
-    final_user_specified_results = _get_user_specified_results(
-        results_with_similarity, user_specified_combinations
+        results_for_recommendations, background_major, cases_df, user_specified_combinations
     )
 
     return top_similarity_results, top_cross_major_results, final_user_specified_results
