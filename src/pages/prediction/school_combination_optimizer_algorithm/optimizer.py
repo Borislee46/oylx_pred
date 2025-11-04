@@ -16,6 +16,7 @@ from src.pages.prediction.result_modifier.config import UNIVERSITY_DIFFICULTY_OR
 from src.pages.prediction.school_combination_optimizer_algorithm.config import (
     ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG,
     BALANCE_RATIOS,
+    DEFAULT_REFERENCE_DIRECTIONS_COUNT,
     GLOBAL_MIN_SIMILARITY,
     MACAU_UNIVERSITIES,
     PlanConfig,
@@ -93,11 +94,13 @@ class SchoolSelectionOptimizer:
             "metric": LRUCache(capacity=cache_capacity),
             "simulation": LRUCache(capacity=cache_capacity),
         }
+        self.context: Optional[OptimizationContext] = None
+        self.bg_target_similarity_cache: dict[str, Any] = {}
 
     def _safe_execute(
         self,
-        operation: Callable,
-        fallback_operation: Callable = None,
+        operation: Callable[[], Any],
+        fallback_operation: Optional[Callable[[], Any]] = None,
         error_message: str = "Operation failed",
     ) -> Any:
         try:
@@ -139,8 +142,8 @@ class SchoolSelectionOptimizer:
         return calculate_adaptive_thresholds(probabilities)
 
     def _apply_all_filters(
-        self, schools_data: list[dict], context: OptimizationContext
-    ) -> list[dict]:
+        self, schools_data: list[dict[str, Any]], context: OptimizationContext
+    ) -> list[dict[str, Any]]:
         logger.info(
             f"_apply_all_filters开始: 输入学校数量={len(schools_data)}, "
             f"background_major={context.background_major}"
@@ -211,11 +214,22 @@ class SchoolSelectionOptimizer:
             original_len = len(filtered_data)
             logger.info(f"应用过滤器 {filter_name}: 输入数量={original_len}")
 
-            filtered_data = self._safe_execute(
-                lambda: filter_func(filtered_data),
-                lambda: filtered_data,
-                f"过滤器 {filter_name} 出现错误",
-            )
+            try:
+                filtered_data = filter_func(filtered_data)
+            except (KeyError, TypeError, ValueError) as e:
+                logger.warning(f"过滤器 {filter_name} 出现错误: {type(e).__name__}: {e}")
+                if not continue_on_empty:
+                    logger.error(f"过滤器 {filter_name} 出现关键错误，停止后续过滤器")
+                    break
+                filtered_data = filtered_data
+            except Exception as e:
+                logger.error(
+                    f"过滤器 {filter_name} 出现未知错误: {type(e).__name__}: {e}", exc_info=True
+                )
+                if not continue_on_empty:
+                    logger.error(f"过滤器 {filter_name} 出现未知错误，停止后续过滤器")
+                    break
+                filtered_data = filtered_data
 
             new_len = len(filtered_data)
             logger.info(f"过滤器 {filter_name} 完成: {original_len} -> {new_len}")
@@ -229,7 +243,7 @@ class SchoolSelectionOptimizer:
 
     def _create_problem(
         self,
-        schools_data: list[dict],
+        schools_data: list[dict[str, Any]],
         plan_config: PlanConfig,
         context: OptimizationContext,
     ) -> SchoolSelectionProblem:
@@ -245,7 +259,7 @@ class SchoolSelectionOptimizer:
         )
 
     def _compute_algo_params(self, problem_size: int) -> tuple[int, int, Any]:
-        n_ref = 42
+        n_ref = DEFAULT_REFERENCE_DIRECTIONS_COUNT
         base_pop = self.population_size
         base_gen = self.n_generations
 
@@ -284,7 +298,9 @@ class SchoolSelectionOptimizer:
             error_message="优化过程中出现错误",
         )
 
-    def _get_cached_data(self, cache_type: str, key: str, calculation_func: Callable) -> Any:
+    def _get_cached_data(
+        self, cache_type: str, key: str, calculation_func: Callable[[], Any]
+    ) -> Any:
         cache = self._caches[cache_type]
         if cached := cache.get(key):
             return cached.copy() if hasattr(cached, "copy") else cached
@@ -295,7 +311,7 @@ class SchoolSelectionOptimizer:
 
     def _calculate_metrics(
         self,
-        selected_schools: list[dict],
+        selected_schools: list[dict[str, Any]],
         context: OptimizationContext,
         problem: SchoolSelectionProblem,
     ) -> dict[str, Any]:
@@ -330,10 +346,10 @@ class SchoolSelectionOptimizer:
 
     def _create_recommendation(
         self,
-        schools: list[dict],
-        metrics: dict,
-        objective_values: list = None,
-        rec_type: str = None,
+        schools: list[dict[str, Any]],
+        metrics: dict[str, Any],
+        objective_values: Optional[list[float]] = None,
+        rec_type: Optional[str] = None,
     ) -> dict[str, Any]:
         recommendation: dict[str, Any] = {
             "schools": schools,
@@ -344,7 +360,7 @@ class SchoolSelectionOptimizer:
             recommendation["type"] = rec_type
         return recommendation
 
-    def _default_objective_values(self, metrics: dict) -> list[float]:
+    def _default_objective_values(self, metrics: dict[str, Any]) -> list[float]:
         return [
             metrics.get("rejection_probability", 1.0),
             -metrics.get("diversity", 0),
@@ -353,7 +369,7 @@ class SchoolSelectionOptimizer:
             -metrics.get("new_major_ratio", 0),
         ]
 
-    def _has_sufficient_schools(self, schools_data: list[dict], min_schools: int) -> bool:
+    def _has_sufficient_schools(self, schools_data: list[dict[str, Any]], min_schools: int) -> bool:
         return len(schools_data) >= min_schools if schools_data else False
 
     def _find_best_solution_indices(
@@ -419,7 +435,7 @@ class SchoolSelectionOptimizer:
         )
 
     def _calculate_balance_score(self, probabilities: list[float], total: int) -> float:
-        if not self.context.adaptive_thresholds:
+        if not self.context or not self.context.adaptive_thresholds:
             return 0.0
         safety_thresh = self.context.adaptive_thresholds["safety"]
         target_thresh = self.context.adaptive_thresholds["target_lower"]
@@ -446,7 +462,7 @@ class SchoolSelectionOptimizer:
     def _sort_and_select_candidates(
         self,
         candidate_indices: np.ndarray,
-        balance_scores: list,
+        balance_scores: list[float],
         F: np.ndarray,
         limit: int,
     ) -> list[int]:
@@ -490,10 +506,10 @@ class SchoolSelectionOptimizer:
 
     def _apply_post_filters(
         self,
-        schools: list[dict],
+        schools: list[dict[str, Any]],
         context: OptimizationContext,
         problem: SchoolSelectionProblem,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         if not context.background_faculty or not context.adaptive_thresholds:
             return schools
 
@@ -517,22 +533,23 @@ class SchoolSelectionOptimizer:
         return filtered_selection
 
     def _enforce_school_limits(
-        self, schools: list[dict], min_schools: int, max_schools: int
-    ) -> list[dict]:
+        self, schools: list[dict[str, Any]], min_schools: int, max_schools: int
+    ) -> list[dict[str, Any]]:
         num_selected = len(schools)
 
         if num_selected < min_schools:
             return []
         elif num_selected > max_schools:
-            return reduce_schools_balanced(schools, max_schools, self.context.adaptive_thresholds)
+            adaptive_thresholds = self.context.adaptive_thresholds if self.context else None
+            return reduce_schools_balanced(schools, max_schools, adaptive_thresholds)
 
         return schools
 
     def _adjust_probability_by_university_difficulty(
         self,
-        schools: list[dict],
-        adaptive_thresholds: dict[str, float] = None,
-    ) -> list[dict]:
+        schools: list[dict[str, Any]],
+        adaptive_thresholds: Optional[dict[str, float]] = None,
+    ) -> list[dict[str, Any]]:
         if not schools:
             return schools
 
@@ -693,7 +710,7 @@ class SchoolSelectionOptimizer:
             logger.warning("fallback推荐结果也为空")
         return fallback
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         for cache in self._caches.values():
             cache.clear()
 
@@ -702,10 +719,10 @@ class SchoolSelectionOptimizer:
         all_schools_data: list[dict[str, Any]],
         background_major: str,
         background_faculty: Optional[str] = None,
-        school_level: str = None,
-        gpa: float = None,
-        major_category_cache: Optional[dict] = None,
-        bg_target_similarity_cache: Optional[dict] = None,
+        school_level: Optional[str] = None,
+        gpa: Optional[float] = None,
+        major_category_cache: Optional[dict[str, str]] = None,
+        bg_target_similarity_cache: Optional[dict[str, Any]] = None,
     ) -> tuple[list[dict[str, Any]], dict[str, float]]:
         logger.info(
             f"optimizer.optimize开始: all_schools_data数量={len(all_schools_data)}, "
@@ -734,6 +751,14 @@ class SchoolSelectionOptimizer:
 
         self.bg_target_similarity_cache = bg_target_similarity_cache or {}
         logger.info(f"bg_target_similarity_cache大小: {len(self.bg_target_similarity_cache)}")
+
+        input_hash_key = self._build_optimization_input_hash(
+            all_schools_data, background_major, background_faculty, school_level, gpa
+        )
+        cached_result = self._caches["result"].get(input_hash_key)
+        if cached_result:
+            logger.info(f"找到缓存结果，直接返回，输入hash: {input_hash_key[:50]}...")
+            return cached_result["recommendations"], cached_result["adaptive_thresholds"]
 
         self.context.adaptive_thresholds = self._calculate_adaptive_thresholds(self.context)
         logger.info(f"自适应阈值计算完成: {self.context.adaptive_thresholds}")
@@ -770,7 +795,47 @@ class SchoolSelectionOptimizer:
                     )
 
         logger.info(f"优化完成，最终推荐数量: {len(final_recommendations)}")
+
+        result_to_cache = {
+            "recommendations": final_recommendations,
+            "adaptive_thresholds": self.context.adaptive_thresholds,
+        }
+        self._caches["result"].put(input_hash_key, result_to_cache)
+        logger.info(f"结果已缓存，输入hash: {input_hash_key[:50]}...")
+
         return final_recommendations, self.context.adaptive_thresholds
+
+    def _build_optimization_input_hash(
+        self,
+        all_schools_data: list[dict[str, Any]],
+        background_major: str,
+        background_faculty: Optional[str],
+        school_level: Optional[str],
+        gpa: Optional[float],
+    ) -> str:
+        import hashlib
+        import json
+
+        input_data = {
+            "background_major": background_major,
+            "background_faculty": background_faculty,
+            "school_level": school_level,
+            "gpa": gpa,
+            "schools": sorted(
+                [
+                    {
+                        "university": s.get("university", ""),
+                        "major": s.get("major", ""),
+                        "probability": s.get("probability", 0.0),
+                    }
+                    for s in all_schools_data
+                ],
+                key=lambda x: (x["university"], x["major"]),
+            ),
+        }
+
+        input_str = json.dumps(input_data, sort_keys=True, ensure_ascii=False)
+        return hashlib.md5(input_str.encode("utf-8")).hexdigest()
 
     def visualize_recommendations(
         self,

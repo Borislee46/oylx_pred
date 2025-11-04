@@ -19,6 +19,11 @@ from src.pages.prediction.page_components.pdf_generation.generators.pdf_data_ext
 from src.pages.prediction.page_components.pdf_generation.pdf_download_section import (
     generate_pdf_without_session,
 )
+from src.pages.prediction.school_combination_optimizer_algorithm.config import (
+    DEFAULT_N_GENERATIONS,
+    DEFAULT_POPULATION_SIZE,
+    OPTIMIZATION_BUTTON_MIN_INTERVAL,
+)
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer import (
     SchoolSelectionOptimizer,
 )
@@ -34,6 +39,19 @@ class OptimizationUI:
         self.correlation_matrix = correlation_matrix
         self.data_processor = DataProcessor()
         self.max_optimization_time = 30.0
+        self._thread_lock = threading.Lock()  # 用于保护线程状态访问
+        self._setup_thread_exception_handler()
+
+    def _setup_thread_exception_handler(self):
+        """设置线程异常处理器，捕获未捕获的异常"""
+
+        def thread_exception_handler(args):
+            logger.error(
+                f"线程中未捕获的异常: {args.exc_type.__name__}: {args.exc_value}",
+                exc_info=(args.exc_type, args.exc_value, args.exc_traceback),
+            )
+
+        threading.excepthook = thread_exception_handler
 
     def _reset_stuck_lock(self):
         current_time = time.time()
@@ -69,7 +87,7 @@ class OptimizationUI:
         current_time = time.time()
         last_click_time = self.session_manager.get("last_optimize_click_time", 0)
         processing_lock = self.session_manager.get("processing_lock", False)
-        min_interval = 10.0
+        min_interval = OPTIMIZATION_BUTTON_MIN_INTERVAL
 
         if processing_lock:
             st.toast("优化正在进行中，请等待完成")
@@ -124,7 +142,9 @@ class OptimizationUI:
 
         return optimization_started_this_run
 
-    def _animate_step(self, placeholder, base_text: str, duration: float):
+    def _animate_step(
+        self, placeholder: st.delta_generator.DeltaGenerator, base_text: str, duration: float
+    ) -> None:
         interval = 0.3
         start_time = time.time()
         cycle_count = 0
@@ -153,7 +173,7 @@ class OptimizationUI:
         result_container: dict,
     ):
         try:
-            logger.info(f"线程中开始执行优化，学校数据数量: {len(all_schools_data)}")
+            logger.info(f"[线程] 开始执行优化，学校数据数量: {len(all_schools_data)}")
             recommendations, adaptive_thresholds = self._run_optimization_with_timeout(
                 optimizer,
                 all_schools_data,
@@ -161,14 +181,26 @@ class OptimizationUI:
                 major_category_cache,
                 bg_target_similarity_cache,
             )
-            logger.info(f"线程中优化完成，推荐数量: {len(recommendations)}")
-            result_container["recommendations"] = recommendations
-            result_container["adaptive_thresholds"] = adaptive_thresholds
-            result_container["success"] = True
+            logger.info(f"[线程] 优化完成，推荐数量: {len(recommendations)}")
+            with self._thread_lock:
+                result_container["recommendations"] = recommendations
+                result_container["adaptive_thresholds"] = adaptive_thresholds
+                result_container["success"] = True
+        except TimeoutError as e:
+            logger.error(f"[线程] 优化超时: {str(e)}")
+            with self._thread_lock:
+                result_container["error"] = f"优化超时: {str(e)}"
+                result_container["success"] = False
+        except (ValueError, KeyError, TypeError) as e:
+            logger.error(f"[线程] 优化数据错误: {type(e).__name__}: {str(e)}", exc_info=True)
+            with self._thread_lock:
+                result_container["error"] = f"数据错误: {str(e)}"
+                result_container["success"] = False
         except Exception as e:
-            logger.error(f"线程中优化失败: {str(e)}", exc_info=True)
-            result_container["error"] = str(e)
-            result_container["success"] = False
+            logger.error(f"[线程] 优化失败: {type(e).__name__}: {str(e)}", exc_info=True)
+            with self._thread_lock:
+                result_container["error"] = f"未知错误: {str(e)}"
+                result_container["success"] = False
 
     def _generate_pdf_in_thread(
         self,
@@ -188,17 +220,69 @@ class OptimizationUI:
                 user_nickname=user_nickname,
             )
             if pdf_data is not None:
-                result_container["pdf_data"] = pdf_data
-                result_container["filename"] = filename
-                result_container["success"] = True
+                with self._thread_lock:
+                    result_container["pdf_data"] = pdf_data
+                    result_container["filename"] = filename
+                    result_container["success"] = True
             else:
-                result_container["error"] = error_msg or "PDF生成失败"
-                result_container["success"] = False
+                with self._thread_lock:
+                    result_container["error"] = error_msg or "PDF生成失败"
+                    result_container["success"] = False
         except Exception as e:
-            result_container["error"] = str(e)
-            result_container["success"] = False
+            logger.error(f"[PDF线程] PDF生成失败: {type(e).__name__}: {str(e)}", exc_info=True)
+            with self._thread_lock:
+                result_container["error"] = str(e)
+                result_container["success"] = False
 
-    def _update_step(self, step_placeholder, text: str, animate: bool, duration: float = 0.7):
+    def _generate_pdf_in_thread_with_timeout(
+        self,
+        user_data: dict,
+        prediction_results: Any,
+        optimization_results: dict,
+        cases_df: pd.DataFrame,
+        user_nickname: str,
+        result_container: dict,
+        timeout_event: threading.Event,
+    ):
+        pdf_timeout_seconds = 30.0
+        start_time = time.time()
+
+        def pdf_generation():
+            self._generate_pdf_in_thread(
+                user_data,
+                prediction_results,
+                optimization_results,
+                cases_df,
+                user_nickname,
+                result_container,
+            )
+            timeout_event.set()
+
+        pdf_thread = threading.Thread(target=pdf_generation, name="PDFGenerationWorker")
+        pdf_thread.daemon = True
+        pdf_thread.start()
+
+        pdf_thread.join(timeout=pdf_timeout_seconds)
+
+        if pdf_thread.is_alive():
+            logger.warning(f"[PDF线程] PDF生成超时（>{pdf_timeout_seconds}秒），中断线程")
+            with self._thread_lock:
+                result_container["error"] = f"PDF生成超时（>{pdf_timeout_seconds}秒）"
+                result_container["success"] = False
+        elif not timeout_event.is_set():
+            logger.warning("[PDF线程] PDF生成线程异常结束")
+            with self._thread_lock:
+                if "error" not in result_container:
+                    result_container["error"] = "PDF生成线程异常结束"
+                    result_container["success"] = False
+
+    def _update_step(
+        self,
+        step_placeholder: st.delta_generator.DeltaGenerator,
+        text: str,
+        animate: bool,
+        duration: float = 0.7,
+    ) -> None:
         if animate:
             self._animate_step(step_placeholder, text, duration)
         else:
@@ -320,13 +404,20 @@ class OptimizationUI:
 
                 self._update_step(step_placeholder, "调用 NSGA-III 算法", animate_ui, 0.8)
                 optimizer = SchoolSelectionOptimizer(
-                    population_size=48,
-                    n_generations=60,
+                    population_size=DEFAULT_POPULATION_SIZE,
+                    n_generations=DEFAULT_N_GENERATIONS,
                     correlation_matrix=self.correlation_matrix,
                 )
                 logger.info("优化器初始化完成")
 
                 if animate_ui:
+                    if self.session_manager.get("optimization_thread_running", False):
+                        logger.warning("检测到已有优化线程在运行，跳过本次请求")
+                        st.warning("优化任务正在进行中，请勿重复点击")
+                        status.update(label="优化进行中", state="running")
+                        self.session_manager.set(processing_lock=False, lock_start_time=0)
+                        return
+
                     result_container: dict[str, Any] = {}
                     optimization_thread = threading.Thread(
                         target=self._run_optimization_in_thread,
@@ -338,8 +429,11 @@ class OptimizationUI:
                             bg_target_similarity_cache,
                             result_container,
                         ),
+                        name="OptimizationThread",
                     )
                     optimization_thread.daemon = True
+                    with self._thread_lock:
+                        self.session_manager.set(optimization_thread_running=True)
                     optimization_thread.start()
 
                     interval = 0.3
@@ -356,6 +450,9 @@ class OptimizationUI:
                         cycle_count += 1
 
                     optimization_thread.join(timeout=2.0)
+
+                    with self._thread_lock:
+                        self.session_manager.set(optimization_thread_running=False)
 
                     if not result_container.get("success", False):
                         error_msg = result_container.get("error", "未知错误")
@@ -413,8 +510,9 @@ class OptimizationUI:
                     )
 
                     pdf_result_container: dict[str, Any] = {}
+                    pdf_timeout_event = threading.Event()
                     pdf_thread = threading.Thread(
-                        target=self._generate_pdf_in_thread,
+                        target=self._generate_pdf_in_thread_with_timeout,
                         args=(
                             pdf_data_bundle["user_data"],
                             pdf_data_bundle["prediction_results"],
@@ -422,7 +520,9 @@ class OptimizationUI:
                             pdf_data_bundle["cases_df"],
                             user_nickname,
                             pdf_result_container,
+                            pdf_timeout_event,
                         ),
+                        name="PDFGenerationThread",
                     )
                     pdf_thread.daemon = True
                     pdf_thread.start()
@@ -440,7 +540,7 @@ class OptimizationUI:
                         time.sleep(interval)
                         cycle_count += 1
 
-                    pdf_thread.join(timeout=15.0)
+                    pdf_thread.join(timeout=35.0)
 
                     if pdf_result_container.get("success", False):
                         current_time = datetime.now()
@@ -467,11 +567,17 @@ class OptimizationUI:
             status_container.empty()
 
         except TimeoutError as e:
-            logger.error(f"优化超时: {str(e)}", exc_info=True)
+            logger.error(f"[优化] 超时: {str(e)}", exc_info=True)
             self._handle_optimization_error(f"优化超时: {str(e)}", status)
+        except (ValueError, KeyError, TypeError) as e:
+            logger.error(f"[优化] 数据错误: {type(e).__name__}: {str(e)}", exc_info=True)
+            self._handle_optimization_error(f"数据错误: {str(e)}", status)
         except Exception as e:
-            logger.error(f"优化过程中出错: {str(e)}", exc_info=True)
+            logger.error(f"[优化] 未知错误: {type(e).__name__}: {str(e)}", exc_info=True)
             self._handle_optimization_error(f"优化过程中出错: {str(e)}", status)
+        finally:
+            with self._thread_lock:
+                self.session_manager.set(optimization_thread_running=False)
 
     def _save_optimization_results(self, df: pd.DataFrame, recommendations, adaptive_thresholds):
         logger.info(
@@ -500,7 +606,6 @@ class OptimizationUI:
                 0.0
             )
             self.session_manager.set(optimization_input_hash=hash_pandas_object(safe_df).sum())
-            self.session_manager.set(optimization_input_hash=int(time.time()))
 
     def _handle_optimization_error(self, error_message: str, status):
         logger.error(error_message)

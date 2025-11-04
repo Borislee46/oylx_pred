@@ -1,4 +1,5 @@
 from functools import lru_cache
+from threading import Lock
 from typing import Any
 
 import numpy as np
@@ -11,6 +12,7 @@ from src.pages.prediction.school_combination_optimizer_algorithm.config import (
 
 _CHOLESKY_CACHE: dict[tuple, Any] = {}
 _SOBOL_CACHE: dict[int, qmc.Sobol] = {}
+_CACHE_LOCK = Lock()
 
 
 @lru_cache(maxsize=128)
@@ -153,8 +155,10 @@ def _simulate_correlated_schools(
     corr_matrix = np.array(corr_matrix_flat).reshape(k, k)
     cholesky = _get_cholesky_decomposition(tuple(corr_matrix.flatten()))
 
-    sobol = _SOBOL_CACHE.get(k, qmc.Sobol(d=k, seed=42))
-    _SOBOL_CACHE[k] = sobol
+    with _CACHE_LOCK:
+        if k not in _SOBOL_CACHE:
+            _SOBOL_CACHE[k] = qmc.Sobol(d=k, seed=42)
+        sobol = _SOBOL_CACHE[k]
 
     total_samples = min(n_simulations, max_simulations)
     norm_samples = norm.ppf(sobol.random(n=total_samples))
@@ -176,8 +180,10 @@ def _calculate_converged_probability(
     min_simulations: int,
     max_samples: int,
     convergence_threshold: float,
-    batch_size: int = 500,
+    batch_size: int | None = None,
 ) -> float:
+    if batch_size is None:
+        batch_size = int(MONTE_CARLO_DEFAULTS["batch_size"])
     cumulative_rejections = np.cumsum(rejection_events)
     converged_n = min_simulations
 
@@ -199,4 +205,5 @@ def _calculate_converged_probability(
             converged_n = n
             break
 
+    converged_n = max(1, converged_n)
     return cumulative_rejections[converged_n - 1] / converged_n

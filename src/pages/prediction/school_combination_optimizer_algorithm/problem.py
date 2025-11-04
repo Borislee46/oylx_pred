@@ -256,7 +256,11 @@ class SchoolSelectionProblem(Problem):
                 max(0, MIN_TOP3_COUNT_FOR_HIGH_BG - top3_count),
                 max(0, MIN_TOP5_COUNT_FOR_HIGH_BG - top5_count),
             )
-        except Exception:
+        except (KeyError, AttributeError, TypeError) as e:
+            logger.warning(f"计算top学校违规数时出现错误: {type(e).__name__}: {e}")
+            return 0, 0
+        except Exception as e:
+            logger.error(f"计算top学校违规数时出现未知错误: {type(e).__name__}: {e}", exc_info=True)
             return 0, 0
 
     def _calculate_hk_violation(self, selected_schools):

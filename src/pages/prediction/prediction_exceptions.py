@@ -16,4 +16,3 @@ class PredictionExecutionError(PredictionError):
 
 class DataValidationError(PredictionError):
     pass
-

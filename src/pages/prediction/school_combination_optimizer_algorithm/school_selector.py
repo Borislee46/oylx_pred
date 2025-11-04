@@ -59,7 +59,7 @@ def _adjust_result_to_count(
     result: list[dict[str, Any]], all_schools: list[dict[str, Any]], target_count: int
 ) -> list[dict[str, Any]]:
     if len(result) > target_count:
-        return sorted(result, key=lambda x: x["probability"])[:target_count]
+        return sorted(result, key=lambda x: x["probability"], reverse=True)[:target_count]
     elif len(result) < target_count:
         remaining = [s for s in all_schools if s not in result]
         remaining.sort(key=lambda x: x["probability"], reverse=True)
