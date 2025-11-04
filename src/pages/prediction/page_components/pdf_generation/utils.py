@@ -1,6 +1,5 @@
 import functools
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from src.pages.prediction.page_components.pdf_generation.config import pdf_config
@@ -93,14 +92,11 @@ class DataNormalizer:
 
     @staticmethod
     def normalize_probability(prob: Any) -> float:
-        try:
-            if isinstance(prob, (int, float)):
-                return max(0.0, min(1.0, float(prob)))
-            elif isinstance(prob, str):
-                return max(0.0, min(1.0, float(prob)))
-            else:
-                return 0.0
-        except (ValueError, TypeError):
+        if isinstance(prob, (int, float)):
+            return max(0.0, min(1.0, float(prob)))
+        elif isinstance(prob, str):
+            return max(0.0, min(1.0, float(prob)))
+        else:
             return 0.0
 
     @staticmethod
@@ -155,11 +151,7 @@ class SchoolDataProcessor:
         return grouped
 
     def filter_and_limit_schools(self, schools: List[Dict], max_count: int = None) -> List[Dict]:
-        if not schools:
-            return []
-
         max_count = max_count or pdf_config.max_schools_per_strategy
-
         sorted_schools = sorted(
             schools,
             key=lambda x: self.normalizer.normalize_probability(
@@ -167,31 +159,17 @@ class SchoolDataProcessor:
             ),
             reverse=True,
         )
-
         return sorted_schools[:max_count]
 
 
 def create_responsive_image(image_path: str, max_width: float, max_height: float):
     from reportlab.platypus import Image
 
-    try:
-        if not image_path or not Path(image_path).exists():
-            return None
-
-        img = Image(image_path)
-        img_width, img_height = img.imageWidth, img.imageHeight
-
-        if img_width == 0 or img_height == 0:
-            return None
-
-        width_ratio = max_width / img_width
-        height_ratio = max_height / img_height
-        scale_ratio = min(width_ratio, height_ratio)
-
-        img.drawWidth = img_width * scale_ratio
-        img.drawHeight = img_height * scale_ratio
-
-        return img
-    except Exception as e:
-        logger.warning(f"创建响应式图片失败 {image_path}: {e}")
-        return None
+    img = Image(image_path)
+    img_width, img_height = img.imageWidth, img.imageHeight
+    width_ratio = max_width / img_width
+    height_ratio = max_height / img_height
+    scale_ratio = min(width_ratio, height_ratio)
+    img.drawWidth = img_width * scale_ratio
+    img.drawHeight = img_height * scale_ratio
+    return img

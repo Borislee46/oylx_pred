@@ -90,7 +90,6 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", "⚙️"))
         available_buttons.append(("公告管理", "pages/announcement_admin.py", "⚙️"))
-        available_buttons.append(("用户档案管理", "pages/student_profile.py", "👥"))
 
     if accessible_modules.get("hr_dashboard", False):
         available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", "👥"))

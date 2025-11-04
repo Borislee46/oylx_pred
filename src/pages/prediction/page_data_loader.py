@@ -10,25 +10,16 @@ from src.utils.app_data_loader import (
     load_global_categories_dataframe,
     load_raw_cases_data,
 )
-from src.utils.logger import setup_logger
-
-data_loader_logger = setup_logger("page3", "prediction")
 
 
 def get_prediction_model(model_name):
     global_categories_df_instance = load_global_categories_dataframe()
-
-    if global_categories_df_instance is None:
-        return None
-
     model_instance = PredictionModel(model_name, global_categories_df=global_categories_df_instance)
     return model_instance
 
 
 def load_cases_data():
     cases_df = load_raw_cases_data()
-    if cases_df is None:
-        data_loader_logger.error("无法加载案例数据文件")
     return cases_df
 
 

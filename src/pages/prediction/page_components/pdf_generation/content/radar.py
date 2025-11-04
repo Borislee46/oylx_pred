@@ -43,10 +43,7 @@ def create_student_background_radar_chart(input_data, school_level_scores_map):
     if isinstance(gpa_value, str) and (gpa_value == "未填写" or not gpa_value.strip()):
         gpa = 0
     else:
-        try:
-            gpa = float(gpa_value)
-        except (ValueError, TypeError):
-            gpa = 0
+        gpa = float(gpa_value)
     val_gpa = min(gpa / MAX_GPA, 1.0) * 100 if MAX_GPA > 0 else 0
     val_gpa = max(0, min(val_gpa, 100))
 
@@ -56,10 +53,7 @@ def create_student_background_radar_chart(input_data, school_level_scores_map):
     ):
         lang_score = 0
     else:
-        try:
-            lang_score = float(lang_score_value)
-        except (ValueError, TypeError):
-            lang_score = 0
+        lang_score = float(lang_score_value)
     val_lang = lang_score * 100
     val_lang = max(0, min(val_lang, 100))
 

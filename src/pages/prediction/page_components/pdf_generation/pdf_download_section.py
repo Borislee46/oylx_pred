@@ -48,15 +48,6 @@ def generate_pdf_without_session(
     cases_df: pd.DataFrame,
     user_nickname: str,
 ) -> Tuple[Optional[bytes], Optional[str], Optional[str]]:
-    if not user_data:
-        return None, None, "用户数据为空，无法生成PDF报告"
-
-    if not optimization_results:
-        return None, None, "优化结果数据为空，无法生成PDF报告"
-
-    if cases_df is None or cases_df.empty:
-        logger.warning("案例数据为空，PDF报告可能缺少部分信息")
-
     generator = PDFReportGenerator()
 
     pdf_data = generator.generate_report(
@@ -66,9 +57,6 @@ def generate_pdf_without_session(
         cases_df=cases_df,
         user_nickname=user_nickname,
     )
-
-    if not pdf_data:
-        return None, None, "PDF生成失败，返回数据为空"
 
     current_time = datetime.now()
     safe_nickname = user_nickname or "用户"
