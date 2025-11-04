@@ -105,22 +105,28 @@ def _validate_field_with_llm_cached(field_type: str, content_hash: str, content:
         logger.debug(f"发送LLM请求: model={model}, url={api_url}")
         response = requests.post(api_url, headers=headers, json=data, timeout=10)
         elapsed_time = time.time() - start_time
-        
+
         response.raise_for_status()
         response_json = response.json()
 
         if response_json.get("choices"):
             result = response_json["choices"][0].get("message", {}).get("content", "").strip()
             is_valid = result == "是"
-            logger.info(f"LLM验证完成: {field_name}, 结果={is_valid}, 响应内容={result}, 耗时={elapsed_time:.2f}秒")
+            logger.info(
+                f"LLM验证完成: {field_name}, 结果={is_valid}, 响应内容={result}, 耗时={elapsed_time:.2f}秒"
+            )
             return is_valid
         else:
-            error_info = response_json.get('error', {})
-            logger.warning(f"LLM验证返回异常: {field_name}, 错误信息={error_info}, 耗时={elapsed_time:.2f}秒")
+            error_info = response_json.get("error", {})
+            logger.warning(
+                f"LLM验证返回异常: {field_name}, 错误信息={error_info}, 耗时={elapsed_time:.2f}秒"
+            )
             return True
     except Exception as e:
         elapsed_time = time.time() - start_time
-        logger.warning(f"LLM验证失败: {field_name}, 异常={str(e)}, 耗时={elapsed_time:.2f}秒, 使用默认通过")
+        logger.warning(
+            f"LLM验证失败: {field_name}, 异常={str(e)}, 耗时={elapsed_time:.2f}秒, 使用默认通过"
+        )
         return True
 
 

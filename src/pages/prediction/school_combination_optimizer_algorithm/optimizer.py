@@ -248,7 +248,7 @@ class SchoolSelectionOptimizer:
         n_ref = 42
         base_pop = self.population_size
         base_gen = self.n_generations
-        
+
         if problem_size < 30:
             pop = max(base_pop, problem_size * 2)
             n_gen = base_gen
@@ -258,9 +258,11 @@ class SchoolSelectionOptimizer:
         else:
             pop = base_pop
             n_gen = base_gen
-        
+
         ref = get_cached_reference_directions("energy", n_dim=5, n_points=n_ref)
-        logger.info(f"优化参数: problem_size={problem_size}, population_size={pop}, n_generations={n_gen}")
+        logger.info(
+            f"优化参数: problem_size={problem_size}, population_size={pop}, n_generations={n_gen}"
+        )
         return pop, n_gen, ref
 
     def _run_optimization(self, problem: SchoolSelectionProblem) -> Optional[Result]:
@@ -623,7 +625,7 @@ class SchoolSelectionOptimizer:
         if result and hasattr(result, "X"):
             n_solutions = len(result.X) if result.X is not None else 0
             logger.info(f"优化结果有效，解数量: {n_solutions}")
-            
+
             if n_solutions == 0:
                 logger.warning(
                     f"优化器未找到任何解，可能原因: "
@@ -632,7 +634,9 @@ class SchoolSelectionOptimizer:
                     f"约束条件可能过于严格"
                 )
                 if hasattr(result, "pop") and result.pop is not None:
-                    logger.info(f"种群大小: {len(result.pop) if hasattr(result.pop, '__len__') else 'N/A'}")
+                    logger.info(
+                        f"种群大小: {len(result.pop) if hasattr(result.pop, '__len__') else 'N/A'}"
+                    )
             else:
                 feasible_count = 0
                 if hasattr(result, "CV") and result.CV is not None:
@@ -640,18 +644,28 @@ class SchoolSelectionOptimizer:
                 elif hasattr(result, "G") and result.G is not None:
                     feasible_count = np.sum(np.all(result.G <= 0, axis=1))
                 logger.info(f"可行解数量: {feasible_count}/{n_solutions}")
-                
+
                 if feasible_count == 0 and hasattr(result, "G") and result.G is not None:
                     max_violations = np.max(result.G, axis=0)
                     constraint_names = [
-                        "max_schools", "min_reach", "min_target", "min_safety",
-                        "min_schools", "hk_violation", "min_top3", "min_top5"
+                        "max_schools",
+                        "min_reach",
+                        "min_target",
+                        "min_safety",
+                        "min_schools",
+                        "hk_violation",
+                        "min_top3",
+                        "min_top5",
                     ]
-                    violations_info = ", ".join([
-                        f"{name}={v:.2f}" for name, v in zip(constraint_names, max_violations) if v > 0
-                    ])
+                    violations_info = ", ".join(
+                        [
+                            f"{name}={v:.2f}"
+                            for name, v in zip(constraint_names, max_violations)
+                            if v > 0
+                        ]
+                    )
                     logger.warning(f"所有解都违反约束，最大违反值: {violations_info}")
-            
+
             best_indices = self._find_best_solution_indices(
                 result, problem, plan_config.min_schools
             )

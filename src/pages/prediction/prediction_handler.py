@@ -26,6 +26,7 @@ prediction_handler_logger = setup_logger("page3", "prediction")
 
 def _get_git_commit_hash() -> str:
     import subprocess
+
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -43,24 +44,24 @@ def _get_git_commit_hash() -> str:
 def _create_student_profile(session_manager, original_form_data: dict | None) -> None:
     if not original_form_data:
         return
-    
+
     try:
         from pages.student_profile import create_profile_from_submission
-        
+
         user_nickname = st.session_state.get("e2_user_nickname", "")
         user_email = st.session_state.get("e2_user_email", "")
-        
+
         if not user_email or user_email == "E2_USER_NOT_LOGGED_IN":
             user_email = session_manager.get("current_user_id", "")
-        
+
         if not user_nickname:
             user_nickname = user_email.split("@")[0] if "@" in user_email else user_email
-        
+
         if not user_email:
             return
-        
+
         commit_hash = _get_git_commit_hash()
-        
+
         create_profile_from_submission(
             user=user_nickname,
             email=user_email,

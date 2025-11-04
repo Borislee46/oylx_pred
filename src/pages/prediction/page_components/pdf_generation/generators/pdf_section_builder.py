@@ -45,15 +45,15 @@ class PDFSectionBuilder:
 
     def create_cover_page(self, user_nickname: str, report_title: str) -> List:
         story = []
-        
+
         if not user_nickname or not isinstance(user_nickname, str):
             user_nickname = "用户"
         if not report_title or not isinstance(report_title, str):
             report_title = "留学申请方案报告"
-        
+
         user_nickname = user_nickname.strip()
         report_title = report_title.strip()
-        
+
         page_width = A4[0] - (pdf_config.left_margin + pdf_config.right_margin) * cm
         page_height = A4[1] - (pdf_config.top_margin + pdf_config.bottom_margin) * cm
 
@@ -111,7 +111,7 @@ class PDFSectionBuilder:
         story = []
         if not user_data or not isinstance(user_data, dict):
             user_data = {}
-        
+
         story.append(Paragraph("个人背景竞争力分析", self.styles["SectionTitle"]))
         story.append(Spacer(1, 0.25 * inch))
 
@@ -153,11 +153,13 @@ class PDFSectionBuilder:
 
         story.append(Paragraph("背景详情", self.styles["SubTitle"]))
         story.append(Spacer(1, 0.15 * inch))
-        
+
         gpa_display = user_data.get("gpa_raw") or user_data.get("gpa_score", "N/A")
         gpa_scale = user_data.get("gpa_scale", "N/A")
         language_type = user_data.get("language_type", "语言")
-        language_score = user_data.get("language_score_raw") or user_data.get("language_score", "N/A")
+        language_score = user_data.get("language_score_raw") or user_data.get(
+            "language_score", "N/A"
+        )
 
         if isinstance(gpa_display, (int, float)):
             gpa_display = f"{gpa_display:.2f}".rstrip("0").rstrip(".")
@@ -171,7 +173,7 @@ class PDFSectionBuilder:
 
         background_university = user_data.get("background_university", "N/A") or "N/A"
         background_major = user_data.get("background_major", "N/A") or "N/A"
-        
+
         academic_data = [
             [
                 Paragraph("<b>本科院校</b>", self.styles["CustomBody"]),
@@ -212,7 +214,7 @@ class PDFSectionBuilder:
             "获奖经历": user_data.get("award_count", 0) or 0,
             "论文发表": user_data.get("paper_count", 0) or 0,
         }
-        
+
         for key in soft_skills:
             if not isinstance(soft_skills[key], (int, float)):
                 soft_skills[key] = 0
@@ -279,12 +281,12 @@ class PDFSectionBuilder:
         self, optimization_results: Dict, cases_df: pd.DataFrame
     ) -> List:
         story = []
-        
+
         if not optimization_results or not isinstance(optimization_results, dict):
             optimization_results = {}
         if cases_df is None or not isinstance(cases_df, pd.DataFrame):
             cases_df = pd.DataFrame()
-        
+
         recommendations = optimization_results.get("recommendations", []) or []
         adaptive_thresholds = optimization_results.get("adaptive_thresholds", {}) or {}
 
@@ -302,7 +304,7 @@ class PDFSectionBuilder:
         for strategy_idx, strategy in enumerate(recommendations):
             if not strategy or not isinstance(strategy, dict):
                 continue
-                
+
             strategy_name = strategy.get("strategy_name") or f"申请策略{strategy_idx + 1}"
             schools = strategy.get("schools", []) or []
 
@@ -318,12 +320,12 @@ class PDFSectionBuilder:
             grouped_schools = self.data_processor.group_schools_by_university(schools)
             if not grouped_schools:
                 continue
-                
+
             rank = 1
             for university, school_group in grouped_schools.items():
                 if not university or not school_group:
                     continue
-                    
+
                 story.extend(
                     self._create_grouped_school_detail(
                         university, school_group, rank, cases_df, adaptive_thresholds
@@ -354,7 +356,7 @@ class PDFSectionBuilder:
             user_data = {}
         if not soft_skills:
             soft_skills = {}
-            
+
         notes = ["<b>分析师建议:</b>"]
 
         gpa_value = user_data.get("gpa_score", 0)
@@ -365,7 +367,7 @@ class PDFSectionBuilder:
                 gpa = float(gpa_value) if gpa_value else 0.0
             except (ValueError, TypeError):
                 gpa = 0.0
-        
+
         if gpa >= 3.8:
             notes.append(
                 "- <b>学术表现卓越</b>：您拥有极具竞争力的GPA成绩，这将是您申请中的核心优势，"
@@ -381,7 +383,9 @@ class PDFSectionBuilder:
                 "建议通过高质量的文书、研究经历或GMAT/GRE成绩来弥补。"
             )
 
-        strong_points = [k for k, v in soft_skills.items() if isinstance(v, (int, float)) and v >= 3]
+        strong_points = [
+            k for k, v in soft_skills.items() if isinstance(v, (int, float)) and v >= 3
+        ]
         if strong_points:
             points_str = "、".join(strong_points)
             notes.append(
@@ -390,8 +394,7 @@ class PDFSectionBuilder:
             )
         else:
             weak_points = [
-                k for k, v in soft_skills.items()
-                if isinstance(v, (int, float)) and v == 0
+                k for k, v in soft_skills.items() if isinstance(v, (int, float)) and v == 0
             ]
             if len(weak_points) >= 2:
                 points_str = "、".join(weak_points)
@@ -421,10 +424,12 @@ class PDFSectionBuilder:
             return []
         if adaptive_thresholds is None:
             adaptive_thresholds = {}
-        
+
         logo_path_obj = pdf_config.get_school_logo_path(university)
         logo_path = str(logo_path_obj) if logo_path_obj else None
-        logo_image = create_responsive_image(logo_path, 0.85 * inch, 0.85 * inch) if logo_path else None
+        logo_image = (
+            create_responsive_image(logo_path, 0.85 * inch, 0.85 * inch) if logo_path else None
+        )
         logo_cell_content = logo_image or Paragraph("", self.styles["SmallText"])
 
         details_content = []
@@ -446,13 +451,13 @@ class PDFSectionBuilder:
         for idx, school_data in enumerate(school_group):
             if not school_data or not isinstance(school_data, dict):
                 continue
-                
+
             _, major, probability = self.data_processor.extract_school_info(school_data)
             if not major:
                 major = "未知专业"
             if not isinstance(probability, (int, float)):
                 probability = 0.0
-            
+
             prob_color = pdf_config.get_probability_color(probability)
             prob_text = self._get_probability_label(probability, adaptive_thresholds)
 
@@ -474,11 +479,15 @@ class PDFSectionBuilder:
             major_p = Paragraph(str(major), self.styles["CustomBody"])
 
             major_table = Table([[major_p, prob_p]], colWidths=[None, "16%"])
-            major_table.setStyle(TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("LEFTPADDING", (1, 0), (1, 0), 8),
-                ("RIGHTPADDING", (1, 0), (1, 0), 8),
-            ]))
+            major_table.setStyle(
+                TableStyle(
+                    [
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                        ("LEFTPADDING", (1, 0), (1, 0), 8),
+                        ("RIGHTPADDING", (1, 0), (1, 0), 8),
+                    ]
+                )
+            )
             details_content.append(major_table)
 
             detailed_info = None
@@ -486,7 +495,7 @@ class PDFSectionBuilder:
                 detailed_info = get_school_major_details(university, major)
             except Exception as e:
                 logger.warning(f"获取专业详情失败 {university} - {major}: {e}")
-            
+
             if detailed_info and detailed_info != "暂无详细信息" and detailed_info.strip():
                 compact_info = self._format_detailed_info_compact(detailed_info)
                 if compact_info:
@@ -496,12 +505,18 @@ class PDFSectionBuilder:
                 details_content.append(Spacer(1, 0.08 * inch))
 
         application_advice_list = school_details.get("申请建议", [])
-        if application_advice_list and isinstance(application_advice_list, list) and len(application_advice_list) > 0:
+        if (
+            application_advice_list
+            and isinstance(application_advice_list, list)
+            and len(application_advice_list) > 0
+        ):
             num_to_select = min(len(application_advice_list), 2)
             if num_to_select > 0:
                 selected_advice = random.sample(application_advice_list, num_to_select)
                 details_content.append(Spacer(1, 0.12 * inch))
-                advice_points = [f"- {item}" for item in selected_advice if item and str(item).strip()]
+                advice_points = [
+                    f"- {item}" for item in selected_advice if item and str(item).strip()
+                ]
                 if advice_points:
                     advice_text = "<b>申请要点:</b><br/>" + "<br/>".join(advice_points)
                     details_content.append(Paragraph(advice_text, self.styles["LeftSmallText"]))
@@ -523,11 +538,13 @@ class PDFSectionBuilder:
 
         return [card_table]
 
-    def _get_probability_label(self, probability: float, adaptive_thresholds: Optional[Dict] = None) -> str:
+    def _get_probability_label(
+        self, probability: float, adaptive_thresholds: Optional[Dict] = None
+    ) -> str:
         if not isinstance(probability, (int, float)):
             probability = 0.0
         probability = max(0.0, min(1.0, float(probability)))
-        
+
         if adaptive_thresholds and isinstance(adaptive_thresholds, dict):
             safety_threshold = adaptive_thresholds.get(
                 "safety", SCHOOL_CATEGORY_THRESHOLDS.get("safety", 0.7)
@@ -554,7 +571,7 @@ class PDFSectionBuilder:
     def _format_detailed_info_compact(self, detailed_info: str) -> str:
         if not detailed_info or not isinstance(detailed_info, str):
             return ""
-        
+
         lines = detailed_info.split("\n")
         key_fields = {
             "GPA": "GPA要求",
