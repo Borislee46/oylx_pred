@@ -200,14 +200,14 @@ class SchoolSelectionOptimizer:
             return result
 
         filters = [
-            ("deduplicate_majors", deduplicate_majors),
-            ("similarity_filter", similarity_filter),
-            ("similarity_filter_only", similarity_filter_only),
-            ("probability_calibration", probability_calibration),
+            ("deduplicate_majors", deduplicate_majors, False),
+            ("similarity_filter", similarity_filter, True),
+            ("similarity_filter_only", similarity_filter_only, True),
+            ("probability_calibration", probability_calibration, True),
         ]
 
         filtered_data = schools_data
-        for filter_name, filter_func in filters:
+        for filter_name, filter_func, continue_on_empty in filters:
             original_len = len(filtered_data)
             logger.info(f"应用过滤器 {filter_name}: 输入数量={original_len}")
 
@@ -220,8 +220,8 @@ class SchoolSelectionOptimizer:
             new_len = len(filtered_data)
             logger.info(f"过滤器 {filter_name} 完成: {original_len} -> {new_len}")
 
-            if new_len != original_len:
-                logger.info(f"过滤器 {filter_name} 改变了数据量，停止后续过滤器")
+            if new_len == 0 and not continue_on_empty:
+                logger.warning(f"过滤器 {filter_name} 将所有数据过滤为空，停止后续过滤器")
                 break
 
         logger.info(f"_apply_all_filters完成: 最终学校数量={len(filtered_data)}")
@@ -246,9 +246,21 @@ class SchoolSelectionOptimizer:
 
     def _compute_algo_params(self, problem_size: int) -> tuple[int, int, Any]:
         n_ref = 42
-        pop = self.population_size
-        n_gen = self.n_generations
+        base_pop = self.population_size
+        base_gen = self.n_generations
+        
+        if problem_size < 30:
+            pop = max(base_pop, problem_size * 2)
+            n_gen = base_gen
+        elif problem_size < 50:
+            pop = max(base_pop, int(base_pop * 1.2))
+            n_gen = int(base_gen * 1.2)
+        else:
+            pop = base_pop
+            n_gen = base_gen
+        
         ref = get_cached_reference_directions("energy", n_dim=5, n_points=n_ref)
+        logger.info(f"优化参数: problem_size={problem_size}, population_size={pop}, n_generations={n_gen}")
         return pop, n_gen, ref
 
     def _run_optimization(self, problem: SchoolSelectionProblem) -> Optional[Result]:
@@ -609,7 +621,37 @@ class SchoolSelectionOptimizer:
         logger.info(f"优化运行完成，结果是否存在: {result is not None}")
 
         if result and hasattr(result, "X"):
-            logger.info(f"优化结果有效，解数量: {len(result.X) if result.X is not None else 0}")
+            n_solutions = len(result.X) if result.X is not None else 0
+            logger.info(f"优化结果有效，解数量: {n_solutions}")
+            
+            if n_solutions == 0:
+                logger.warning(
+                    f"优化器未找到任何解，可能原因: "
+                    f"变量数量={problem.n_var}, min_schools={plan_config.min_schools}, "
+                    f"max_schools={plan_config.max_schools}, "
+                    f"约束条件可能过于严格"
+                )
+                if hasattr(result, "pop") and result.pop is not None:
+                    logger.info(f"种群大小: {len(result.pop) if hasattr(result.pop, '__len__') else 'N/A'}")
+            else:
+                feasible_count = 0
+                if hasattr(result, "CV") and result.CV is not None:
+                    feasible_count = np.sum(result.CV <= 0)
+                elif hasattr(result, "G") and result.G is not None:
+                    feasible_count = np.sum(np.all(result.G <= 0, axis=1))
+                logger.info(f"可行解数量: {feasible_count}/{n_solutions}")
+                
+                if feasible_count == 0 and hasattr(result, "G") and result.G is not None:
+                    max_violations = np.max(result.G, axis=0)
+                    constraint_names = [
+                        "max_schools", "min_reach", "min_target", "min_safety",
+                        "min_schools", "hk_violation", "min_top3", "min_top5"
+                    ]
+                    violations_info = ", ".join([
+                        f"{name}={v:.2f}" for name, v in zip(constraint_names, max_violations) if v > 0
+                    ])
+                    logger.warning(f"所有解都违反约束，最大违反值: {violations_info}")
+            
             best_indices = self._find_best_solution_indices(
                 result, problem, plan_config.min_schools
             )

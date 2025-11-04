@@ -109,8 +109,12 @@ class PDFDataExtractor:
         }
 
     def get_user_nickname(self) -> str:
+        nickname = self._get("user_nickname")
+        if not nickname:
+            import streamlit as st
+            nickname = st.session_state.get("e2_user_nickname") or st.session_state.get("user_nickname")
         return self.norm.get_field_value(
-            {"nickname": self._get("user_nickname", "用户")}, ["nickname"], "用户"
+            {"nickname": nickname or "用户"}, ["nickname"], "用户"
         )
 
     def get_user_email(self) -> Optional[str]:

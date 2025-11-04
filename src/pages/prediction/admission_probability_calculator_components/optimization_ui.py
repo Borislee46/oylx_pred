@@ -402,12 +402,12 @@ class OptimizationUI:
                 self._save_optimization_results(df, recommendations, adaptive_thresholds)
                 logger.info("优化结果保存完成")
 
-                user_nickname = self.session_manager.get("user_nickname", "用户")
-
                 extractor = PDFDataExtractor(self.session_manager)
                 pdf_data_bundle = extractor.validate_data_for_pdf_generation()
 
                 if pdf_data_bundle["is_valid"]:
+                    user_nickname = pdf_data_bundle.get("user_nickname") or self.session_manager.get("user_nickname") or "用户"
+                    
                     pdf_result_container: dict[str, Any] = {}
                     pdf_thread = threading.Thread(
                         target=self._generate_pdf_in_thread,

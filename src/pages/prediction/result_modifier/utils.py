@@ -1,6 +1,7 @@
 import hashlib
 import re
 import string
+import time
 from typing import Any
 
 import requests
@@ -83,6 +84,9 @@ def _validate_field_with_llm_cached(field_type: str, content_hash: str, content:
         logger.warning("LLM验证配置缺失，跳过验证")
         return True
 
+    field_name = FIELD_NAME_MAP.get(field_type, field_type)
+    logger.info(f"开始调用LLM验证字段: {field_name}, 内容哈希: {content_hash[:8]}...")
+
     prompt = build_field_validation_prompt(field_type, content)
 
     headers = {
@@ -96,19 +100,27 @@ def _validate_field_with_llm_cached(field_type: str, content_hash: str, content:
         "thinking": {"type": "disabled"},
     }
 
+    start_time = time.time()
     try:
+        logger.debug(f"发送LLM请求: model={model}, url={api_url}")
         response = requests.post(api_url, headers=headers, json=data, timeout=10)
+        elapsed_time = time.time() - start_time
+        
         response.raise_for_status()
         response_json = response.json()
 
         if response_json.get("choices"):
             result = response_json["choices"][0].get("message", {}).get("content", "").strip()
-            return result == "是"
+            is_valid = result == "是"
+            logger.info(f"LLM验证完成: {field_name}, 结果={is_valid}, 响应内容={result}, 耗时={elapsed_time:.2f}秒")
+            return is_valid
         else:
-            logger.warning(f"LLM验证返回异常: {response_json.get('error', {})}")
+            error_info = response_json.get('error', {})
+            logger.warning(f"LLM验证返回异常: {field_name}, 错误信息={error_info}, 耗时={elapsed_time:.2f}秒")
             return True
     except Exception as e:
-        logger.warning(f"LLM验证失败，使用默认通过: {e}")
+        elapsed_time = time.time() - start_time
+        logger.warning(f"LLM验证失败: {field_name}, 异常={str(e)}, 耗时={elapsed_time:.2f}秒, 使用默认通过")
         return True
 
 

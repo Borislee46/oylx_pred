@@ -24,6 +24,53 @@ from src.utils.session_manager import PredictionResultModel
 prediction_handler_logger = setup_logger("page3", "prediction")
 
 
+def _get_git_commit_hash() -> str:
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+
+def _create_student_profile(session_manager, original_form_data: dict | None) -> None:
+    if not original_form_data:
+        return
+    
+    try:
+        from pages.student_profile import create_profile_from_submission
+        
+        user_nickname = st.session_state.get("e2_user_nickname", "")
+        user_email = st.session_state.get("e2_user_email", "")
+        
+        if not user_email or user_email == "E2_USER_NOT_LOGGED_IN":
+            user_email = session_manager.get("current_user_id", "")
+        
+        if not user_nickname:
+            user_nickname = user_email.split("@")[0] if "@" in user_email else user_email
+        
+        if not user_email:
+            return
+        
+        commit_hash = _get_git_commit_hash()
+        
+        create_profile_from_submission(
+            user=user_nickname,
+            email=user_email,
+            commit=commit_hash,
+            user_input=original_form_data,
+        )
+    except Exception as e:
+        prediction_handler_logger.warning(f"创建学生档案失败: {str(e)}")
+
+
 def validate_model_and_features(prediction_model):
     if prediction_model is None:
         st.error(
@@ -477,6 +524,8 @@ def handle_form_submission(
         input_data_from_form,
         session_key_last_submission_logged,
     )
+
+    _create_student_profile(session_manager, original_form_data)
 
     run_prediction_with_guard(
         session_manager,

@@ -31,6 +31,9 @@ from src.utils.app_data_loader import (
     load_bg_target_similarity_cache,
     load_school_major_details_df,
 )
+from src.utils.logger import setup_logger
+
+logger = setup_logger("page3", "prediction")
 
 Config.warnings["not_compiled"] = False
 
@@ -51,6 +54,7 @@ class SchoolSelectionProblem(Problem):
         self._norm_top5 = {normalize_school_name(u) for u in TOP5_SCHOOLS}
         self._norm_top8 = {normalize_school_name(u) for u in TOP8_SCHOOLS}
 
+        input_count = len(all_schools_data)
         all_schools_data = filter_candidates_by_background(
             all_schools_data,
             school_level,
@@ -59,6 +63,12 @@ class SchoolSelectionProblem(Problem):
             background_faculty,
             adaptive_thresholds,
         )
+        output_count = len(all_schools_data)
+        if input_count != output_count:
+            logger.info(
+                f"filter_candidates_by_background过滤: {input_count} -> {output_count}, "
+                f"school_level={school_level}, gpa={gpa}, min_schools={min_schools}"
+            )
 
         self.all_schools_data = all_schools_data
         self.background_major = background_major
