@@ -33,7 +33,7 @@ class OptimizationUI:
         self.session_manager = session_manager
         self.correlation_matrix = correlation_matrix
         self.data_processor = DataProcessor()
-        self.max_optimization_time = 25.0
+        self.max_optimization_time = 30.0
 
     def _reset_stuck_lock(self):
         current_time = time.time()

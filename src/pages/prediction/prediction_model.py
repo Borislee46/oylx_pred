@@ -162,8 +162,35 @@ class PredictionModel:
         combinations: list[tuple[str, str]],
         expected_features: list[str],
     ) -> list[dict[str, Any]]:
-        if not combinations or not self.model:
+        from src.pages.prediction.prediction_exceptions import InvalidInputError
+
+        if not combinations:
+            page_logger.warning("预测组合列表为空")
             return []
+
+        if not self.model:
+            page_logger.error("预测模型未初始化")
+            raise ValueError("预测模型未初始化")
+
+        if not isinstance(input_data, dict):
+            raise InvalidInputError("input_data 必须是字典类型")
+
+        if not isinstance(expected_features, list) or not expected_features:
+            raise InvalidInputError("expected_features 必须是非空列表")
+
+        base_expected_features = [
+            f for f in expected_features if f not in ["target_university", "target_major"]
+        ]
+        missing_features = [feat for feat in base_expected_features if feat not in input_data]
+
+        if missing_features:
+            page_logger.warning(f"缺少输入特征: {missing_features}")
+
+        for idx, combo in enumerate(combinations):
+            if not isinstance(combo, tuple) or len(combo) != 2:
+                raise InvalidInputError(f"组合 {idx} 格式不正确，应为 (university, major) 元组")
+            if not all(isinstance(item, str) and item for item in combo):
+                raise InvalidInputError(f"组合 {idx} 包含空值或非字符串值")
 
         input_data_tuple = tuple(sorted(input_data.items()))
         preprocessed_base = self._get_preprocessed_base_features(input_data_tuple)
@@ -174,14 +201,18 @@ class PredictionModel:
             page_logger.warning("预测DataFrame为空")
             return []
 
-        probas = self.model.predict_proba(prediction_df)
-        if probas.ndim == 2 and probas.shape[1] > 1:
-            probas = probas[:, 1]
+        try:
+            probas = self.model.predict_proba(prediction_df)
+            if probas.ndim == 2 and probas.shape[1] > 1:
+                probas = probas[:, 1]
 
-        return [
-            {"university": univ, "major": major, "probability": float(proba)}
-            for (univ, major), proba in zip(combinations, probas)
-        ]
+            return [
+                {"university": univ, "major": major, "probability": float(proba)}
+                for (univ, major), proba in zip(combinations, probas)
+            ]
+        except Exception as e:
+            page_logger.error(f"模型预测失败: {e}", exc_info=True)
+            raise
 
     def predict_probability(self, input_df: pd.DataFrame) -> float | None:
         if self.model is None:

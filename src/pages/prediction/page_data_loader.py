@@ -52,4 +52,5 @@ class machine_learning_model:
         model = cached_get_prediction_model("xgboost")
         features = validate_model_and_features(model)
         cases = cached_load_cases_data()
-        return cls(prediction_model=model, loaded_feature_names=features, cases_df=cases)
+        feature_list = features if features is not None else []
+        return cls(prediction_model=model, loaded_feature_names=feature_list, cases_df=cases)

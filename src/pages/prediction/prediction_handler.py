@@ -1,7 +1,10 @@
+from typing import Any, Optional
+
 import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.page_data_loader import cached_load_bg_target_similarity_cache
+from src.pages.prediction.prediction_model import PredictionModel
 from src.pages.prediction.result_modifier.config import DEFAULT_TEXT_BOOST_CONFIG
 from src.pages.prediction.result_modifier.probability_adjuster import (
     ProbabilityAdjuster,
@@ -11,6 +14,7 @@ from src.pages.prediction.result_modifier.professional_adjustment import (
     adjust_for_professional_majors,
 )
 from src.pages.prediction.result_modifier.text_boost_provider import (
+    TextBoostProvider,
     get_text_boost_provider,
 )
 from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
@@ -24,11 +28,9 @@ from src.utils.session_manager import PredictionResultModel
 prediction_handler_logger = setup_logger("page3", "prediction")
 
 
-def validate_model_and_features(prediction_model):
+def validate_model_and_features(prediction_model: Optional[PredictionModel]) -> Optional[list[str]]:
     if prediction_model is None:
-        st.error(
-            "关键配置错误：无法加载预测模型或其依赖的全局类别数据。预测功能无法启动。请检查应用日志并联系管理员。"
-        )
+        st.error("关键配置错误：无法加载预测模型。预测功能无法启动。请检查应用日志并联系管理员。")
         prediction_handler_logger.critical("预测函数无法继续：prediction_model 为 None。")
         return None
 
@@ -40,11 +42,26 @@ def validate_model_and_features(prediction_model):
         return None
 
 
-def prepare_input_data(input_data_from_form):
+def prepare_input_data(input_data_from_form: dict) -> dict:
+    from src.pages.prediction.prediction_exceptions import InvalidInputError
     from src.utils.app_data_loader import load_raw_cases_data
     from src.utils.school_level_service import get_school_level_service
 
+    if not isinstance(input_data_from_form, dict):
+        raise InvalidInputError("输入数据必须是字典类型")
+
+    required_fields = ["background_university", "background_major"]
+    missing_fields = [field for field in required_fields if not input_data_from_form.get(field)]
+
+    if missing_fields:
+        error_msg = f"缺少必需字段: {', '.join(missing_fields)}"
+        prediction_handler_logger.warning(error_msg)
+        raise InvalidInputError(error_msg)
+
     background_uni_name = input_data_from_form.get("background_university", "")
+    if not background_uni_name or not isinstance(background_uni_name, str):
+        raise InvalidInputError("background_university 必须是非空字符串")
+
     service = get_school_level_service()
     school_level = service.get_school_level(background_uni_name)
 
@@ -53,26 +70,31 @@ def prepare_input_data(input_data_from_form):
 
     background_major = input_data.get("background_major")
     if background_major:
-        from src.pages.prediction.prediction_utils import get_background_faculty
+        if not isinstance(background_major, str):
+            prediction_handler_logger.warning(
+                f"background_major 类型不正确: {type(background_major)}"
+            )
+        else:
+            from src.pages.prediction.prediction_utils import get_background_faculty
 
-        cases_df = load_raw_cases_data()
-        faculty = get_background_faculty(background_major, cases_df)
-        if faculty:
-            input_data["faculty"] = faculty
+            cases_df = load_raw_cases_data()
+            faculty = get_background_faculty(background_major, cases_df)
+            if faculty:
+                input_data["faculty"] = faculty
 
     return input_data
 
 
 def _pipeline_adjust_results(
-    results: list,
-    probability_adjuster,
-    text_boost_provider,
-    experience_details: dict,
-    gpa,
-    language_score,
-    background_university,
-    is_new_major_cache: dict[tuple[str, str], bool] | None = None,
-):
+    results: list[dict[str, float | str]],
+    probability_adjuster: Optional[ProbabilityAdjuster],
+    text_boost_provider: Optional[TextBoostProvider],
+    experience_details: dict[str, str],
+    gpa: Optional[float],
+    language_score: Optional[float],
+    background_university: Optional[str],
+    is_new_major_cache: Optional[dict[tuple[str, str], bool]] = None,
+) -> list[dict[str, float | str]]:
     if not results or not isinstance(results, list):
         return results
 
@@ -80,48 +102,102 @@ def _pipeline_adjust_results(
     if not dict_indices:
         return results
 
-    base_probs = [results[i].get("probability", 0.0) for i in dict_indices]
+    base_probs: list[float] = []
+    for i in dict_indices:
+        prob_value = results[i].get("probability", 0.0)
+        if isinstance(prob_value, (int, float)):
+            base_probs.append(float(prob_value))
+        else:
+            base_probs.append(0.0)
 
     if probability_adjuster and gpa is not None and language_score is not None:
-        adjusted_probs = []
-        for p in base_probs:
+        adjusted_probs: list[float] = []
+        failed_count = 0
+        for idx, p in enumerate(base_probs):
             try:
+                if not isinstance(p, (int, float)) or p < 0 or p > 1:
+                    prediction_handler_logger.warning(
+                        f"无效的概率值 {p} (索引 {dict_indices[idx]}), 将被限制到 [0, 1]"
+                    )
+                    p = max(0.0, min(1.0, float(p)))
+
                 ap = probability_adjuster.adjust_probability(
                     p,
                     gpa,
                     language_score,
                     background_university_name=background_university,
                 )
-                adjusted_probs.append(max(0.0, min(1.0, float(ap))))
+                adjusted_prob = float(ap)
+
+                if adjusted_prob < 0 or adjusted_prob > 1:
+                    prediction_handler_logger.warning(
+                        f"概率调整后超出范围: {adjusted_prob}, 将被限制到 [0, 1]"
+                    )
+                    adjusted_prob = max(0.0, min(1.0, adjusted_prob))
+
+                adjusted_probs.append(adjusted_prob)
             except Exception as e:
-                prediction_handler_logger.warning(f"概率调整失败: {e}")
-                adjusted_probs.append(p)
+                failed_count += 1
+                prediction_handler_logger.warning(
+                    f"概率调整失败 (索引 {dict_indices[idx]}, 概率 {p}): {e}", exc_info=True
+                )
+                adjusted_probs.append(max(0.0, min(1.0, float(p))))
+
+        if failed_count > 0:
+            prediction_handler_logger.warning(
+                f"概率调整阶段有 {failed_count}/{len(base_probs)} 个结果失败"
+            )
     else:
         adjusted_probs = base_probs
+        if probability_adjuster is None:
+            prediction_handler_logger.debug("跳过概率调整：缺少概率调整器或 GPA/语言分数")
 
     if text_boost_provider is not None and isinstance(experience_details, dict):
         try:
-            boosted_probs, _ = text_boost_provider.apply(adjusted_probs, experience_details)
+            boosted_probs, boost_info = text_boost_provider.apply(
+                adjusted_probs, experience_details
+            )
+            if boost_info:
+                prediction_handler_logger.debug(f"文本增强应用成功: {boost_info}")
         except Exception as e:
-            prediction_handler_logger.warning(f"文本增强失败: {e}")
+            prediction_handler_logger.warning(f"文本增强失败，使用调整后的概率: {e}", exc_info=True)
             boosted_probs = adjusted_probs
     else:
         boosted_probs = adjusted_probs
 
+    failed_assignments = 0
     for pos, idx in enumerate(dict_indices):
         if pos < len(boosted_probs):
             try:
-                results[idx]["probability"] = max(0.0, min(1.0, float(boosted_probs[pos])))
-            except Exception as e:
-                prediction_handler_logger.warning(f"概率赋值失败: {e}")
+                final_prob = float(boosted_probs[pos])
+                if final_prob < 0 or final_prob > 1:
+                    prediction_handler_logger.warning(
+                        f"最终概率超出范围: {final_prob}, 将被限制到 [0, 1]"
+                    )
+                    final_prob = max(0.0, min(1.0, final_prob))
+                results[idx]["probability"] = final_prob
+            except (ValueError, TypeError, KeyError) as e:
+                failed_assignments += 1
+                prediction_handler_logger.warning(f"概率赋值失败 (索引 {idx}): {e}", exc_info=True)
+                if "probability" not in results[idx]:
+                    results[idx]["probability"] = 0.0
+        else:
+            prediction_handler_logger.warning(
+                f"索引越界: 结果索引 {idx} 超出增强概率列表长度 {len(boosted_probs)}"
+            )
+
+    if failed_assignments > 0:
+        prediction_handler_logger.warning(
+            f"概率赋值阶段有 {failed_assignments}/{len(dict_indices)} 个结果失败"
+        )
 
     if is_new_major_cache is not None:
         for idx in dict_indices:
             r = results[idx]
-            uni = r.get("university")
-            major = r.get("major")
-            if uni and major:
-                key = (uni, major)
+            uni_value = r.get("university")
+            major_value = r.get("major")
+            if isinstance(uni_value, str) and isinstance(major_value, str):
+                key: tuple[str, str] = (uni_value, major_value)
                 r["is_new_major"] = is_new_major_cache.get(key, False)
             else:
                 r["is_new_major"] = False
@@ -130,28 +206,28 @@ def _pipeline_adjust_results(
 
 
 def _batch_adjust_results(
-    results_list: list[list],
-    probability_adjuster,
-    text_boost_provider,
-    experience_details: dict,
-    gpa,
-    language_score,
-    background_university,
-):
+    results_list: list[list[dict[str, float | str]]],
+    probability_adjuster: Optional[ProbabilityAdjuster],
+    text_boost_provider: Optional[TextBoostProvider],
+    experience_details: dict[str, str],
+    gpa: Optional[float],
+    language_score: Optional[float],
+    background_university: Optional[str],
+) -> list[list[dict[str, float | str]]]:
     if not results_list or not any(results_list):
         return results_list
 
     from src.pages.prediction.prediction_utils import is_new_major
 
-    all_combinations = set()
+    all_combinations: set[tuple[str, str]] = set()
     for results in results_list:
         if results and isinstance(results, list):
             for r in results:
                 if isinstance(r, dict):
-                    uni = r.get("university")
-                    major = r.get("major")
-                    if uni and major:
-                        all_combinations.add((uni, major))
+                    uni_value = r.get("university")
+                    major_value = r.get("major")
+                    if isinstance(uni_value, str) and isinstance(major_value, str):
+                        all_combinations.add((uni_value, major_value))
 
     is_new_major_cache: dict[tuple[str, str], bool] = {}
     if all_combinations:
@@ -178,7 +254,7 @@ def _batch_adjust_results(
     return adjusted_results_list
 
 
-def compute_list_fingerprint(lst: list) -> tuple[int, int]:
+def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
     if not lst:
         return (0, 0)
     try:
@@ -193,7 +269,7 @@ def compute_list_fingerprint(lst: list) -> tuple[int, int]:
         return (len(lst), 0)
 
 
-def compute_df_fingerprint(df) -> int:
+def compute_df_fingerprint(df: Optional[pd.DataFrame]) -> int:
     if df is None or df.empty:
         return 0
     try:
@@ -213,7 +289,7 @@ def compute_df_fingerprint(df) -> int:
 
 
 @st.cache_data(ttl=3600)
-def _get_cached_cases_df(fingerprint: int):
+def _get_cached_cases_df() -> pd.DataFrame:
     from src.utils.app_data_loader import load_raw_cases_data
 
     return load_raw_cases_data()
@@ -221,13 +297,13 @@ def _get_cached_cases_df(fingerprint: int):
 
 @st.cache_data(ttl=600, show_spinner=True)
 def run_prediction_pipeline(
-    input_data,
+    input_data: dict[str, Any],
     model_name: str,
     cases_df_fingerprint: int,
-    loaded_feature_names,
+    loaded_feature_names: list[str],
     all_universities_fingerprint: tuple[int, int],
     all_majors_fingerprint: tuple[int, int],
-):
+) -> PredictionResultModel:
     from src.pages.prediction.page_data_loader import cached_get_prediction_model
 
     prediction_model = cached_get_prediction_model(model_name)
@@ -235,14 +311,27 @@ def run_prediction_pipeline(
     if prediction_model is None:
         return PredictionResultModel()
 
-    cases_df = _get_cached_cases_df(cases_df_fingerprint)
+    cases_df = _get_cached_cases_df()
 
-    all_universities_target = input_data.get("_all_universities_target", [])
-    all_majors_target = input_data.get("_all_majors_target", [])
+    if cases_df_fingerprint != compute_df_fingerprint(cases_df):
+        prediction_handler_logger.debug(
+            f"案例数据指纹不匹配: 期望 {cases_df_fingerprint}, 实际 {compute_df_fingerprint(cases_df)}"
+        )
+
+    all_universities_target_value = input_data.get("_all_universities_target", [])
+    all_universities_target = (
+        all_universities_target_value if isinstance(all_universities_target_value, list) else []
+    )
+
+    all_majors_target_value = input_data.get("_all_majors_target", [])
+    all_majors_target = all_majors_target_value if isinstance(all_majors_target_value, list) else []
 
     bg_target_similarity_cache = cached_load_bg_target_similarity_cache()
 
-    target_universities = input_data.get("target_universities", [])
+    target_universities_value = input_data.get("target_universities", [])
+    target_universities = (
+        target_universities_value if isinstance(target_universities_value, list) else []
+    )
     num_target_universities = len(target_universities) if target_universities else 0
 
     sim_results, cross_results, user_specified_results, _ = run_single_prediction(
@@ -260,31 +349,55 @@ def run_prediction_pipeline(
         prediction_handler_logger.error("预测失败：所有结果为None")
         return PredictionResultModel()
 
-    internship_count = input_data.get("internship_count", 0)
-    user_specified_majors = input_data.get("target_majors", [])
-
-    sim_results = adjust_for_professional_majors(
-        sim_results, internship_count, user_specified_majors
-    )
-    cross_results = adjust_for_professional_majors(
-        cross_results, internship_count, user_specified_majors
-    )
-    user_specified_results = adjust_for_professional_majors(
-        user_specified_results if isinstance(user_specified_results, list) else [],
-        internship_count,
-        user_specified_majors,
+    internship_count_value = input_data.get("internship_count", 0)
+    internship_count = (
+        int(internship_count_value) if isinstance(internship_count_value, (int, float, str)) else 0
     )
 
-    background_major = input_data.get("background_major")
+    user_specified_majors_value = input_data.get("target_majors", [])
+    user_specified_majors = (
+        user_specified_majors_value if isinstance(user_specified_majors_value, list) else []
+    )
+
+    results_to_adjust = [
+        ("sim_results", sim_results),
+        ("cross_results", cross_results),
+        (
+            "user_specified_results",
+            user_specified_results if isinstance(user_specified_results, list) else [],
+        ),
+    ]
+
+    adjusted_results = {}
+    for result_name, result_list in results_to_adjust:
+        adjusted_results[result_name] = adjust_for_professional_majors(
+            result_list, internship_count, user_specified_majors
+        )
+
+    sim_results = adjusted_results["sim_results"]
+    cross_results = adjusted_results["cross_results"]
+    user_specified_results = adjusted_results["user_specified_results"]
+
+    background_major_value = input_data.get("background_major")
+    background_major = background_major_value if isinstance(background_major_value, str) else None
     user_specified_results = penalize_cross_major_without_cases(
         user_specified_results=user_specified_results,
-        background_major=background_major,
+        background_major=background_major or "",
         cases_df=cases_df,
     )
 
-    gpa = input_data.get("gpa")
-    language_score = input_data.get("language_score")
-    background_university = input_data.get("background_university")
+    gpa_value = input_data.get("gpa")
+    gpa = float(gpa_value) if isinstance(gpa_value, (int, float)) else None
+
+    language_score_value = input_data.get("language_score")
+    language_score = (
+        float(language_score_value) if isinstance(language_score_value, (int, float)) else None
+    )
+
+    background_university_value = input_data.get("background_university")
+    background_university = (
+        background_university_value if isinstance(background_university_value, str) else None
+    )
 
     probability_adjuster = None
     if gpa is not None and language_score is not None:
@@ -292,14 +405,20 @@ def run_prediction_pipeline(
             cases_df if cases_df is not None else pd.DataFrame()
         )
 
-    experience_details = input_data.get("experience_details", {})
+    experience_details_value = input_data.get("experience_details", {})
+    experience_details: dict[str, str] = (
+        experience_details_value if isinstance(experience_details_value, dict) else {}
+    )
     if isinstance(experience_details, dict):
         for k in ("research_count", "award_count", "internship_count", "paper_count"):
             if k in input_data:
                 try:
-                    experience_details[k] = int(input_data.get(k, 0) or 0)
+                    value = input_data.get(k, 0) or 0
+                    experience_details[k] = (
+                        str(int(value)) if isinstance(value, (int, float, str)) else "0"
+                    )
                 except Exception:
-                    experience_details[k] = 0
+                    experience_details[k] = "0"
     if has_meaningful_experience_text(experience_details):
         text_provider = get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
     else:

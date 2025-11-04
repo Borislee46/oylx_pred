@@ -2,16 +2,15 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-import pandas as pd
 import streamlit as st
 
 
 @dataclass
 class PredictionResultModel:
-    similarity_results: pd.DataFrame | None = None
-    cross_major_results: pd.DataFrame | None = None
-    user_specified_results: pd.DataFrame | None = None
-    unified_results: pd.DataFrame | None = None
+    similarity_results: list[dict] | None = None
+    cross_major_results: list[dict] | None = None
+    user_specified_results: list[dict] | None = None
+    unified_results: list[dict] | None = None
 
 
 @dataclass
