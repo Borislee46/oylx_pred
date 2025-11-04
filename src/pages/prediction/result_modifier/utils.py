@@ -66,34 +66,34 @@ def has_valid_experience_details(experience_details: dict[str, str] | None) -> b
 def _validate_field_with_llm_cached(field_type: str, content_hash: str, content: str) -> bool:
     if is_effectively_empty(content):
         return False
-    
+
     app_config = load_app_config()
     api_url = app_config.get("OPEN_AI_BASE_URL")
     api_key = app_config.get("OPEN_AI_API_KEY")
     model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.1")
-    
+
     if not api_url or not api_key:
         logger.warning("LLM验证配置缺失，跳过验证")
         return True
-    
+
     prompt = build_field_validation_prompt(field_type, content)
-    
+
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
     }
-    
+
     data = {
         "model": model,
         "messages": [{"content": [{"text": prompt, "type": "text"}], "role": "user"}],
         "thinking": {"type": "disabled"},
     }
-    
+
     try:
         response = requests.post(api_url, headers=headers, json=data, timeout=10)
         response.raise_for_status()
         response_json = response.json()
-        
+
         if response_json.get("choices"):
             result = response_json["choices"][0].get("message", {}).get("content", "").strip()
             return result == "是"
@@ -108,7 +108,7 @@ def _validate_field_with_llm_cached(field_type: str, content_hash: str, content:
 def _validate_field_with_llm(field_type: str, content: str) -> bool:
     if is_effectively_empty(content):
         return False
-    
+
     content_hash = generate_content_hash(f"{field_type}:{content}")
     return _validate_field_with_llm_cached(field_type, content_hash, content)
 
@@ -126,7 +126,7 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
         "internship_details",
         "paper_details",
     )
-    
+
     validated_keys = []
     for k in keys:
         content = str(experience_details.get(k, "")).strip()
@@ -135,10 +135,10 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
                 logger.info(f"字段 {k} 的内容与字段类型不匹配，已过滤")
                 continue
             validated_keys.append(k)
-    
+
     if not validated_keys:
         return False
-    
+
     merged = " ".join(str(experience_details.get(k, "")) for k in validated_keys)
     merged = merged.strip().lower()
     cleaned = re.sub(r"[^0-9a-zA-Z\u4e00-\u9fff]+", "", merged)

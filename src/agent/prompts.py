@@ -58,7 +58,7 @@ def build_field_validation_prompt(field_type: str, content: str) -> str:
         "paper_details": "论文发表",
     }
     field_name = field_type_map.get(field_type, field_type)
-    
+
     return f"""请判断以下文本内容是否与"{field_name}"相关。
 
 字段类型: {field_name}

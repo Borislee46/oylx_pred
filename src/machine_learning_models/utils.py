@@ -7,13 +7,6 @@ import xgboost as xgb
 from sklearn.calibration import CalibratedClassifierCV
 
 
-def _save_json(data, model_dir, model_name, timestamp, suffix):
-    filename = os.path.join(model_dir, f"{model_name}_{timestamp}_{suffix}.json")
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    return filename
-
-
 def _extract_xgb_model(model):
     if isinstance(model, xgb.XGBClassifier):
         return model
