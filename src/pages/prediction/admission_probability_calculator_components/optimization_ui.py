@@ -109,12 +109,14 @@ class OptimizationUI:
         if self.session_manager.get("run_optimization", False):
             self.session_manager.set(run_optimization=False)
             optimization_started_this_run = True
-            logger.info("开始智能优化选校")
+            logger.info(f"开始智能优化选校，输入数据框大小: {len(df)}")
 
             if len(df) < 2:
+                logger.warning(f"候选学校数量不足: {len(df)} < 2")
                 st.warning("候选学校数量不足，至少需要2所学校才能进行优化")
                 self.session_manager.set(processing_lock=False, lock_start_time=0)
             else:
+                logger.info(f"满足优化条件，开始执行优化，数据框大小: {len(df)}")
                 self._execute_optimization(df, gpa, language_score)
 
         if self.session_manager.get("optimization_performed", False):
@@ -151,6 +153,7 @@ class OptimizationUI:
         result_container: dict,
     ):
         try:
+            logger.info(f"线程中开始执行优化，学校数据数量: {len(all_schools_data)}")
             recommendations, adaptive_thresholds = self._run_optimization_with_timeout(
                 optimizer,
                 all_schools_data,
@@ -158,10 +161,12 @@ class OptimizationUI:
                 major_category_cache,
                 bg_target_similarity_cache,
             )
+            logger.info(f"线程中优化完成，推荐数量: {len(recommendations)}")
             result_container["recommendations"] = recommendations
             result_container["adaptive_thresholds"] = adaptive_thresholds
             result_container["success"] = True
         except Exception as e:
+            logger.error(f"线程中优化失败: {str(e)}", exc_info=True)
             result_container["error"] = str(e)
             result_container["success"] = False
 
@@ -239,7 +244,15 @@ class OptimizationUI:
         max_workers = 1 if use_process_pool else None
 
         def run_core_optimization():
-            return optimizer.optimize(
+            logger.info(
+                f"调用optimizer.optimize，参数: "
+                f"all_schools_data数量={len(all_schools_data)}, "
+                f"background_major={input_data.get('background_major', '')}, "
+                f"background_faculty={input_data.get('faculty')}, "
+                f"school_level={input_data.get('school_level')}, "
+                f"gpa={input_data.get('gpa')}"
+            )
+            result = optimizer.optimize(
                 all_schools_data=all_schools_data,
                 background_major=input_data.get("background_major", ""),
                 background_faculty=input_data.get("faculty"),
@@ -248,6 +261,8 @@ class OptimizationUI:
                 major_category_cache=major_category_cache,
                 bg_target_similarity_cache=bg_target_similarity_cache,
             )
+            logger.info(f"optimizer.optimize返回结果: 推荐数量={len(result[0]) if result else 0}")
+            return result
 
         with executor_class(max_workers=max_workers) as executor:
             future = executor.submit(run_core_optimization)
@@ -264,21 +279,44 @@ class OptimizationUI:
         status_container = st.empty()
 
         try:
+            logger.info(f"开始执行优化，输入数据框大小: {len(df)}")
+            logger.info(f"输入数据框列: {list(df.columns)}")
+
             with status_container.status("解析中...", expanded=True) as status:
                 step_placeholder = st.empty()
                 animate_ui = len(df) >= 20
 
                 self._update_step(step_placeholder, "解析用户背景与申请偏好", animate_ui, 0.7)
                 all_schools_data = self.data_processor.prepare_optimizer_input(df)
+                logger.info(f"准备优化器输入数据完成，学校数据数量: {len(all_schools_data)}")
+
+                if not all_schools_data:
+                    logger.warning("优化器输入数据为空，无法继续优化")
+                    st.error("优化器输入数据为空，无法执行优化。")
+                    status.update(label="优化失败", state="error")
+                    self.session_manager.set(processing_lock=False, lock_start_time=0)
+                    return
 
                 input_data = self.session_manager.get("input_data")
                 if not input_data:
+                    logger.error("无法获取用户输入信息")
                     st.error("无法获取用户输入信息，无法执行优化。")
                     status.update(label="优化失败", state="error")
+                    self.session_manager.set(processing_lock=False, lock_start_time=0)
                     return
 
+                logger.info(
+                    f"用户输入数据: background_major={input_data.get('background_major')}, "
+                    f"faculty={input_data.get('faculty')}, "
+                    f"school_level={input_data.get('school_level')}, "
+                    f"gpa={input_data.get('gpa')}"
+                )
+
                 major_category_cache = self._build_major_category_cache(all_schools_data)
+                logger.info(f"专业类别缓存大小: {len(major_category_cache)}")
+
                 bg_target_similarity_cache = self._get_bg_target_similarity_cache()
+                logger.info(f"背景目标相似度缓存大小: {len(bg_target_similarity_cache)}")
 
                 self._update_step(step_placeholder, "调用 NSGA-III 算法", animate_ui, 0.8)
                 optimizer = SchoolSelectionOptimizer(
@@ -286,6 +324,7 @@ class OptimizationUI:
                     n_generations=60,
                     correlation_matrix=self.correlation_matrix,
                 )
+                logger.info("优化器初始化完成")
 
                 if animate_ui:
                     result_container: dict[str, Any] = {}
@@ -320,10 +359,15 @@ class OptimizationUI:
 
                     if not result_container.get("success", False):
                         error_msg = result_container.get("error", "未知错误")
+                        logger.error(f"优化过程失败: {error_msg}")
                         raise Exception(error_msg)
 
                     recommendations = result_container["recommendations"]
                     adaptive_thresholds = result_container["adaptive_thresholds"]
+                    logger.info(
+                        f"优化完成，推荐结果数量: {len(recommendations)}, "
+                        f"自适应阈值: {adaptive_thresholds}"
+                    )
 
                     step_placeholder.markdown(
                         f"<p style='font-size: 14px; font-weight: normal;'>{base_text}...</p>",
@@ -334,12 +378,17 @@ class OptimizationUI:
                         "<p style='font-size: 14px; font-weight: normal;'>执行核心算法迭代，构建 pareto 最优前沿解集中...</p>",
                         unsafe_allow_html=True,
                     )
+                    logger.info("开始同步执行优化（数据量小于20）")
                     recommendations, adaptive_thresholds = self._run_optimization_with_timeout(
                         optimizer,
                         all_schools_data,
                         input_data,
                         major_category_cache,
                         bg_target_similarity_cache,
+                    )
+                    logger.info(
+                        f"同步优化完成，推荐结果数量: {len(recommendations)}, "
+                        f"自适应阈值: {adaptive_thresholds}"
                     )
 
                 self._update_step(
@@ -349,7 +398,9 @@ class OptimizationUI:
                     1.2,
                 )
 
+                logger.info(f"准备保存优化结果，推荐数量: {len(recommendations)}")
                 self._save_optimization_results(df, recommendations, adaptive_thresholds)
+                logger.info("优化结果保存完成")
 
                 user_nickname = self.session_manager.get("user_nickname", "用户")
 
@@ -412,11 +463,24 @@ class OptimizationUI:
             status_container.empty()
 
         except TimeoutError as e:
+            logger.error(f"优化超时: {str(e)}", exc_info=True)
             self._handle_optimization_error(f"优化超时: {str(e)}", status)
         except Exception as e:
+            logger.error(f"优化过程中出错: {str(e)}", exc_info=True)
             self._handle_optimization_error(f"优化过程中出错: {str(e)}", status)
 
     def _save_optimization_results(self, df: pd.DataFrame, recommendations, adaptive_thresholds):
+        logger.info(
+            f"保存优化结果: recommendations数量={len(recommendations) if recommendations else 0}, "
+            f"adaptive_thresholds={adaptive_thresholds}"
+        )
+        if recommendations:
+            for i, rec in enumerate(recommendations):
+                logger.debug(
+                    f"推荐结果{i + 1}: type={rec.get('type')}, "
+                    f"schools数量={len(rec.get('schools', []))}"
+                )
+
         self.session_manager.set(
             optimization_performed=True,
             optimization_recommendations=recommendations,
@@ -444,6 +508,15 @@ class OptimizationUI:
         recommendations = self.session_manager.get("optimization_recommendations", [])
         adaptive_thresholds = self.session_manager.get("adaptive_thresholds", None)
 
+        logger.info(
+            f"显示优化结果: recommendations数量={len(recommendations) if recommendations else 0}, "
+            f"adaptive_thresholds是否存在={adaptive_thresholds is not None}"
+        )
+
         if recommendations:
+            logger.info(f"开始可视化推荐结果，数量: {len(recommendations)}")
             optimizer_for_viz = SchoolSelectionOptimizer()
             optimizer_for_viz.visualize_recommendations(recommendations, adaptive_thresholds)
+            logger.info("可视化完成")
+        else:
+            logger.warning("优化结果为空，无法显示")

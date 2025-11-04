@@ -85,6 +85,7 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hk", False):
         available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", "🎓"))
+        available_buttons.append(("案例库极速版", "pages/case_lib.py", "⚡"))
 
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", "⚙️"))

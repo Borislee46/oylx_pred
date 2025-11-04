@@ -12,6 +12,13 @@ from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
+FIELD_NAME_MAP = {
+    "research_details": "研究",
+    "award_details": "奖项",
+    "internship_details": "实习",
+    "paper_details": "论文",
+}
+
 INVALID_TOKENS = {
     "",
     "无",
@@ -132,7 +139,8 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
         content = str(experience_details.get(k, "")).strip()
         if not is_effectively_empty(content):
             if not _validate_field_with_llm(k, content):
-                logger.info(f"字段 {k} 的内容与字段类型不匹配，已过滤")
+                field_name = FIELD_NAME_MAP.get(k, k)
+                st.toast(f"{field_name}填写的内容无效")
                 continue
             validated_keys.append(k)
 

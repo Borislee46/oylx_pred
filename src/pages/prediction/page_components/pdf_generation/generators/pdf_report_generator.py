@@ -6,6 +6,7 @@ import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
 from reportlab.platypus import BaseDocTemplate, Frame, NextPageTemplate, PageBreak, PageTemplate
 
 from src.utils.logger import setup_logger
@@ -17,17 +18,24 @@ logger = setup_logger("page3", "prediction")
 
 
 class WatermarkedDocTemplate(BaseDocTemplate):
-    def __init__(self, filename, user_nickname: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        filename,
+        user_nickname: Optional[str] = None,
+        chinese_font_name: Optional[str] = None,
+        **kwargs,
+    ):
         super().__init__(filename, **kwargs)
         from ..config import pdf_config
 
         self.user_nickname = user_nickname or "用户"
-        self.theme_primary = colors.HexColor(pdf_config.style.theme_primary)
-        self.watermark_opacity = pdf_config.style.watermark_opacity
-        self.watermark_font_size = pdf_config.style.watermark_font_size
-        self.watermark_rotation = pdf_config.style.watermark_rotation
-        self.watermark_x_spacing = pdf_config.style.watermark_x_spacing
-        self.watermark_y_spacing = pdf_config.style.watermark_y_spacing
+        self.chinese_font_name = chinese_font_name or "Helvetica"
+        self.theme_primary = colors.HexColor(pdf_config.theme_primary)
+        self.watermark_opacity = pdf_config.watermark_opacity
+        self.watermark_font_size = pdf_config.watermark_font_size
+        self.watermark_rotation = pdf_config.watermark_rotation
+        self.watermark_x_spacing = pdf_config.watermark_x_spacing
+        self.watermark_y_spacing = pdf_config.watermark_y_spacing
 
         frame_cover = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="cover")
         frame_normal = Frame(
@@ -72,8 +80,9 @@ class WatermarkedDocTemplate(BaseDocTemplate):
 
         self.canv.setFillColor(colors.black, alpha=self.watermark_opacity)
         try:
-            self.canv.setFont("ChineseFont", self.watermark_font_size)
-        except Exception:
+            pdfmetrics.getFont(self.chinese_font_name)
+            self.canv.setFont(self.chinese_font_name, self.watermark_font_size)
+        except (KeyError, AttributeError):
             self.canv.setFont("Helvetica", self.watermark_font_size)
 
         rows = int(page_height / self.watermark_y_spacing) + 1
@@ -119,11 +128,12 @@ class PDFReportGenerator:
             doc = WatermarkedDocTemplate(
                 buffer,
                 pagesize=A4,
-                rightMargin=pdf_config.layout.right_margin * cm,
-                leftMargin=pdf_config.layout.left_margin * cm,
-                topMargin=pdf_config.layout.top_margin * cm,
-                bottomMargin=pdf_config.layout.bottom_margin * cm,
+                rightMargin=pdf_config.right_margin * cm,
+                leftMargin=pdf_config.left_margin * cm,
+                topMargin=pdf_config.top_margin * cm,
+                bottomMargin=pdf_config.bottom_margin * cm,
                 user_nickname=final_nickname,
+                chinese_font_name=self.styler.chinese_font_name,
             )
 
             story = []

@@ -11,10 +11,7 @@ _matplotlib_configured = False
 def _configure_matplotlib_once():
     global _matplotlib_configured
     if not _matplotlib_configured:
-        try:
-            plt.rcParams["font.sans-serif"] = ["SimHei"]
-        except Exception:
-            plt.rcParams["font.sans-serif"] = ["sans-serif"]
+        plt.rcParams["font.sans-serif"] = ["STSong-Light"] + plt.rcParams["font.sans-serif"]
         plt.rcParams["axes.unicode_minus"] = False
         _matplotlib_configured = True
 
@@ -42,11 +39,27 @@ def create_student_background_radar_chart(input_data, school_level_scores_map):
         val_school = 50
     val_school = max(0, min(val_school, 100))
 
-    gpa = input_data.get("gpa", 0)
+    gpa_value = input_data.get("gpa") or input_data.get("gpa_score", 0)
+    if isinstance(gpa_value, str) and (gpa_value == "未填写" or not gpa_value.strip()):
+        gpa = 0
+    else:
+        try:
+            gpa = float(gpa_value)
+        except (ValueError, TypeError):
+            gpa = 0
     val_gpa = min(gpa / MAX_GPA, 1.0) * 100 if MAX_GPA > 0 else 0
     val_gpa = max(0, min(val_gpa, 100))
 
-    lang_score = input_data.get("language_score", 0)
+    lang_score_value = input_data.get("language_score", 0)
+    if isinstance(lang_score_value, str) and (
+        lang_score_value == "未填写" or not lang_score_value.strip()
+    ):
+        lang_score = 0
+    else:
+        try:
+            lang_score = float(lang_score_value)
+        except (ValueError, TypeError):
+            lang_score = 0
     val_lang = lang_score * 100
     val_lang = max(0, min(val_lang, 100))
 

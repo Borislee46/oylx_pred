@@ -158,7 +158,7 @@ class SchoolDataProcessor:
         if not schools:
             return []
 
-        max_count = max_count or pdf_config.content.max_schools_per_strategy
+        max_count = max_count or pdf_config.max_schools_per_strategy
 
         sorted_schools = sorted(
             schools,

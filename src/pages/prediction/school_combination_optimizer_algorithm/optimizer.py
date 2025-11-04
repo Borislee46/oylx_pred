@@ -12,6 +12,7 @@ from pymoo.operators.sampling.rnd import BinaryRandomSampling
 from pymoo.optimize import minimize
 
 from src.pages.prediction.prediction_utils import get_cached_major_similarity
+from src.pages.prediction.result_modifier.config import UNIVERSITY_DIFFICULTY_ORDER
 from src.pages.prediction.school_combination_optimizer_algorithm.config import (
     ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG,
     BALANCE_RATIOS,
@@ -68,7 +69,7 @@ class OptimizationContext:
     school_level: Optional[str] = None
     gpa: Optional[float] = None
     adaptive_thresholds: Optional[dict[str, float]] = None
-    problem: Optional[Any] = None
+    problem: Optional[SchoolSelectionProblem] = None
     major_category_cache: Optional[dict] = None
 
 
@@ -140,45 +141,90 @@ class SchoolSelectionOptimizer:
     def _apply_all_filters(
         self, schools_data: list[dict], context: OptimizationContext
     ) -> list[dict]:
+        logger.info(
+            f"_apply_all_filters开始: 输入学校数量={len(schools_data)}, "
+            f"background_major={context.background_major}"
+        )
+
         schools_data = [
             ({**s, "major_norm": normalize_major_name(s.get("major", ""))} if s else s)
             for s in schools_data
         ]
+        logger.info(f"添加major_norm后，学校数量={len(schools_data)}")
 
         def similarity_filter(schools):
-            return deduplicate_universities_by_similarity(
+            result = deduplicate_universities_by_similarity(
                 schools, context.background_major, None, MACAU_UNIVERSITIES
             )
+            logger.info(f"similarity_filter: {len(schools)} -> {len(result)}")
+            return result
 
         def similarity_filter_only(schools):
-            return [
-                s
-                for s in schools
-                if get_cached_major_similarity(s.get("major", ""), context.background_major, {})
-                >= GLOBAL_MIN_SIMILARITY
-            ]
+            similarities = []
+            filtered = []
+            cache = self.bg_target_similarity_cache
+            logger.info(f"similarity_filter_only使用缓存大小: {len(cache)}")
+
+            sample_majors = []
+            for s in schools:
+                major = s.get("major", "")
+                similarity = get_cached_major_similarity(major, context.background_major, cache)
+                similarities.append(similarity)
+
+                if len(sample_majors) < 5:
+                    sample_majors.append((major, similarity))
+
+                if similarity >= GLOBAL_MIN_SIMILARITY:
+                    filtered.append(s)
+
+            if similarities:
+                logger.info(
+                    f"similarity_filter_only: {len(schools)} -> {len(filtered)}, "
+                    f"相似度范围=[{min(similarities):.3f}, {max(similarities):.3f}], "
+                    f"平均值={sum(similarities) / len(similarities):.3f}, "
+                    f"阈值={GLOBAL_MIN_SIMILARITY}"
+                )
+                if sample_majors:
+                    sample_info = ", ".join([f"{m[:30]}:{sim:.3f}" for m, sim in sample_majors])
+                    logger.info(f"前5个专业相似度示例: {sample_info}")
+                if len(filtered) == 0 and len(schools) > 0:
+                    logger.warning(
+                        f"所有学校都被过滤掉！最高相似度={max(similarities):.3f} < 阈值{GLOBAL_MIN_SIMILARITY}, "
+                        f"background_major={context.background_major}"
+                    )
+            return filtered
 
         def probability_calibration(schools):
-            return calibrate_cross_major_probabilities(schools, context.background_faculty)
+            result = calibrate_cross_major_probabilities(schools, context.background_faculty)
+            logger.info(f"probability_calibration: {len(schools)} -> {len(result)}")
+            return result
 
         filters = [
-            deduplicate_majors,
-            similarity_filter,
-            similarity_filter_only,
-            probability_calibration,
+            ("deduplicate_majors", deduplicate_majors),
+            ("similarity_filter", similarity_filter),
+            ("similarity_filter_only", similarity_filter_only),
+            ("probability_calibration", probability_calibration),
         ]
 
         filtered_data = schools_data
-        for filter_func in filters:
+        for filter_name, filter_func in filters:
             original_len = len(filtered_data)
+            logger.info(f"应用过滤器 {filter_name}: 输入数量={original_len}")
+
             filtered_data = self._safe_execute(
                 lambda: filter_func(filtered_data),
                 lambda: filtered_data,
-                f"过滤器 {filter_func.__name__} 出现错误",
+                f"过滤器 {filter_name} 出现错误",
             )
-            if len(filtered_data) != original_len:
+
+            new_len = len(filtered_data)
+            logger.info(f"过滤器 {filter_name} 完成: {original_len} -> {new_len}")
+
+            if new_len != original_len:
+                logger.info(f"过滤器 {filter_name} 改变了数据量，停止后续过滤器")
                 break
 
+        logger.info(f"_apply_all_filters完成: 最终学校数量={len(filtered_data)}")
         return filtered_data
 
     def _create_problem(
@@ -420,6 +466,10 @@ class SchoolSelectionOptimizer:
         if not selected_schools:
             return None
 
+        selected_schools = self._adjust_probability_by_university_difficulty(
+            selected_schools, context.adaptive_thresholds
+        )
+
         metrics = self._calculate_metrics(selected_schools, context, problem)
 
         return self._create_recommendation(selected_schools, metrics, f_values.tolist())
@@ -464,6 +514,54 @@ class SchoolSelectionOptimizer:
 
         return schools
 
+    def _adjust_probability_by_university_difficulty(
+        self,
+        schools: list[dict],
+        adaptive_thresholds: dict[str, float] = None,
+    ) -> list[dict]:
+        if not schools:
+            return schools
+
+        difficulty_map = {uni: idx for idx, uni in enumerate(UNIVERSITY_DIFFICULTY_ORDER)}
+        target_thresh = (
+            adaptive_thresholds.get("target_lower", 0.55) if adaptive_thresholds else 0.55
+        )
+        total_universities = len(UNIVERSITY_DIFFICULTY_ORDER)
+
+        adjusted_schools = []
+        for school in schools:
+            university = school.get("university", "")
+            current_prob = clip_probability(school.get("probability", 0.0))
+
+            difficulty_rank = difficulty_map.get(university, total_universities)
+            normalized_rank = (
+                difficulty_rank / total_universities if total_universities > 0 else 0.5
+            )
+
+            if normalized_rank >= 0.3:
+                if current_prob < target_thresh:
+                    adjustment_factor = (
+                        (normalized_rank - 0.3) / 0.7 if normalized_rank > 0.3 else 0.1
+                    )
+                    boost_amount = max(0.08, 0.15 * adjustment_factor)
+                    adjusted_prob = min(1.0, current_prob + boost_amount)
+
+                    if adjusted_prob < target_thresh:
+                        adjusted_prob = target_thresh + 0.02
+
+                    school = {**school, "probability": min(1.0, adjusted_prob)}
+                elif current_prob < target_thresh + 0.15:
+                    adjustment_factor = (
+                        (normalized_rank - 0.3) / 0.7 if normalized_rank > 0.3 else 0.1
+                    )
+                    boost_amount = 0.06 * adjustment_factor
+                    adjusted_prob = min(1.0, current_prob + boost_amount)
+                    school = {**school, "probability": adjusted_prob}
+
+            adjusted_schools.append(school)
+
+        return adjusted_schools
+
     def _get_fallback_recommendation(
         self, context: OptimizationContext, plan_config: PlanConfig
     ) -> Optional[dict[str, Any]]:
@@ -480,35 +578,64 @@ class SchoolSelectionOptimizer:
         if not context.problem:
             return None
 
+        balanced_schools = self._adjust_probability_by_university_difficulty(
+            balanced_schools, context.adaptive_thresholds
+        )
         metrics = self._calculate_metrics(balanced_schools, context, context.problem)
         return self._create_recommendation(balanced_schools, metrics)
 
     def _optimize_single_plan(
         self, plan_config: PlanConfig, context: OptimizationContext
     ) -> Optional[dict[str, Any]]:
+        logger.info(
+            f"_optimize_single_plan开始: plan_config={plan_config.name}, "
+            f"输入学校数量={len(context.all_schools_data)}"
+        )
+
         filtered_schools = self._apply_all_filters(context.all_schools_data, context)
+        logger.info(f"过滤后学校数量: {len(filtered_schools)}, 最小要求: {plan_config.min_schools}")
 
         if not self._has_sufficient_schools(filtered_schools, plan_config.min_schools):
+            logger.warning(
+                f"学校数量不足，过滤后={len(filtered_schools)}, 最小要求={plan_config.min_schools}"
+            )
             return None
 
         problem = self._create_problem(filtered_schools, plan_config, context)
         context.problem = problem
+        logger.info(f"问题创建完成，变量数量: {problem.n_var}")
 
         result = self._run_optimization(problem)
+        logger.info(f"优化运行完成，结果是否存在: {result is not None}")
 
         if result and hasattr(result, "X"):
+            logger.info(f"优化结果有效，解数量: {len(result.X) if result.X is not None else 0}")
             best_indices = self._find_best_solution_indices(
                 result, problem, plan_config.min_schools
             )
+            logger.info(f"找到最佳解索引数量: {len(best_indices)}")
 
             for idx in best_indices:
                 recommendation = self._build_final_recommendation(
                     result.X[idx], result.F[idx], problem, context, plan_config
                 )
                 if recommendation:
+                    logger.info(
+                        f"成功构建推荐结果，学校数量: {len(recommendation.get('schools', []))}"
+                    )
                     return recommendation
+                else:
+                    logger.warning(f"索引{idx}未能构建推荐结果")
+        else:
+            logger.warning("优化结果无效或缺少X属性")
 
-        return self._get_fallback_recommendation(context, plan_config)
+        logger.info("尝试获取fallback推荐结果")
+        fallback = self._get_fallback_recommendation(context, plan_config)
+        if fallback:
+            logger.info(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
+        else:
+            logger.warning("fallback推荐结果也为空")
+        return fallback
 
     def clear_cache(self):
         for cache in self._caches.values():
@@ -524,14 +651,21 @@ class SchoolSelectionOptimizer:
         major_category_cache: Optional[dict] = None,
         bg_target_similarity_cache: Optional[dict] = None,
     ) -> tuple[list[dict[str, Any]], dict[str, float]]:
+        logger.info(
+            f"optimizer.optimize开始: all_schools_data数量={len(all_schools_data)}, "
+            f"background_major={background_major}, background_faculty={background_faculty}, "
+            f"school_level={school_level}, gpa={gpa}"
+        )
+
         if not all_schools_data:
+            logger.warning("all_schools_data为空，返回空结果")
             return [], {}
 
-        self.all_schools_data = all_schools_data
-
         if major_category_cache is None:
+            logger.info("major_category_cache为空，正在加载")
             details_df = load_school_major_details_df()
             major_category_cache = build_major_category_cache(details_df)
+            logger.info(f"major_category_cache加载完成，大小: {len(major_category_cache)}")
 
         self.context = OptimizationContext(
             all_schools_data=all_schools_data,
@@ -543,16 +677,43 @@ class SchoolSelectionOptimizer:
         )
 
         self.bg_target_similarity_cache = bg_target_similarity_cache or {}
+        logger.info(f"bg_target_similarity_cache大小: {len(self.bg_target_similarity_cache)}")
 
         self.context.adaptive_thresholds = self._calculate_adaptive_thresholds(self.context)
+        logger.info(f"自适应阈值计算完成: {self.context.adaptive_thresholds}")
+
+        all_schools_data = self._adjust_probability_by_university_difficulty(
+            all_schools_data, self.context.adaptive_thresholds
+        )
+        self.all_schools_data = all_schools_data
+        self.context.all_schools_data = all_schools_data
+        logger.info(f"已对选校池进行概率纠偏，学校数量: {len(all_schools_data)}")
+
+        plan_configs = list(get_plan_configs(self.plan_configs))
+        logger.info(f"开始优化，计划配置数量: {len(plan_configs)}")
 
         final_recommendations = []
-        for plan_config in get_plan_configs(self.plan_configs):
+        for plan_config in plan_configs:
+            logger.info(f"开始优化计划配置: {plan_config.name}")
             recommendation = self._optimize_single_plan(plan_config, self.context)
             if recommendation:
                 recommendation["type"] = plan_config.name
                 final_recommendations.append(recommendation)
+                logger.info(f"计划配置 {plan_config.name} 优化完成，获得推荐结果")
+            else:
+                logger.warning(f"计划配置 {plan_config.name} 未获得推荐结果")
 
+        for recommendation in final_recommendations:
+            if recommendation and "schools" in recommendation:
+                recommendation["schools"] = self._adjust_probability_by_university_difficulty(
+                    recommendation["schools"], self.context.adaptive_thresholds
+                )
+                if self.context.problem:
+                    recommendation["metrics"] = self._calculate_metrics(
+                        recommendation["schools"], self.context, self.context.problem
+                    )
+
+        logger.info(f"优化完成，最终推荐数量: {len(final_recommendations)}")
         return final_recommendations, self.context.adaptive_thresholds
 
     def visualize_recommendations(

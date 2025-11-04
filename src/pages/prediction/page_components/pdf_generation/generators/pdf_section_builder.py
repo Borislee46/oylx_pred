@@ -26,6 +26,9 @@ from src.pages.prediction.page_components.pdf_generation.utils import (
     create_responsive_image,
 )
 from src.pages.prediction.prediction_utils import get_school_major_details
+from src.pages.prediction.school_combination_optimizer_algorithm.config import (
+    SCHOOL_CATEGORY_THRESHOLDS,
+)
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -43,8 +46,8 @@ class PDFSectionBuilder:
         story = []
         logo_path = str(pdf_config.get_product_logo_path())
 
-        page_width = A4[0] - (pdf_config.layout.left_margin + pdf_config.layout.right_margin) * cm
-        page_height = A4[1] - (pdf_config.layout.top_margin + pdf_config.layout.bottom_margin) * cm
+        page_width = A4[0] - (pdf_config.left_margin + pdf_config.right_margin) * cm
+        page_height = A4[1] - (pdf_config.top_margin + pdf_config.bottom_margin) * cm
 
         logo = create_responsive_image(logo_path, page_width * 0.3, page_height * 0.25)
         if logo:
@@ -66,7 +69,7 @@ class PDFSectionBuilder:
         <br/>
         - <b>个人背景竞争力分析</b>：全面评估您的学术、语言及软实力背景。
         <br/>
-        - <b>智能择校策略解读</b>：系统已为您生成多种不同风险偏好的申请组合，本报告将重点为您解读最具参考价值的<b>“平衡策略”</b>。
+        - <b>智能择校策略解读</b>：系统已为您生成多种不同风险偏好的申请组合，本报告将为您详细解读所有策略方案，包括冲刺、目标和保底院校的分布情况。
         <br/><br/>
         希望这份报告能为您的申请之路提供有力的支持。
         """
@@ -97,9 +100,7 @@ class PDFSectionBuilder:
             radar_fig.savefig(buf, format="png", dpi=150, bbox_inches="tight", pad_inches=0.1)
             buf.seek(0)
 
-            page_width = (
-                A4[0] - (pdf_config.layout.left_margin + pdf_config.layout.right_margin) * cm
-            )
+            page_width = A4[0] - (pdf_config.left_margin + pdf_config.right_margin) * cm
             radar_image = Image(buf)
             radar_image.drawWidth = page_width * 0.5
             radar_image.drawHeight = radar_image.drawHeight * (
@@ -122,6 +123,14 @@ class PDFSectionBuilder:
         language_type = user_data.get("language_type", "语言")
         language_score = user_data.get("language_score_raw", user_data.get("language_score", "N/A"))
 
+        if isinstance(gpa_display, (int, float)):
+            gpa_display = f"{gpa_display:.2f}".rstrip("0").rstrip(".")
+
+        if gpa_scale and gpa_scale != "N/A" and gpa_scale != "未知":
+            gpa_text = f"{gpa_display} (<b>{gpa_scale}</b>制)"
+        else:
+            gpa_text = str(gpa_display)
+
         academic_data = [
             [
                 Paragraph("<b>本科院校</b>", self.styles["CustomBody"]),
@@ -133,7 +142,7 @@ class PDFSectionBuilder:
             ],
             [
                 Paragraph("<b>GPA成绩</b>", self.styles["CustomBody"]),
-                Paragraph(f"{gpa_display} (<b>{gpa_scale}</b>制)", self.styles["CustomBody"]),
+                Paragraph(gpa_text, self.styles["CustomBody"]),
             ],
             [
                 Paragraph(f"<b>{language_type}成绩</b>", self.styles["CustomBody"]),
@@ -144,7 +153,7 @@ class PDFSectionBuilder:
         table_style_commands = self.styler.get_table_style_with_font(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.style.border_color)),
+                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.border_color)),
                 ("LEFTPADDING", (0, 0), (-1, -1), 6),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
@@ -175,7 +184,7 @@ class PDFSectionBuilder:
         table_style_commands = self.styler.get_table_style_with_font(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.style.border_color)),
+                ("GRID", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.border_color)),
                 ("LEFTPADDING", (0, 0), (-1, -1), 6),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 6),
                 ("TOPPADDING", (0, 0), (-1, -1), 6),
@@ -200,9 +209,9 @@ class PDFSectionBuilder:
                     "BACKGROUND",
                     (0, 0),
                     (-1, -1),
-                    colors.HexColor(pdf_config.style.theme_background),
+                    colors.HexColor(pdf_config.theme_background),
                 ),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.style.border_color)),
+                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.border_color)),
                 ("LEFTPADDING", (0, 0), (-1, -1), 12),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 12),
                 ("TOPPADDING", (0, 0), (-1, -1), 12),
@@ -218,81 +227,95 @@ class PDFSectionBuilder:
     ) -> List:
         story = []
         recommendations = optimization_results.get("recommendations", [])
-        core_strategy = next(
-            (s for s in recommendations if "平衡" in s.get("strategy_name", "")),
-            recommendations[0] if recommendations else None,
-        )
+        adaptive_thresholds = optimization_results.get("adaptive_thresholds", {})
 
-        if not core_strategy:
-            story.append(Paragraph("核心申请策略解读", self.styles["SectionTitle"]))
-            story.append(Paragraph("未能生成核心申请策略的详细建议。", self.styles["CustomBody"]))
+        if not recommendations:
+            story.append(Paragraph("申请策略解读", self.styles["SectionTitle"]))
+            story.append(Paragraph("未能生成申请策略的详细建议。", self.styles["CustomBody"]))
             return story
 
-        strategy_name = core_strategy.get("strategy_name", "核心策略")
-        story.append(Paragraph(f"核心申请策略解读：{strategy_name}", self.styles["SectionTitle"]))
+        for strategy_idx, strategy in enumerate(recommendations):
+            strategy_name = strategy.get("strategy_name", f"申请策略{strategy_idx + 1}")
+            schools = strategy.get("schools", [])
 
-        strategy_desc = pdf_config.get_strategy_description(
-            strategy_name, len(core_strategy.get("schools", []))
-        )
-        story.append(Paragraph(strategy_desc, self.styles["CustomBody"]))
-        story.append(Spacer(1, 0.2 * inch))
+            if not schools:
+                continue
 
-        schools = core_strategy.get("schools", [])
-        if not schools:
-            story.append(Paragraph("此策略下暂无推荐院校。", self.styles["CustomBody"]))
-        else:
+            story.append(Paragraph(f"{strategy_name}解读", self.styles["SectionTitle"]))
+
+            strategy_desc = pdf_config.get_strategy_description(strategy_name, len(schools))
+            story.append(Paragraph(strategy_desc, self.styles["CustomBody"]))
+            story.append(Spacer(1, 0.2 * inch))
+
             grouped_schools = self.data_processor.group_schools_by_university(schools)
             rank = 1
             for university, school_group in grouped_schools.items():
                 story.extend(
-                    self._create_grouped_school_detail(university, school_group, rank, cases_df)
+                    self._create_grouped_school_detail(
+                        university, school_group, rank, cases_df, adaptive_thresholds
+                    )
                 )
                 rank += 1
                 if rank <= len(grouped_schools):
                     story.append(Spacer(1, 0.2 * inch))
 
-            story.append(Spacer(1, 0.5 * inch))
-            story.append(Paragraph("祝您申请顺利！", self.styles["CustomBody"]))
+            if strategy_idx < len(recommendations) - 1:
+                story.append(Spacer(1, 0.3 * inch))
+
+        story.append(Spacer(1, 0.5 * inch))
+        story.append(Paragraph("祝您申请顺利！", self.styles["CustomBody"]))
 
         return story
 
     def _generate_analyst_notes(self, user_data: Dict, soft_skills: Dict) -> str:
         notes = ["<b>分析师建议:</b>"]
 
-        gpa = float(user_data.get("gpa_score", 0))
+        gpa_value = user_data.get("gpa_score", 0)
+        if isinstance(gpa_value, str) and (gpa_value == "未填写" or not gpa_value.strip()):
+            gpa = 0.0
+        else:
+            try:
+                gpa = float(gpa_value)
+            except (ValueError, TypeError):
+                gpa = 0.0
         if gpa >= 3.8:
             notes.append(
-                "• <b>学术表现卓越</b>：您拥有极具竞争力的GPA成绩，这将是您申请中的核心优势，请务必在文书中突出您的学术能力。"
+                "- <b>学术表现卓越</b>：您拥有极具竞争力的GPA成绩，这将是您申请中的核心优势，请务必在文书中突出您的学术能力。"
             )
         elif gpa >= 3.5:
             notes.append(
-                "• <b>学术背景良好</b>：您的GPA成绩达到了大部分名校的要求，具备扎实的学术基础。"
+                "- <b>学术背景良好</b>：您的GPA成绩达到了大部分名校的要求，具备扎实的学术基础。"
             )
         else:
             notes.append(
-                "• <b>学术背景提示</b>：您的GPA成绩可能在申请顶尖项目时面临挑战，建议通过高质量的文书、研究经历或GMAT/GRE成绩来弥补。"
+                "- <b>学术背景提示</b>：您的GPA成绩可能在申请顶尖项目时面临挑战，建议通过高质量的文书、研究经历或GMAT/GRE成绩来弥补。"
             )
 
         strong_points = [k for k, v in soft_skills.items() if v >= 3]
         if strong_points:
             notes.append(
-                f"• <b>软实力突出</b>：您在 <b>{'、'.join(strong_points)}</b> 方面积累了丰富的经验，这极大地增强了您的申请竞争力。请确保在简历和文书中详细阐述这些经历的深度和成果。"
+                f"- <b>软实力突出</b>：您在 <b>{'、'.join(strong_points)}</b> 方面积累了丰富的经验，这极大地增强了您的申请竞争力。请确保在简历和文书中详细阐述这些经历的深度和成果。"
             )
         else:
             weak_points = [k for k, v in soft_skills.items() if v == 0]
             if len(weak_points) >= 2:
                 notes.append(
-                    f"• <b>软实力建议</b>：我们注意到您在 <b>{'、'.join(weak_points)}</b> 等方面的经历尚有提升空间。在未来的申请或准备过程中，强化相关背景将对您大有裨益。"
+                    f"- <b>软实力建议</b>：我们注意到您在 <b>{'、'.join(weak_points)}</b> 等方面的经历尚有提升空间。在未来的申请或准备过程中，强化相关背景将对您大有裨益。"
                 )
 
         notes.append(
-            "• <b>综合建议</b>：请结合我们的三种申请策略，选择最符合您个人目标和风险偏好的方案。祝您申请顺利！"
+            "- <b>综合建议</b>：请结合我们的三种申请策略，选择最符合您个人目标和风险偏好的方案。祝您申请顺利！"
         )
 
         return "<br/>".join(notes)
 
     def _create_grouped_school_detail(
-        self, university: str, school_group: List[Dict], rank: int, cases_df: pd.DataFrame
+        self,
+        university: str,
+        school_group: List[Dict],
+        rank: int,
+        cases_df: pd.DataFrame,
+        adaptive_thresholds: Dict = None,
     ) -> List:
         logo_path = str(pdf_config.get_school_logo_path(university))
         logo_cell_content = create_responsive_image(logo_path, 0.8 * inch, 0.8 * inch) or Paragraph(
@@ -317,7 +340,7 @@ class PDFSectionBuilder:
         for idx, school_data in enumerate(school_group):
             _, major, probability = self.data_processor.extract_school_info(school_data)
             prob_color = pdf_config.get_probability_color(probability)
-            prob_text = f"{probability:.0%}"
+            prob_text = self._get_probability_label(probability, adaptive_thresholds)
 
             prob_p = Paragraph(
                 f"<font color='white'>{prob_text}</font>",
@@ -354,7 +377,7 @@ class PDFSectionBuilder:
                 selected_advice = random.sample(application_advice_list, num_to_select)
 
                 details_content.append(Spacer(1, 0.1 * inch))
-                advice_points = [f"• {item}" for item in selected_advice]
+                advice_points = [f"- {item}" for item in selected_advice]
                 advice_text = "<b>申请要点:</b><br/>" + "<br/>".join(advice_points)
                 details_content.append(Paragraph(advice_text, self.styles["LeftSmallText"]))
 
@@ -363,7 +386,7 @@ class PDFSectionBuilder:
         table_style_commands = self.styler.get_table_style_with_font(
             [
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.style.border_color)),
+                ("BOX", (0, 0), (-1, -1), 1, colors.HexColor(pdf_config.border_color)),
                 ("LEFTPADDING", (0, 0), (-1, -1), 10),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                 ("TOPPADDING", (0, 0), (-1, -1), 10),
@@ -373,6 +396,25 @@ class PDFSectionBuilder:
         card_table.setStyle(TableStyle(table_style_commands))
 
         return [card_table]
+
+    def _get_probability_label(self, probability: float, adaptive_thresholds: Dict = None) -> str:
+        if adaptive_thresholds:
+            safety_threshold = adaptive_thresholds.get(
+                "safety", SCHOOL_CATEGORY_THRESHOLDS["safety"]
+            )
+            target_threshold = adaptive_thresholds.get(
+                "target_lower", SCHOOL_CATEGORY_THRESHOLDS["target_lower"]
+            )
+        else:
+            safety_threshold = SCHOOL_CATEGORY_THRESHOLDS["safety"]
+            target_threshold = SCHOOL_CATEGORY_THRESHOLDS["target_lower"]
+
+        if probability >= safety_threshold:
+            return "保底"
+        elif probability >= target_threshold:
+            return "目标"
+        else:
+            return "冲刺"
 
     def _format_detailed_info_compact(self, detailed_info: str) -> str:
         import re

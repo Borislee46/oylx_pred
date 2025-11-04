@@ -23,8 +23,8 @@ PROFESSIONAL_REDUCTION_FACTOR: float = 0.30
 PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR: float = 0.50
 
 MIN_SIMILARITY_THRESHOLD: float = 0.89
-HIGHER_SIMILARITY_THRESHOLD: float = 0.92
-UNIVERSITY_COUNT_THRESHOLD: int = 5
+HIGHER_SIMILARITY_THRESHOLD: float = 0.91
+UNIVERSITY_COUNT_THRESHOLD: int = 2
 
 TOP_N_RECOMMENDATIONS: int = 50
 
@@ -34,3 +34,29 @@ USER_SPECIFIED_MEDIUM_RANGE_TOP_N: int = 50
 USER_SPECIFIED_LARGE_RANGE_TOP_N: int = 100
 
 PROBABILITY_ADJUSTER_CACHE_SIZE: int = 50
+
+UNIVERSITY_DIFFICULTY_ORDER = [
+    "新加坡国立大学",
+    "新加坡南洋理工大学",
+    "香港大学",
+    "香港中文大学",
+    "香港科技大学",
+    "新加坡管理大学",
+    "马来亚大学",
+    "香港理工大学",
+    "香港城市大学",
+    "马来西亚理科大学",
+    "马来西亚博特拉大学",
+    "香港浸会大学",
+    "马来西亚国立大学",
+    "澳门大学",
+    "香港中文大学 (深圳校区)",
+    "澳门科技大学",
+    "澳门城市大学",
+    "澳门理工大学",
+    "香港教育大学",
+    "香港岭南大学",
+    "香港都会大学",
+    "香港恒生大学",
+    "香港珠海学院",
+]

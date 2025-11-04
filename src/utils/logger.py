@@ -3,10 +3,17 @@ import logging.handlers
 import os
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 
 class SessionIDFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
+        ctx = get_script_run_ctx()
+        if ctx is None:
+            record.session_id = "NO_SESSION"
+            record.userid = "THREAD_MODE"
+            return True
+
         try:
             record.session_id = st.session_state.get("session_id", "NO_SESSION")
         except Exception:
