@@ -54,7 +54,7 @@ class machine_learning_model:
     cases_df: pd.DataFrame
 
     @classmethod
-    @st.cache_resource
+    @st.cache_resource(show_spinner=False)
     def resource_loader(cls) -> "machine_learning_model":
         from src.pages.prediction.prediction_handler import validate_model_and_features
 

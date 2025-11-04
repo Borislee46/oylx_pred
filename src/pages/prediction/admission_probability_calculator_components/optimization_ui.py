@@ -3,6 +3,7 @@ import os
 import threading
 import time
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime
 from typing import Any
 
 import pandas as pd
@@ -11,6 +12,12 @@ from pandas.util import hash_pandas_object
 
 from src.pages.prediction.admission_probability_calculator_components.data_processor import (
     DataProcessor,
+)
+from src.pages.prediction.page_components.pdf_generation.generators.pdf_data_extractor import (
+    PDFDataExtractor,
+)
+from src.pages.prediction.page_components.pdf_generation.pdf_download_section import (
+    generate_pdf_without_session,
 )
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer import (
     SchoolSelectionOptimizer,
@@ -154,6 +161,34 @@ class OptimizationUI:
             result_container["recommendations"] = recommendations
             result_container["adaptive_thresholds"] = adaptive_thresholds
             result_container["success"] = True
+        except Exception as e:
+            result_container["error"] = str(e)
+            result_container["success"] = False
+
+    def _generate_pdf_in_thread(
+        self,
+        user_data: dict,
+        prediction_results: Any,
+        optimization_results: dict,
+        cases_df: pd.DataFrame,
+        user_nickname: str,
+        result_container: dict,
+    ):
+        try:
+            pdf_data, filename, error_msg = generate_pdf_without_session(
+                user_data=user_data,
+                prediction_results=prediction_results,
+                optimization_results=optimization_results,
+                cases_df=cases_df,
+                user_nickname=user_nickname,
+            )
+            if pdf_data is not None:
+                result_container["pdf_data"] = pdf_data
+                result_container["filename"] = filename
+                result_container["success"] = True
+            else:
+                result_container["error"] = error_msg or "PDF生成失败"
+                result_container["success"] = False
         except Exception as e:
             result_container["error"] = str(e)
             result_container["success"] = False
@@ -315,6 +350,60 @@ class OptimizationUI:
                 )
 
                 self._save_optimization_results(df, recommendations, adaptive_thresholds)
+
+                user_nickname = self.session_manager.get("user_nickname", "用户")
+
+                extractor = PDFDataExtractor(self.session_manager)
+                pdf_data_bundle = extractor.validate_data_for_pdf_generation()
+
+                if pdf_data_bundle["is_valid"]:
+                    pdf_result_container: dict[str, Any] = {}
+                    pdf_thread = threading.Thread(
+                        target=self._generate_pdf_in_thread,
+                        args=(
+                            pdf_data_bundle["user_data"],
+                            pdf_data_bundle["prediction_results"],
+                            pdf_data_bundle["optimization_results"],
+                            pdf_data_bundle["cases_df"],
+                            user_nickname,
+                            pdf_result_container,
+                        ),
+                    )
+                    pdf_thread.daemon = True
+                    pdf_thread.start()
+
+                    interval = 0.3
+                    cycle_count = 0
+                    base_text = "生成专属PDF报告中"
+
+                    while pdf_thread.is_alive():
+                        dots = "." * ((cycle_count % 3) + 1)
+                        step_placeholder.markdown(
+                            f"<p style='font-size: 14px; font-weight: normal;'>{base_text}{dots}</p>",
+                            unsafe_allow_html=True,
+                        )
+                        time.sleep(interval)
+                        cycle_count += 1
+
+                    pdf_thread.join(timeout=15.0)
+
+                    if pdf_result_container.get("success", False):
+                        current_time = datetime.now()
+                        self.session_manager.set(
+                            pdf_generated=True,
+                            pdf_data=pdf_result_container["pdf_data"],
+                            pdf_filename=pdf_result_container["filename"],
+                            pdf_generation_time=current_time.strftime("%Y-%m-%d %H:%M:%S"),
+                            pdf_generation_started=False,
+                        )
+                    else:
+                        error_msg = pdf_result_container.get("error", "未知错误")
+                        logger.warning(f"PDF生成失败: {error_msg}")
+                        self.session_manager.set(pdf_generation_error=True)
+                else:
+                    error_msg = pdf_data_bundle.get("error_message", "PDF数据准备失败")
+                    logger.warning(f"PDF数据准备失败: {error_msg}")
+                    self.session_manager.set(pdf_generation_error=True)
 
                 step_placeholder.empty()
                 status.update(label="智能选校优化完成", state="complete", expanded=False)
