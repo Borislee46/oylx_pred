@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -10,8 +10,17 @@ from src.utils.logger import setup_logger
 logger = setup_logger("page3", "prediction")
 
 
-def _get_gpa_rules_config_path() -> str:
-    return os.path.join(os.getcwd(), "config", "gpa_conversion_rules.json")
+def _get_gpa_rules_config_path() -> Path:
+    config_dir = Path.cwd() / "config"
+    config_file = config_dir / "gpa_conversion_rules.json"
+
+    try:
+        config_file.resolve().relative_to(Path.cwd().resolve())
+    except ValueError:
+        logger.error(f"警告：GPA转换规则文件路径不安全: {config_file}")
+        raise ValueError("不安全的文件路径")
+
+    return config_file
 
 
 class GPAConverter:
@@ -38,27 +47,34 @@ class GPAConverter:
 
     @staticmethod
     @st.cache_data
-    def load_gpa_conversion_rules(config_path: str, file_mtime: float):
+    def load_gpa_conversion_rules(config_path: Path, file_mtime: float):
         try:
-            if not os.path.exists(config_path):
+            if not config_path.exists():
                 logger.warning(f"警告：GPA转换规则文件不存在: {config_path}")
                 return None
-            with open(config_path, encoding="utf-8") as f:
+
+            with config_path.open(encoding="utf-8") as f:
                 config = json.load(f)
+
             if not isinstance(config, dict):
                 logger.warning("警告：GPA转换规则文件格式错误，应为JSON对象")
                 return None
+
             required_keys = ["conversion_rules", "country_rules"]
             missing_keys = [key for key in required_keys if key not in config]
             if missing_keys:
                 logger.warning(f"警告：GPA转换规则文件缺少必要字段: {missing_keys}")
                 return None
+
             return config
         except json.JSONDecodeError as e:
-            logger.error(f"错误：GPA转换规则文件JSON格式错误: {e}")
+            logger.error(f"错误：GPA转换规则文件JSON格式错误: {e}", exc_info=True)
+            return None
+        except PermissionError as e:
+            logger.error(f"错误：无法读取GPA转换规则文件（权限不足）: {e}", exc_info=True)
             return None
         except Exception as e:
-            logger.error(f"错误：无法加载GPA转换规则文件: {e}")
+            logger.error(f"错误：无法加载GPA转换规则文件: {e}", exc_info=True)
             return None
 
     @staticmethod
@@ -79,8 +95,9 @@ class GPAConverter:
 
         config_path = _get_gpa_rules_config_path()
         try:
-            file_mtime = os.path.getmtime(config_path) if os.path.exists(config_path) else 0.0
-        except Exception:
+            file_mtime = config_path.stat().st_mtime if config_path.exists() else 0.0
+        except (OSError, ValueError) as e:
+            logger.warning(f"警告：无法获取配置文件修改时间: {e}")
             file_mtime = 0.0
         rules_config = GPAConverter.load_gpa_conversion_rules(config_path, file_mtime)
         if not rules_config:
@@ -132,7 +149,7 @@ class GPAConverter:
                         target_min = float(range_rule["target_min"])
                         target_max = float(range_rule["target_max"])
 
-                        if max_val == min_val:
+                        if abs(max_val - min_val) < 1e-9:
                             ratio = 0.0
                         else:
                             ratio = (raw_value - min_val) / (max_val - min_val)

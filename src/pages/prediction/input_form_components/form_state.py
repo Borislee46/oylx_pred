@@ -18,8 +18,17 @@ from src.utils.user_form_storage import UserFormStorage
 
 form_state_logger = setup_logger("page3", "prediction")
 
+AUTO_SAVE_THROTTLE_TEXT = 4.0
+AUTO_SAVE_THROTTLE_SELECT = 1.5
+AUTO_SAVE_THROTTLE_DEFAULT = 2.0
+
 
 class FormStateManager:
+    @staticmethod
+    def _clear_widget_state(widget_key: str) -> None:
+        if widget_key in st.session_state:
+            del st.session_state[widget_key]
+
     @staticmethod
     def initialize_session_state(session_manager: SessionManager) -> None:
         current_user = session_manager.get_current_user_info()
@@ -103,7 +112,7 @@ class FormStateManager:
         payload = json.dumps(
             snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":")
         ).encode("utf-8")
-        return hashlib.md5(payload).hexdigest()
+        return hashlib.sha256(payload).hexdigest()
 
     @staticmethod
     def _auto_save_form_data(
@@ -142,7 +151,9 @@ class FormStateManager:
         last_save_ts = session_manager.get("last_auto_save_ts", 0)
         last_hash = session_manager.get("last_saved_form_snapshot_hash")
 
-        throttle_seconds = 2.0 if throttle_seconds is None else float(throttle_seconds)
+        throttle_seconds = (
+            AUTO_SAVE_THROTTLE_DEFAULT if throttle_seconds is None else float(throttle_seconds)
+        )
         cur_hash = FormStateManager._snapshot_hash(current_form_data)
 
         if (now - last_save_ts) >= throttle_seconds and cur_hash != last_hash:
@@ -152,20 +163,22 @@ class FormStateManager:
 
     @staticmethod
     def on_form_change(session_manager: SessionManager, change_type: str = None) -> None:
-        session_manager.set(
-            submitted=False,
-            form_data_changed=True,
-            last_submission_logged=False,
-            prediction_submit_lock=False,
-            last_gpa_warning_key=None,
-            last_lang_warning_key=None,
-            cross_faculty_confirmed=False,
-            cross_faculty_cancelled=False,
-            pending_cross_faculty_prediction=False,
-            pending_prediction_data=None,
+        session_manager.batch_set(
+            {
+                "submitted": False,
+                "form_data_changed": True,
+                "last_submission_logged": False,
+                "prediction_submit_lock": False,
+                "last_gpa_warning_key": None,
+                "last_lang_warning_key": None,
+                "cross_faculty_confirmed": False,
+                "cross_faculty_cancelled": False,
+                "pending_cross_faculty_prediction": False,
+                "pending_prediction_data": None,
+            }
         )
 
-        throttle = 4.0 if change_type == "text" else 1.5
+        throttle = AUTO_SAVE_THROTTLE_TEXT if change_type == "text" else AUTO_SAVE_THROTTLE_SELECT
         FormStateManager._auto_save_form_data(session_manager, throttle_seconds=throttle)
 
     @staticmethod
@@ -279,12 +292,9 @@ class FormStateManager:
 
             session_manager.set(language_score_input=converted_score)
 
-            if "language_score_input_widget" in st.session_state:
-                del st.session_state["language_score_input_widget"]
-
+            FormStateManager._clear_widget_state("language_score_input_widget")
         else:
-            if "language_score_input_widget" in st.session_state:
-                del st.session_state["language_score_input_widget"]
+            FormStateManager._clear_widget_state("language_score_input_widget")
 
         session_manager.set(language_type=new_lang_type)
         FormStateManager.on_form_change(session_manager)

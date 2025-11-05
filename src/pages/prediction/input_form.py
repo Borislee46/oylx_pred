@@ -82,12 +82,13 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
             "experience_details": experience_details,
         }
 
-        error_messages = FormValidator.validate_form_data(form_data, gpa_converter)
+        validation_errors = FormValidator.validate_form_data(form_data, gpa_converter)
 
-        if error_messages:
+        if validation_errors:
+            error_messages = [str(err) for err in validation_errors]
             form_logger.warning(f"表单验证失败 - 错误信息: {error_messages}")
-            for msg in error_messages:
-                st.toast(msg)
+            for err in validation_errors:
+                st.toast(str(err))
                 time.sleep(0.5)
             session_manager.set(
                 submitted=False, form_data_changed=True, prediction_submit_lock=False

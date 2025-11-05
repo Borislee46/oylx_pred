@@ -8,6 +8,7 @@ from src.pages.prediction.input_form_components.form_state import FormStateManag
 from src.pages.prediction.input_form_components.form_ui import FormUIComponents
 from src.pages.prediction.input_form_components.form_validator import FormValidator
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
+from src.pages.prediction.input_form_components.validation_errors import ValidationError
 
 __all__ = [
     "GPA_SCALES",
@@ -18,4 +19,5 @@ __all__ = [
     "FormValidator",
     "FormUIComponents",
     "GPAConverter",
+    "ValidationError",
 ]

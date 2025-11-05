@@ -1,3 +1,4 @@
+import hashlib
 from typing import Dict, List, Set
 
 import pandas as pd
@@ -55,7 +56,14 @@ def compute_selection_cache_key(
     selected_categories: Set[str],
     selected_majors: Set[str],
 ) -> str:
-    return f"{tuple(sorted(selected_countries))}_{tuple(sorted(selected_universities))}_{tuple(sorted(selected_categories))}_{tuple(sorted(selected_majors))}"
+    key_parts = (
+        tuple(sorted(selected_countries)),
+        tuple(sorted(selected_universities)),
+        tuple(sorted(selected_categories)),
+        tuple(sorted(selected_majors)),
+    )
+    key_string = str(key_parts).encode("utf-8")
+    return hashlib.sha256(key_string).hexdigest()
 
 
 def _get_options(df: pd.DataFrame, column: str, selections: Set[str]) -> Set[str]:
@@ -69,7 +77,7 @@ def _filter_df_for_options(
     categories: Set[str] | None = None,
     majors: Set[str] | None = None,
 ) -> pd.DataFrame:
-    df = base_df.copy()
+    df = base_df
     if countries and "country" in df.columns:
         df = df[df["country"].isin(countries)]
     if universities and "target_university" in df.columns:
@@ -78,7 +86,7 @@ def _filter_df_for_options(
         df = df[df["major_category"].isin(categories)]
     if majors and "target_major_agg" in df.columns:
         df = df[df["target_major_agg"].isin(majors)]
-    return df
+    return df.copy() if df is not base_df else df
 
 
 def compute_options(

@@ -38,7 +38,7 @@ def check_cross_faculty_situation(
                         cache_key = f"{uni}|{maj}"
                         major_category_cache[cache_key] = cat
             except Exception as e:
-                guard_logger.warning(f"构建专业大类缓存失败: {e}")
+                guard_logger.warning(f"构建专业大类缓存失败: {e}", exc_info=True)
 
     target_faculties: Set[str] = set()
     has_cross_faculty = False

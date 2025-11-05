@@ -1,5 +1,11 @@
+from typing import List
+
 from src.pages.prediction.input_form_components.form_config import GPA_SCALES
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
+from src.pages.prediction.input_form_components.language_score_validator import (
+    LanguageScoreValidator,
+)
+from src.pages.prediction.input_form_components.validation_errors import ValidationError
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
 
@@ -63,22 +69,21 @@ class FormValidator:
             return None
 
     @staticmethod
-    def validate_form_data(form_data, gpa_converter=None):
-        error_messages = []
+    def validate_form_data(form_data, gpa_converter=None) -> List[ValidationError]:
+        errors: List[ValidationError] = []
 
         if not form_data["background_university"]:
-            error_messages.append("请选择背景院校")
+            errors.append(ValidationError("background_university", "请选择背景院校"))
 
         if not form_data["background_major_original"]:
-            error_messages.append("请选择背景专业")
-
+            errors.append(ValidationError("background_major_original", "请选择背景专业"))
         elif not form_data["background_major"]:
-            error_messages.append("背景专业选择无效，请重新选择")
+            errors.append(ValidationError("background_major", "背景专业选择无效，请重新选择"))
 
         if form_data["gpa_raw"] is None or form_data["gpa_raw"] == "":
-            error_messages.append("GPA不能为空")
+            errors.append(ValidationError("gpa_raw", "GPA不能为空"))
         elif form_data["gpa_raw"] == 0:
-            error_messages.append("GPA不能为0")
+            errors.append(ValidationError("gpa_raw", "GPA不能为0"))
         else:
             normalized_gpa = FormValidator.normalize_gpa(
                 form_data["gpa_raw"],
@@ -87,7 +92,7 @@ class FormValidator:
                 gpa_converter,
             )
             if normalized_gpa == 0.0 and form_data["gpa_raw"] > 0:
-                error_messages.append("GPA分制无效")
+                errors.append(ValidationError("gpa_scale", "GPA分制无效"))
 
         school_service = get_school_level_service()
         background_university = form_data.get("background_university")
@@ -98,19 +103,22 @@ class FormValidator:
         )
 
         if form_data.get("language_score_input_error"):
-            error_messages.append("请修正语言成绩输入错误")
+            errors.append(ValidationError("language_score_input", "请修正语言成绩输入错误"))
 
         if form_data["language_type"] == "雅思" and form_data["language_score_raw"] is not None:
-            if (
-                form_data["language_score_raw"] > 0
-                and form_data["language_score_raw"] * 10 % 5 != 0
+            if form_data[
+                "language_score_raw"
+            ] > 0 and not LanguageScoreValidator.validate_ielts_step(
+                form_data["language_score_raw"]
             ):
-                error_messages.append("雅思成绩必须是0.5的倍数")
+                errors.append(ValidationError("language_score_raw", "雅思成绩必须是0.5的倍数"))
 
         if form_data["language_score_raw"] is not None and form_data["language_score_raw"] > 0:
             pass
         elif form_data["language_score_raw"] == 0 and not is_overseas:
-            error_messages.append(f"{form_data['language_type']}成绩不能为0")
+            errors.append(
+                ValidationError("language_score_raw", f"{form_data['language_type']}成绩不能为0")
+            )
 
         experience_fields = [
             "research_count",
@@ -122,7 +130,7 @@ class FormValidator:
 
         for field, name in zip(experience_fields, field_names, strict=False):
             if form_data[field] is None:
-                error_messages.append(f"{name}不能为空")
+                errors.append(ValidationError(field, f"{name}不能为空"))
 
         if "experience_details" in form_data and isinstance(form_data["experience_details"], dict):
             experience_checks = [
@@ -137,8 +145,11 @@ class FormValidator:
                 detail_value = form_data["experience_details"].get(detail_field, "").strip()
 
                 if count_value == 0 and detail_value:
-                    error_messages.append(
-                        f"{field_name}数量为0，但填写了详细信息，请检查数量或清空详细信息"
+                    errors.append(
+                        ValidationError(
+                            count_field,
+                            f"{field_name}数量为0，但填写了详细信息，请检查数量或清空详细信息",
+                        )
                     )
 
-        return error_messages
+        return errors

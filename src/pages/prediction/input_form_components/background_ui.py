@@ -14,8 +14,9 @@ def _log_background_university_change(session_manager, form_state_manager, logge
     selected_university = session_manager.get_widget_value("background_university_selectbox")
     session_manager.set(background_university=selected_university)
 
-    if "language_score_input_widget" in st.session_state:
-        del st.session_state["language_score_input_widget"]
+    from src.pages.prediction.input_form_components.form_state import FormStateManager
+
+    FormStateManager._clear_widget_state("language_score_input_widget")
     session_manager.set(language_score_input=None)
 
     logger.info(f"用户选择背景院校: {selected_university}")

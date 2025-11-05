@@ -52,6 +52,18 @@ class SessionManager:
             else:
                 self._model.other_states[key] = value
 
+    def batch_set(self, updates: dict[str, Any]) -> None:
+        """批量设置多个键值对（性能优化）
+
+        Args:
+            updates: 要更新的键值对字典
+        """
+        for key, value in updates.items():
+            if hasattr(self._model, key):
+                setattr(self._model, key, value)
+            else:
+                self._model.other_states[key] = value
+
     def delete(self, key: str) -> None:
         if key in self._model.other_states:
             del self._model.other_states[key]
