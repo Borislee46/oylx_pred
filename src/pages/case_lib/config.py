@@ -85,3 +85,12 @@ OVERSEAS_PREFIX = "海本-"
 DATA_DIR = "src/machine_learning_models/data"
 CASES_FILE_PATTERN = "cases_*.feather"
 SCHOOL_BASE_PATH = "src/machine_learning_models/data/school_base.feather"
+
+# UI配置
+INITIAL_LOAD_COUNT = 100
+LOAD_MORE_COUNT = 100
+MAX_DISPLAY_COUNT = 500
+GRID_HEIGHT = 1060
+
+# GPA列名映射（用于格式化）
+GPA_COLS_TO_FORMAT = ["GPA", "GPA分制", "GPA（百分制）"]

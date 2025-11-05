@@ -17,26 +17,50 @@ def get_available_categories():
 
 @st.cache_data
 def load_data_by_categories(categories):
+    """
+    加载指定类别的案例数据
+
+    Returns:
+        pd.DataFrame: 合并后的数据框，如果出错则返回空DataFrame
+    """
     if not categories:
         return pd.DataFrame()
 
     df_list = []
+    errors = []
+    warnings = []
+
     for category in categories:
         file_path = os.path.join(config.DATA_DIR, f"cases_{category}.feather")
         if os.path.exists(file_path):
             try:
                 df = pd.read_feather(file_path)
-                df_list.append(df)
+                if df.empty:
+                    warnings.append(f"{category} 数据文件为空")
+                else:
+                    df_list.append(df)
             except Exception as e:
-                st.error(f"加载 {category} 数据时出错: {e}")
+                errors.append(f"加载 {category} 数据时出错: {e}")
         else:
-            st.warning(f"未找到 {category} 的数据文件。")
+            warnings.append(f"未找到 {category} 的数据文件")
+
+    # 将错误和警告存储到session state，由UI层统一显示
+    if errors:
+        st.session_state["case_lib_data_errors"] = errors
+    if warnings:
+        st.session_state["case_lib_data_warnings"] = warnings
 
     if not df_list:
         return pd.DataFrame()
 
-    combined_df = pd.concat(df_list, ignore_index=True, sort=False)
+    try:
+        combined_df = pd.concat(df_list, ignore_index=True, sort=False)
+    except Exception as e:
+        error_msg = f"合并数据时出错: {e}"
+        st.session_state["case_lib_data_errors"] = [error_msg]
+        return pd.DataFrame()
 
+    # 加载学校基础信息并映射国家
     if os.path.exists(config.SCHOOL_BASE_PATH):
         try:
             school_base_df = pd.read_feather(config.SCHOOL_BASE_PATH)
@@ -53,7 +77,11 @@ def load_data_by_categories(categories):
                     school_country_map
                 )
         except Exception as e:
-            st.warning(f"处理 school_base.feather 时出错: {e}")
+            if "case_lib_data_warnings" not in st.session_state:
+                st.session_state["case_lib_data_warnings"] = []
+            st.session_state["case_lib_data_warnings"].append(
+                f"处理 school_base.feather 时出错: {e}"
+            )
 
     columns_to_standardize = set()
     columns_to_standardize.update(

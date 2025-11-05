@@ -117,8 +117,23 @@ def get_target_unis_options(_df, selected_countries: tuple = ()):
 
 
 def apply_filters(df, selections, filter_options):
-    filtered_df = df
+    """
+    应用筛选条件到数据框
 
+    Args:
+        df: 原始数据框
+        selections: 筛选条件字典
+        filter_options: 筛选选项配置
+
+    Returns:
+        筛选后的数据框
+    """
+    if df.empty:
+        return df
+
+    filtered_df = df.copy()
+
+    # 排除"未申请"状态
     if config.ADMISSION_STATUS_COL in filtered_df.columns:
         filtered_df = filtered_df[filtered_df[config.ADMISSION_STATUS_COL] != "未申请"]
 
@@ -150,6 +165,10 @@ def apply_filters(df, selections, filter_options):
             for s in selections["school_levels"]
             if s.startswith(config.OVERSEAS_PREFIX)
         ]
+
+        # 检查是否有有效数据再创建mask
+        if filtered_df.empty:
+            return filtered_df
 
         school_level_mask = pd.Series(False, index=filtered_df.index)
 

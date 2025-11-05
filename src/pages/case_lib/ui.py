@@ -110,110 +110,120 @@ def display_filters(df, filter_options, selected_chinese_categories):
     return selections, search_clicked
 
 
-def display_results(df, selected_chinese_categories):
-    if df.empty:
-        st.info("没有找到符合条件的案例。")
-        return
+def _prepare_background_summary(display_df):
+    """为硕士/博士准备背景信息摘要"""
+    background_cols_map = {
+        "工作数量": "工作",
+        "发表数量": "论文",
+        "科研数量": "科研",
+        "实习数量": "实习",
+        "活动数量": "活动",
+        "获奖数量": "获奖",
+    }
 
-    total_count = len(df)
-    initial_load_count = 100
-    load_more_count = 100
-    max_display_count = 500
+    summary_parts = []
+    for col, prefix in background_cols_map.items():
+        if col in display_df.columns:
+            numeric_series = pd.to_numeric(display_df[col], errors="coerce")
+            mask = (numeric_series.notna()) & (numeric_series > 0)
+            summary_parts.append(
+                pd.Series("", index=display_df.index).where(
+                    ~mask, prefix + numeric_series[mask].astype(int).astype(str)
+                )
+            )
 
-    session_key = f"case_lib_display_count_{selected_chinese_categories}"
-    if session_key not in st.session_state:
-        st.session_state[session_key] = initial_load_count
+    if summary_parts:
+        return pd.concat(summary_parts, axis=1).fillna("").apply("".join, axis=1)
+    return pd.Series("", index=display_df.index)
 
-    current_display_count = min(st.session_state[session_key], max_display_count, total_count)
 
-    st.info(
-        f"共找到 {total_count} 条符合条件的案例，"
-        f"当前展示 {current_display_count} 条"
-        + (f"（最多展示 {max_display_count} 条）" if total_count > max_display_count else "")
-    )
+def _prepare_uni_classification_summary(display_df):
+    """为硕士准备院校分类摘要"""
+    parts_list = []
 
-    display_df = df.head(current_display_count).copy()
+    if "国本院校分类" in display_df.columns:
+        domestic_series = display_df["国本院校分类"].astype(str)
+        valid_domestic = (
+            domestic_series.notna()
+            & (domestic_series != "")
+            & (~domestic_series.isin(config.INVALID_VALUES))
+        )
+        parts_list.append(domestic_series.where(valid_domestic, ""))
 
+    if "海本QS排名区间" in display_df.columns:
+        overseas_series = display_df["海本QS排名区间"].astype(str)
+        valid_overseas = (
+            overseas_series.notna()
+            & (overseas_series != "")
+            & (~overseas_series.isin(config.INVALID_VALUES))
+        )
+        parts_list.append(overseas_series.where(valid_overseas, ""))
+
+    if not parts_list:
+        return pd.Series("", index=display_df.index)
+
+    result = parts_list[0]
+    for part in parts_list[1:]:
+        result = result.astype(str) + "/" + part.astype(str)
+
+    return result.str.replace("^/$", "", regex=True).str.replace("^/|/$", "", regex=True)
+
+
+def _prepare_gre_gmat_score(display_df):
+    """为硕士准备GRE/GMAT分数摘要"""
+    gre_parts = pd.Series("", index=display_df.index, dtype=str)
+    gmat_parts = pd.Series("", index=display_df.index, dtype=str)
+
+    if "GRE分数" in display_df.columns:
+        gre_series = pd.to_numeric(display_df["GRE分数"], errors="coerce")
+        gre_mask = gre_series.notna() & (gre_series > 0)
+        gre_parts.loc[gre_mask] = gre_series.loc[gre_mask].astype(int).astype(str)
+
+    if "GMAT分数" in display_df.columns:
+        gmat_series = pd.to_numeric(display_df["GMAT分数"], errors="coerce")
+        gmat_mask = gmat_series.notna() & (gmat_series > 0)
+        gmat_parts.loc[gmat_mask] = gmat_series.loc[gmat_mask].astype(int).astype(str)
+
+    result = gre_parts + "/" + gmat_parts
+    return result.str.replace("^/$", "", regex=True).str.replace("^/|/$", "", regex=True)
+
+
+def _format_gpa_column(series):
+    """格式化GPA列 - 使用向量化操作"""
+    numeric_series = pd.to_numeric(series, errors="coerce")
+    result = pd.Series("", index=series.index, dtype=str)
+
+    # 处理非空值
+    notna_mask = numeric_series.notna()
+    if notna_mask.any():
+        notna_values = numeric_series[notna_mask]
+        # 使用向量化操作：整数直接转字符串
+        int_mask = (notna_values == notna_values.astype(int)) & (notna_values >= 0)
+        result.loc[notna_mask & int_mask] = notna_values[int_mask].astype(int).astype(str)
+
+        # 对于浮点数，使用apply格式化（这是必要的，因为格式化字符串需要逐个处理）
+        float_mask = notna_mask & ~int_mask
+        if float_mask.any():
+            result.loc[float_mask] = numeric_series[float_mask].apply(
+                lambda x: f"{x:g}" if pd.notna(x) else ""
+            )
+
+    return result
+
+
+def _format_display_dataframe(display_df, selected_chinese_categories):
+    """格式化显示数据框"""
+    # 为硕士/博士添加背景摘要
     if selected_chinese_categories in ["硕士", "博士"]:
-        background_cols_map = {
-            "工作数量": "工作",
-            "发表数量": "论文",
-            "科研数量": "科研",
-            "实习数量": "实习",
-            "活动数量": "活动",
-            "获奖数量": "获奖",
-        }
+        display_df["background_summary"] = _prepare_background_summary(display_df)
 
-        summary_parts = []
-        for col, prefix in background_cols_map.items():
-            if col in display_df.columns:
-                numeric_series = pd.to_numeric(display_df[col], errors="coerce")
-                mask = (numeric_series.notna()) & (numeric_series > 0)
-                summary_parts.append(
-                    pd.Series("", index=display_df.index).where(
-                        ~mask, prefix + numeric_series[mask].astype(int).astype(str)
-                    )
-                )
-
-        display_df["background_summary"] = (
-            pd.concat(summary_parts, axis=1).fillna("").apply("".join, axis=1)
-            if summary_parts
-            else ""
-        )
-
+    # 为硕士添加院校分类和GRE/GMAT摘要
     if selected_chinese_categories == "硕士":
-        parts_list = []
-        if "国本院校分类" in display_df.columns:
-            domestic_series = display_df["国本院校分类"].astype(str)
-            valid_domestic = (
-                domestic_series.notna()
-                & (domestic_series != "")
-                & (~domestic_series.isin(config.INVALID_VALUES))
-            )
-            parts_list.append(domestic_series.where(valid_domestic, ""))
+        display_df["uni_classification_summary"] = _prepare_uni_classification_summary(display_df)
+        display_df["gre_gmat_score"] = _prepare_gre_gmat_score(display_df)
 
-        if "海本QS排名区间" in display_df.columns:
-            overseas_series = display_df["海本QS排名区间"].astype(str)
-            valid_overseas = (
-                overseas_series.notna()
-                & (overseas_series != "")
-                & (~overseas_series.isin(config.INVALID_VALUES))
-            )
-            parts_list.append(overseas_series.where(valid_overseas, ""))
-
-        if parts_list:
-            display_df["uni_classification_summary"] = parts_list[0]
-            for part in parts_list[1:]:
-                display_df["uni_classification_summary"] = (
-                    display_df["uni_classification_summary"].astype(str) + "/" + part.astype(str)
-                )
-            display_df["uni_classification_summary"] = (
-                display_df["uni_classification_summary"]
-                .str.replace("^/$", "", regex=True)
-                .str.replace("^/|/$", "", regex=True)
-            )
-
-        gre_parts = pd.Series("", index=display_df.index)
-        gmat_parts = pd.Series("", index=display_df.index)
-
-        if "GRE分数" in display_df.columns:
-            gre_series = pd.to_numeric(display_df["GRE分数"], errors="coerce")
-            gre_mask = gre_series.notna() & (gre_series > 0)
-            gre_parts[gre_mask] = gre_series[gre_mask].astype(int).astype(str)
-
-        if "GMAT分数" in display_df.columns:
-            gmat_series = pd.to_numeric(display_df["GMAT分数"], errors="coerce")
-            gmat_mask = gmat_series.notna() & (gmat_series > 0)
-            gmat_parts[gmat_mask] = gmat_series[gmat_mask].astype(int).astype(str)
-
-        display_df["gre_gmat_score"] = (
-            (gre_parts.astype(str) + "/" + gmat_parts.astype(str))
-            .str.replace("^/$", "", regex=True)
-            .str.replace("^/|/$", "", regex=True)
-        )
-
+    # 获取显示列配置
     display_cols = config.DISPLAY_COLS_CONFIG.get(selected_chinese_categories, [])
-
     existing_display_cols = [
         original_col
         for original_col, display_name in display_cols
@@ -221,34 +231,36 @@ def display_results(df, selected_chinese_categories):
     ]
 
     if not existing_display_cols:
-        st.warning("没有可供展示的数据列。")
-        return
+        return None, None
 
+    # 重命名列
     column_rename_map = {
         original_col: display_name
         for original_col, display_name in display_cols
         if original_col in existing_display_cols
     }
 
-    final_display_df = display_df[existing_display_cols].rename(columns=column_rename_map)
+    final_display_df = display_df[existing_display_cols].rename(columns=column_rename_map).copy()
 
-    gpa_cols_to_format = ["GPA", "GPA分制", "GPA（百分制）"]
-
+    # 格式化列数据
     for col in final_display_df.columns:
-        if col in gpa_cols_to_format:
-            numeric_series = pd.to_numeric(final_display_df[col], errors="coerce")
-            final_display_df[col] = numeric_series.apply(
-                lambda x: "" if pd.isna(x) else str(int(x)) if x == int(x) else f"{x:g}"
-            )
+        if col in config.GPA_COLS_TO_FORMAT:
+            final_display_df[col] = _format_gpa_column(final_display_df[col])
         else:
-            series = final_display_df[col]
-            series = series.astype(object)
+            # 统一处理空值和无效值
+            series = final_display_df[col].astype(object)
             series = series.where(series.notna(), "")
             series = series.astype(str).replace({"None": "", "nan": "", "NaN": ""})
             final_display_df[col] = series
 
+    return final_display_df, column_rename_map
+
+
+def _render_data_grid(final_display_df):
+    """渲染数据表格"""
     gb = GridOptionsBuilder.from_dataframe(final_display_df)
 
+    # 设置录取状态列样式
     if "录取状态" in final_display_df.columns:
         admission_status_style = JsCode(
             """
@@ -271,27 +283,64 @@ def display_results(df, selected_chinese_categories):
         gb.configure_column("录取状态", cellStyle=admission_status_style)
 
     gb.configure_default_column(editable=False, resizable=True)
-
     gridOptions = gb.build()
 
     st.markdown('<div class="case-library-content">', unsafe_allow_html=True)
     AgGrid(
         final_display_df,
         gridOptions=gridOptions,
-        height=1060,
+        height=config.GRID_HEIGHT,
         theme="streamlit",
         allow_unsafe_jscode=True,
         fit_columns_on_grid_load=True,
     )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    if current_display_count < min(total_count, max_display_count):
+
+def display_results(df, selected_chinese_categories):
+    """显示搜索结果"""
+    if df.empty:
+        st.info("没有找到符合条件的案例。")
+        return
+
+    total_count = len(df)
+    session_key = f"case_lib_display_count_{selected_chinese_categories}"
+
+    # 初始化显示计数
+    if session_key not in st.session_state:
+        st.session_state[session_key] = config.INITIAL_LOAD_COUNT
+
+    current_display_count = min(
+        st.session_state[session_key], config.MAX_DISPLAY_COUNT, total_count
+    )
+
+    # 显示信息提示
+    info_msg = f"共找到 {total_count} 条符合条件的案例，当前展示 {current_display_count} 条"
+    if total_count > config.MAX_DISPLAY_COUNT:
+        info_msg += f"（最多展示 {config.MAX_DISPLAY_COUNT} 条）"
+    st.info(info_msg)
+
+    # 准备显示数据
+    display_df = df.head(current_display_count).copy()
+    final_display_df, column_rename_map = _format_display_dataframe(
+        display_df, selected_chinese_categories
+    )
+
+    if final_display_df is None:
+        st.warning("没有可供展示的数据列。")
+        return
+
+    # 渲染表格
+    _render_data_grid(final_display_df)
+
+    # 加载更多按钮
+    if current_display_count < min(total_count, config.MAX_DISPLAY_COUNT):
         col1, col2, col3 = st.columns([2, 1, 2])
         with col2:
             if st.button("加载更多", type="primary", use_container_width=True):
                 st.session_state[session_key] = min(
-                    st.session_state[session_key] + load_more_count,
-                    max_display_count,
+                    st.session_state[session_key] + config.LOAD_MORE_COUNT,
+                    config.MAX_DISPLAY_COUNT,
                     total_count,
                 )
                 st.rerun()

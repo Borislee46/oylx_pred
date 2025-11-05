@@ -19,14 +19,23 @@ def load_announcements_config() -> dict[str, Any]:
     return {"announcements": []}
 
 
-def save_announcements_config(config: dict[str, Any]) -> bool:
+def save_announcements_config(config: dict[str, Any]) -> tuple[bool, str]:
+    """
+    保存公告配置到文件
+
+    Args:
+        config: 公告配置字典
+
+    Returns:
+        tuple[bool, str]: (是否成功, 消息)
+    """
     try:
         with open(ANNOUNCEMENTS_CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4, ensure_ascii=False)
         load_announcements_config.clear()
-        return True
-    except Exception:
-        return False
+        return True, "公告配置保存成功"
+    except Exception as e:
+        return False, f"保存公告配置失败: {str(e)}"
 
 
 def get_user_group(

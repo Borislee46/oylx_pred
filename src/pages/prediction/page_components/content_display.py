@@ -1,3 +1,5 @@
+from typing import Any
+
 import streamlit as st
 
 from src.pages.prediction.page_components.combination_analysis_section import (
@@ -13,13 +15,24 @@ content_display_logger = setup_logger("page3", "prediction")
 
 def display_content(
     session_manager: SessionManager,
-    page_state,
+    page_state: Any,  # 包含 cases_df 属性的对象
     submitted: bool,
     session_key_has_predicted: str,
     session_key_input_data: str,
     session_key_predict_lock: str,
     session_key_form_data_changed: str,
-):
+) -> None:
+    """显示主要内容区域，包括预测结果和组合分析
+
+    Args:
+        session_manager: 会话管理器实例
+        page_state: 页面状态对象，需包含 cases_df 属性
+        submitted: 是否已提交表单
+        session_key_has_predicted: 是否已预测的session key
+        session_key_input_data: 输入数据的session key
+        session_key_predict_lock: 预测锁定的session key
+        session_key_form_data_changed: 表单数据是否改变的session key
+    """
     if session_manager.get(session_key_has_predicted, False):
         current_input_data = session_manager.get(session_key_input_data)
         if not current_input_data:
@@ -31,14 +44,26 @@ def display_content(
             session_manager.set(
                 **{session_key_has_predicted: False, session_key_predict_lock: False}
             )
-            st.rerun()
+            # 使用 rerun 但添加保护，避免无限循环
+            try:
+                st.rerun()
+            except Exception as e:
+                content_display_logger.error(f"页面刷新失败: {e}")
+            return
 
         prediction_results_model = session_manager.get("prediction_results")
+        if prediction_results_model is None:
+            st.error("预测结果模型不存在，无法显示结果。")
+            content_display_logger.error("prediction_results_model 为 None")
+            return
+
         sim_results_display = prediction_results_model.similarity_results
         cross_results_display = prediction_results_model.cross_major_results
         user_specified_results_display = prediction_results_model.user_specified_results
 
-        if not submitted and session_manager.get(session_key_form_data_changed, False):
+        # 合并重复的条件判断
+        form_data_changed = session_manager.get(session_key_form_data_changed, False)
+        if not submitted and form_data_changed:
             st.warning(
                 "您的输入已更改，当前显示的是基于先前输入的预测结果。请点击预测按钮获取最新结果。"
             )
@@ -52,7 +77,7 @@ def display_content(
             submitted=submitted,
         )
 
-        if not submitted and session_manager.get(session_key_form_data_changed, False):
+        if not submitted and form_data_changed:
             session_manager.set(**{session_key_form_data_changed: False})
 
         display_combination_analysis_section(
