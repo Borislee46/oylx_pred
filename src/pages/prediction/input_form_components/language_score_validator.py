@@ -8,21 +8,18 @@ from src.pages.prediction.input_form_components.form_config import (
 
 
 class LanguageScoreValidator:
-
     @staticmethod
     def validate_ielts_step(score: float) -> bool:
         return abs(score * 2 - round(score * 2)) <= FLOAT_EPSILON
 
     @staticmethod
-    def validate_score_range(
-        score: float, language_type: str
-    ) -> Tuple[bool, Optional[str]]:
+    def validate_score_range(score: float, language_type: str) -> Tuple[bool, Optional[str]]:
         if language_type not in LANGUAGE_SCORE_RANGES:
             return False, f"未知的语言类型: {language_type}"
 
         score_config = LANGUAGE_SCORE_RANGES[language_type]
-        min_score = score_config["min"]
-        max_score = score_config["max"]
+        min_score = float(score_config["min"])
+        max_score = float(score_config["max"])
 
         if score < min_score or score > max_score:
             return (
@@ -30,9 +27,7 @@ class LanguageScoreValidator:
                 f"{language_type}成绩必须在 {min_score} 到 {max_score} 之间",
             )
 
-        if language_type == "雅思" and not LanguageScoreValidator.validate_ielts_step(
-            score
-        ):
+        if language_type == "雅思" and not LanguageScoreValidator.validate_ielts_step(score):
             return False, "雅思成绩必须是0.5的倍数"
 
         return True, None
@@ -57,4 +52,3 @@ class LanguageScoreValidator:
             return None, error_msg, True
 
         return score_value, None, False
-

@@ -17,4 +17,3 @@ class ValidationError:
             "message": self.message,
             "severity": self.severity,
         }
-
