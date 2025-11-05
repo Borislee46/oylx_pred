@@ -1,6 +1,6 @@
 FLOAT_EPSILON = 1e-9
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union, cast
 
 from src.pages.prediction.input_form_components.form_config import (
     LANGUAGE_SCORE_RANGES,
@@ -18,8 +18,8 @@ class LanguageScoreValidator:
             return False, f"未知的语言类型: {language_type}"
 
         score_config = LANGUAGE_SCORE_RANGES[language_type]
-        min_score = float(score_config["min"])
-        max_score = float(score_config["max"])
+        min_score = float(cast(Union[int, float], score_config["min"]))
+        max_score = float(cast(Union[int, float], score_config["max"]))
 
         if score < min_score or score > max_score:
             return (
