@@ -90,8 +90,9 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
             for err in validation_errors:
                 st.toast(str(err))
                 time.sleep(0.5)
+            # 验证失败时，不应该设置 form_data_changed=True，因为无效输入不应该触发"变化"警告
             session_manager.set(
-                submitted=False, form_data_changed=True, prediction_submit_lock=False
+                submitted=False, form_data_changed=False, prediction_submit_lock=False
             )
             reset_prediction_results(session_manager)
         else:

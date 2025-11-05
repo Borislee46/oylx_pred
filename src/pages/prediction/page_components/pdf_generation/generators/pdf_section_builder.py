@@ -11,7 +11,15 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm, inch
-from reportlab.platypus import Image, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import (
+    CondPageBreak,
+    Image,
+    KeepTogether,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from src.pages.prediction.page_components.pdf_generation.config import pdf_config
 from src.pages.prediction.page_components.pdf_generation.content.radar import (
@@ -73,17 +81,17 @@ class PDFSectionBuilder:
         story.append(Spacer(1, 0.25 * inch))
         story.append(Paragraph(report_title, self.styles["SectionTitle"]))
         story.append(Spacer(1, 0.6 * inch))
-        story.append(Paragraph(f"为 <b>{user_nickname}</b> 定制", self.styles["SubTitle"]))
+        story.append(Paragraph(f"学生: <b>{user_nickname}</b>", self.styles["SubTitle"]))
         story.append(Spacer(1, 0.4 * inch))
 
         intro_text = (
-            f"尊敬的 <b>{user_nickname}</b>,<br/><br/>"
-            "本报告基于您提供的个人背景信息，通过AI模型深度分析，为您量身定制了一套个性化的留学申请方案。"
+            f"本报告针对学生 <b>{user_nickname}</b> 的申请情况生成，供内部顾问参考使用。<br/><br/>"
+            "报告基于学生提供的个人背景信息，通过AI模型深度分析，生成了一套个性化的留学申请方案。"
             "报告将包含以下核心内容：<br/>"
-            "- <b>个人背景竞争力分析</b>：全面评估您的学术、语言及软实力背景。<br/>"
-            "- <b>智能择校策略解读</b>：系统已为您生成多种不同风险偏好的申请组合，"
-            "本报告将为您详细解读所有策略方案，包括冲刺、目标和保底院校的分布情况。<br/><br/>"
-            "希望这份报告能为您的申请之路提供有力的支持。"
+            "- <b>个人背景竞争力分析</b>：全面评估学生的学术、语言及软实力背景。<br/>"
+            "- <b>智能择校策略解读</b>：系统已为学生生成多种不同风险偏好的申请组合，"
+            "本报告将详细解读所有策略方案，包括冲刺、目标和保底院校的分布情况。<br/><br/>"
+            "建议顾问结合报告内容，为学生提供专业的申请指导服务。"
         )
 
         left_aligned_body_style = ParagraphStyle(
@@ -113,7 +121,7 @@ class PDFSectionBuilder:
             user_data = {}
 
         story.append(Paragraph("个人背景竞争力分析", self.styles["SectionTitle"]))
-        story.append(Spacer(1, 0.25 * inch))
+        story.append(Spacer(1, 0.2 * inch))
 
         story.append(Paragraph("核心维度分析", self.styles["SubTitle"]))
         radar_fig = None
@@ -136,7 +144,7 @@ class PDFSectionBuilder:
                 radar_image.hAlign = "CENTER"
 
                 story.append(radar_image)
-                story.append(Spacer(1, 0.35 * inch))
+                story.append(Spacer(1, 0.25 * inch))
         except Exception as e:
             logger.error(f"无法生成雷达图: {e}", exc_info=True)
             error_style = ParagraphStyle(
@@ -152,7 +160,7 @@ class PDFSectionBuilder:
                 plt.close(radar_fig)
 
         story.append(Paragraph("背景详情", self.styles["SubTitle"]))
-        story.append(Spacer(1, 0.15 * inch))
+        story.append(Spacer(1, 0.12 * inch))
 
         gpa_display = user_data.get("gpa_raw") or user_data.get("gpa_score", "N/A")
         gpa_scale = user_data.get("gpa_scale", "N/A")
@@ -206,7 +214,7 @@ class PDFSectionBuilder:
         )
         academic_table.setStyle(TableStyle(table_style_commands))
         story.append(academic_table)
-        story.append(Spacer(1, 0.25 * inch))
+        story.append(Spacer(1, 0.2 * inch))
 
         soft_skills = {
             "研究经历": user_data.get("research_count", 0) or 0,
@@ -243,7 +251,7 @@ class PDFSectionBuilder:
         )
         soft_skills_table.setStyle(TableStyle(table_style_commands))
         story.append(soft_skills_table)
-        story.append(Spacer(1, 0.35 * inch))
+        story.append(Spacer(1, 0.25 * inch))
 
         analyst_notes = self._generate_analyst_notes(user_data, soft_skills)
 
@@ -311,11 +319,20 @@ class PDFSectionBuilder:
             if not schools:
                 continue
 
-            story.append(Paragraph(f"{strategy_name}解读", self.styles["SectionTitle"]))
+            # 如果这不是第一个策略，且当前页剩余空间可能不足，则条件分页
+            if strategy_idx > 0:
+                # 估计策略内容高度（标题+描述+至少一个学校卡片），约3.5英寸
+                story.append(CondPageBreak(3.5 * inch))
 
+            # 将策略标题和描述保持在一起
+            strategy_header = [
+                Paragraph(f"{strategy_name}解读", self.styles["SectionTitle"]),
+                Spacer(1, 0.15 * inch),
+            ]
             strategy_desc = pdf_config.get_strategy_description(strategy_name, len(schools))
-            story.append(Paragraph(strategy_desc, self.styles["CustomBody"]))
-            story.append(Spacer(1, 0.25 * inch))
+            strategy_header.append(Paragraph(strategy_desc, self.styles["CustomBody"]))
+            story.append(KeepTogether(strategy_header))
+            story.append(Spacer(1, 0.2 * inch))
 
             grouped_schools = self.data_processor.group_schools_by_university(schools)
             if not grouped_schools:
@@ -326,19 +343,22 @@ class PDFSectionBuilder:
                 if not university or not school_group:
                     continue
 
-                story.extend(
-                    self._create_grouped_school_detail(
-                        university, school_group, rank, cases_df, adaptive_thresholds
-                    )
+                # 对每个学校卡片使用KeepTogether，避免单个卡片被分页打断
+                school_detail = self._create_grouped_school_detail(
+                    university, school_group, rank, cases_df, adaptive_thresholds
                 )
+                if school_detail:
+                    story.append(KeepTogether(school_detail))
+                
                 rank += 1
                 if rank <= len(grouped_schools):
-                    story.append(Spacer(1, 0.25 * inch))
+                    story.append(Spacer(1, 0.2 * inch))
 
+            # 策略之间的间距，如果是最后一个策略则不需要太大间距
             if strategy_idx < len(recommendations) - 1:
-                story.append(Spacer(1, 0.4 * inch))
+                story.append(Spacer(1, 0.3 * inch))
 
-        story.append(Spacer(1, 0.6 * inch))
+        story.append(Spacer(1, 0.4 * inch))
         closing_style = ParagraphStyle(
             name="ClosingStyle",
             parent=self.styles["CustomBody"],
@@ -347,7 +367,7 @@ class PDFSectionBuilder:
             alignment=TA_CENTER,
             spaceBefore=10,
         )
-        story.append(Paragraph("祝您申请顺利！", closing_style))
+        story.append(Paragraph("报告完成，供顾问参考使用", closing_style))
 
         return story
 
@@ -370,17 +390,17 @@ class PDFSectionBuilder:
 
         if gpa >= 3.8:
             notes.append(
-                "- <b>学术表现卓越</b>：您拥有极具竞争力的GPA成绩，这将是您申请中的核心优势，"
-                "请务必在文书中突出您的学术能力。"
+                "- <b>学术表现卓越</b>：该学生拥有极具竞争力的GPA成绩，这将是其申请中的核心优势，"
+                "建议顾问在指导文书写作时突出学生的学术能力。"
             )
         elif gpa >= 3.5:
             notes.append(
-                "- <b>学术背景良好</b>：您的GPA成绩达到了大部分名校的要求，具备扎实的学术基础。"
+                "- <b>学术背景良好</b>：学生的GPA成绩达到了大部分名校的要求，具备扎实的学术基础。"
             )
         elif gpa > 0:
             notes.append(
-                "- <b>学术背景提示</b>：您的GPA成绩可能在申请顶尖项目时面临挑战，"
-                "建议通过高质量的文书、研究经历或GMAT/GRE成绩来弥补。"
+                "- <b>学术背景提示</b>：学生的GPA成绩可能在申请顶尖项目时面临挑战，"
+                "建议顾问通过高质量的文书、研究经历或GMAT/GRE成绩来帮助学生弥补短板。"
             )
 
         strong_points = [
@@ -389,8 +409,8 @@ class PDFSectionBuilder:
         if strong_points:
             points_str = "、".join(strong_points)
             notes.append(
-                f"- <b>软实力突出</b>：您在 <b>{points_str}</b> 方面积累了丰富的经验，"
-                "这极大地增强了您的申请竞争力。请确保在简历和文书中详细阐述这些经历的深度和成果。"
+                f"- <b>软实力突出</b>：该学生在 <b>{points_str}</b> 方面积累了丰富的经验，"
+                "这极大地增强了其申请竞争力。建议顾问在指导学生撰写简历和文书时，详细阐述这些经历的深度和成果。"
             )
         else:
             weak_points = [
@@ -399,13 +419,13 @@ class PDFSectionBuilder:
             if len(weak_points) >= 2:
                 points_str = "、".join(weak_points)
                 notes.append(
-                    f"- <b>软实力建议</b>：我们注意到您在 <b>{points_str}</b> 等方面的经历尚有提升空间。"
-                    "在未来的申请或准备过程中，强化相关背景将对您大有裨益。"
+                    f"- <b>软实力建议</b>：我们注意到该学生在 <b>{points_str}</b> 等方面的经历尚有提升空间。"
+                    "建议顾问在后续指导过程中，帮助学生强化相关背景。"
                 )
 
         notes.append(
-            "- <b>综合建议</b>：请结合我们的三种申请策略，选择最符合您个人目标和风险偏好的方案。"
-            "祝您申请顺利！"
+            "- <b>综合建议</b>：建议顾问结合三种申请策略，为学生选择最符合其个人目标和风险偏好的方案。"
+            "报告仅供参考，具体申请方案需结合实际情况进行调整。"
         )
 
         return "<br/>".join(notes)

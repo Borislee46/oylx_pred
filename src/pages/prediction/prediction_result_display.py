@@ -57,10 +57,10 @@ class ResultsDisplay:
                 style_needed = True
                 style_columns.append("目标专业")
 
-        if "变化" in df.columns:
-            if df["变化"].astype(str).str.strip().ne("").any():
+        if "±%" in df.columns:
+            if df["±%"].astype(str).str.strip().ne("").any():
                 style_needed = True
-                style_columns.append("变化")
+                style_columns.append("±%")
 
         if not style_needed:
             return df
@@ -82,8 +82,8 @@ class ResultsDisplay:
 
         if "专业详情" in df.columns and "专业详情" not in column_widths:
             column_widths["专业详情"] = "large"
-        if "变化" in df.columns and "变化" not in column_widths:
-            column_widths["变化"] = "small"
+        if "±%" in df.columns and "±%" not in column_widths:
+            column_widths["±%"] = "small"
 
         column_config = {}
         for col_name in df.columns:
@@ -97,9 +97,9 @@ class ResultsDisplay:
                 column_config[col_name] = st.column_config.ProgressColumn(
                     width=width, help="录取概率", min_value=0, max_value=1, format=" "
                 )
-            elif col_name == "变化":
+            elif col_name == "±%":
                 column_config[col_name] = st.column_config.TextColumn(
-                    width=width, help="相对上次的概率变化（±%）"
+                    width=width, help="相对上次的概率±%（±%）"
                 )
             else:
                 column_config[col_name] = st.column_config.TextColumn(width=width)
@@ -120,15 +120,15 @@ class ResultsDisplay:
         st.data_editor(styled_df, hide_index=True, column_config=column_config, disabled=True)
 
     def _clean_and_reorder_columns(self, df):
-        if "变化" in df.columns and df["变化"].astype(str).str.strip().eq("").all():
-            df = df.drop(columns=["变化"])
+        if "±%" in df.columns and df["±%"].astype(str).str.strip().eq("").all():
+            df = df.drop(columns=["±%"])
             return df
 
-        if "变化" in df.columns and "录取概率" in df.columns:
+        if "±%" in df.columns and "录取概率" in df.columns:
             cols = list(df.columns)
-            cols.remove("变化")
+            cols.remove("±%")
             insert_pos = cols.index("录取概率") + 1
-            cols = cols[:insert_pos] + ["变化"] + cols[insert_pos:]
+            cols = cols[:insert_pos] + ["±%"] + cols[insert_pos:]
             df = df[cols]
 
         return df
@@ -190,7 +190,7 @@ class ResultsDisplay:
         }
 
         if show_delta:
-            data["变化"] = [self._calculate_delta(result, prev_prob_map) for result in results]
+            data["±%"] = [self._calculate_delta(result, prev_prob_map) for result in results]
 
         return pd.DataFrame(data)
 

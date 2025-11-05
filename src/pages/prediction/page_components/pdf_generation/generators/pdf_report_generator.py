@@ -5,9 +5,16 @@ from typing import Any, Dict, Optional
 import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.units import cm
+from reportlab.lib.units import cm, inch
 from reportlab.pdfbase import pdfmetrics
-from reportlab.platypus import BaseDocTemplate, Frame, NextPageTemplate, PageBreak, PageTemplate
+from reportlab.platypus import (
+    BaseDocTemplate,
+    CondPageBreak,
+    Frame,
+    NextPageTemplate,
+    PageBreak,
+    PageTemplate,
+)
 
 from src.utils.logger import setup_logger
 
@@ -145,7 +152,9 @@ class PDFReportGenerator:
             story.append(PageBreak())
 
             story.extend(self.section_builder.create_background_section(user_data))
-            story.append(PageBreak())
+            # 使用条件分页而非强制分页，避免不必要的空白
+            # 如果当前页剩余空间不足3英寸，则换页；否则继续在同一页
+            story.append(CondPageBreak(3.0 * inch))
 
             if optimization_results:
                 story.extend(
