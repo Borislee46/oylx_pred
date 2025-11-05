@@ -349,7 +349,7 @@ class PDFSectionBuilder:
                 )
                 if school_detail:
                     story.append(KeepTogether(school_detail))
-                
+
                 rank += 1
                 if rank <= len(grouped_schools):
                     story.append(Spacer(1, 0.2 * inch))

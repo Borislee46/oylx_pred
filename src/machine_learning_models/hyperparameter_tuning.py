@@ -1,16 +1,10 @@
-from numpy import dtype, ndarray, signedinteger
-
-
-from numpy._typing._shape import _AnyShape
-
-
-from typing import Any
-
-
 import warnings
+from typing import Any
 
 import numpy as np
 import optuna
+from numpy import dtype, ndarray, signedinteger
+from numpy._typing._shape import _AnyShape
 from optuna.pruners import MedianPruner
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
@@ -41,7 +35,12 @@ def tune_hyperparameters(
         }
 
         intermediate_scores = []
-        for step, (train_idx, val_idx) in enumerate[tuple[ndarray[_AnyShape, dtype[signedinteger[Any]]], ndarray[_AnyShape, dtype[signedinteger[Any]]]]](stratified_kfold.split(X_train, y_train)):
+        for step, (train_idx, val_idx) in enumerate[
+            tuple[
+                ndarray[_AnyShape, dtype[signedinteger[Any]]],
+                ndarray[_AnyShape, dtype[signedinteger[Any]]],
+            ]
+        ](stratified_kfold.split(X_train, y_train)):
             X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
             y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
 
