@@ -106,7 +106,7 @@ class ResultsDisplay:
 
         return column_config
 
-    def _display_dataframe(self, df, column_widths=None):
+    def _display_dataframe(self, df, column_widths=None, result_type=None):
         if df.empty:
             st.info("没有可显示的预测结果")
             return
@@ -117,7 +117,14 @@ class ResultsDisplay:
 
         column_config = self._get_column_config(df, column_widths)
 
-        st.data_editor(styled_df, hide_index=True, column_config=column_config, disabled=True)
+        key_suffix = result_type if result_type else "default"
+        st.data_editor(
+            styled_df,
+            hide_index=True,
+            column_config=column_config,
+            disabled=True,
+            key=f"prediction_result_editor_{key_suffix}",
+        )
 
     def _clean_and_reorder_columns(self, df):
         if "±%" in df.columns and df["±%"].astype(str).str.strip().eq("").all():
@@ -289,7 +296,7 @@ class ResultsDisplay:
             show_delta=self.show_delta,
             max_items=max_items,
         )
-        self._display_dataframe(df, config["config"])
+        self._display_dataframe(df, config["config"], result_type=result_type)
 
     def display(
         self,

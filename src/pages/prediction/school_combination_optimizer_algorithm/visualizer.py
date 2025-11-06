@@ -310,11 +310,13 @@ class RecommendationVisualizer:
                     "申请难度": st.column_config.TextColumn("申请难度"),
                 }
 
+                strategy_type = recommendation.get("type", f"strategy_{i}")
                 st.data_editor(
                     styled_df,
                     hide_index=True,
                     disabled=True,
                     column_config=column_config,
+                    key=f"school_data_editor_{strategy_type}_{i}",
                 )
 
 

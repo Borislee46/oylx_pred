@@ -615,6 +615,35 @@ class SchoolSelectionOptimizer:
         metrics = self._calculate_metrics(balanced_schools, context, context.problem)
         return self._create_recommendation(balanced_schools, metrics)
 
+    def _get_fallback_recommendation_with_filtered_schools(
+        self,
+        filtered_schools: list[dict[str, Any]],
+        context: OptimizationContext,
+        plan_config: PlanConfig,
+    ) -> Optional[dict[str, Any]]:
+        available_count = len(filtered_schools)
+        adjusted_min_schools = min(plan_config.min_schools, available_count)
+        adjusted_max_schools = min(plan_config.max_schools, available_count)
+
+        balanced_schools = generate_balanced_selection(
+            filtered_schools,
+            adjusted_min_schools,
+            adjusted_max_schools,
+            context.adaptive_thresholds,
+        )
+
+        if not balanced_schools:
+            return None
+
+        if not context.problem:
+            return None
+
+        balanced_schools = self._adjust_probability_by_university_difficulty(
+            balanced_schools, context.adaptive_thresholds
+        )
+        metrics = self._calculate_metrics(balanced_schools, context, context.problem)
+        return self._create_recommendation(balanced_schools, metrics)
+
     def _optimize_single_plan(
         self, plan_config: PlanConfig, context: OptimizationContext
     ) -> Optional[dict[str, Any]]:
@@ -628,9 +657,23 @@ class SchoolSelectionOptimizer:
 
         if not self._has_sufficient_schools(filtered_schools, plan_config.min_schools):
             logger.warning(
-                f"学校数量不足，过滤后={len(filtered_schools)}, 最小要求={plan_config.min_schools}"
+                f"学校数量不足，过滤后={len(filtered_schools)}, 最小要求={plan_config.min_schools}，"
+                f"将尝试使用fallback机制"
             )
-            return None
+            if len(filtered_schools) == 0:
+                return None
+            problem = self._create_problem(filtered_schools, plan_config, context)
+            context.problem = problem
+            logger.info(f"问题创建完成（学校数量不足），变量数量: {problem.n_var}")
+            logger.info("直接尝试获取fallback推荐结果")
+            fallback = self._get_fallback_recommendation_with_filtered_schools(
+                filtered_schools, context, plan_config
+            )
+            if fallback:
+                logger.info(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
+            else:
+                logger.warning("fallback推荐结果也为空")
+            return fallback
 
         problem = self._create_problem(filtered_schools, plan_config, context)
         context.problem = problem

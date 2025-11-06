@@ -12,9 +12,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import cm, inch
 from reportlab.platypus import (
-    CondPageBreak,
     Image,
     KeepTogether,
+    PageBreak,
     Paragraph,
     Spacer,
     Table,
@@ -27,6 +27,9 @@ from src.pages.prediction.page_components.pdf_generation.content.radar import (
 )
 from src.pages.prediction.page_components.pdf_generation.content.school_specific_content import (
     SchoolSpecificContentGenerator,
+)
+from src.pages.prediction.page_components.pdf_generation.generators.pdf_ai_agent import (
+    PDFAIAgent,
 )
 from src.pages.prediction.page_components.pdf_generation.generators.pdf_styler import PDFStyler
 from src.pages.prediction.page_components.pdf_generation.utils import (
@@ -50,6 +53,7 @@ class PDFSectionBuilder:
         self.school_content_generator = SchoolSpecificContentGenerator()
         self.data_processor = SchoolDataProcessor()
         self.formatter = ContentFormatter()
+        self.ai_agent = PDFAIAgent()
 
     def create_cover_page(self, user_nickname: str, report_title: str) -> List:
         story = []
@@ -65,33 +69,37 @@ class PDFSectionBuilder:
         page_width = A4[0] - (pdf_config.left_margin + pdf_config.right_margin) * cm
         page_height = A4[1] - (pdf_config.top_margin + pdf_config.bottom_margin) * cm
 
+        story.append(Spacer(1, 0.4 * inch))
+
         logo_path = pdf_config.get_product_logo_path()
         if logo_path:
             logo = create_responsive_image(str(logo_path), page_width * 0.28, page_height * 0.22)
             if logo:
                 logo.hAlign = "CENTER"
                 story.append(logo)
-                story.append(Spacer(1, 0.6 * inch))
+                story.append(Spacer(1, 0.5 * inch))
             else:
-                story.append(Spacer(1, 1.2 * inch))
+                story.append(Spacer(1, 0.3 * inch))
         else:
-            story.append(Spacer(1, 1.2 * inch))
+            story.append(Spacer(1, 0.3 * inch))
 
         story.append(Paragraph("EasyApply 留学择校系统", self.styles["CustomTitle"]))
-        story.append(Spacer(1, 0.25 * inch))
+        story.append(Spacer(1, 0.2 * inch))
         story.append(Paragraph(report_title, self.styles["SectionTitle"]))
-        story.append(Spacer(1, 0.6 * inch))
-        story.append(Paragraph(f"学生: <b>{user_nickname}</b>", self.styles["SubTitle"]))
-        story.append(Spacer(1, 0.4 * inch))
+        story.append(Spacer(1, 0.5 * inch))
+        story.append(
+            Paragraph(f"尊敬的 <b>{user_nickname}</b> 老师，您好：", self.styles["SubTitle"])
+        )
+        story.append(Spacer(1, 0.3 * inch))
 
         intro_text = (
-            f"本报告针对学生 <b>{user_nickname}</b> 的申请情况生成，供内部顾问参考使用。<br/><br/>"
+            "本报告针对学生的申请情况生成，供您参考使用。<br/><br/>"
             "报告基于学生提供的个人背景信息，通过机器学习模型深度分析，生成了一套个性化的留学申请方案。"
             "报告将包含以下核心内容：<br/>"
             "- <b>个人背景竞争力分析</b>：全面评估学生的学术、语言及软实力背景。<br/>"
             "- <b>智能择校策略解读</b>：系统已为学生生成多种不同风险偏好的申请组合，"
             "本报告将详细解读所有策略方案，包括冲刺、目标和保底院校的分布情况。<br/><br/>"
-            "建议顾问结合报告内容，为学生提供专业的申请指导服务。"
+            "建议您结合报告内容，为学生提供专业的申请指导。"
         )
 
         left_aligned_body_style = ParagraphStyle(
@@ -101,8 +109,24 @@ class PDFSectionBuilder:
             leading=16,
             spaceAfter=12,
         )
-        story.append(Paragraph(intro_text, left_aligned_body_style))
-        story.append(Spacer(1, 0.6 * inch))
+
+        intro_para = Paragraph(intro_text, left_aligned_body_style)
+        intro_table = Table([[intro_para]], colWidths=[page_width])
+        intro_table.setStyle(
+            TableStyle(
+                [
+                    ("BOX", (0, 0), (-1, -1), 2, colors.HexColor(pdf_config.theme_primary)),
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FAFAFA")),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 50),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 50),
+                    ("TOPPADDING", (0, 0), (-1, -1), 40),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 40),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        story.append(intro_table)
+        story.append(Spacer(1, 0.4 * inch))
 
         current_time = datetime.now().strftime("%Y年%m月%d日")
         time_style = ParagraphStyle(
@@ -200,7 +224,7 @@ class PDFSectionBuilder:
                 Paragraph(str(language_score), self.styles["CustomBody"]),
             ],
         ]
-        academic_table = Table(academic_data, colWidths=[2.6 * inch, None])
+        academic_table = Table(academic_data, colWidths=[1.5 * inch, None])
         table_style_commands = self.styler.get_table_style_with_font(
             [
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -213,8 +237,6 @@ class PDFSectionBuilder:
             ]
         )
         academic_table.setStyle(TableStyle(table_style_commands))
-        story.append(academic_table)
-        story.append(Spacer(1, 0.2 * inch))
 
         soft_skills = {
             "研究经历": user_data.get("research_count", 0) or 0,
@@ -237,7 +259,7 @@ class PDFSectionBuilder:
                 ]
             )
 
-        soft_skills_table = Table(soft_skills_data, colWidths=[2.6 * inch, None])
+        soft_skills_table = Table(soft_skills_data, colWidths=[1.5 * inch, None])
         table_style_commands = self.styler.get_table_style_with_font(
             [
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -250,8 +272,25 @@ class PDFSectionBuilder:
             ]
         )
         soft_skills_table.setStyle(TableStyle(table_style_commands))
-        story.append(soft_skills_table)
-        story.append(Spacer(1, 0.25 * inch))
+
+        page_width = A4[0] - (pdf_config.left_margin + pdf_config.right_margin) * cm
+        column_width = (page_width - 0.3 * inch) / 2
+
+        two_column_table = Table(
+            [[academic_table, soft_skills_table]],
+            colWidths=[column_width, column_width],
+        )
+        two_column_table.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (0, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (0, -1), 8),
+                    ("LEFTPADDING", (1, 0), (1, -1), 8),
+                    ("RIGHTPADDING", (1, 0), (1, -1), 0),
+                ]
+            )
+        )
 
         analyst_notes = self._generate_analyst_notes(user_data, soft_skills)
 
@@ -281,7 +320,9 @@ class PDFSectionBuilder:
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
             ],
         )
-        story.append(notes_table)
+
+        background_section_content = [two_column_table, Spacer(1, 0.2 * inch), notes_table]
+        story.append(KeepTogether(background_section_content))
 
         return story
 
@@ -319,12 +360,9 @@ class PDFSectionBuilder:
             if not schools:
                 continue
 
-            # 如果这不是第一个策略，且当前页剩余空间可能不足，则条件分页
             if strategy_idx > 0:
-                # 估计策略内容高度（标题+描述+至少一个学校卡片），约3.5英寸
-                story.append(CondPageBreak(3.5 * inch))
+                story.append(PageBreak())
 
-            # 将策略标题和描述保持在一起
             strategy_header = [
                 Paragraph(f"{strategy_name}解读", self.styles["SectionTitle"]),
                 Spacer(1, 0.15 * inch),
@@ -343,7 +381,6 @@ class PDFSectionBuilder:
                 if not university or not school_group:
                     continue
 
-                # 对每个学校卡片使用KeepTogether，避免单个卡片被分页打断
                 school_detail = self._create_grouped_school_detail(
                     university, school_group, rank, cases_df, adaptive_thresholds
                 )
@@ -354,7 +391,6 @@ class PDFSectionBuilder:
                 if rank <= len(grouped_schools):
                     story.append(Spacer(1, 0.2 * inch))
 
-            # 策略之间的间距，如果是最后一个策略则不需要太大间距
             if strategy_idx < len(recommendations) - 1:
                 story.append(Spacer(1, 0.3 * inch))
 
@@ -367,7 +403,7 @@ class PDFSectionBuilder:
             alignment=TA_CENTER,
             spaceBefore=10,
         )
-        story.append(Paragraph("报告完成，供顾问参考使用", closing_style))
+        story.append(Paragraph("祝同学申请顺利！", closing_style))
 
         return story
 
@@ -377,6 +413,15 @@ class PDFSectionBuilder:
         if not soft_skills:
             soft_skills = {}
 
+        ai_notes = self.ai_agent.generate_analyst_notes(user_data, soft_skills)
+        if ai_notes and ai_notes.strip():
+            if not ai_notes.startswith("<b>分析师建议:</b>"):
+                ai_notes = "<b>分析师建议:</b><br/>" + ai_notes
+            return ai_notes
+
+        return self._generate_fallback_analyst_notes(user_data, soft_skills)
+
+    def _generate_fallback_analyst_notes(self, user_data: Dict, soft_skills: Dict) -> str:
         notes = ["<b>分析师建议:</b>"]
 
         gpa_value = user_data.get("gpa_score", 0)
