@@ -10,15 +10,6 @@ logger = setup_logger("page3", "prediction")
 
 
 def _generate_dataframe_hash(cases_df: pd.DataFrame) -> str:
-    """
-    生成DataFrame的唯一哈希键，基于数据内容而非顺序
-
-    Args:
-        cases_df: 数据框
-
-    Returns:
-        数据框的哈希键
-    """
     try:
         # 使用关键列的内容生成哈希，确保内容相同的数据框产生相同的哈希
         required_cols = ["admitted", "target_university", "target_major", "background_major"]

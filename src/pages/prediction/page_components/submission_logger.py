@@ -6,12 +6,10 @@ from src.utils.session_manager import SessionManager
 
 submission_logger = setup_logger("page3", "prediction")
 
-# 常量定义
-DEFAULT_SNIPPET_MAX_LEN = 100  # 默认截断长度
+DEFAULT_SNIPPET_MAX_LEN = 100
 
 
 def _snippet(val: Any, max_len: int = DEFAULT_SNIPPET_MAX_LEN) -> str:
-    """截断字符串到指定长度，超过则添加省略号"""
     if not val:
         return ""
     s = str(val).strip()
@@ -23,7 +21,6 @@ def _snippet(val: Any, max_len: int = DEFAULT_SNIPPET_MAX_LEN) -> str:
 def build_user_form_log(
     session_manager: SessionManager, log_data_source: dict[str, Any]
 ) -> dict[str, Any]:
-    """构建用户表单日志数据，格式化所有字段以便记录"""
     language_type = log_data_source.get("language_type", "未知")
     exp_details = (
         log_data_source.get("experience_details") or {} if isinstance(log_data_source, dict) else {}
@@ -56,7 +53,6 @@ def log_first_submission_if_needed(
     input_data_from_form: dict[str, Any],
     session_key_last_submission_logged: str,
 ) -> None:
-    """记录首次提交的用户表单数据"""
     is_new_submission = not session_manager.get(session_key_last_submission_logged, False)
     if not is_new_submission:
         return

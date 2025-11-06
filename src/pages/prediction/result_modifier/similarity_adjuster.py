@@ -12,15 +12,6 @@ logger = setup_logger("page3", "prediction")
 
 
 def _normalize_keywords(items: list[str]) -> list[str]:
-    """
-    规范化关键词列表，处理换行和逗号分隔
-
-    Args:
-        items: 原始关键词列表
-
-    Returns:
-        规范化后的关键词列表（小写，去重）
-    """
     normalized: list[str] = []
     for it in items or []:
         if not isinstance(it, str):
@@ -36,14 +27,7 @@ def _normalize_keywords(items: list[str]) -> list[str]:
 
 
 def _get_config_path() -> Path:
-    """
-    获取相似度调整规则配置文件的路径
-
-    Returns:
-        配置文件路径
-    """
     config_path = SIMILARITY_ADJUSTMENT_RULES_PATH
-    # 如果是相对路径，则基于项目根目录解析
     if not config_path.is_absolute():
         project_root = Path.cwd()
         config_path = project_root / config_path
@@ -52,12 +36,6 @@ def _get_config_path() -> Path:
 
 @lru_cache(maxsize=1)
 def _load_similarity_rules() -> list[dict[str, Any]]:
-    """
-    加载相似度调整规则（带缓存）
-
-    Returns:
-        启用的规则列表
-    """
     try:
         config_path = _get_config_path()
         if not config_path.exists():
@@ -92,17 +70,6 @@ def _load_similarity_rules() -> list[dict[str, Any]]:
 
 
 def adjust_similarity_score(background_major: str, target_major: str, similarity: float) -> float:
-    """
-    根据规则调整相似度分数
-
-    Args:
-        background_major: 背景专业
-        target_major: 目标专业
-        similarity: 原始相似度分数
-
-    Returns:
-        调整后的相似度分数（限制在0.0-1.0范围内）
-    """
     if not background_major or not target_major:
         return similarity
 

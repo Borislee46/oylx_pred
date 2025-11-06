@@ -17,7 +17,6 @@ def display_combination_analysis_section(
     current_input_data: dict[str, Any],
     cases_df: pd.DataFrame,
 ) -> None:
-    """显示组合分析部分，允许用户选择学校专业组合进行概率计算"""
     if not prediction_results:
         return
 
@@ -25,7 +24,6 @@ def display_combination_analysis_section(
     cross_results = prediction_results.cross_major_results or []
     user_results = prediction_results.user_specified_results or []
 
-    # 简化条件判断
     if not any([sim_results, cross_results, user_results]):
         return
 

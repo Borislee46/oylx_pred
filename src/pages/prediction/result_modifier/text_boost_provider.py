@@ -11,27 +11,13 @@ logger = setup_logger("page3", "prediction")
 
 
 class TextBoostProvider:
-    """文本加成提供者接口"""
-
     def apply(
         self, probabilities: list[float], experience_details: dict[str, str]
     ) -> tuple[list[float], str]:
-        """
-        应用文本加成到概率列表
-
-        Args:
-            probabilities: 原始概率列表
-            experience_details: 经验详情字典
-
-        Returns:
-            (调整后的概率列表, 加成说明字符串)
-        """
         raise NotImplementedError
 
 
 class NullTextBoostProvider(TextBoostProvider):
-    """空文本加成提供者（不进行任何调整）"""
-
     def apply(
         self, probabilities: list[float], experience_details: dict[str, str]
     ) -> tuple[list[float], str]:
@@ -39,15 +25,7 @@ class NullTextBoostProvider(TextBoostProvider):
 
 
 class GatedTextBoostProvider(TextBoostProvider):
-    """门控文本加成提供者（仅在经验详情有效时应用）"""
-
     def __init__(self, inner: TextBoostProvider):
-        """
-        初始化门控提供者
-
-        Args:
-            inner: 内部文本加成提供者
-        """
         self._inner = inner
 
     def apply(
@@ -59,15 +37,6 @@ class GatedTextBoostProvider(TextBoostProvider):
 
 
 def get_text_boost_provider(config: dict[str, Any] | None) -> TextBoostProvider:
-    """
-    获取文本加成提供者实例
-
-    Args:
-        config: 配置字典
-
-    Returns:
-        文本加成提供者实例
-    """
     if not config or not config.get("enabled"):
         return NullTextBoostProvider()
 
@@ -84,15 +53,6 @@ def get_text_boost_provider(config: dict[str, Any] | None) -> TextBoostProvider:
 
 @lru_cache(maxsize=16)
 def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
-    """
-    从缓存获取文本加成提供者（内部函数）
-
-    Args:
-        config_key: 配置的JSON字符串键
-
-    Returns:
-        文本加成提供者实例
-    """
     try:
         config = json.loads(config_key)
         from src.pages.prediction.result_modifier.providers.logit_uplift_provider import (

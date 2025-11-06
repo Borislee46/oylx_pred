@@ -15,24 +15,13 @@ content_display_logger = setup_logger("page3", "prediction")
 
 def display_content(
     session_manager: SessionManager,
-    page_state: Any,  # 包含 cases_df 属性的对象
+    page_state: Any,
     submitted: bool,
     session_key_has_predicted: str,
     session_key_input_data: str,
     session_key_predict_lock: str,
     session_key_form_data_changed: str,
 ) -> None:
-    """显示主要内容区域，包括预测结果和组合分析
-
-    Args:
-        session_manager: 会话管理器实例
-        page_state: 页面状态对象，需包含 cases_df 属性
-        submitted: 是否已提交表单
-        session_key_has_predicted: 是否已预测的session key
-        session_key_input_data: 输入数据的session key
-        session_key_predict_lock: 预测锁定的session key
-        session_key_form_data_changed: 表单数据是否改变的session key
-    """
     if session_manager.get(session_key_has_predicted, False):
         current_input_data = session_manager.get(session_key_input_data)
         if not current_input_data:

@@ -12,7 +12,6 @@ from src.utils.session_manager import PredictionResultModel, SessionManager
 
 logger = setup_logger("page3", "prediction")
 
-# PDF缓存相关的session key列表
 PDF_CACHE_KEYS = [
     "pdf_generated",
     "pdf_data",
@@ -24,7 +23,6 @@ PDF_CACHE_KEYS = [
 
 
 def display_pdf_download_section(session_manager: SessionManager, user_nickname: str) -> None:
-    """显示PDF下载部分"""
     if not session_manager.get("optimization_performed", False):
         return
 
@@ -59,7 +57,6 @@ def generate_pdf_without_session(
     cases_df: pd.DataFrame,
     user_nickname: str,
 ) -> Tuple[Optional[bytes], Optional[str], Optional[str]]:
-    """在不使用session的情况下生成PDF报告"""
     generator = PDFReportGenerator()
 
     pdf_data = generator.generate_report(
@@ -78,6 +75,5 @@ def generate_pdf_without_session(
 
 
 def clear_pdf_cache(session_manager: SessionManager) -> None:
-    """清除PDF相关的缓存数据"""
     for key in PDF_CACHE_KEYS:
         session_manager.delete(key)

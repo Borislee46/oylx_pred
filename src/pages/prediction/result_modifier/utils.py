@@ -37,20 +37,10 @@ INVALID_TOKENS = {
     ".",
 }
 
-# 标点符号字符串，定义为模块级常量以提升性能
 PUNCTUATION_CHARS = string.punctuation + "·—-_/／\\|~`'\"，。；：、"
 
 
 def is_effectively_empty(text: str | None) -> bool:
-    """
-    检查文本是否有效为空（包含无效token或只有标点符号）
-
-    Args:
-        text: 待检查的文本
-
-    Returns:
-        如果文本为空或无效则返回True
-    """
     if text is None:
         return True
     t = str(text).strip()
@@ -64,41 +54,14 @@ def is_effectively_empty(text: str | None) -> bool:
 
 
 def clip_probability(value: Any) -> float:
-    """
-    将概率值裁剪到[0.0, 1.0]范围内
-
-    Args:
-        value: 待裁剪的值
-
-    Returns:
-        裁剪后的概率值
-    """
     return max(0.0, min(1.0, float(value)))
 
 
 def generate_content_hash(content: str) -> str:
-    """
-    生成内容的MD5哈希值
-
-    Args:
-        content: 待哈希的内容
-
-    Returns:
-        MD5哈希值的十六进制字符串
-    """
     return hashlib.md5(content.encode("utf-8")).hexdigest()
 
 
 def has_valid_experience_details(experience_details: dict[str, str] | None) -> bool:
-    """
-    检查经验详情是否包含有效内容
-
-    Args:
-        experience_details: 经验详情字典
-
-    Returns:
-        如果包含至少一个有效字段则返回True
-    """
     if not experience_details:
         return False
     keys = ("research_details", "award_details", "internship_details", "paper_details")
@@ -177,15 +140,6 @@ def _validate_field_with_llm(field_type: str, content: str) -> bool:
 
 
 def has_meaningful_experience_text(experience_details: dict[str, str] | None) -> bool:
-    """
-    检查经验详情是否包含有意义的文本内容（经过LLM验证）
-
-    Args:
-        experience_details: 经验详情字典
-
-    Returns:
-        如果包含有意义的内容则返回True
-    """
     if not has_valid_experience_details(experience_details):
         return False
 

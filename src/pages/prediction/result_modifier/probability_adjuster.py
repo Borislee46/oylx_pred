@@ -38,18 +38,10 @@ logger = setup_logger("page3", "prediction")
 
 
 class ProbabilityAdjuster:
-    """概率调整器，基于历史案例统计对GPA和语言分数进行保守惩罚"""
-
     _stats_cache: dict[str, dict[str, Any]] = {}
-    _cache_lock = threading.Lock()  # 保护缓存的线程锁
+    _cache_lock = threading.Lock()
 
     def __init__(self, cases_df: pd.DataFrame):
-        """
-        初始化概率调整器
-
-        Args:
-            cases_df: 历史案例数据框
-        """
         cache_key = self._generate_data_hash(cases_df)
 
         with self._cache_lock:
@@ -66,15 +58,6 @@ class ProbabilityAdjuster:
         self.language_minimum = LANGUAGE_MINIMUM
 
     def _generate_data_hash(self, cases_df: pd.DataFrame) -> str:
-        """
-        生成数据框的哈希键用于缓存
-
-        Args:
-            cases_df: 数据框
-
-        Returns:
-            数据框的哈希键
-        """
         try:
             data_summary = {
                 "shape": cases_df.shape,
@@ -105,7 +88,6 @@ class ProbabilityAdjuster:
             return f"fallback_{hash(str(cases_df.shape))}"
 
     def _load_cached_statistics(self, cache_key: str):
-        """从缓存加载统计信息"""
         cached_stats = self._stats_cache[cache_key]
         self.gpa_mean = cached_stats["gpa_mean"]
         self.gpa_std = cached_stats["gpa_std"]
@@ -114,7 +96,6 @@ class ProbabilityAdjuster:
         self.language_pass_line = cached_stats["language_pass_line"]
 
     def _cache_statistics(self, cache_key: str):
-        """缓存统计信息，如果超过大小限制则删除最旧的条目"""
         self._stats_cache[cache_key] = {
             "gpa_mean": self.gpa_mean,
             "gpa_std": self.gpa_std,
@@ -128,7 +109,6 @@ class ProbabilityAdjuster:
             del self._stats_cache[oldest_key]
 
     def _calculate_statistics(self):
-        """计算GPA和语言分数的统计信息"""
         try:
             self.gpa_mean = float(np.nan_to_num(self.cases_df["gpa"].mean(), nan=0.0))
             self.gpa_std = float(np.nan_to_num(self.cases_df["gpa"].std(), nan=0.0))
@@ -175,15 +155,6 @@ class ProbabilityAdjuster:
         )
 
     def _calculate_gpa_penalty(self, gpa: float) -> float:
-        """
-        计算GPA惩罚系数
-
-        Args:
-            gpa: GPA分数
-
-        Returns:
-            惩罚系数 (0.0-1.0)
-        """
         if gpa < self.gpa_minimum:
             return GPA_PENALTY_SEVERE_THRESHOLD
         if gpa >= self.gpa_mean:
@@ -192,15 +163,6 @@ class ProbabilityAdjuster:
         return min(GPA_PENALTY_MAX_COEFFICIENT, GPA_PENALTY_QUADRATIC_COEFFICIENT * gpa_gap**2)
 
     def _calculate_language_penalty(self, language_score: float) -> float:
-        """
-        计算语言分数惩罚系数
-
-        Args:
-            language_score: 归一化后的语言分数
-
-        Returns:
-            惩罚系数 (0.0-1.0)
-        """
         if language_score < self.language_minimum:
             return LANGUAGE_PENALTY_SEVERE_THRESHOLD
         if language_score >= self.language_pass_line:
@@ -223,18 +185,6 @@ class ProbabilityAdjuster:
         language_score: float | None,
         background_university_name: str | None = None,
     ) -> float:
-        """
-        调整概率值，基于GPA和语言分数进行惩罚
-
-        Args:
-            probability: 原始概率值
-            gpa: GPA分数
-            language_score: 归一化后的语言分数
-            background_university_name: 背景大学名称（未使用，保留接口兼容性）
-
-        Returns:
-            调整后的概率值
-        """
         if gpa is None or language_score is None:
             return probability
 
@@ -262,13 +212,11 @@ class ProbabilityAdjuster:
 
     @classmethod
     def clear_stats_cache(cls):
-        """清空统计信息缓存"""
         with cls._cache_lock:
             cls._stats_cache.clear()
 
     @classmethod
     def get_cache_stats(cls) -> dict[str, Any]:
-        """获取缓存统计信息"""
         with cls._cache_lock:
             return {
                 "cache_size": len(cls._stats_cache),
@@ -282,17 +230,6 @@ def penalize_cross_major_without_cases(
     background_major: str,
     cases_df: pd.DataFrame,
 ) -> list[dict[str, Any]]:
-    """
-    对没有历史成功案例的跨专业申请进行惩罚
-
-    Args:
-        user_specified_results: 用户指定的结果列表
-        background_major: 背景专业
-        cases_df: 历史案例数据框
-
-    Returns:
-        调整后的结果列表
-    """
     if not user_specified_results or not background_major or cases_df is None or cases_df.empty:
         return user_specified_results
 

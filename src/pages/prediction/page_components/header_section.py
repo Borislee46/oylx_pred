@@ -10,7 +10,6 @@ header_logger = setup_logger("page3", "prediction")
 
 @st.cache_data
 def get_product_logo_image_as_base64(path: str) -> str:
-    """将产品logo图片转换为base64编码字符串"""
     full_path = Path.cwd() / path
     try:
         with open(full_path, "rb") as f:

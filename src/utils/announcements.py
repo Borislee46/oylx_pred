@@ -20,15 +20,6 @@ def load_announcements_config() -> dict[str, Any]:
 
 
 def save_announcements_config(config: dict[str, Any]) -> tuple[bool, str]:
-    """
-    保存公告配置到文件
-
-    Args:
-        config: 公告配置字典
-
-    Returns:
-        tuple[bool, str]: (是否成功, 消息)
-    """
     try:
         with open(ANNOUNCEMENTS_CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4, ensure_ascii=False)

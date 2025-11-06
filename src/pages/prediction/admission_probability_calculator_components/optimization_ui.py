@@ -39,12 +39,10 @@ class OptimizationUI:
         self.correlation_matrix = correlation_matrix
         self.data_processor = DataProcessor()
         self.max_optimization_time = 30.0
-        self._thread_lock = threading.Lock()  # 用于保护线程状态访问
+        self._thread_lock = threading.Lock()
         self._setup_thread_exception_handler()
 
     def _setup_thread_exception_handler(self):
-        """设置线程异常处理器，捕获未捕获的异常"""
-
         def thread_exception_handler(args):
             logger.error(
                 f"线程中未捕获的异常: {args.exc_type.__name__}: {args.exc_value}",
