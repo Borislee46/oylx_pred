@@ -39,4 +39,3 @@ def run_prediction_chunk_in_process(
         combinations_chunk,
         expected_features,
     )
-

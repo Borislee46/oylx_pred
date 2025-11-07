@@ -3,4 +3,3 @@ from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.optim
 )
 
 __all__ = ["SchoolSelectionOptimizer"]
-

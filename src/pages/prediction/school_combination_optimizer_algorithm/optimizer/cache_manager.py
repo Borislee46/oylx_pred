@@ -1,7 +1,6 @@
-from typing import Any, Callable
-
 import hashlib
 import json
+from typing import Any, Callable
 
 from src.pages.prediction.school_combination_optimizer_algorithm.utils import LRUCache
 from src.utils.logger import setup_logger
@@ -56,4 +55,3 @@ def build_optimization_input_hash(
 def clear_all_caches(caches: dict[str, LRUCache]) -> None:
     for cache in caches.values():
         cache.clear()
-

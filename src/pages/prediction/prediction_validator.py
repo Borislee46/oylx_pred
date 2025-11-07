@@ -20,4 +20,3 @@ def validate_model_and_features(prediction_model: Optional[PredictionModel]) -> 
         prediction_handler_logger.error("模型特征列表为空，但模型已加载。这通常表示模型配置问题。")
         st.error("模型配置错误：特征列表为空。")
         return None
-

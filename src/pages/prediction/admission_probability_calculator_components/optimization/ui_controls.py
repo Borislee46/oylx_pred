@@ -13,7 +13,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class OptimizationUIControls:
-
     def __init__(self, session_manager: SessionManager):
         self.session_manager = session_manager
 
@@ -68,4 +67,3 @@ class OptimizationUIControls:
             run_optimization=True,
             lock_start_time=current_time,
         )
-

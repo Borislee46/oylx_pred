@@ -7,7 +7,6 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.utils import sa
 
 
 class TextProcessor:
-
     def __init__(
         self,
         text_keys: tuple[str, ...],
@@ -23,9 +22,7 @@ class TextProcessor:
         return s.strip()
 
     def make_signature(self, details: dict[str, Any]) -> str:
-        obj: dict[str, Any] = {
-            k: self.prep_text(str(details.get(k, ""))) for k in self._text_keys
-        }
+        obj: dict[str, Any] = {k: self.prep_text(str(details.get(k, ""))) for k in self._text_keys}
         for k in self._count_keys:
             obj[k] = int(safe_float(details.get(k, 0), 0))
         return json.dumps(obj, ensure_ascii=False, sort_keys=True)
@@ -37,4 +34,3 @@ class TextProcessor:
     @property
     def count_keys(self) -> tuple[str, ...]:
         return self._count_keys
-

@@ -1,10 +1,7 @@
 import streamlit as st
 
-from src.pages.prediction.result_modifier.config import TOP_N_RECOMMENDATIONS
-
 
 class LayoutManager:
-
     def __init__(self, results_display):
         self.results_display = results_display
 
@@ -47,4 +44,3 @@ class LayoutManager:
             self.results_display._display_result_type("cross_major")
         else:
             st.info("没有可显示的预测结果。")
-

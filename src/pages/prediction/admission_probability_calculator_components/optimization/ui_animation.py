@@ -4,7 +4,6 @@ import streamlit as st
 
 
 class OptimizationUIAnimation:
-
     @staticmethod
     def animate_step(
         placeholder: st.delta_generator.DeltaGenerator, base_text: str, duration: float
@@ -43,4 +42,3 @@ class OptimizationUIAnimation:
                 f"<p style='font-size: 14px; font-weight: normal;'>{text}...</p>",
                 unsafe_allow_html=True,
             )
-

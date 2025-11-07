@@ -39,4 +39,3 @@ def compute_df_fingerprint(df: Optional[pd.DataFrame]) -> int:
     except Exception as e:
         prediction_handler_logger.warning(f"计算DataFrame指纹失败: {e}")
         return len(df)
-

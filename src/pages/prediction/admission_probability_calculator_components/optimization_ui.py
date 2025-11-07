@@ -6,9 +6,6 @@ import streamlit as st
 from src.pages.prediction.admission_probability_calculator_components.data_processor import (
     DataProcessor,
 )
-from src.utils.logger import setup_logger
-from src.utils.session_manager import SessionManager
-
 from src.pages.prediction.admission_probability_calculator_components.optimization.optimization_executor import (
     OptimizationExecutor,
 )
@@ -18,12 +15,13 @@ from src.pages.prediction.admission_probability_calculator_components.optimizati
 from src.pages.prediction.admission_probability_calculator_components.optimization.ui_controls import (
     OptimizationUIControls,
 )
+from src.utils.logger import setup_logger
+from src.utils.session_manager import SessionManager
 
 logger = setup_logger("page3", "prediction")
 
 
 class OptimizationUI:
-
     def __init__(self, session_manager: SessionManager, correlation_matrix=None):
         self.session_manager = session_manager
         self.correlation_matrix = correlation_matrix
@@ -43,7 +41,6 @@ class OptimizationUI:
         )
 
     def _setup_thread_exception_handler(self):
-
         def thread_exception_handler(args):
             logger.error(
                 f"线程中未捕获的异常: {args.exc_type.__name__}: {args.exc_value}",

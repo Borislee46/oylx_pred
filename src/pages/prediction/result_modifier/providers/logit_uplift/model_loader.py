@@ -14,7 +14,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class ModelLoader:
-
     def __init__(
         self,
         vectorizer_path: str,
@@ -104,4 +103,3 @@ class ModelLoader:
         self.lazy_load()
         assert self._weights_array is not None
         return self._weights_array
-

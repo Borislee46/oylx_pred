@@ -224,4 +224,3 @@ class SchoolDetailBuilder:
         if compact_parts:
             return "<font color='#666666'>" + " | ".join(compact_parts) + "</font>"
         return ""
-

@@ -22,7 +22,6 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.utils import (
 
 
 class ProbabilityApplier:
-
     def __init__(
         self,
         text_processor: TextProcessor,
@@ -90,4 +89,3 @@ class ProbabilityApplier:
         summary = f"+{avg_boost:.1%} ({', '.join(parts)})" if avg_boost > 0 else ""
 
         return summary
-

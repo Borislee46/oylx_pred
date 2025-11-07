@@ -4,7 +4,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class CacheBuilder:
-
     @staticmethod
     def build_major_category_cache(all_schools_data: list) -> dict:
         major_category_cache = {}
@@ -28,4 +27,3 @@ class CacheBuilder:
         except Exception as e:
             logger.warning(f"加载bg_target_similarity_cache时出错: {e}")
             return {}
-

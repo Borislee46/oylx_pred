@@ -13,7 +13,6 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor 
 
 
 class SimilarityComputer:
-
     def __init__(
         self,
         model_loader: ModelLoader,
@@ -48,4 +47,3 @@ class SimilarityComputer:
             dot_scalar = float(np.asarray(dot_val).flat[0])
             sims[k] = float(np.clip(dot_scalar, 0.0, 1.0))
         return sims
-

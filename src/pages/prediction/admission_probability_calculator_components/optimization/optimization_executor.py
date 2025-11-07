@@ -34,7 +34,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class OptimizationExecutor:
-
     def __init__(
         self,
         session_manager: SessionManager,
@@ -364,4 +363,3 @@ class OptimizationExecutor:
         finally:
             with self._thread_lock:
                 self.session_manager.set(optimization_thread_running=False)
-

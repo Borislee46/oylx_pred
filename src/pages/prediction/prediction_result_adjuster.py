@@ -173,4 +173,3 @@ def batch_adjust_results(
         adjusted_results_list.append(adjusted)
 
     return adjusted_results_list
-

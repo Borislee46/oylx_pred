@@ -1,4 +1,3 @@
-
 from threading import local
 from typing import Optional
 
@@ -32,4 +31,3 @@ def init_worker_process(model_type: str) -> None:
     except Exception as e:
         prediction_runner_logger.error(f"初始化子进程失败: {e}", exc_info=True)
         set_worker_model(None)
-

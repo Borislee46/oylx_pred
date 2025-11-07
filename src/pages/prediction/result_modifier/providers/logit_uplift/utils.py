@@ -19,4 +19,3 @@ def logit(p: float) -> float:
 
 def sigmoid(z: float) -> float:
     return 1.0 / (1.0 + float(np.exp(-z)))
-

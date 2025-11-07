@@ -2,7 +2,6 @@ import streamlit as st
 
 
 class DataFrameStyler:
-
     @staticmethod
     def create_styled_dataframe(df):
         if df.empty:
@@ -65,4 +64,3 @@ class DataFrameStyler:
                 column_config[col_name] = st.column_config.TextColumn(width=width)
 
         return column_config
-

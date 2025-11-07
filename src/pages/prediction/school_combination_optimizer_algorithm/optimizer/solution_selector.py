@@ -103,4 +103,3 @@ def find_best_solution_indices(
         return []
 
     return sort_and_select_candidates(candidate_indices, balance_scores.tolist(), F, limit)
-

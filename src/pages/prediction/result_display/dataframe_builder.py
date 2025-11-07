@@ -7,7 +7,6 @@ from src.pages.prediction.data_sort_config.top_result_school_order import (
 
 
 class DataFrameBuilder:
-
     @staticmethod
     def get_probability_value(probability):
         return float(probability) if probability is not None else 0.0
@@ -71,4 +70,3 @@ class DataFrameBuilder:
             ]
 
         return pd.DataFrame(data)
-

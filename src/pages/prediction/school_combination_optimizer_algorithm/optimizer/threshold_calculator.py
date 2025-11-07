@@ -20,15 +20,13 @@ def calculate_adaptive_thresholds_for_context(
 ) -> dict[str, float]:
     def get_probabilities():
         return [
-            clip_probability(school.get("probability", 0.0))
-            for school in context.all_schools_data
+            clip_probability(school.get("probability", 0.0)) for school in context.all_schools_data
         ]
 
     probabilities = safe_execute(
         get_probabilities,
         lambda: [
-            clip_probability(school.get("probability", 0.0))
-            for school in context.all_schools_data
+            clip_probability(school.get("probability", 0.0)) for school in context.all_schools_data
         ],
         "计算自适应阈值的概率时出错",
     )
@@ -43,9 +41,6 @@ def calculate_adaptive_thresholds_for_context(
         return calculate_adaptive_thresholds(
             probabilities,
             reach_percentile_val=ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG["reach_percentile_val"],
-            safety_percentile_val=ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG[
-                "safety_percentile_val"
-            ],
+            safety_percentile_val=ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG["safety_percentile_val"],
         )
     return calculate_adaptive_thresholds(probabilities)
-

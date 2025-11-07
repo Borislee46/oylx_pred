@@ -1,5 +1,3 @@
-
-
 from src.pages.prediction.result_modifier.providers.logit_uplift.delta_calculator import (
     DeltaCalculator,
 )
@@ -31,4 +29,3 @@ __all__ = [
     "safe_float",
     "sigmoid",
 ]
-

@@ -10,4 +10,3 @@ def persist_input_state(
             session_key_is_school_selection_submit: False,
         }
     )
-

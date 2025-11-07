@@ -221,4 +221,3 @@ class BackgroundSectionBuilder:
         story.append(KeepTogether(background_section_content))
 
         return story
-

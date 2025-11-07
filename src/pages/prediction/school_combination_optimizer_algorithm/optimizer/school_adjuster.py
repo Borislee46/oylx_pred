@@ -20,9 +20,7 @@ def adjust_probability_by_university_difficulty(
         return schools
 
     difficulty_map = {uni: idx for idx, uni in enumerate(UNIVERSITY_DIFFICULTY_ORDER)}
-    target_thresh = (
-        adaptive_thresholds.get("target_lower", 0.55) if adaptive_thresholds else 0.55
-    )
+    target_thresh = adaptive_thresholds.get("target_lower", 0.55) if adaptive_thresholds else 0.55
     total_universities = len(UNIVERSITY_DIFFICULTY_ORDER)
 
     adjusted_schools = []
@@ -31,15 +29,11 @@ def adjust_probability_by_university_difficulty(
         current_prob = clip_probability(school.get("probability", 0.0))
 
         difficulty_rank = difficulty_map.get(university, total_universities)
-        normalized_rank = (
-            difficulty_rank / total_universities if total_universities > 0 else 0.5
-        )
+        normalized_rank = difficulty_rank / total_universities if total_universities > 0 else 0.5
 
         if normalized_rank >= 0.3:
             if current_prob < target_thresh:
-                adjustment_factor = (
-                    (normalized_rank - 0.3) / 0.7 if normalized_rank > 0.3 else 0.1
-                )
+                adjustment_factor = (normalized_rank - 0.3) / 0.7 if normalized_rank > 0.3 else 0.1
                 boost_amount = max(0.08, 0.15 * adjustment_factor)
                 adjusted_prob = min(1.0, current_prob + boost_amount)
 
@@ -48,9 +42,7 @@ def adjust_probability_by_university_difficulty(
 
                 school = {**school, "probability": min(1.0, adjusted_prob)}
             elif current_prob < target_thresh + 0.15:
-                adjustment_factor = (
-                    (normalized_rank - 0.3) / 0.7 if normalized_rank > 0.3 else 0.1
-                )
+                adjustment_factor = (normalized_rank - 0.3) / 0.7 if normalized_rank > 0.3 else 0.1
                 boost_amount = 0.06 * adjustment_factor
                 adjusted_prob = min(1.0, current_prob + boost_amount)
                 school = {**school, "probability": adjusted_prob}
@@ -74,4 +66,3 @@ def enforce_school_limits(
         return reduce_schools_balanced(schools, max_schools, context_adaptive_thresholds)
 
     return schools
-

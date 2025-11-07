@@ -82,4 +82,3 @@ def calculate_balance_score(
     return -(
         (safety - ideal_safety) ** 2 + (target - ideal_target) ** 2 + (reach - ideal_reach) ** 2
     )
-

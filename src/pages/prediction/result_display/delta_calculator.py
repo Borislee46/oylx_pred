@@ -1,9 +1,7 @@
-
 from src.utils.session_manager import SessionManager
 
 
 class DeltaCalculator:
-
     @staticmethod
     def calculate_delta(result, prev_prob_map):
         key = (result.get("university"), result.get("major"))
@@ -56,4 +54,3 @@ class DeltaCalculator:
             and isinstance(prob_map_to_use, dict)
             and bool(prob_map_to_use)
         ), prob_map_to_use
-

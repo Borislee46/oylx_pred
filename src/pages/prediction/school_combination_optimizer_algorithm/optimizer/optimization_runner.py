@@ -89,4 +89,3 @@ def run_optimization(
         lambda: minimize(problem, algorithm, ("n_gen", dynamic_n_gen), seed=1, verbose=False),
         error_message="优化过程中出现错误",
     )
-

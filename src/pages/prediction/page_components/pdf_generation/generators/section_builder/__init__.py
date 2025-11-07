@@ -28,7 +28,6 @@ from src.pages.prediction.page_components.pdf_generation.utils import (
 
 
 class PDFSectionBuilder:
-
     def __init__(self, styler: PDFStyler):
         self.styles = styler.styles
         self.styler = styler
@@ -58,4 +57,3 @@ class PDFSectionBuilder:
         return self.optimization_strategies_section_builder.create_optimization_strategies_section(
             optimization_results, cases_df
         )
-

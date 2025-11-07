@@ -76,4 +76,3 @@ class AnalystNotesGenerator:
         )
 
         return "<br/>".join(notes)
-

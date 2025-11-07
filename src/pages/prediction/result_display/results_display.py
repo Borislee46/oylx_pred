@@ -14,7 +14,6 @@ from .layout_manager import LayoutManager
 
 
 class ResultsDisplay:
-
     def __init__(
         self,
         top_similarity_results=None,
@@ -129,4 +128,3 @@ class ResultsDisplay:
         self.layout_manager.display_results_layout(
             has_user_specified, has_similarity, has_cross_major, pool_is_large
         )
-

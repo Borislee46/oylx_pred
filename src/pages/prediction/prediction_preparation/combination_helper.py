@@ -8,9 +8,9 @@ def get_user_specified_combinations(
     all_universities_target: list[str],
     session_manager: SessionManager,
 ) -> Optional[list[tuple[str, str]]]:
-    has_user_specification = session_manager.get(
-        "selected_target_majors"
-    ) or session_manager.get("selected_major_categories")
+    has_user_specification = session_manager.get("selected_target_majors") or session_manager.get(
+        "selected_major_categories"
+    )
 
     if not has_user_specification:
         return None
@@ -27,4 +27,3 @@ def get_user_specified_combinations(
         unis_to_use = all_universities_target
 
     return [(uni, major) for uni in unis_to_use for major in target_majors]
-

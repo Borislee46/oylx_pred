@@ -20,11 +20,8 @@ def prepare_model_inputs(
             if isinstance(value, (float, int, str)):
                 model_input_features[feature] = value
 
-    missing_inputs = [
-        f for f in base_expected_features if f not in model_input_features
-    ]
+    missing_inputs = [f for f in base_expected_features if f not in model_input_features]
     if missing_inputs:
         prediction_runner_logger.error(f"缺少必要的输入特征: {missing_inputs}")
 
     return model_input_features, missing_inputs
-

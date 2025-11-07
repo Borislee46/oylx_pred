@@ -1,5 +1,4 @@
 import threading
-import time
 from typing import Any
 
 import pandas as pd
@@ -13,7 +12,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class PDFGenerator:
-
     def __init__(self, thread_lock: threading.Lock):
         self._thread_lock = thread_lock
 
@@ -89,4 +87,3 @@ class PDFGenerator:
                 if "error" not in result_container:
                     result_container["error"] = "PDF生成线程异常终止"
                     result_container["success"] = False
-

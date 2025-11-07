@@ -101,4 +101,3 @@ class CoverPageBuilder:
         story.append(Paragraph(f"报告生成时间: {current_time}", time_style))
 
         return story
-

@@ -16,7 +16,6 @@ prediction_runner_logger = setup_logger("page3", "prediction")
 
 
 class PredictionExecutor:
-
     def __init__(self, total_tasks: int):
         self.total_tasks = total_tasks
         self.cpu_count = os.cpu_count() or 2
@@ -54,10 +53,7 @@ class PredictionExecutor:
     ) -> List[dict[str, float | str]]:
         executor_class, num_workers, chunk_size = self.get_execution_strategy()
 
-        chunks = [
-            combinations[i : i + chunk_size]
-            for i in range(0, len(combinations), chunk_size)
-        ]
+        chunks = [combinations[i : i + chunk_size] for i in range(0, len(combinations), chunk_size)]
 
         if executor_class is None:
             return self._execute_single_threaded(
@@ -176,4 +172,3 @@ class PredictionExecutor:
                 prediction_runner_logger.error(f"子任务执行失败: {e}", exc_info=True)
 
         return results
-

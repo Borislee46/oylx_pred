@@ -154,4 +154,3 @@ def apply_post_filters(
             filtered_selection.append(school)
 
     return filtered_selection
-

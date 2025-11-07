@@ -107,4 +107,3 @@ class OptimizationStrategiesSectionBuilder:
         story.append(Paragraph("祝同学申请顺利！", closing_style))
 
         return story
-

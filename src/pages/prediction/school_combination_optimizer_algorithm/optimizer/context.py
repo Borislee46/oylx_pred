@@ -16,4 +16,3 @@ class OptimizationContext:
     adaptive_thresholds: Optional[dict[str, float]] = None
     problem: Optional[SchoolSelectionProblem] = None
     major_category_cache: Optional[dict] = None
-

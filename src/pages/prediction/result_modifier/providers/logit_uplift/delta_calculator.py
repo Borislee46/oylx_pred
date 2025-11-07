@@ -18,7 +18,6 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.utils import sa
 
 
 class DeltaCalculator:
-
     def __init__(
         self,
         model_loader: ModelLoader,
@@ -52,9 +51,7 @@ class DeltaCalculator:
         if ssum < self._sim_gate_sum_min or smax < self._sim_gate_max_min:
             return 0.0, sims
 
-        counts = np.array(
-            [safe_float(details.get(k, 0)) for k in count_keys], dtype=np.float64
-        )
+        counts = np.array([safe_float(details.get(k, 0)) for k in count_keys], dtype=np.float64)
         log_counts = np.log1p(counts)
 
         s_arr = np.array(s_values, dtype=np.float64)
@@ -70,4 +67,3 @@ class DeltaCalculator:
     @lru_cache(maxsize=512)
     def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float]]:
         return self._compute_delta_logit(sig)
-

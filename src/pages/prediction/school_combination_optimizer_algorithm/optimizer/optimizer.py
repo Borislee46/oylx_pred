@@ -19,6 +19,9 @@ from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.conte
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.filters_handler import (
     apply_all_filters,
 )
+from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.metrics_calculator_wrapper import (
+    calculate_metrics_for_selection,
+)
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.optimization_runner import (
     create_problem,
     run_optimization,
@@ -37,19 +40,15 @@ from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.solut
 from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.threshold_calculator import (
     calculate_adaptive_thresholds_for_context,
 )
-from src.pages.prediction.school_combination_optimizer_algorithm.optimizer.metrics_calculator_wrapper import (
-    calculate_metrics_for_selection,
-)
 from src.pages.prediction.school_combination_optimizer_algorithm.utils import (
     LRUCache,
     build_major_category_cache,
 )
-from src.utils.app_data_loader import load_school_major_details_df
-from src.utils.logger import setup_logger
-
 from src.pages.prediction.school_combination_optimizer_algorithm.visualizer import (
     visualize_recommendations as standalone_visualize_recommendations,
 )
+from src.utils.app_data_loader import load_school_major_details_df
+from src.utils.logger import setup_logger
 
 Config.warnings["not_compiled"] = False
 
@@ -182,7 +181,11 @@ class SchoolSelectionOptimizer:
         plan_config: PlanConfig,
     ) -> Optional[dict[str, Any]]:
         return get_fallback_recommendation_with_filtered_schools(
-            filtered_schools, context, plan_config, self.correlation_matrix, self._get_cached_data_wrapper
+            filtered_schools,
+            context,
+            plan_config,
+            self.correlation_matrix,
+            self._get_cached_data_wrapper,
         )
 
     def _optimize_single_plan(
@@ -392,4 +395,3 @@ class SchoolSelectionOptimizer:
         adaptive_thresholds: dict[str, float],
     ) -> None:
         standalone_visualize_recommendations(recommendations, adaptive_thresholds)
-

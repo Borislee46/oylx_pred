@@ -146,4 +146,3 @@ def get_fallback_recommendation_with_filtered_schools(
         balanced_schools, context, context.problem, correlation_matrix, get_cached_data
     )
     return create_recommendation(balanced_schools, metrics)
-

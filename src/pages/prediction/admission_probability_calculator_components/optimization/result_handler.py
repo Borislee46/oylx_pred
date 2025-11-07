@@ -1,5 +1,3 @@
-from typing import Any
-
 import pandas as pd
 import streamlit as st
 from pandas.util import hash_pandas_object
@@ -14,13 +12,10 @@ logger = setup_logger("page3", "prediction")
 
 
 class ResultHandler:
-
     def __init__(self, session_manager: SessionManager):
         self.session_manager = session_manager
 
-    def save_optimization_results(
-        self, df: pd.DataFrame, recommendations, adaptive_thresholds
-    ):
+    def save_optimization_results(self, df: pd.DataFrame, recommendations, adaptive_thresholds):
         logger.info(
             f"保存优化结果: recommendations数量={len(recommendations) if recommendations else 0}, "
             f"adaptive_thresholds={adaptive_thresholds}"
@@ -69,4 +64,3 @@ class ResultHandler:
             optimizer_for_viz.visualize_recommendations(recommendations, adaptive_thresholds)
         else:
             logger.warning("优化结果为空，无法可视化")
-

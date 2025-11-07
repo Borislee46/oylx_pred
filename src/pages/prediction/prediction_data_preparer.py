@@ -42,4 +42,3 @@ def prepare_input_data(input_data_from_form: dict) -> dict:
                 input_data["faculty"] = faculty
 
     return input_data
-

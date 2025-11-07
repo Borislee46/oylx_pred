@@ -21,7 +21,6 @@ from src.pages.prediction.result_modifier.utils import has_valid_experience_deta
 
 
 class LogitUpliftProvider(TextBoostProvider):
-
     def __init__(
         self,
         vectorizer_path: str,
