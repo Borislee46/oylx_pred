@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from src.pages.prediction.school_combination_optimizer_algorithm.config import (
     ADAPTIVE_THRESHOLD_PERCENTILES_HIGH_BG,
@@ -16,7 +16,8 @@ logger = setup_logger("page3", "prediction")
 
 
 def calculate_adaptive_thresholds_for_context(
-    context: OptimizationContext, safe_execute: Callable[[], Any]
+    context: OptimizationContext,
+    safe_execute: Callable[[Callable[[], Any], Optional[Callable[[], Any]], str], Any],
 ) -> dict[str, float]:
     def get_probabilities():
         return [

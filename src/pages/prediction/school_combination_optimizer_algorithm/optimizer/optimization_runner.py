@@ -70,7 +70,7 @@ def run_optimization(
     problem: SchoolSelectionProblem,
     population_size: int,
     n_generations: int,
-    safe_execute: Callable[[], Any],
+    safe_execute: Callable[[Callable[[], Any], Optional[Callable[[], Any]], str], Any],
 ) -> Optional[Result]:
     dynamic_pop_size, dynamic_n_gen, ref_dirs = compute_algo_params(
         len(problem.all_schools_data), population_size, n_generations
@@ -87,5 +87,6 @@ def run_optimization(
 
     return safe_execute(
         lambda: minimize(problem, algorithm, ("n_gen", dynamic_n_gen), seed=1, verbose=False),
-        error_message="优化过程中出现错误",
+        None,
+        "优化过程中出现错误",
     )
