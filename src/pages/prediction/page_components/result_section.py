@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 import pandas as pd
 
-from src.pages.prediction.prediction_result_display import ResultsDisplay
+from src.pages.prediction.result_display import ResultsDisplay
 from src.utils.session_manager import SessionManager
 
 PROBABILITY_PRECISION = 6

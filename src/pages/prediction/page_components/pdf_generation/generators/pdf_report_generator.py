@@ -18,8 +18,8 @@ from reportlab.platypus import (
 
 from src.utils.logger import setup_logger
 
-from .pdf_section_builder import PDFSectionBuilder
 from .pdf_styler import PDFStyler
+from .section_builder import PDFSectionBuilder
 
 logger = setup_logger("page3", "prediction")
 

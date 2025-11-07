@@ -120,20 +120,28 @@ class ProbabilityAdjuster:
             self.gpa_std = 1e-6
 
         try:
+            has_toefl = "toefl" in self.cases_df.columns
+            has_ielts = "ielts" in self.cases_df.columns
+
             normalized_toefl = (
                 (self.cases_df["toefl"].apply(lambda x: normalize_language_score(x, "托福")))
-                if "toefl" in self.cases_df.columns
+                if has_toefl
                 else pd.Series(0, index=self.cases_df.index)
             )
             normalized_ielts = (
                 (self.cases_df["ielts"].apply(lambda x: normalize_language_score(x, "雅思")))
-                if "ielts" in self.cases_df.columns
+                if has_ielts
                 else pd.Series(0, index=self.cases_df.index)
             )
 
-            self.cases_df["normalized_language_score"] = np.where(
-                self.cases_df["toefl"].notna(), normalized_toefl, normalized_ielts
-            )
+            if has_toefl:
+                self.cases_df["normalized_language_score"] = np.where(
+                    self.cases_df["toefl"].notna(), normalized_toefl, normalized_ielts
+                )
+            elif has_ielts:
+                self.cases_df["normalized_language_score"] = normalized_ielts
+            else:
+                self.cases_df["normalized_language_score"] = 0.0
 
         except (KeyError, AttributeError, ValueError) as e:
             logger.warning(f"计算语言分数统计信息失败: {str(e)}")

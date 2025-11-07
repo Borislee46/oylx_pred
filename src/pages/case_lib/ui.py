@@ -111,7 +111,6 @@ def display_filters(df, filter_options, selected_chinese_categories):
 
 
 def _prepare_background_summary(display_df):
-    """为硕士/博士准备背景信息摘要"""
     background_cols_map = {
         "工作数量": "工作",
         "发表数量": "论文",
@@ -138,7 +137,6 @@ def _prepare_background_summary(display_df):
 
 
 def _prepare_uni_classification_summary(display_df):
-    """为硕士准备院校分类摘要"""
     parts_list = []
 
     if "国本院校分类" in display_df.columns:
@@ -170,7 +168,6 @@ def _prepare_uni_classification_summary(display_df):
 
 
 def _prepare_gre_gmat_score(display_df):
-    """为硕士准备GRE/GMAT分数摘要"""
     gre_parts = pd.Series("", index=display_df.index, dtype=str)
     gmat_parts = pd.Series("", index=display_df.index, dtype=str)
 
@@ -189,19 +186,15 @@ def _prepare_gre_gmat_score(display_df):
 
 
 def _format_gpa_column(series):
-    """格式化GPA列 - 使用向量化操作"""
     numeric_series = pd.to_numeric(series, errors="coerce")
     result = pd.Series("", index=series.index, dtype=str)
 
-    # 处理非空值
     notna_mask = numeric_series.notna()
     if notna_mask.any():
         notna_values = numeric_series[notna_mask]
-        # 使用向量化操作：整数直接转字符串
         int_mask = (notna_values == notna_values.astype(int)) & (notna_values >= 0)
         result.loc[notna_mask & int_mask] = notna_values[int_mask].astype(int).astype(str)
 
-        # 对于浮点数，使用apply格式化（这是必要的，因为格式化字符串需要逐个处理）
         float_mask = notna_mask & ~int_mask
         if float_mask.any():
             result.loc[float_mask] = numeric_series[float_mask].apply(
@@ -212,17 +205,13 @@ def _format_gpa_column(series):
 
 
 def _format_display_dataframe(display_df, selected_chinese_categories):
-    """格式化显示数据框"""
-    # 为硕士/博士添加背景摘要
     if selected_chinese_categories in ["硕士", "博士"]:
         display_df["background_summary"] = _prepare_background_summary(display_df)
 
-    # 为硕士添加院校分类和GRE/GMAT摘要
     if selected_chinese_categories == "硕士":
         display_df["uni_classification_summary"] = _prepare_uni_classification_summary(display_df)
         display_df["gre_gmat_score"] = _prepare_gre_gmat_score(display_df)
 
-    # 获取显示列配置
     display_cols = config.DISPLAY_COLS_CONFIG.get(selected_chinese_categories, [])
     existing_display_cols = [
         original_col
@@ -233,7 +222,6 @@ def _format_display_dataframe(display_df, selected_chinese_categories):
     if not existing_display_cols:
         return None, None
 
-    # 重命名列
     column_rename_map = {
         original_col: display_name
         for original_col, display_name in display_cols
@@ -242,12 +230,10 @@ def _format_display_dataframe(display_df, selected_chinese_categories):
 
     final_display_df = display_df[existing_display_cols].rename(columns=column_rename_map).copy()
 
-    # 格式化列数据
     for col in final_display_df.columns:
         if col in config.GPA_COLS_TO_FORMAT:
             final_display_df[col] = _format_gpa_column(final_display_df[col])
         else:
-            # 统一处理空值和无效值
             series = final_display_df[col].astype(object)
             series = series.where(series.notna(), "")
             series = series.astype(str).replace({"None": "", "nan": "", "NaN": ""})
@@ -257,10 +243,8 @@ def _format_display_dataframe(display_df, selected_chinese_categories):
 
 
 def _render_data_grid(final_display_df):
-    """渲染数据表格"""
     gb = GridOptionsBuilder.from_dataframe(final_display_df)
 
-    # 设置录取状态列样式
     if "录取状态" in final_display_df.columns:
         admission_status_style = JsCode(
             """
@@ -298,7 +282,6 @@ def _render_data_grid(final_display_df):
 
 
 def display_results(df, selected_chinese_categories):
-    """显示搜索结果"""
     if df.empty:
         st.info("没有找到符合条件的案例。")
         return
@@ -306,7 +289,6 @@ def display_results(df, selected_chinese_categories):
     total_count = len(df)
     session_key = f"case_lib_display_count_{selected_chinese_categories}"
 
-    # 初始化显示计数
     if session_key not in st.session_state:
         st.session_state[session_key] = config.INITIAL_LOAD_COUNT
 
@@ -314,13 +296,11 @@ def display_results(df, selected_chinese_categories):
         st.session_state[session_key], config.MAX_DISPLAY_COUNT, total_count
     )
 
-    # 显示信息提示
     info_msg = f"共找到 {total_count} 条符合条件的案例，当前展示 {current_display_count} 条"
     if total_count > config.MAX_DISPLAY_COUNT:
         info_msg += f"（最多展示 {config.MAX_DISPLAY_COUNT} 条）"
     st.info(info_msg)
 
-    # 准备显示数据
     display_df = df.head(current_display_count).copy()
     final_display_df, column_rename_map = _format_display_dataframe(
         display_df, selected_chinese_categories
@@ -330,10 +310,8 @@ def display_results(df, selected_chinese_categories):
         st.warning("没有可供展示的数据列。")
         return
 
-    # 渲染表格
     _render_data_grid(final_display_df)
 
-    # 加载更多按钮
     if current_display_count < min(total_count, config.MAX_DISPLAY_COUNT):
         col1, col2, col3 = st.columns([2, 1, 2])
         with col2:

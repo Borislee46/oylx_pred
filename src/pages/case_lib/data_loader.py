@@ -17,12 +17,6 @@ def get_available_categories():
 
 @st.cache_data
 def load_data_by_categories(categories):
-    """
-    加载指定类别的案例数据
-
-    Returns:
-        pd.DataFrame: 合并后的数据框，如果出错则返回空DataFrame
-    """
     if not categories:
         return pd.DataFrame()
 
@@ -44,7 +38,6 @@ def load_data_by_categories(categories):
         else:
             warnings.append(f"未找到 {category} 的数据文件")
 
-    # 将错误和警告存储到session state，由UI层统一显示
     if errors:
         st.session_state["case_lib_data_errors"] = errors
     if warnings:
@@ -60,7 +53,6 @@ def load_data_by_categories(categories):
         st.session_state["case_lib_data_errors"] = [error_msg]
         return pd.DataFrame()
 
-    # 加载学校基础信息并映射国家
     if os.path.exists(config.SCHOOL_BASE_PATH):
         try:
             school_base_df = pd.read_feather(config.SCHOOL_BASE_PATH)
