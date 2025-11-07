@@ -6,7 +6,7 @@ import streamlit as st
 def render_submit_button(session_manager, form_state_manager, disabled_status=False):
     help_text_submit = None
     processing_lock = session_manager.get("processing_lock", False)
-    
+
     if processing_lock:
         help_text_submit = "优化正在进行中，请等待完成后再进行预测。"
     elif disabled_status:
