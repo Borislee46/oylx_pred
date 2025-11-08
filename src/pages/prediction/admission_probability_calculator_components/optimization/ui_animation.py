@@ -8,7 +8,6 @@ class OptimizationUIAnimation:
     def animate_step(
         placeholder: st.delta_generator.DeltaGenerator, base_text: str, duration: float
     ) -> None:
-        """动画显示步骤进度"""
         interval = 0.3
         start_time = time.time()
         cycle_count = 0
@@ -34,7 +33,6 @@ class OptimizationUIAnimation:
         animate: bool,
         duration: float = 0.7,
     ) -> None:
-        """更新步骤显示"""
         if animate:
             OptimizationUIAnimation.animate_step(step_placeholder, text, duration)
         else:

@@ -21,7 +21,6 @@ def get_product_logo_image_as_base64(path: str) -> str:
 
 
 def render_header(logo_base64: str) -> None:
-    """渲染页面头部，包含logo和标题"""
     if logo_base64:
         html_block = f"""
             <style>

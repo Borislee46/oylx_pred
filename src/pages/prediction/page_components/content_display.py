@@ -33,7 +33,6 @@ def display_content(
             session_manager.set(
                 **{session_key_has_predicted: False, session_key_predict_lock: False}
             )
-            # 使用 rerun 但添加保护，避免无限循环
             try:
                 st.rerun()
             except Exception as e:
@@ -50,7 +49,6 @@ def display_content(
         cross_results_display = prediction_results_model.cross_major_results
         user_specified_results_display = prediction_results_model.user_specified_results
 
-        # 合并重复的条件判断
         form_data_changed = session_manager.get(session_key_form_data_changed, False)
         if not submitted and form_data_changed:
             st.warning(
