@@ -45,6 +45,8 @@ def run_prediction_with_guard(
                 **{session_key_has_predicted: True, session_key_predict_lock: False},
                 fresh_prediction_result=True,
             )
+            from src.pages.prediction.input_form_components.form_state import FormStateManager
+            FormStateManager.update_form_snapshot_hash_after_prediction(session_manager)
             return True
 
         reset_prediction_results(session_manager)

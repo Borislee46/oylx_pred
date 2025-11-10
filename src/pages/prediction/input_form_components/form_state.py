@@ -115,10 +115,8 @@ class FormStateManager:
         return hashlib.sha256(payload).hexdigest()
 
     @staticmethod
-    def _auto_save_form_data(
-        session_manager: SessionManager, throttle_seconds: float = None
-    ) -> None:
-        current_form_data = {
+    def _get_current_form_snapshot(session_manager: SessionManager) -> dict:
+        return {
             "selected_target_countries": session_manager.get("selected_target_countries", []),
             "selected_major_categories": session_manager.get("selected_major_categories", []),
             "selected_target_universities": session_manager.get("selected_target_universities", []),
@@ -147,6 +145,12 @@ class FormStateManager:
             },
         }
 
+    @staticmethod
+    def _auto_save_form_data(
+        session_manager: SessionManager, throttle_seconds: float = None
+    ) -> None:
+        current_form_data = FormStateManager._get_current_form_snapshot(session_manager)
+
         now = time.time()
         last_save_ts = session_manager.get("last_auto_save_ts", 0)
         last_hash = session_manager.get("last_saved_form_snapshot_hash")
@@ -160,6 +164,13 @@ class FormStateManager:
             success = FormStateManager.save_current_form_data(session_manager, current_form_data)
             if success:
                 session_manager.set(last_auto_save_ts=now, last_saved_form_snapshot_hash=cur_hash)
+
+    @staticmethod
+    def update_form_snapshot_hash_after_prediction(session_manager: SessionManager) -> None:
+        current_form_data = FormStateManager._get_current_form_snapshot(session_manager)
+        cur_hash = FormStateManager._snapshot_hash(current_form_data)
+        now = time.time()
+        session_manager.set(last_auto_save_ts=now, last_saved_form_snapshot_hash=cur_hash)
 
     @staticmethod
     def on_form_change(session_manager: SessionManager, change_type: str = None) -> None:

@@ -35,7 +35,7 @@ def _get_cached_cases_df() -> pd.DataFrame:
     return load_raw_cases_data()
 
 
-@st.cache_data(ttl=600, show_spinner=True)
+@st.cache_data(ttl=600, show_spinner="预测中...")
 def run_prediction_pipeline(
     input_data: dict[str, Any],
     model_name: str,
