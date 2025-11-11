@@ -71,8 +71,7 @@ class BoundaryCaseAgent(BaseAgent):
 
         except json.JSONDecodeError as e:
             self.logger.error(
-                f"[{self.agent_name}] JSON解析失败 - 错误: {e}, "
-                f"响应内容长度: {len(content)}"
+                f"[{self.agent_name}] JSON解析失败 - 错误: {e}, 响应内容长度: {len(content)}"
             )
             self.logger.debug(f"[{self.agent_name}] 响应内容预览: {content[:200]}")
             return fallback_result
@@ -86,4 +85,3 @@ class BoundaryCaseAgent(BaseAgent):
         if content.endswith("```"):
             content = content[:-3]
         return content.strip()
-

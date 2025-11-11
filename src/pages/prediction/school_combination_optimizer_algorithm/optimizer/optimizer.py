@@ -272,9 +272,7 @@ class SchoolSelectionOptimizer:
         context: OptimizationContext,
         plan_config: PlanConfig,
     ) -> Optional[dict[str, Any]]:
-        best_indices = self._find_best_solution_indices(
-            result, problem, plan_config.min_schools
-        )
+        best_indices = self._find_best_solution_indices(result, problem, plan_config.min_schools)
         logger.debug(f"找到最佳解索引数量: {len(best_indices)}")
 
         for idx in best_indices:
@@ -311,7 +309,9 @@ class SchoolSelectionOptimizer:
         )
 
         filtered_schools = self._apply_all_filters(context.all_schools_data, context)
-        logger.debug(f"过滤后学校数量: {len(filtered_schools)}, 最小要求: {plan_config.min_schools}")
+        logger.debug(
+            f"过滤后学校数量: {len(filtered_schools)}, 最小要求: {plan_config.min_schools}"
+        )
 
         if not self._has_sufficient_schools(filtered_schools, plan_config.min_schools):
             return self._handle_insufficient_schools(filtered_schools, plan_config, context)
@@ -411,7 +411,7 @@ class SchoolSelectionOptimizer:
                     logger.info(f"计划配置 {plan_config.name} 使用fallback结果")
                 else:
                     logger.info(f"计划配置 {plan_config.name} 优化完成，获得NSGA推荐结果")
-                
+
                 if idx == 0 and is_fallback:
                     logger.debug("策略1 NSGA优化无解，使用fallback结果，跳过后续策略")
                     break

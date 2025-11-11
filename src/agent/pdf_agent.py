@@ -18,9 +18,7 @@ class PDFAgent(BaseAgent):
             )
 
     def _truncate_if_needed(self, content: str, max_length: int = 250) -> str:
-        content_without_tags = content.replace("<b>", "").replace("</b>", "").replace(
-            "<br/>", "\n"
-        )
+        content_without_tags = content.replace("<b>", "").replace("</b>", "").replace("<br/>", "\n")
         actual_length = len(content_without_tags)
 
         if actual_length <= max_length:
@@ -56,17 +54,13 @@ class PDFAgent(BaseAgent):
             result = "<br/>".join(truncated_lines)
             if not header_present and "<b>分析师建议:</b>" not in result:
                 result = (
-                    "<b>分析师建议:</b><br/>" + result
-                    if result.strip()
-                    else "<b>分析师建议:</b>"
+                    "<b>分析师建议:</b><br/>" + result if result.strip() else "<b>分析师建议:</b>"
                 )
             return result
 
         return "<b>分析师建议:</b>" if not content else content[:max_length] + "..."
 
-    def _generate_cache_key(
-        self, user_data: Dict[str, Any], soft_skills: Dict[str, Any]
-    ) -> str:
+    def _generate_cache_key(self, user_data: Dict[str, Any], soft_skills: Dict[str, Any]) -> str:
         key_data = {
             "user_data": {
                 k: v
@@ -125,9 +119,7 @@ class PDFAgent(BaseAgent):
         )
 
         start_time = time.time()
-        self.logger.info(
-            f"[{self.agent_name}] 发送API请求，超时设置: {self.timeout}秒"
-        )
+        self.logger.info(f"[{self.agent_name}] 发送API请求，超时设置: {self.timeout}秒")
 
         content = self._call_api(prompt)
         elapsed_time = time.time() - start_time
@@ -141,9 +133,7 @@ class PDFAgent(BaseAgent):
                 f"截断后长度: {result_length}，耗时: {elapsed_time:.2f}秒"
             )
             pdf_cache.set(cache_key, result, self.cache_ttl)
-            self.logger.info(
-                f"[{self.agent_name}] 已缓存分析师建议，TTL: {self.cache_ttl}秒"
-            )
+            self.logger.info(f"[{self.agent_name}] 已缓存分析师建议，TTL: {self.cache_ttl}秒")
             return result
         else:
             self.logger.warning(
@@ -151,4 +141,3 @@ class PDFAgent(BaseAgent):
                 f"使用fallback建议"
             )
             return None
-

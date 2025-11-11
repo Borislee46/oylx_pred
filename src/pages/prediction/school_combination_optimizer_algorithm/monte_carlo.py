@@ -39,13 +39,13 @@ def _categorize_schools(
         return [], schools.copy()
 
     matrix_keys = set(correlation_matrix.index)
-    
+
     correlated = [
-        school for school in schools
-        if f"{school['university']} - {school['major']}" in matrix_keys
+        school for school in schools if f"{school['university']} - {school['major']}" in matrix_keys
     ]
     independent = [
-        school for school in schools
+        school
+        for school in schools
         if f"{school['university']} - {school['major']}" not in matrix_keys
     ]
 

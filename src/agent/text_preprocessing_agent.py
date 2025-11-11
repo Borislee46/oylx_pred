@@ -30,8 +30,6 @@ class TextPreprocessingAgent(BaseAgent):
         is_valid = content_response == "是" or content_response.startswith("是")
 
         self.logger.info(
-            f"[{self.agent_name}] 字段验证完成 - 字段类型: {field_type}, "
-            f"验证结果: {is_valid}"
+            f"[{self.agent_name}] 字段验证完成 - 字段类型: {field_type}, 验证结果: {is_valid}"
         )
         return is_valid
-

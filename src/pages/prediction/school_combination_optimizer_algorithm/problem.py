@@ -174,9 +174,7 @@ class SchoolSelectionProblem(Problem):
             num_selected = len(selected_indices)
             selected_schools = [self.all_schools_data[j] for j in selected_indices]
 
-            obj_vals, constr_vals = self._evaluate_single(
-                selected_schools, num_selected
-            )
+            obj_vals, constr_vals = self._evaluate_single(selected_schools, num_selected)
             objectives[i] = obj_vals
             constraints[i] = constr_vals
 

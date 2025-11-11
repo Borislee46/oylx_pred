@@ -62,9 +62,7 @@ def apply_all_filters(
                 f"平均值={sum(similarities) / len(similarities):.3f}, "
                 f"阈值={GLOBAL_MIN_SIMILARITY}"
             )
-            sample_majors = [
-                (s.get("major", ""), sim) for s, sim in school_similarities[:5]
-            ]
+            sample_majors = [(s.get("major", ""), sim) for s, sim in school_similarities[:5]]
             if sample_majors:
                 sample_info = ", ".join([f"{m[:30]}:{sim:.3f}" for m, sim in sample_majors])
                 logger.info(f"前5个专业相似度示例: {sample_info}")

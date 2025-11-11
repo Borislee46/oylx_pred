@@ -58,10 +58,7 @@ def deduplicate_universities_by_similarity(
         return schools
 
     grouped_by_uni = defaultdict(list)
-    others = [
-        s for s in schools
-        if s.get("university", "") not in target_universities
-    ]
+    others = [s for s in schools if s.get("university", "") not in target_universities]
 
     for s in schools:
         uni = s.get("university", "")
@@ -90,7 +87,8 @@ def filter_schools_by_faculty_rules(
         return schools
 
     return [
-        school for school in schools
+        school
+        for school in schools
         if not (faculty := school.get("faculty", "").strip()) or faculty in allowed_faculties
     ]
 
