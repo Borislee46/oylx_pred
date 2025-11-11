@@ -3,37 +3,19 @@ import json
 import time
 from typing import Any, Dict, Optional
 
-import requests
-
+from src.agent.base_agent import BaseAgent
 from src.pages.prediction.page_components.pdf_generation.utils import pdf_cache
-from src.utils.env_config_loader import load_app_config
-from src.utils.logger import setup_logger
-
-pdf_agent_logger = setup_logger("page3", "prediction")
 
 
-class PDFAgent:
+class PDFAgent(BaseAgent):
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        if config is None:
-            app_config = load_app_config()
-        else:
-            app_config = config
-
-        self.api_url = app_config.get("OPEN_AI_BASE_URL")
-        self.api_key = app_config.get("OPEN_AI_API_KEY")
-        self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.1")
-        self.timeout = 15
+        super().__init__(config=config, timeout=15, agent_name="PDFAgent")
         self.cache_ttl = 86400
 
         if not self.api_url or not self.api_key:
-            pdf_agent_logger.warning(
-                "[PDFAgent] API URL 或 API Key 未配置，将使用fallback建议"
+            self.logger.warning(
+                f"[{self.agent_name}] API URL 或 API Key 未配置，将使用fallback建议"
             )
-
-        self.headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-        }
 
     def _truncate_if_needed(self, content: str, max_length: int = 250) -> str:
         content_without_tags = content.replace("<b>", "").replace("</b>", "").replace(
@@ -109,16 +91,16 @@ class PDFAgent:
     def generate_analyst_notes(
         self, user_data: Dict[str, Any], soft_skills: Dict[str, Any]
     ) -> Optional[str]:
-        pdf_agent_logger.info("[PDFAgent] 开始生成分析师建议")
+        self.logger.info(f"[{self.agent_name}] 开始生成分析师建议")
 
         if not self.api_url or not self.api_key:
-            pdf_agent_logger.warning(
-                "[PDFAgent] API URL 或 API Key 未配置，无法生成分析师建议"
+            self.logger.warning(
+                f"[{self.agent_name}] API URL 或 API Key 未配置，无法生成分析师建议"
             )
             return None
 
         cache_key = f"analyst_notes:{self._generate_cache_key(user_data, soft_skills)}"
-        pdf_agent_logger.debug(f"[PDFAgent] 缓存键: {cache_key[:50]}...")
+        self.logger.debug(f"[{self.agent_name}] 缓存键: {cache_key[:50]}...")
 
         pdf_cache.clear_expired()
         cached_data = pdf_cache.get(cache_key)
@@ -126,92 +108,47 @@ class PDFAgent:
         if cached_data and isinstance(cached_data, dict):
             cached_value = cached_data.get("value")
             if cached_value:
-                pdf_agent_logger.info(
-                    f"[PDFAgent] 使用缓存的分析师建议，长度: {len(cached_value)}"
+                self.logger.info(
+                    f"[{self.agent_name}] 使用缓存的分析师建议，长度: {len(cached_value)}"
                 )
                 return cached_value
 
-        pdf_agent_logger.info("[PDFAgent] 缓存未命中，开始调用API生成分析师建议")
+        self.logger.info(f"[{self.agent_name}] 缓存未命中，开始调用API生成分析师建议")
 
         from src.agent.prompts import build_analyst_notes_prompt
 
         prompt = build_analyst_notes_prompt(user_data, soft_skills)
         prompt_length = len(prompt)
-        pdf_agent_logger.info(
-            f"[PDFAgent] 构建prompt完成，长度: {prompt_length}，模型: {self.model}，"
+        self.logger.info(
+            f"[{self.agent_name}] 构建prompt完成，长度: {prompt_length}，模型: {self.model}，"
             f"API URL: {self.api_url}"
         )
 
-        data = {
-            "model": self.model,
-            "messages": [{"content": [{"text": prompt, "type": "text"}], "role": "user"}],
-            "thinking": {"type": "disabled"},
-        }
-
         start_time = time.time()
-        try:
-            pdf_agent_logger.info(
-                f"[PDFAgent] 发送API请求，超时设置: {self.timeout}秒"
+        self.logger.info(
+            f"[{self.agent_name}] 发送API请求，超时设置: {self.timeout}秒"
+        )
+
+        content = self._call_api(prompt)
+        elapsed_time = time.time() - start_time
+
+        if content:
+            original_length = len(content)
+            result = self._truncate_if_needed(content.strip())
+            result_length = len(result)
+            self.logger.info(
+                f"[{self.agent_name}] 成功获取分析师建议，原始长度: {original_length}，"
+                f"截断后长度: {result_length}，耗时: {elapsed_time:.2f}秒"
             )
-            response = requests.post(
-                self.api_url, headers=self.headers, json=data, timeout=self.timeout
+            pdf_cache.set(cache_key, result, self.cache_ttl)
+            self.logger.info(
+                f"[{self.agent_name}] 已缓存分析师建议，TTL: {self.cache_ttl}秒"
             )
-            elapsed_time = time.time() - start_time
-            pdf_agent_logger.info(
-                f"[PDFAgent] API请求完成，状态码: {response.status_code}，耗时: {elapsed_time:.2f}秒"
-            )
-
-            response.raise_for_status()
-
-            response_json = response.json()
-
-            if response_json.get("choices"):
-                content = response_json["choices"][0].get("message", {}).get("content", "")
-                if content and content.strip():
-                    original_length = len(content)
-                    result = self._truncate_if_needed(content.strip())
-                    result_length = len(result)
-                    pdf_agent_logger.info(
-                        f"[PDFAgent] 成功获取分析师建议，原始长度: {original_length}，"
-                        f"截断后长度: {result_length}，耗时: {elapsed_time:.2f}秒"
-                    )
-                    pdf_cache.set(cache_key, result, self.cache_ttl)
-                    pdf_agent_logger.info(
-                        f"[PDFAgent] 已缓存分析师建议，TTL: {self.cache_ttl}秒"
-                    )
-                    return result
-                else:
-                    pdf_agent_logger.warning("[PDFAgent] API返回的content为空")
-            else:
-                pdf_agent_logger.warning("[PDFAgent] API响应中未找到choices字段")
-
-            error_info = response_json.get("error", {})
-            error_message = error_info.get("message", "未知错误")
-            pdf_agent_logger.warning(
-                f"[PDFAgent] API返回错误: {error_message}，响应: "
-                f"{json.dumps(response_json, ensure_ascii=False)[:200]}"
-            )
-            return None
-
-        except requests.exceptions.Timeout:
-            elapsed_time = time.time() - start_time
-            pdf_agent_logger.warning(
-                f"[PDFAgent] 请求超时（{self.timeout}秒），实际耗时: {elapsed_time:.2f}秒，"
+            return result
+        else:
+            self.logger.warning(
+                f"[{self.agent_name}] 获取分析师建议失败，耗时: {elapsed_time:.2f}秒，"
                 f"使用fallback建议"
-            )
-            return None
-        except requests.exceptions.RequestException as e:
-            elapsed_time = time.time() - start_time
-            pdf_agent_logger.warning(
-                f"[PDFAgent] API调用失败: {e}，耗时: {elapsed_time:.2f}秒，使用fallback建议"
-            )
-            return None
-        except Exception as e:
-            elapsed_time = time.time() - start_time
-            pdf_agent_logger.warning(
-                f"[PDFAgent] 生成分析师建议时发生错误: {e}，耗时: {elapsed_time:.2f}秒，"
-                f"使用fallback建议",
-                exc_info=True,
             )
             return None
 

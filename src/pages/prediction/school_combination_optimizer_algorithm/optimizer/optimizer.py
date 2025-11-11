@@ -194,6 +194,114 @@ class SchoolSelectionOptimizer:
             self._get_cached_data_wrapper,
         )
 
+    def _handle_insufficient_schools(
+        self,
+        filtered_schools: list[dict[str, Any]],
+        plan_config: PlanConfig,
+        context: OptimizationContext,
+    ) -> Optional[dict[str, Any]]:
+        logger.warning(
+            f"学校数量不足，过滤后={len(filtered_schools)}, 最小要求={plan_config.min_schools}，"
+            f"将尝试使用fallback机制"
+        )
+        if len(filtered_schools) == 0:
+            return None
+        problem = self._create_problem(filtered_schools, plan_config, context)
+        context.problem = problem
+        logger.debug(f"问题创建完成（学校数量不足），变量数量: {problem.n_var}")
+        fallback = self._get_fallback_recommendation_with_filtered_schools(
+            filtered_schools, context, plan_config
+        )
+        if fallback:
+            fallback["is_fallback"] = True
+            logger.debug(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
+        else:
+            logger.warning("fallback推荐结果也为空")
+        return fallback
+
+    def _log_optimization_result_details(
+        self, result: Any, problem: Any, plan_config: PlanConfig
+    ) -> None:
+        n_solutions = len(result.X) if result.X is not None else 0
+        logger.debug(f"优化结果有效，解数量: {n_solutions}")
+
+        if n_solutions == 0:
+            logger.warning(
+                f"优化器未找到任何解，可能原因: "
+                f"变量数量={problem.n_var}, min_schools={plan_config.min_schools}, "
+                f"max_schools={plan_config.max_schools}, "
+                f"约束条件可能过于严格"
+            )
+            if hasattr(result, "pop") and result.pop is not None:
+                logger.debug(
+                    f"种群大小: {len(result.pop) if hasattr(result.pop, '__len__') else 'N/A'}"
+                )
+        else:
+            feasible_count = 0
+            if hasattr(result, "CV") and result.CV is not None:
+                feasible_count = np.sum(result.CV <= 0)
+            elif hasattr(result, "G") and result.G is not None:
+                feasible_count = np.sum(np.all(result.G <= 0, axis=1))
+            logger.debug(f"可行解数量: {feasible_count}/{n_solutions}")
+
+            if feasible_count == 0 and hasattr(result, "G") and result.G is not None:
+                max_violations = np.max(result.G, axis=0)
+                constraint_names = [
+                    "max_schools",
+                    "min_reach",
+                    "min_target",
+                    "min_safety",
+                    "min_schools",
+                    "hk_violation",
+                    "min_top3",
+                    "min_top5",
+                ]
+                violations_info = ", ".join(
+                    [
+                        f"{name}={v:.2f}"
+                        for name, v in zip(constraint_names, max_violations)
+                        if v > 0
+                    ]
+                )
+                logger.warning(f"所有解都违反约束，最大违反值: {violations_info}")
+
+    def _try_build_recommendation_from_result(
+        self,
+        result: Any,
+        problem: Any,
+        context: OptimizationContext,
+        plan_config: PlanConfig,
+    ) -> Optional[dict[str, Any]]:
+        best_indices = self._find_best_solution_indices(
+            result, problem, plan_config.min_schools
+        )
+        logger.debug(f"找到最佳解索引数量: {len(best_indices)}")
+
+        for idx in best_indices:
+            recommendation = self._build_final_recommendation(
+                result.X[idx], result.F[idx], problem, context, plan_config
+            )
+            if recommendation:
+                logger.debug(
+                    f"成功构建推荐结果，学校数量: {len(recommendation.get('schools', []))}"
+                )
+                return recommendation
+            else:
+                logger.debug(f"索引{idx}未能构建推荐结果")
+        return None
+
+    def _get_fallback_recommendation_with_logging(
+        self, context: OptimizationContext, plan_config: PlanConfig
+    ) -> Optional[dict[str, Any]]:
+        logger.debug("NSGA优化无解，尝试fallback")
+        fallback = self._get_fallback_recommendation(context, plan_config)
+        if fallback:
+            fallback["is_fallback"] = True
+            logger.debug(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
+        else:
+            logger.warning("fallback推荐结果也为空")
+        return fallback
+
     def _optimize_single_plan(
         self, plan_config: PlanConfig, context: OptimizationContext
     ) -> Optional[dict[str, Any]]:
@@ -203,106 +311,29 @@ class SchoolSelectionOptimizer:
         )
 
         filtered_schools = self._apply_all_filters(context.all_schools_data, context)
-        logger.info(f"过滤后学校数量: {len(filtered_schools)}, 最小要求: {plan_config.min_schools}")
+        logger.debug(f"过滤后学校数量: {len(filtered_schools)}, 最小要求: {plan_config.min_schools}")
 
         if not self._has_sufficient_schools(filtered_schools, plan_config.min_schools):
-            logger.warning(
-                f"学校数量不足，过滤后={len(filtered_schools)}, 最小要求={plan_config.min_schools}，"
-                f"将尝试使用fallback机制"
-            )
-            if len(filtered_schools) == 0:
-                return None
-            problem = self._create_problem(filtered_schools, plan_config, context)
-            context.problem = problem
-            logger.info(f"问题创建完成（学校数量不足），变量数量: {problem.n_var}")
-            fallback = self._get_fallback_recommendation_with_filtered_schools(
-                filtered_schools, context, plan_config
-            )
-            if fallback:
-                fallback["is_fallback"] = True
-                logger.info(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
-            else:
-                logger.warning("fallback推荐结果也为空")
-            return fallback
+            return self._handle_insufficient_schools(filtered_schools, plan_config, context)
 
         problem = self._create_problem(filtered_schools, plan_config, context)
         context.problem = problem
-        logger.info(f"问题创建完成，变量数量: {problem.n_var}")
+        logger.debug(f"问题创建完成，变量数量: {problem.n_var}")
 
         result = self._run_optimization(problem)
-        logger.info(f"优化运行完成，结果是否存在: {result is not None}")
+        logger.debug(f"优化运行完成，结果是否存在: {result is not None}")
 
         if result and hasattr(result, "X"):
-            n_solutions = len(result.X) if result.X is not None else 0
-            logger.info(f"优化结果有效，解数量: {n_solutions}")
-
-            if n_solutions == 0:
-                logger.warning(
-                    f"优化器未找到任何解，可能原因: "
-                    f"变量数量={problem.n_var}, min_schools={plan_config.min_schools}, "
-                    f"max_schools={plan_config.max_schools}, "
-                    f"约束条件可能过于严格"
-                )
-                if hasattr(result, "pop") and result.pop is not None:
-                    logger.info(
-                        f"种群大小: {len(result.pop) if hasattr(result.pop, '__len__') else 'N/A'}"
-                    )
-            else:
-                feasible_count = 0
-                if hasattr(result, "CV") and result.CV is not None:
-                    feasible_count = np.sum(result.CV <= 0)
-                elif hasattr(result, "G") and result.G is not None:
-                    feasible_count = np.sum(np.all(result.G <= 0, axis=1))
-                logger.info(f"可行解数量: {feasible_count}/{n_solutions}")
-
-                if feasible_count == 0 and hasattr(result, "G") and result.G is not None:
-                    max_violations = np.max(result.G, axis=0)
-                    constraint_names = [
-                        "max_schools",
-                        "min_reach",
-                        "min_target",
-                        "min_safety",
-                        "min_schools",
-                        "hk_violation",
-                        "min_top3",
-                        "min_top5",
-                    ]
-                    violations_info = ", ".join(
-                        [
-                            f"{name}={v:.2f}"
-                            for name, v in zip(constraint_names, max_violations)
-                            if v > 0
-                        ]
-                    )
-                    logger.warning(f"所有解都违反约束，最大违反值: {violations_info}")
-
-            best_indices = self._find_best_solution_indices(
-                result, problem, plan_config.min_schools
+            self._log_optimization_result_details(result, problem, plan_config)
+            recommendation = self._try_build_recommendation_from_result(
+                result, problem, context, plan_config
             )
-            logger.info(f"找到最佳解索引数量: {len(best_indices)}")
-
-            for idx in best_indices:
-                recommendation = self._build_final_recommendation(
-                    result.X[idx], result.F[idx], problem, context, plan_config
-                )
-                if recommendation:
-                    logger.info(
-                        f"成功构建推荐结果，学校数量: {len(recommendation.get('schools', []))}"
-                    )
-                    return recommendation
-                else:
-                    logger.warning(f"索引{idx}未能构建推荐结果")
+            if recommendation:
+                return recommendation
         else:
             logger.warning("优化结果无效或缺少X属性")
 
-        logger.info("NSGA优化无解，尝试fallback")
-        fallback = self._get_fallback_recommendation(context, plan_config)
-        if fallback:
-            fallback["is_fallback"] = True
-            logger.info(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
-        else:
-            logger.warning("fallback推荐结果也为空")
-        return fallback
+        return self._get_fallback_recommendation_with_logging(context, plan_config)
 
     def clear_cache(self) -> None:
         clear_all_caches(self._caches)
@@ -328,10 +359,10 @@ class SchoolSelectionOptimizer:
             return [], {}
 
         if major_category_cache is None:
-            logger.info("major_category_cache为空，正在加载")
+            logger.debug("major_category_cache为空，正在加载")
             details_df = load_school_major_details_df()
             major_category_cache = build_major_category_cache(details_df)
-            logger.info(f"major_category_cache加载完成，大小: {len(major_category_cache)}")
+            logger.debug(f"major_category_cache加载完成，大小: {len(major_category_cache)}")
 
         self.context = OptimizationContext(
             all_schools_data=all_schools_data,
@@ -343,28 +374,28 @@ class SchoolSelectionOptimizer:
         )
 
         self.bg_target_similarity_cache = bg_target_similarity_cache or {}
-        logger.info(f"bg_target_similarity_cache大小: {len(self.bg_target_similarity_cache)}")
+        logger.debug(f"bg_target_similarity_cache大小: {len(self.bg_target_similarity_cache)}")
 
         input_hash_key = build_optimization_input_hash(
             all_schools_data, background_major, background_faculty, school_level, gpa
         )
         cached_result = self._caches["result"].get(input_hash_key)
         if cached_result:
-            logger.info(f"找到缓存结果，直接返回，输入hash: {input_hash_key[:50]}...")
+            logger.debug(f"找到缓存结果，直接返回，输入hash: {input_hash_key[:50]}...")
             return cached_result["recommendations"], cached_result["adaptive_thresholds"]
 
         self.context.adaptive_thresholds = self._calculate_adaptive_thresholds(self.context)
-        logger.info(f"自适应阈值计算完成: {self.context.adaptive_thresholds}")
+        logger.debug(f"自适应阈值计算完成: {self.context.adaptive_thresholds}")
 
         all_schools_data = self._adjust_probability_by_university_difficulty(
             all_schools_data, self.context.adaptive_thresholds
         )
         self.all_schools_data = all_schools_data
         self.context.all_schools_data = all_schools_data
-        logger.info(f"已对选校池进行概率纠偏，学校数量: {len(all_schools_data)}")
+        logger.debug(f"已对选校池进行概率纠偏，学校数量: {len(all_schools_data)}")
 
         plan_configs = list(get_plan_configs(self.plan_configs))
-        logger.info(f"开始优化，计划配置数量: {len(plan_configs)}")
+        logger.debug(f"开始优化，计划配置数量: {len(plan_configs)}")
 
         final_recommendations: list[dict[str, Any]] = []
         for idx, plan_config in enumerate(plan_configs):
@@ -382,15 +413,15 @@ class SchoolSelectionOptimizer:
                     logger.info(f"计划配置 {plan_config.name} 优化完成，获得NSGA推荐结果")
                 
                 if idx == 0 and is_fallback:
-                    logger.info("策略1 NSGA优化无解，使用fallback结果，跳过后续策略")
+                    logger.debug("策略1 NSGA优化无解，使用fallback结果，跳过后续策略")
                     break
             else:
                 logger.warning(f"计划配置 {plan_config.name} 未获得有效推荐结果")
                 if idx == 0:
-                    logger.info("策略1完全无解，跳过后续策略")
+                    logger.debug("策略1完全无解，跳过后续策略")
                     break
                 elif idx == 1:
-                    logger.info("策略2完全无解，跳过策略3")
+                    logger.debug("策略2完全无解，跳过策略3")
                     break
 
         for recommendation in final_recommendations:
@@ -410,7 +441,7 @@ class SchoolSelectionOptimizer:
             "adaptive_thresholds": self.context.adaptive_thresholds,
         }
         self._caches["result"].put(input_hash_key, result_to_cache)
-        logger.info(f"结果已缓存，输入hash: {input_hash_key[:50]}...")
+        logger.debug(f"结果已缓存，输入hash: {input_hash_key[:50]}...")
 
         return final_recommendations, self.context.adaptive_thresholds
 

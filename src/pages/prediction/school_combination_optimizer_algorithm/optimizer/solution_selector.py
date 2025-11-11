@@ -64,8 +64,8 @@ def find_best_solution_indices(
     if context and context.adaptive_thresholds:
         probs_vec = np.array(
             [
-                clip_probability(problem.all_schools_data[j].get("probability", 0.0))
-                for j in range(n_candidates)
+                clip_probability(s.get("probability", 0.0))
+                for s in problem.all_schools_data[:n_candidates]
             ],
             dtype=float,
         )

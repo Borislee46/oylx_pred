@@ -1,5 +1,6 @@
 from typing import Any, Callable, Optional
 
+import numpy as np
 from pymoo.algorithms.moo.nsga3 import NSGA3
 from pymoo.core.result import Result
 from pymoo.operators.crossover.hux import HUX
@@ -44,7 +45,7 @@ def create_problem(
 
 def compute_algo_params(
     problem_size: int, population_size: int, n_generations: int
-) -> tuple[int, int, Any]:
+) -> tuple[int, int, np.ndarray]:
     n_ref = DEFAULT_REFERENCE_DIRECTIONS_COUNT
     base_pop = population_size
     base_gen = n_generations
@@ -60,7 +61,7 @@ def compute_algo_params(
         n_gen = base_gen
 
     ref = get_cached_reference_directions("energy", n_dim=5, n_points=n_ref)
-    logger.info(
+    logger.debug(
         f"优化参数: problem_size={problem_size}, population_size={pop}, n_generations={n_gen}"
     )
     return pop, n_gen, ref

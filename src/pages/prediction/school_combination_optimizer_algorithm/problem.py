@@ -171,10 +171,11 @@ class SchoolSelectionProblem(Problem):
     def _evaluate_non_empty_solutions(self, x, indices, objectives, constraints):
         for i in indices:
             selected_indices = np.where(x[i] == 1)[0]
+            num_selected = len(selected_indices)
             selected_schools = [self.all_schools_data[j] for j in selected_indices]
 
-            i, obj_vals, constr_vals = self._evaluate_single(
-                i, selected_schools, len(selected_indices)
+            obj_vals, constr_vals = self._evaluate_single(
+                selected_schools, num_selected
             )
             objectives[i] = obj_vals
             constraints[i] = constr_vals
@@ -191,7 +192,7 @@ class SchoolSelectionProblem(Problem):
         )
         return objectives * weights
 
-    def _evaluate_single(self, index, selected_schools, num_selected):
+    def _evaluate_single(self, selected_schools, num_selected):
         metrics = calculate_metrics(
             schools=selected_schools,
             background_major=self.background_major,
@@ -206,7 +207,7 @@ class SchoolSelectionProblem(Problem):
 
         constraints = self._calculate_constraints(num_selected, metrics, selected_schools)
 
-        return index, objectives, constraints
+        return objectives, constraints
 
     def _calculate_objectives(self, metrics):
         return (

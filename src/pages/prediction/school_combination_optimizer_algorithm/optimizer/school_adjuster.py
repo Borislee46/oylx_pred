@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Optional
 
 from src.pages.prediction.result_modifier.config import UNIVERSITY_DIFFICULTY_ORDER
@@ -12,6 +13,11 @@ from src.utils.logger import setup_logger
 logger = setup_logger("page3", "prediction")
 
 
+@lru_cache(maxsize=1)
+def _get_difficulty_map() -> dict[str, int]:
+    return {uni: idx for idx, uni in enumerate(UNIVERSITY_DIFFICULTY_ORDER)}
+
+
 def adjust_probability_by_university_difficulty(
     schools: list[dict[str, Any]],
     adaptive_thresholds: Optional[dict[str, float]] = None,
@@ -19,7 +25,7 @@ def adjust_probability_by_university_difficulty(
     if not schools:
         return schools
 
-    difficulty_map = {uni: idx for idx, uni in enumerate(UNIVERSITY_DIFFICULTY_ORDER)}
+    difficulty_map = _get_difficulty_map()
     target_thresh = adaptive_thresholds.get("target_lower", 0.55) if adaptive_thresholds else 0.55
     total_universities = len(UNIVERSITY_DIFFICULTY_ORDER)
 

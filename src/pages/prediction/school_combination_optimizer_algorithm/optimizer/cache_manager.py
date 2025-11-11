@@ -1,34 +1,41 @@
 import hashlib
 import json
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from src.pages.prediction.school_combination_optimizer_algorithm.utils import LRUCache
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
+T = TypeVar("T")
+
 
 def get_cached_data(
     caches: dict[str, LRUCache],
     cache_type: str,
     key: str,
-    calculation_func: Callable[[], Any],
-) -> Any:
+    calculation_func: Callable[[], T],
+) -> T:
     cache = caches[cache_type]
     if cached := cache.get(key):
+        if isinstance(cached, (int, float, str, tuple, bool, type(None))):
+            return cached
         return cached.copy() if hasattr(cached, "copy") else cached
 
     result = calculation_func()
-    cache.put(key, result.copy() if hasattr(result, "copy") else result)
+    if isinstance(result, (int, float, str, tuple, bool, type(None))):
+        cache.put(key, result)
+    else:
+        cache.put(key, result.copy() if hasattr(result, "copy") else result)
     return result
 
 
 def build_optimization_input_hash(
     all_schools_data: list[dict[str, Any]],
     background_major: str,
-    background_faculty: Any,
-    school_level: Any,
-    gpa: Any,
+    background_faculty: str | None,
+    school_level: str | None,
+    gpa: float | None,
 ) -> str:
     input_data = {
         "background_major": background_major,

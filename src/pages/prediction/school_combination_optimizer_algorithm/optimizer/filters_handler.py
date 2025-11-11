@@ -45,22 +45,15 @@ def apply_all_filters(
         return result
 
     def similarity_filter_only(schools):
-        similarities = []
-        filtered = []
         cache = bg_target_similarity_cache
         logger.info(f"similarity_filter_only使用缓存大小: {len(cache)}")
 
-        sample_majors = []
-        for s in schools:
-            major = s.get("major", "")
-            similarity = get_cached_major_similarity(major, context.background_major, cache)
-            similarities.append(similarity)
-
-            if len(sample_majors) < 5:
-                sample_majors.append((major, similarity))
-
-            if similarity >= GLOBAL_MIN_SIMILARITY:
-                filtered.append(s)
+        school_similarities = [
+            (s, get_cached_major_similarity(s.get("major", ""), context.background_major, cache))
+            for s in schools
+        ]
+        similarities = [sim for _, sim in school_similarities]
+        filtered = [s for s, sim in school_similarities if sim >= GLOBAL_MIN_SIMILARITY]
 
         if similarities:
             logger.info(
@@ -69,6 +62,9 @@ def apply_all_filters(
                 f"平均值={sum(similarities) / len(similarities):.3f}, "
                 f"阈值={GLOBAL_MIN_SIMILARITY}"
             )
+            sample_majors = [
+                (s.get("major", ""), sim) for s, sim in school_similarities[:5]
+            ]
             if sample_majors:
                 sample_info = ", ".join([f"{m[:30]}:{sim:.3f}" for m, sim in sample_majors])
                 logger.info(f"前5个专业相似度示例: {sample_info}")
@@ -137,20 +133,16 @@ def apply_post_filters(
     )
 
     reach_threshold = context.adaptive_thresholds.get("target_lower", 0.0)
-    filtered_selection = []
 
-    for school in schools:
+    def should_include(school: dict[str, Any]) -> bool:
         is_reach = clip_probability(school.get("probability", 1.0)) < reach_threshold
         if not is_reach:
-            filtered_selection.append(school)
-            continue
+            return True
 
         uni = school.get("university", "")
         major = school.get("major", "")
         cache_key = f"{uni}|{major}"
         target_faculty = problem.major_category_cache.get(cache_key)
+        return target_faculty == context.background_faculty
 
-        if target_faculty == context.background_faculty:
-            filtered_selection.append(school)
-
-    return filtered_selection
+    return [school for school in schools if should_include(school)]

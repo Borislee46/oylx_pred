@@ -87,20 +87,23 @@ def build_final_recommendation(
     return create_recommendation(selected_schools, metrics, f_values.tolist())
 
 
-def get_fallback_recommendation(
+def _build_fallback_recommendation_from_schools(
+    schools: list[dict[str, Any]],
+    min_schools: int,
+    max_schools: int,
     context: OptimizationContext,
     plan_config: PlanConfig,
     correlation_matrix: Any,
     get_cached_data: Callable[[str, str, Callable[[], Any]], Any],
 ) -> Optional[dict[str, Any]]:
     balanced_schools = generate_balanced_selection(
-        context.all_schools_data,
-        plan_config.min_schools,
-        plan_config.max_schools,
+        schools,
+        min_schools,
+        max_schools,
         context.adaptive_thresholds,
     )
 
-    if not balanced_schools or len(balanced_schools) < plan_config.min_schools:
+    if not balanced_schools or len(balanced_schools) < min_schools:
         return None
 
     if not context.problem:
@@ -113,6 +116,23 @@ def get_fallback_recommendation(
         balanced_schools, context, context.problem, correlation_matrix, get_cached_data
     )
     return create_recommendation(balanced_schools, metrics)
+
+
+def get_fallback_recommendation(
+    context: OptimizationContext,
+    plan_config: PlanConfig,
+    correlation_matrix: Any,
+    get_cached_data: Callable[[str, str, Callable[[], Any]], Any],
+) -> Optional[dict[str, Any]]:
+    return _build_fallback_recommendation_from_schools(
+        context.all_schools_data,
+        plan_config.min_schools,
+        plan_config.max_schools,
+        context,
+        plan_config,
+        correlation_matrix,
+        get_cached_data,
+    )
 
 
 def get_fallback_recommendation_with_filtered_schools(
@@ -126,23 +146,12 @@ def get_fallback_recommendation_with_filtered_schools(
     adjusted_min_schools = min(plan_config.min_schools, available_count)
     adjusted_max_schools = min(plan_config.max_schools, available_count)
 
-    balanced_schools = generate_balanced_selection(
+    return _build_fallback_recommendation_from_schools(
         filtered_schools,
         adjusted_min_schools,
         adjusted_max_schools,
-        context.adaptive_thresholds,
+        context,
+        plan_config,
+        correlation_matrix,
+        get_cached_data,
     )
-
-    if not balanced_schools:
-        return None
-
-    if not context.problem:
-        return None
-
-    balanced_schools = adjust_probability_by_university_difficulty(
-        balanced_schools, context.adaptive_thresholds
-    )
-    metrics = calculate_metrics_for_selection(
-        balanced_schools, context, context.problem, correlation_matrix, get_cached_data
-    )
-    return create_recommendation(balanced_schools, metrics)
