@@ -1,12 +1,10 @@
 from typing import Dict
 
-from src.pages.prediction.page_components.pdf_generation.generators.pdf_ai_agent import (
-    PDFAIAgent,
-)
+from src.agent.pdf_agent import PDFAgent
 
 
 class AnalystNotesGenerator:
-    def __init__(self, ai_agent: PDFAIAgent):
+    def __init__(self, ai_agent: PDFAgent):
         self.ai_agent = ai_agent
 
     def generate_analyst_notes(self, user_data: Dict, soft_skills: Dict) -> str:

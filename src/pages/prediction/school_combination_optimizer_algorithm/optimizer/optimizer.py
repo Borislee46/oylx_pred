@@ -133,6 +133,12 @@ class SchoolSelectionOptimizer:
     def _has_sufficient_schools(self, schools_data: list[dict[str, Any]], min_schools: int) -> bool:
         return len(schools_data) >= min_schools if schools_data else False
 
+    def _has_valid_recommendation(self, recommendation: Optional[dict[str, Any]]) -> bool:
+        if not recommendation:
+            return False
+        schools = recommendation.get("schools", [])
+        return len(schools) > 0 if schools else False
+
     def _find_best_solution_indices(
         self,
         res: Any,
@@ -213,6 +219,7 @@ class SchoolSelectionOptimizer:
                 filtered_schools, context, plan_config
             )
             if fallback:
+                fallback["is_fallback"] = True
                 logger.info(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
             else:
                 logger.warning("fallback推荐结果也为空")
@@ -288,8 +295,10 @@ class SchoolSelectionOptimizer:
         else:
             logger.warning("优化结果无效或缺少X属性")
 
+        logger.info("NSGA优化无解，尝试fallback")
         fallback = self._get_fallback_recommendation(context, plan_config)
         if fallback:
+            fallback["is_fallback"] = True
             logger.info(f"获得fallback推荐结果，学校数量: {len(fallback.get('schools', []))}")
         else:
             logger.warning("fallback推荐结果也为空")
@@ -357,16 +366,32 @@ class SchoolSelectionOptimizer:
         plan_configs = list(get_plan_configs(self.plan_configs))
         logger.info(f"开始优化，计划配置数量: {len(plan_configs)}")
 
-        final_recommendations = []
-        for plan_config in plan_configs:
+        final_recommendations: list[dict[str, Any]] = []
+        for idx, plan_config in enumerate(plan_configs):
             logger.info(f"开始优化计划配置: {plan_config.name}")
             recommendation = self._optimize_single_plan(plan_config, self.context)
-            if recommendation:
+
+            if self._has_valid_recommendation(recommendation):
+                assert recommendation is not None
                 recommendation["type"] = plan_config.name
                 final_recommendations.append(recommendation)
-                logger.info(f"计划配置 {plan_config.name} 优化完成，获得推荐结果")
+                is_fallback = recommendation.get("is_fallback", False)
+                if is_fallback:
+                    logger.info(f"计划配置 {plan_config.name} 使用fallback结果")
+                else:
+                    logger.info(f"计划配置 {plan_config.name} 优化完成，获得NSGA推荐结果")
+                
+                if idx == 0 and is_fallback:
+                    logger.info("策略1 NSGA优化无解，使用fallback结果，跳过后续策略")
+                    break
             else:
-                logger.warning(f"计划配置 {plan_config.name} 未获得推荐结果")
+                logger.warning(f"计划配置 {plan_config.name} 未获得有效推荐结果")
+                if idx == 0:
+                    logger.info("策略1完全无解，跳过后续策略")
+                    break
+                elif idx == 1:
+                    logger.info("策略2完全无解，跳过策略3")
+                    break
 
         for recommendation in final_recommendations:
             if recommendation and "schools" in recommendation:

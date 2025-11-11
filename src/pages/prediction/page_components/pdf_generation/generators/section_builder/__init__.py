@@ -2,9 +2,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from src.pages.prediction.page_components.pdf_generation.generators.pdf_ai_agent import (
-    PDFAIAgent,
-)
+from src.agent.pdf_agent import PDFAgent
 from src.pages.prediction.page_components.pdf_generation.generators.pdf_styler import PDFStyler
 from src.pages.prediction.page_components.pdf_generation.generators.section_builder.analyst_notes import (
     AnalystNotesGenerator,
@@ -33,7 +31,7 @@ class PDFSectionBuilder:
         self.styler = styler
         self.data_processor = SchoolDataProcessor()
         self.formatter = ContentFormatter()
-        self.ai_agent = PDFAIAgent()
+        self.ai_agent = PDFAgent()
 
         self.analyst_notes_generator = AnalystNotesGenerator(self.ai_agent)
         self.cover_page_builder = CoverPageBuilder(styler)

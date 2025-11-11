@@ -10,19 +10,26 @@ from src.pages.prediction.prediction_utils import (
     has_school_major_details,
 )
 from src.pages.prediction.result_modifier.config import (
+    AGENT_MIN_BALANCE_DIFF,
+    HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
+    UNIVERSITY_COUNT_THRESHOLD,
     USER_SPECIFIED_LARGE_RANGE_TOP_N,
     USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD,
     USER_SPECIFIED_MEDIUM_RANGE_TOP_N,
     USER_SPECIFIED_SMALL_RANGE_THRESHOLD,
 )
 from src.pages.prediction.result_modifier.ranker import (
+    adjust_similarity_results_with_agent,
     get_cross_major_recommendations,
     get_similar_major_recommendations,
 )
 from src.pages.prediction.result_modifier.similarity_adjuster import (
     adjust_similarity_score,
 )
+from src.utils.logger import setup_logger
+
+boundary_processor_logger = setup_logger("page3", "prediction")
 
 
 @lru_cache(maxsize=1)
@@ -268,5 +275,77 @@ def process_prediction_results(
     top_cross_major_results = get_cross_major_recommendations(
         results_for_recommendations, background_major, cases_df, user_specified_combinations
     )
+
+    balance_diff = len(top_cross_major_results) - len(top_similarity_results)
+
+    boundary_processor_logger.info(
+        f"[边界处理] 结果统计 - 相似专业: {len(top_similarity_results)}, "
+        f"跨专业: {len(top_cross_major_results)}, 平衡差: {balance_diff}, "
+        f"阈值: {AGENT_MIN_BALANCE_DIFF}"
+    )
+
+    if abs(balance_diff) >= AGENT_MIN_BALANCE_DIFF:
+        current_threshold = MIN_SIMILARITY_THRESHOLD
+        if num_target_universities > 0 and num_target_universities <= UNIVERSITY_COUNT_THRESHOLD:
+            current_threshold = HIGHER_SIMILARITY_THRESHOLD
+
+        boundary_processor_logger.info(
+            f"[边界处理] 触发条件满足 - 平衡差绝对值: {abs(balance_diff)}, "
+            f"当前相似度阈值: {current_threshold}, 背景专业: {background_major}, "
+            f"目标院校数量: {num_target_universities}"
+        )
+
+        agent = None
+        if cases_df is not None and background_major:
+            from src.agent.boundary_case_agent import BoundaryCaseAgent
+
+            agent = BoundaryCaseAgent(cases_df=cases_df)
+            boundary_processor_logger.info("[边界处理] Agent 实例创建成功")
+
+        if agent:
+            original_sim_count = len(top_similarity_results)
+            original_cross_count = len(top_cross_major_results)
+
+            top_similarity_results = adjust_similarity_results_with_agent(
+                top_similarity_results,
+                results_for_recommendations,
+                balance_diff,
+                background_major,
+                current_threshold,
+                agent,
+            )
+
+            sim_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
+            top_cross_major_results = [
+                r
+                for r in top_cross_major_results
+                if (r.get("university"), r.get("major")) not in sim_set
+            ]
+
+            adjusted_sim_count = len(top_similarity_results)
+            adjusted_cross_count = len(top_cross_major_results)
+
+            removed_from_cross = original_cross_count - adjusted_cross_count
+
+            boundary_processor_logger.info(
+                f"[边界处理] 调整完成 - 相似专业: {original_sim_count} -> {adjusted_sim_count} "
+                f"(变化: {adjusted_sim_count - original_sim_count:+d}), "
+                f"跨专业: {original_cross_count} -> {adjusted_cross_count} "
+                f"(移除重复: {removed_from_cross})"
+            )
+
+            if removed_from_cross > 0:
+                boundary_processor_logger.info(
+                    f"[边界处理] 从跨专业结果中移除了 {removed_from_cross} 个重复案例"
+                )
+        else:
+            boundary_processor_logger.warning(
+                "[边界处理] Agent 未创建，跳过边界处理 - "
+                f"cases_df: {cases_df is not None}, background_major: {bool(background_major)}"
+            )
+    else:
+        boundary_processor_logger.debug(
+            f"[边界处理] 未触发 - 平衡差绝对值 {abs(balance_diff)} < 阈值 {AGENT_MIN_BALANCE_DIFF}"
+        )
 
     return top_similarity_results, top_cross_major_results, final_user_specified_results

@@ -7,7 +7,7 @@ from src.agent.prompts import build_consultation_prompt
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 
-agent_logger = setup_logger("page3", "prediction")
+consultation_agent_logger = setup_logger("page3", "prediction")
 
 
 class AIAgent:
@@ -30,7 +30,7 @@ class AIAgent:
         self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.1")
 
         if not self.api_url or not self.api_key:
-            agent_logger.error("错误: AI Agent 的 API URL 或 API Key 未在配置中找到。")
+            consultation_agent_logger.error("[咨询Agent] API URL 或 API Key 未在配置中找到。")
 
         self.headers = {
             "Content-Type": "application/json",
@@ -56,7 +56,7 @@ class AIAgent:
         }
 
         try:
-            response = requests.post(self.api_url, headers=self.headers, json=data, timeout=30)
+            response = requests.post(self.api_url, headers=self.headers, json=data, timeout=5)
             response.raise_for_status()
 
             response_json = response.json()
@@ -67,12 +67,15 @@ class AIAgent:
             else:
                 error_info = response_json.get("error", {})
                 error_message = error_info.get("message", "未知错误")
-                agent_logger.error(f"API returned an error: {error_message}")
-                return f"抱歉，调用模型时出错: {error_message}"
+                consultation_agent_logger.error(f"[咨询Agent] API返回错误: {error_message}")
+                return ""
 
+        except requests.exceptions.Timeout:
+            consultation_agent_logger.warning("[咨询Agent] 请求超时（5秒），使用fallback响应")
+            return ""
         except requests.exceptions.RequestException as e:
-            agent_logger.error(f"Error calling LLM API: {e}")
-            return "抱歉，无法连接到 AI 助手。请检查您的网络连接或联系管理员。"
+            consultation_agent_logger.error(f"[咨询Agent] 网络请求失败: {e}")
+            return ""
         except Exception as e:
-            agent_logger.error(f"An unexpected error occurred in AIAgent.run: {e}")
-            return "抱歉，处理您的请求时发生了一个未知错误。"
+            consultation_agent_logger.error(f"[咨询Agent] 未知错误: {e}", exc_info=True)
+            return ""
