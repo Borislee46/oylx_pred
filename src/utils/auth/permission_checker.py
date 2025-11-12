@@ -68,8 +68,6 @@ def get_user_accessible_modules(user_email: str) -> dict:
             return {
                 "hk": True,
                 "admin": True,
-                "hk_admin": True,
-                "log_admin": True,
                 "hr_dashboard": True,
                 "hr_structure_dashboard": True,
             }
@@ -77,8 +75,6 @@ def get_user_accessible_modules(user_email: str) -> dict:
     empty_modules = {
         "hk": False,
         "admin": False,
-        "hk_admin": False,
-        "log_admin": False,
         "hr_dashboard": False,
         "hr_structure_dashboard": False,
     }
@@ -101,8 +97,6 @@ def get_user_accessible_modules(user_email: str) -> dict:
     return {
         "hk": _check("hk"),
         "admin": is_user_admin,
-        "hk_admin": is_user_admin,
-        "log_admin": is_user_admin,
         "hr_dashboard": _check("hr_dashboard"),
         "hr_structure_dashboard": _check("hr_structure_dashboard"),
     }

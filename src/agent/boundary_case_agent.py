@@ -4,7 +4,7 @@ from typing import Any, Optional
 import pandas as pd
 
 from src.agent.base_agent import BaseAgent
-from src.agent.prompts import build_boundary_evaluation_prompt
+from src.agent.boundary_case_prompts import build_boundary_evaluation_prompt
 
 
 class BoundaryCaseAgent(BaseAgent):
@@ -77,11 +77,17 @@ class BoundaryCaseAgent(BaseAgent):
             return fallback_result
 
     def _clean_json_content(self, content: str) -> str:
+        if not content:
+            return ""
         content = content.strip()
-        if content.startswith("```json"):
-            content = content[7:]
-        if content.startswith("```"):
-            content = content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
+        while content.startswith("```json"):
+            content = content[7:].strip()
+        while content.startswith("```"):
+            content = content[3:].strip()
+        while content.endswith("```"):
+            content = content[:-3].strip()
+        start_idx = content.find("{")
+        end_idx = content.rfind("}")
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            content = content[start_idx : end_idx + 1]
         return content.strip()

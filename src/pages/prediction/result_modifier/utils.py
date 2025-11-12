@@ -7,7 +7,7 @@ from typing import Any
 import requests
 import streamlit as st
 
-from src.agent.prompts import build_field_validation_prompt
+from src.agent.text_preprocessing_prompts import build_field_validation_prompt
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 

@@ -96,20 +96,23 @@ class PDFAgent(BaseAgent):
         cache_key = f"analyst_notes:{self._generate_cache_key(user_data, soft_skills)}"
         self.logger.debug(f"[{self.agent_name}] 缓存键: {cache_key[:50]}...")
 
-        pdf_cache.clear_expired()
-        cached_data = pdf_cache.get(cache_key)
+        try:
+            pdf_cache.clear_expired()
+            cached_data = pdf_cache.get(cache_key)
 
-        if cached_data and isinstance(cached_data, dict):
-            cached_value = cached_data.get("value")
-            if cached_value:
-                self.logger.info(
-                    f"[{self.agent_name}] 使用缓存的分析师建议，长度: {len(cached_value)}"
-                )
-                return cached_value
+            if cached_data and isinstance(cached_data, dict):
+                cached_value = cached_data.get("value")
+                if cached_value:
+                    self.logger.info(
+                        f"[{self.agent_name}] 使用缓存的分析师建议，长度: {len(cached_value)}"
+                    )
+                    return cached_value
+        except Exception as e:
+            self.logger.warning(f"[{self.agent_name}] 缓存操作失败: {e}，继续调用API")
 
         self.logger.info(f"[{self.agent_name}] 缓存未命中，开始调用API生成分析师建议")
 
-        from src.agent.prompts import build_analyst_notes_prompt
+        from src.agent.pdf_prompts import build_analyst_notes_prompt
 
         prompt = build_analyst_notes_prompt(user_data, soft_skills)
         prompt_length = len(prompt)
@@ -132,8 +135,11 @@ class PDFAgent(BaseAgent):
                 f"[{self.agent_name}] 成功获取分析师建议，原始长度: {original_length}，"
                 f"截断后长度: {result_length}，耗时: {elapsed_time:.2f}秒"
             )
-            pdf_cache.set(cache_key, result, self.cache_ttl)
-            self.logger.info(f"[{self.agent_name}] 已缓存分析师建议，TTL: {self.cache_ttl}秒")
+            try:
+                pdf_cache.set(cache_key, result, self.cache_ttl)
+                self.logger.info(f"[{self.agent_name}] 已缓存分析师建议，TTL: {self.cache_ttl}秒")
+            except Exception as e:
+                self.logger.warning(f"[{self.agent_name}] 缓存写入失败: {e}，但不影响返回结果")
             return result
         else:
             self.logger.warning(

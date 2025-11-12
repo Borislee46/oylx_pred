@@ -30,8 +30,16 @@ class PDFCacheManager:
 
     def get(self, key: str) -> Optional[Any]:
         if key in self._cache:
-            self._cache_stats["hits"] += 1
-            return self._cache[key]
+            cached_data = self._cache[key]
+            if isinstance(cached_data, dict) and "expires" in cached_data:
+                if cached_data["expires"] >= time.time():
+                    self._cache_stats["hits"] += 1
+                    return cached_data
+                else:
+                    del self._cache[key]
+            else:
+                self._cache_stats["hits"] += 1
+                return cached_data
         self._cache_stats["misses"] += 1
         return None
 

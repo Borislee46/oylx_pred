@@ -14,21 +14,14 @@ from src.utils.auth.permission_checker import (
 )
 from src.utils.logger import setup_logger
 from src.utils.page_init import init_page
+from test_components.nivo_charts_test import render_draggable_nivo_charts
 
 main_logger = setup_logger("page3", "prediction")
 
 
 def _handle_oauth_callback_if_present() -> None:
     query_params = st.query_params
-    callback_params = ["code", "state", "e2e", "our_app_state_check"]
-    if all(key in query_params for key in callback_params):
-        if st.session_state.get("is_authenticated", False):
-            new_params = {k: v for k, v in query_params.items() if k not in callback_params}
-            st.query_params.clear()
-            if new_params:
-                st.query_params.update(new_params)
-            return
-
+    if all(key in query_params for key in ["code", "state", "e2e", "our_app_state_check"]):
         from src.utils.auth.e2_handler import handle_e2_callback
 
         handle_e2_callback()
@@ -152,6 +145,13 @@ def main() -> None:
     user_email = user_info["user_email"]
 
     accessible_modules, is_user_admin = _enforce_access_and_get_modules(user_email)
+
+    st.title("Streamlit Elements test")
+
+    tab4 = st.tabs(["Monaco 编辑器", "Nivo 图表"])
+
+    with tab4:
+        render_draggable_nivo_charts()
 
     _render_announcements(user_email, is_user_admin, accessible_modules)
 

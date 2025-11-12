@@ -23,6 +23,10 @@ class AIAgent(BaseAgent):
         self.prediction_results = prediction_results
 
     def run(self, user_query: str) -> str:
+        if not user_query or not user_query.strip():
+            self.logger.warning(f"[{self.agent_name}] 用户查询为空")
+            return ""
+
         prompt = build_consultation_prompt(
             user_query=user_query,
             user_profile=self.user_profile,
@@ -30,4 +34,6 @@ class AIAgent(BaseAgent):
         )
 
         content = self._call_api(prompt)
+        if not content:
+            self.logger.warning(f"[{self.agent_name}] API调用失败，返回空响应")
         return content if content else ""

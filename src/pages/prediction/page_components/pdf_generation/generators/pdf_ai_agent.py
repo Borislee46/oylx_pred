@@ -121,7 +121,7 @@ class PDFAIAgent:
 
         logger.info("PDFAIAgent: 缓存未命中，开始调用API生成分析师建议")
 
-        from src.agent.prompts import build_analyst_notes_prompt
+        from src.agent.pdf_prompts import build_analyst_notes_prompt
 
         prompt = build_analyst_notes_prompt(user_data, soft_skills)
         prompt_length = len(prompt)

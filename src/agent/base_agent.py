@@ -54,15 +54,40 @@ class BaseAgent(ABC):
             )
             response.raise_for_status()
 
-            response_json = response.json()
+            try:
+                response_json = response.json()
+            except ValueError as e:
+                self.logger.error(
+                    f"[{self.agent_name}] JSON解析失败: {e}, 响应内容: {response.text[:200]}"
+                )
+                return None
 
-            if response_json.get("choices"):
-                content = response_json["choices"][0].get("message", {}).get("content", "")
-                return content.strip() if content else None
+            choices = response_json.get("choices")
+            if choices and isinstance(choices, list) and len(choices) > 0:
+                message = choices[0].get("message", {})
+                if isinstance(message, dict):
+                    content = message.get("content", "")
+                    if content:
+                        return content.strip()
+                    else:
+                        self.logger.warning(f"[{self.agent_name}] API返回的content为空")
+                        return None
+                else:
+                    self.logger.error(
+                        f"[{self.agent_name}] API返回的message格式不正确: {type(message)}"
+                    )
+                    return None
             else:
                 error_info = response_json.get("error", {})
-                error_message = error_info.get("message", "未知错误")
-                self.logger.error(f"[{self.agent_name}] API返回错误: {error_message}")
+                if error_info:
+                    error_message = (
+                        error_info.get("message", "未知错误")
+                        if isinstance(error_info, dict)
+                        else str(error_info)
+                    )
+                    self.logger.error(f"[{self.agent_name}] API返回错误: {error_message}")
+                else:
+                    self.logger.error(f"[{self.agent_name}] API响应格式异常，未找到choices字段")
                 return None
 
         except requests.exceptions.Timeout:

@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional
 
 from src.agent.base_agent import BaseAgent
-from src.agent.prompts import build_field_validation_prompt
+from src.agent.text_preprocessing_prompts import build_field_validation_prompt
 
 
 class TextPreprocessingAgent(BaseAgent):
