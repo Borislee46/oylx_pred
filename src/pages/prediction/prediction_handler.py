@@ -44,6 +44,7 @@ def run_prediction_with_guard(
                 prediction_results=prediction_result_model,
                 **{session_key_has_predicted: True, session_key_predict_lock: False},
                 fresh_prediction_result=True,
+                student_background_chart_visible=True,
             )
             from src.pages.prediction.input_form_components.form_state import FormStateManager
 

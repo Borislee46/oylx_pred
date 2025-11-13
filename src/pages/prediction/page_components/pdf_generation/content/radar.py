@@ -1,11 +1,90 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from src.pages.prediction.result_modifier.config import (
+    GPA_MINIMUM,
+    GPA_PENALTY_MAX_COEFFICIENT,
+    GPA_PENALTY_QUADRATIC_COEFFICIENT,
+    GPA_PENALTY_SEVERE_THRESHOLD,
+    LANGUAGE_MINIMUM,
+    LANGUAGE_PENALTY_LEVEL_1_MULTIPLIER,
+    LANGUAGE_PENALTY_LEVEL_1_THRESHOLD,
+    LANGUAGE_PENALTY_LEVEL_2_MULTIPLIER,
+    LANGUAGE_PENALTY_LEVEL_2_THRESHOLD,
+    LANGUAGE_PENALTY_LEVEL_3_THRESHOLD,
+    LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER,
+    LANGUAGE_PENALTY_SEVERE_THRESHOLD,
+)
+
 MAX_GPA = 4.0
 MAX_ACADEMIC_ITEMS = 3
 MAX_PRACTICAL_ITEMS = 7
 
+DEFAULT_GPA_MEAN = 3.0
+DEFAULT_GPA_STD = 0.5
+DEFAULT_LANGUAGE_MEAN = 0.75
+DEFAULT_LANGUAGE_STD = 0.15
+
 _matplotlib_configured = False
+
+
+def _calculate_gpa_score(
+    gpa: float,
+    gpa_mean: float = DEFAULT_GPA_MEAN,
+    gpa_std: float = DEFAULT_GPA_STD,
+) -> float:
+    if gpa < GPA_MINIMUM:
+        penalty = GPA_PENALTY_SEVERE_THRESHOLD
+        return max(0, min(100, (1 - penalty) * 100))
+
+    base_score = (gpa / MAX_GPA) * 100
+
+    if gpa >= gpa_mean:
+        return min(100, base_score)
+
+    gpa_gap = (gpa_mean - gpa) / gpa_std if gpa_std > 0 else 0
+    penalty = min(
+        GPA_PENALTY_MAX_COEFFICIENT,
+        GPA_PENALTY_QUADRATIC_COEFFICIENT * gpa_gap**2,
+    )
+
+    adjusted_score = base_score * (1 - penalty)
+    return max(0, min(100, adjusted_score))
+
+
+def _calculate_language_score(
+    language_score: float,
+    language_mean: float = DEFAULT_LANGUAGE_MEAN,
+    language_std: float = DEFAULT_LANGUAGE_STD,
+) -> float:
+    if language_score < LANGUAGE_MINIMUM:
+        penalty = LANGUAGE_PENALTY_SEVERE_THRESHOLD
+        return max(0, min(100, (1 - penalty) * 100))
+
+    base_score = language_score * 100
+
+    language_excellent_line = language_mean + 0.5 * language_std
+    language_pass_line = language_mean - LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER * language_std
+
+    if language_score >= language_excellent_line:
+        return min(100, base_score)
+    elif language_score >= language_pass_line:
+        gap_ratio = (
+            (language_excellent_line - language_score)
+            / (language_excellent_line - language_pass_line)
+            if (language_excellent_line - language_pass_line) > 0
+            else 0
+        )
+        reduction = LANGUAGE_PENALTY_LEVEL_3_THRESHOLD * gap_ratio * 0.15
+        return max(0, min(100, base_score * (1 - reduction)))
+    elif language_score < (language_pass_line - LANGUAGE_PENALTY_LEVEL_1_MULTIPLIER * language_std):
+        penalty = LANGUAGE_PENALTY_LEVEL_1_THRESHOLD
+    elif language_score < (language_pass_line - LANGUAGE_PENALTY_LEVEL_2_MULTIPLIER * language_std):
+        penalty = LANGUAGE_PENALTY_LEVEL_2_THRESHOLD
+    else:
+        penalty = LANGUAGE_PENALTY_LEVEL_3_THRESHOLD
+
+    return max(0, min(100, base_score * (1 - penalty)))
 
 
 def _configure_matplotlib_once():
@@ -22,14 +101,14 @@ def create_student_background_radar_chart(input_data, school_level_scores_map):
     labels = ["School Tier", "GPA", "Language Score", "Academic", "Practical"]
     num_vars = len(labels)
 
-    school_level_str = input_data.get("school_level", "Unknown")
+    school_level_str = input_data.get("school_level", "未知")
     raw_school_score = school_level_scores_map.get(
-        school_level_str, school_level_scores_map.get("未知", 13)
+        school_level_str, school_level_scores_map.get("未知", 11)
     )
 
     valid_scores = [s for s in school_level_scores_map.values() if isinstance(s, (int, float))]
     min_raw_score_val = min(valid_scores) if valid_scores else 1
-    max_raw_score_val = max(valid_scores) if valid_scores else 13
+    max_raw_score_val = max(valid_scores) if valid_scores else 11
 
     if (max_raw_score_val - min_raw_score_val) != 0:
         val_school = (
@@ -42,20 +121,22 @@ def create_student_background_radar_chart(input_data, school_level_scores_map):
     gpa_value = input_data.get("gpa") or input_data.get("gpa_score", 0)
     if isinstance(gpa_value, str) and (gpa_value == "未填写" or not gpa_value.strip()):
         gpa = 0
+    elif gpa_value is None:
+        gpa = 0
     else:
         gpa = float(gpa_value)
-    val_gpa = min(gpa / MAX_GPA, 1.0) * 100 if MAX_GPA > 0 else 0
-    val_gpa = max(0, min(val_gpa, 100))
+    val_gpa = _calculate_gpa_score(gpa) if gpa > 0 else 0
 
-    lang_score_value = input_data.get("language_score", 0)
-    if isinstance(lang_score_value, str) and (
+    lang_score_value = input_data.get("language_score")
+    if lang_score_value is None:
+        lang_score = 0
+    elif isinstance(lang_score_value, str) and (
         lang_score_value == "未填写" or not lang_score_value.strip()
     ):
         lang_score = 0
     else:
         lang_score = float(lang_score_value)
-    val_lang = lang_score * 100
-    val_lang = max(0, min(val_lang, 100))
+    val_lang = _calculate_language_score(lang_score) if lang_score > 0 else 0
 
     research = input_data.get("research_count", 0)
     papers = input_data.get("paper_count", 0)

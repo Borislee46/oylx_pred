@@ -92,59 +92,111 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
     available_buttons = []
 
     if accessible_modules.get("hk", False):
-        available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", "🎓"))
-        available_buttons.append(("案例库极速版", "pages/case_lib.py", "⚡"))
+        available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", False))
+        available_buttons.append(("案例库极速版", "pages/case_lib.py", False))
+        available_buttons.append(
+            ("Power BI 完整版案例库", "https://qtpbi.staff.xdf.cn/powerbi/index.html#/home", True)
+        )
 
     if is_user_admin:
-        available_buttons.append(("权限管理", "pages/admin.py", "⚙️"))
-        available_buttons.append(("公告管理", "pages/announcement_admin.py", "⚙️"))
+        available_buttons.append(("权限管理", "pages/admin.py", False))
+        available_buttons.append(("公告管理", "pages/announcement_admin.py", False))
 
     if accessible_modules.get("hr_dashboard", False):
-        available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", "👥"))
+        available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", False))
 
     if accessible_modules.get("hr_structure_dashboard", False):
-        available_buttons.append(("人力结构数据看板", "pages/hr_structure_dashboard.py", "👥"))
+        available_buttons.append(("人力结构数据看板", "pages/hr_structure_dashboard.py", False))
 
     return available_buttons
+
+
+def _render_single_button(button_text: str, path_or_url: str, is_link: bool) -> None:
+    if is_link:
+        st.link_button(button_text, path_or_url)
+    else:
+        if st.button(button_text):
+            st.switch_page(path_or_url)
 
 
 def _render_buttons_grid(available_buttons) -> None:
     st.markdown(
         """
     <style>
-    .stButton > button {
-        height: 60px;
-        font-size: 18px;
+    .stButton > button,
+    .stLinkButton > a {
+        height: 70px;
+        font-size: 17px;
+        font-weight: 500;
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stButton > button:hover,
+    .stLinkButton > a:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        border-color: #d0d0d0;
+    }
+    .stLinkButton {
         width: 100%;
     }
     </style>
-    <div style='margin: 40px 0;'></div>
+    <div style='margin: 50px 0;'></div>
     """,
         unsafe_allow_html=True,
     )
 
-    if len(available_buttons) == 1:
+    num_buttons = len(available_buttons)
+
+    if num_buttons == 1:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            button_text, page_path, icon = available_buttons[0]
-            if st.button(f"{icon} {button_text}"):
-                st.switch_page(page_path)
-    elif len(available_buttons) == 2:
-        col1, col2 = st.columns(2)
+            _render_single_button(*available_buttons[0])
+    elif num_buttons == 2:
+        col1, col2 = st.columns([1, 1], gap="large")
         with col1:
-            button_text, page_path, icon = available_buttons[0]
-            if st.button(f"{icon} {button_text}"):
-                st.switch_page(page_path)
+            _render_single_button(*available_buttons[0])
         with col2:
-            button_text, page_path, icon = available_buttons[1]
-            if st.button(f"{icon} {button_text}"):
-                st.switch_page(page_path)
+            _render_single_button(*available_buttons[1])
+    elif num_buttons == 3:
+        col1, col2, col3 = st.columns([1, 1, 1], gap="large")
+        with col1:
+            _render_single_button(*available_buttons[0])
+        with col2:
+            _render_single_button(*available_buttons[1])
+        with col3:
+            _render_single_button(*available_buttons[2])
+    elif num_buttons == 4:
+        col1, col2 = st.columns([1, 1], gap="large")
+        with col1:
+            _render_single_button(*available_buttons[0])
+            _render_single_button(*available_buttons[2])
+        with col2:
+            _render_single_button(*available_buttons[1])
+            _render_single_button(*available_buttons[3])
+    elif num_buttons == 5:
+        row1_cols = st.columns([1, 1, 1], gap="large")
+        for idx in range(3):
+            with row1_cols[idx]:
+                _render_single_button(*available_buttons[idx])
+        row2_cols = st.columns([1, 1, 1], gap="large")
+        with row2_cols[0]:
+            _render_single_button(*available_buttons[3])
+        with row2_cols[1]:
+            _render_single_button(*available_buttons[4])
     else:
-        cols = st.columns(min(len(available_buttons), 3))
-        for i, (button_text, page_path, icon) in enumerate(available_buttons):
-            with cols[i % 3]:
-                if st.button(f"{icon} {button_text}"):
-                    st.switch_page(page_path)
+        cols_per_row = 3
+        rows = (num_buttons + cols_per_row - 1) // cols_per_row
+        for row in range(rows):
+            cols = st.columns(cols_per_row, gap="large")
+            for col_idx in range(cols_per_row):
+                button_idx = row * cols_per_row + col_idx
+                if button_idx < num_buttons:
+                    with cols[col_idx]:
+                        _render_single_button(*available_buttons[button_idx])
 
 
 def main() -> None:

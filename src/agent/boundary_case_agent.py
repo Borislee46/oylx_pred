@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -8,13 +8,13 @@ from src.agent.boundary_case_prompts import build_boundary_evaluation_prompt
 
 
 class BoundaryCaseAgent(BaseAgent):
-    def __init__(self, cases_df: pd.DataFrame, config: Optional[dict[str, Any]] = None):
+    def __init__(self, cases_df: pd.DataFrame, config: Optional[Dict[str, Any]] = None):
         super().__init__(config=config, timeout=5, agent_name="边界CaseAgent")
         self.cases_df = cases_df
 
     def evaluate_boundary_cases(
-        self, background_major: str, boundary_cases: list[dict[str, Any]], mode: str
-    ) -> dict[str, Any]:
+        self, background_major: str, boundary_cases: List[Dict[str, Any]], mode: str
+    ) -> Dict[str, Any]:
         fallback_result = {
             "decisions": [False] * len(boundary_cases) if boundary_cases else [],
             "needs_adjustment": False,

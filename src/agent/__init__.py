@@ -8,6 +8,7 @@ from .prompts import (
     format_prediction_results,
     format_user_profile,
 )
+from .single_pred_shap_agent import SinglePredShapAgent
 from .text_preprocessing_agent import TextPreprocessingAgent
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "AIAgent",
     "BoundaryCaseAgent",
     "PDFAgent",
+    "SinglePredShapAgent",
     "TextPreprocessingAgent",
     "DEFAULT_SYSTEM_PROMPT",
     "build_consultation_prompt",

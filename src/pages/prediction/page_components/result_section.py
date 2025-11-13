@@ -53,6 +53,8 @@ def display_results_section(
     user_specified_results: Optional[list[dict[str, Any]]],
     cases_df: pd.DataFrame,
     submitted: bool = True,
+    prediction_model=None,
+    feature_names=None,
 ) -> None:
     if all(x is None for x in [sim_results, cross_results, user_specified_results]):
         return
@@ -75,6 +77,9 @@ def display_results_section(
         target_majors,
         background_university=background_university,
         background_major=background_major,
+        input_data=input_data,
+        prediction_model=prediction_model,
+        feature_names=feature_names,
     )
 
     current_results_hash = _compute_results_hash(sim_results, cross_results, user_specified_results)

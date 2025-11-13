@@ -1,8 +1,10 @@
+import hashlib
 from abc import ABC
 from typing import Any, Dict, Optional
 
 import requests
 
+from src.pages.prediction.page_components.pdf_generation.utils import pdf_cache
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 
@@ -13,6 +15,7 @@ class BaseAgent(ABC):
         config: Optional[Dict[str, Any]] = None,
         timeout: int = 5,
         agent_name: str = "Agent",
+        cache_ttl: Optional[int] = 3600,
     ):
         if config is None:
             app_config = load_app_config()
@@ -24,6 +27,7 @@ class BaseAgent(ABC):
         self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.1")
         self.timeout = timeout
         self.agent_name = agent_name
+        self.cache_ttl = cache_ttl
         self.logger = setup_logger("page3", "prediction")
 
         if not self.api_url or not self.api_key:
@@ -41,10 +45,44 @@ class BaseAgent(ABC):
             "thinking": {"type": "disabled"},
         }
 
-    def _call_api(self, prompt: str) -> Optional[str]:
+    def _generate_cache_key(self, prompt: str, cache_prefix: Optional[str] = None) -> str:
+        key_data = {
+            "model": self.model,
+            "prompt": prompt,
+        }
+        key_str = f"{cache_prefix}:{key_data}" if cache_prefix else str(key_data)
+        return hashlib.md5(key_str.encode("utf-8")).hexdigest()
+
+    def _call_api(
+        self,
+        prompt: str,
+        cache_prefix: Optional[str] = None,
+        use_cache: bool = True,
+        custom_cache_key: Optional[str] = None,
+    ) -> Optional[str]:
         if not self.api_url or not self.api_key:
             self.logger.warning(f"[{self.agent_name}] API 未配置，无法调用")
             return None
+
+        cache_key = None
+        if use_cache and self.cache_ttl is not None:
+            if custom_cache_key:
+                cache_key = custom_cache_key
+            else:
+                cache_prefix = cache_prefix or f"llm_call:{self.agent_name}"
+                cache_key = f"{cache_prefix}:{self._generate_cache_key(prompt, cache_prefix)}"
+            try:
+                pdf_cache.clear_expired()
+                cached_data = pdf_cache.get(cache_key)
+                if cached_data and isinstance(cached_data, dict):
+                    cached_value = cached_data.get("value")
+                    if cached_value:
+                        self.logger.debug(
+                            f"[{self.agent_name}] 使用缓存结果，缓存键: {cache_key[:50]}..."
+                        )
+                        return cached_value
+            except Exception as e:
+                self.logger.warning(f"[{self.agent_name}] 缓存读取失败: {e}，继续调用API")
 
         data = self._build_request_data(prompt)
 
@@ -68,7 +106,16 @@ class BaseAgent(ABC):
                 if isinstance(message, dict):
                     content = message.get("content", "")
                     if content:
-                        return content.strip()
+                        result = content.strip()
+                        if use_cache and self.cache_ttl is not None and cache_key:
+                            try:
+                                pdf_cache.set(cache_key, result, self.cache_ttl)
+                                self.logger.debug(
+                                    f"[{self.agent_name}] 已缓存结果，TTL: {self.cache_ttl}秒"
+                                )
+                            except Exception as e:
+                                self.logger.warning(f"[{self.agent_name}] 缓存写入失败: {e}")
+                        return result
                     else:
                         self.logger.warning(f"[{self.agent_name}] API返回的content为空")
                         return None

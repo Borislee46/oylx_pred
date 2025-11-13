@@ -3,24 +3,12 @@
         {
             "id": "welcome",
             "title": "公告",
-            "content": "选校预测系统更新至v2.6，欢迎使用！",
+            "content": "选校预测系统更新至v2.7，欢迎使用！尽量关闭VPN使用，否则可能会出现自动刷新的情况",
             "type": "success",
             "target_groups": [
                 "all"
             ],
             "start_date": "2024-01-01",
-            "end_date": "2099-12-31",
-            "enabled": true
-        },
-        {
-            "id": "ya_ying_case_library",
-            "title": "Power BI 完整版案例库",
-            "content": "点击访问 <a href='https://qtpbi.staff.xdf.cn/powerbi/index.html#/home'>亚英案例库</a> 查看最新留学案例数据",
-            "type": "info",
-            "target_groups": [
-                "hk"
-            ],
-            "start_date": "2024-12-11",
             "end_date": "2099-12-31",
             "enabled": true
         }

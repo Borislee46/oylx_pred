@@ -62,6 +62,8 @@ def display_content(
             user_specified_results_display,
             page_state.cases_df,
             submitted=submitted,
+            prediction_model=page_state.prediction_model,
+            feature_names=page_state.loaded_feature_names,
         )
 
         if not submitted and form_data_changed:
