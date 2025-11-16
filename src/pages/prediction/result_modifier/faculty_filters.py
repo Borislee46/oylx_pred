@@ -60,4 +60,3 @@ def filter_schools_by_faculty_rules(
         for school in schools
         if not (faculty := school.get("faculty", "").strip()) or faculty in allowed_faculties
     ]
-

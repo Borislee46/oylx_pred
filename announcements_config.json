@@ -3,7 +3,7 @@
         {
             "id": "welcome",
             "title": "公告",
-            "content": "选校预测系统更新至v2.7，欢迎使用！尽量关闭VPN使用，否则可能会出现自动刷新的情况",
+            "content": "尽量关闭VPN使用，否则可能会出现自动刷新的情况",
             "type": "success",
             "target_groups": [
                 "all"

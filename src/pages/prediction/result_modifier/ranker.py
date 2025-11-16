@@ -22,6 +22,7 @@ from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
+
 def get_similar_major_recommendations(
     results_with_similarity: list[dict[str, Any]], num_target_universities: int
 ) -> list[dict[str, Any]]:
@@ -120,7 +121,7 @@ def adjust_similarity_results_with_agent(
         )
         lower_bound = current_threshold - boundary_range
         lower_bound = max(lower_bound, CROSS_MAJOR_SIMILARITY_MIN)
-        
+
         boundary_candidates = [
             r
             for r in results_with_similarity
@@ -155,13 +156,13 @@ def adjust_similarity_results_with_agent(
     evaluation_round = 0
     while boundary_cases and exploration_rounds <= AGENT_EXPLORATION_MAX_ROUNDS:
         evaluation_round += 1
-        
+
         if adjusted_count >= abs(balance_diff):
             logger.info(
                 f"Agent 已调整 {adjusted_count} 个专业，达到目标 {abs(balance_diff)}，提前停止"
             )
             break
-        
+
         cases_to_evaluate = [
             c
             for c in boundary_cases
@@ -219,21 +220,17 @@ def adjust_similarity_results_with_agent(
                                 for c in pool_for_exploration
                                 if (c.get("university"), c.get("major")) not in evaluated_cases
                             ][:AGENT_MAX_BOUNDARY_CASES]
-                        
+
                         if not next_candidates:
                             break
-                        
+
                         boundary_cases = next_candidates
                         continue
                     else:
-                        logger.info(
-                            f"Agent 连续 {no_change_count} 次无调整，无需调整，停止评估"
-                        )
+                        logger.info(f"Agent 连续 {no_change_count} 次无调整，无需调整，停止评估")
                         break
                 elif no_change_count >= AGENT_NO_CHANGE_THRESHOLD:
-                    logger.info(
-                        f"Agent 连续 {no_change_count} 次无调整，进入探索模式"
-                    )
+                    logger.info(f"Agent 连续 {no_change_count} 次无调整，进入探索模式")
                     in_exploration_mode = True
                     exploration_rounds = 1
                     exploration_no_change_count = 0
@@ -252,10 +249,10 @@ def adjust_similarity_results_with_agent(
                             for c in pool_for_exploration
                             if (c.get("university"), c.get("major")) not in evaluated_cases
                         ][:AGENT_MAX_BOUNDARY_CASES]
-                    
+
                     if not next_candidates:
                         break
-                    
+
                     boundary_cases = next_candidates
                     continue
         else:
@@ -292,7 +289,7 @@ def adjust_similarity_results_with_agent(
             remove_keys = {(c.get("university"), c.get("major")) for c in cases_to_remove}
             result = [r for r in result if (r.get("university"), r.get("major")) not in remove_keys]
             adjusted_count += len(cases_to_remove)
-        
+
         if adjusted_count >= abs(balance_diff):
             logger.info(
                 f"Agent 已调整 {adjusted_count} 个专业，达到目标 {abs(balance_diff)}，提前停止"
@@ -302,7 +299,9 @@ def adjust_similarity_results_with_agent(
         if in_exploration_mode:
             exploration_rounds += 1
             if exploration_rounds > AGENT_EXPLORATION_MAX_ROUNDS:
-                logger.info(f"Agent 探索模式已达到最大轮数 {AGENT_EXPLORATION_MAX_ROUNDS}，停止评估")
+                logger.info(
+                    f"Agent 探索模式已达到最大轮数 {AGENT_EXPLORATION_MAX_ROUNDS}，停止评估"
+                )
                 break
 
             if mode == "tighten":
@@ -319,10 +318,10 @@ def adjust_similarity_results_with_agent(
                     for c in pool_for_exploration
                     if (c.get("university"), c.get("major")) not in evaluated_cases
                 ][:AGENT_MAX_BOUNDARY_CASES]
-            
+
             if not next_candidates:
                 break
-            
+
             boundary_cases = next_candidates
         else:
             if mode == "relax":
@@ -342,7 +341,7 @@ def adjust_similarity_results_with_agent(
                 ]
                 remaining_tail.sort(key=lambda x: x.get("similarity", 0.0))
                 tail_count = max(1, int(len(remaining_tail) * AGENT_TAIL_PERCENTAGE))
-                boundary_cases = remaining_tail[:min(tail_count, AGENT_MAX_BOUNDARY_CASES)]
+                boundary_cases = remaining_tail[: min(tail_count, AGENT_MAX_BOUNDARY_CASES)]
 
     for c in result:
         if isinstance(c, dict) and "probability" in c:

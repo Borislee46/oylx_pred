@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.page_data_loader import cached_get_prediction_model
-from src.utils.app_data_loader import load_bg_target_similarity_cache
 from src.pages.prediction.prediction_fingerprint import compute_df_fingerprint
 from src.pages.prediction.prediction_result_adjuster import batch_adjust_results
 from src.pages.prediction.result_modifier.config import DEFAULT_TEXT_BOOST_CONFIG
@@ -21,7 +20,7 @@ from src.pages.prediction.result_modifier.text_boost_provider import (
 from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
 from src.pages.prediction.results_handler import combine_and_deduplicate_results
 from src.pages.prediction.run_prediction import run_single_prediction
-from src.utils.app_data_loader import load_raw_cases_data
+from src.utils.app_data_loader import load_bg_target_similarity_cache, load_raw_cases_data
 from src.utils.logger import setup_logger
 from src.utils.session_manager import PredictionResultModel
 

@@ -63,7 +63,6 @@ class BaseAgent(ABC):
             self.logger.warning(f"[{self.agent_name}] API 未配置，无法调用")
             return None
 
-
         data = self._build_request_data(prompt)
 
         try:

@@ -1,6 +1,6 @@
 ## EasyApply 留学择校系统
 
-本数据产品提供一套从“模型训练 → 表单校验与归一 → 预测编排 → 结果调整 → 智能组合优化（可选）”的端到端解决方案。
+本数据产品提供一套从"模型训练 → 表单校验与归一 → 预测编排 → 结果调整"的端到端解决方案。
 核心亮点为：
 1）极致的I/O和开销，几乎0成本+秒推理。
 2）和业务专家对齐效果，已非常逼近人工选校。
@@ -26,9 +26,6 @@
 
 5) **结果调整 (Online)**: `src/pages/prediction/result_modifier/`
    - **核心**: 对模型原始概率进行一系列业务专家规则微调，包括基于历史案例的 `ProbabilityAdjuster`、针对无实习申商科的 `professional_adjustment`，以及基于 TF‑IDF Logit Uplift 的**文本加成**（offline 训练，online 推理）。
-
-6) **智能优化 (Optional Online)**: `src/pages/prediction/school_combination_optimizer_algorithm/`
-   - **核心**: 使用 **NSGA-III 多目标优化算法**结合高斯 copula + 蒙特卡洛仿真，为用户生成风险和收益平衡的选校组合策略。
 
 ---
 
@@ -133,35 +130,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
 
 ---
 
-## 五、智能组合优化（可选）
-- **模块**：`src/pages/prediction/school_combination_optimizer_algorithm/`
-- **方法**：NSGA-III 多目标优化 + 背景/学院规则过滤 + TOPN 学校强约束 + 蒙特卡洛相关性仿真（支持 batch_size）+ 平衡启发式回退
-- **输入**：
-  - 候选 `[{university, major, probability, is_new_major}]`
-  - 用户背景（专业、学院、校级、GPA 等）
-  - 可选相关性矩阵（索引格式 `"{university} - {major}"`，用于蒙特卡洛仿真）
-- **输出**：多套方案（类型/学校清单/指标/目标值）与自适应阈值
-  - 默认 3 种申请策略（6/9/10 所学校），可通过 `plan_configs` 自定义
-  - 指标：全拒概率、至少一录取概率、多样性、平衡度、专业相似度、新专业占比、相关性仿真指标等
-- **过滤器链**（执行顺序）：
-  1. `deduplicate_majors`：同一大学下的相似专业去重（保留概率最高者）
-  2. `similarity_filter`：澳门院校"一校一专业"规则（相似度优先，概率次之）
-  3. `similarity_filter_only`：全局最低相似度过滤（`GLOBAL_MIN_SIMILARITY`，默认 0）
-  4. `probability_calibration`：跨学院概率轻度校准（收缩+乘子）
-- **分层硬约束**：
-  - 根据背景校级与 GPA 设定可推荐院校的最高 `priority`
-  - 高背景高 GPA 用户强制保留 TOP5 学校，应用 TOP8 优先策略
-  - TOP3/TOP5 最小数量约束（高背景高 GPA：至少 2 所 TOP3、3 所 TOP5）
-- **配置补充**：跨学院申请规则、概率校准与 prestige 权重等详见文档"配置常量"章节
-- **其他**：
-  - 支持 `clear_cache()` 清理内部缓存（result/metric/simulation）
-  - `visualize_recommendations` 快速可视化
-  - `calibrate_cross_major_probabilities` 跨专业轻度校准
-- **文档**：`docs/school_combination_optimizer_api.md`
-
----
-
-## 六、专业相似度预计算（scripts/precompute_similarities.py）
+## 五、专业相似度预计算（scripts/precompute_similarities.py）
 - **模型**：Multilingual E5 Instruct（`intfloat/multilingual-e5-large-instruct`）
   - 优先本地加载：`src/services/multilingual-e5-large-instruct`
   - 支持 GPU/CPU，CPU 可选动态量化
@@ -187,7 +156,6 @@ python scripts/precompute_similarities.py
 - `config/similarity_adjustment_rules.json`：相似度关键字微调规则
 - `config/school_specific_content.json`：学校特定内容配置
 - `src/pages/prediction/result_modifier/config.py`：结果调整模块配置（概率阈值、文本加成参数等）
-- `src/pages/prediction/school_combination_optimizer_algorithm/config.py`：组合优化配置（阈值、比例、TOPN 学校名单等）
 
 ---
 
@@ -231,9 +199,6 @@ python scripts/precompute_similarities.py
   - 预计算脚本会生成根目录 `cache/*.feather`
   - 线上通过 `utils.app_data_loader.load_bg_target_similarity_cache`/`load_bg_bg_similarity_cache` 读入
   - 缓存键由 `get_cached_major_similarity_key` 统一生成，避免中英文与空格差异导致 miss
-- **组合优化缓存**：
-  - `SchoolSelectionOptimizer` 内部有 LRU 缓存（默认容量 256）：`result`（结果缓存）、`metric`（指标缓存）、`simulation`（仿真缓存）
-  - 参考方向使用 `reference_direction_cache.py` 做 LRU 缓存
 - **用户表单**：
   - `FormStateManager` 会根据用户登录状态进行本地持久化（详见 `src/utils/user_form_storage.py`）
   - 自动保存：文本输入 4s 节流，选择操作 1.5s 节流，使用快照哈希去重
@@ -262,10 +227,6 @@ python scripts/precompute_similarities.py
   - 检查输入数据是否完整（背景院校/专业、GPA、语言成绩等）
   - 检查目标院校/专业是否在详情表中存在
   - 检查相似度缓存是否加载成功
-- **组合优化无结果**：
-  - 检查候选集是否为空或过少（< min_schools）
-  - 检查过滤器是否将候选集过滤为空
-  - 检查约束条件是否过于严格（如 TOPN 学校约束）
 
 ---
 
@@ -281,7 +242,6 @@ python scripts/precompute_similarities.py
 - `docs/input_form_components_api.md`：表单组件与校验 API 文档
 - `docs/prediction_api.md`：预测模块 API 文档
 - `docs/result_modifier_api.md`：结果修正模块文档
-- `docs/school_combination_optimizer_api.md`：学校组合优化模块 API 文档
 - `docs/major_similarity_precompute.md`：专业相似度预计算文档
 
 ---
