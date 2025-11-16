@@ -57,9 +57,6 @@ def _get_school_level_mapping() -> dict[str, dict[str, Any]]:
 
 
 class SchoolLevelService:
-    def __init__(self):
-        pass
-
     def get_school_info(self, school_name: str) -> dict[str, Any]:
         mapping = _get_school_level_mapping()
         if not school_name:
@@ -119,7 +116,3 @@ def get_school_level_service() -> SchoolLevelService:
     if _school_level_service is None:
         _school_level_service = SchoolLevelService()
     return _school_level_service
-
-
-def get_school_level_for_analyzer(background_uni_name: str) -> str:
-    return get_school_level_service().get_school_level(background_uni_name)

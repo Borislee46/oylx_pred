@@ -6,7 +6,6 @@ import streamlit as st
 
 from src.pages.prediction.prediction_model import PredictionModel
 from src.utils.app_data_loader import (
-    load_bg_target_similarity_cache,
     load_global_categories_dataframe,
     load_raw_cases_data,
 )
@@ -18,24 +17,9 @@ def get_prediction_model(model_name):
     return model_instance
 
 
-def load_cases_data():
-    cases_df = load_raw_cases_data()
-    return cases_df
-
-
-@st.cache_data
-def cached_load_cases_data():
-    return load_cases_data()
-
-
 @st.cache_resource
 def cached_get_prediction_model(model_name):
     return get_prediction_model(model_name)
-
-
-@st.cache_data
-def cached_load_bg_target_similarity_cache():
-    return load_bg_target_similarity_cache()
 
 
 @dataclass
@@ -51,6 +35,6 @@ class machine_learning_model:
 
         model = cached_get_prediction_model("xgboost")
         features = validate_model_and_features(model)
-        cases = cached_load_cases_data()
+        cases = load_raw_cases_data()
         feature_list = features if features is not None else []
         return cls(prediction_model=model, loaded_feature_names=feature_list, cases_df=cases)

@@ -6,11 +6,24 @@ from src.pages.prediction.prediction_fingerprint import (
     compute_list_fingerprint,
 )
 from src.pages.prediction.prediction_pipeline import run_prediction_pipeline
-from src.pages.prediction.prediction_state_manager import persist_input_state
 from src.pages.prediction.results_handler import reset_prediction_results
 from src.utils.logger import setup_logger
 
 prediction_handler_logger = setup_logger("page3", "prediction")
+
+
+def persist_input_state(
+    session_manager,
+    current_input_data: dict,
+    session_key_input_data: str,
+    session_key_is_school_selection_submit: str,
+) -> None:
+    session_manager.set(
+        **{
+            session_key_input_data: current_input_data,
+            session_key_is_school_selection_submit: False,
+        }
+    )
 
 
 def run_prediction_with_guard(

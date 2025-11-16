@@ -4,6 +4,7 @@ from src.pages.prediction.data_sort_config.top_result_school_order import (
     UNIVERSITY_ORDER_MAP,
     UNIVERSITY_SORT_ORDER,
 )
+from src.pages.prediction.prediction_utils import get_school_major_details
 
 
 class DataFrameBuilder:
@@ -36,7 +37,7 @@ class DataFrameBuilder:
         delta_calculator=None,
     ):
         if not results:
-            return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业中文名称"])
+            return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业详情"])
 
         results.sort(
             key=lambda item: (
@@ -61,7 +62,10 @@ class DataFrameBuilder:
             "录取概率": [
                 cls.get_probability_value(result.get("probability")) for result in results
             ],
-            "专业中文名称": [result.get("chinese_name", "") for result in results],
+            "专业详情": [
+                get_school_major_details(result.get("university"), result.get("major")) or ""
+                for result in results
+            ],
         }
 
         if show_delta and delta_calculator:

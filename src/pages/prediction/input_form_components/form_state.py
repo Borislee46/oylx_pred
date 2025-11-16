@@ -14,7 +14,6 @@ from src.pages.prediction.input_form_components.language_score_converter import 
 )
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
-from src.utils.user_form_storage import UserFormStorage
 
 form_state_logger = setup_logger("page3", "prediction")
 
@@ -34,45 +33,32 @@ class FormStateManager:
         current_user = session_manager.get_current_user_info()
         user_id = current_user.get("username") if current_user else None
 
-        user_form_storage = UserFormStorage()
-        user_history_data = {}
-
-        if user_id:
-            loaded_data = user_form_storage.load_form_data(user_id)
-            if loaded_data:
-                user_history_data = loaded_data
-
-        experience_details = user_history_data.get("experience_details", {})
-
         default_states = {
-            "selected_target_universities": user_history_data.get(
-                "selected_target_universities", []
-            ),
-            "selected_target_majors": user_history_data.get("selected_target_majors", []),
-            "selected_target_countries": user_history_data.get("selected_target_countries", []),
-            "selected_major_categories": user_history_data.get("selected_major_categories", []),
+            "selected_target_universities": [],
+            "selected_target_majors": [],
+            "selected_target_countries": [],
+            "selected_major_categories": [],
             "submitted": False,
             "form_data_changed": False,
             "last_gpa_warning_key": None,
             "last_lang_warning_key": None,
             "prediction_submit_lock": False,
             "school_base_df": None,
-            "gpa_scale": user_history_data.get("gpa_scale", DEFAULT_GPA_SCALE),
-            "gpa_raw_input": user_history_data.get("gpa_raw"),
-            "language_type": user_history_data.get("language_type", "雅思"),
-            "language_score_input": user_history_data.get("language_score_raw"),
-            "background_university_initial": user_history_data.get("background_university"),
-            "background_major_original_initial": user_history_data.get("background_major_original"),
-            "research_count_initial": user_history_data.get("research_count", 0),
-            "award_count_initial": user_history_data.get("award_count", 0),
-            "internship_count_initial": user_history_data.get("internship_count", 0),
-            "paper_count_initial": user_history_data.get("paper_count", 0),
-            "research_details_initial": experience_details.get("research_details", ""),
-            "award_details_initial": experience_details.get("award_details", ""),
-            "internship_details_initial": experience_details.get("internship_details", ""),
-            "paper_details_initial": experience_details.get("paper_details", ""),
+            "gpa_scale": DEFAULT_GPA_SCALE,
+            "gpa_raw_input": None,
+            "language_type": "雅思",
+            "language_score_input": None,
+            "background_university_initial": None,
+            "background_major_original_initial": None,
+            "research_count_initial": 0,
+            "award_count_initial": 0,
+            "internship_count_initial": 0,
+            "paper_count_initial": 0,
+            "research_details_initial": "",
+            "award_details_initial": "",
+            "internship_details_initial": "",
+            "paper_details_initial": "",
             "current_user_id": user_id,
-            "user_history_data": user_history_data,
         }
 
         for key, default_value in default_states.items():
@@ -82,30 +68,10 @@ class FormStateManager:
         if not session_manager.get("current_user_id") and user_id:
             session_manager.set(current_user_id=user_id)
 
-        if user_history_data and not session_manager.get("restore_notice_shown", False):
-            st.toast("已为你恢复上次填写内容")
-            session_manager.set(restore_notice_shown=True)
-
     @staticmethod
     def save_current_form_data(session_manager: SessionManager, form_data: dict) -> bool:
-        user_id = session_manager.get("current_user_id")
-        if not user_id:
-            return False
-
-        user_form_storage = UserFormStorage()
-
-        complete_form_data = {
-            **form_data,
-            "selected_target_countries": session_manager.get("selected_target_countries", []),
-            "selected_major_categories": session_manager.get("selected_major_categories", []),
-            "selected_target_universities": session_manager.get("selected_target_universities", []),
-            "selected_target_majors": session_manager.get("selected_target_majors", []),
-            "gpa_scale": session_manager.get("gpa_scale"),
-            "language_type": session_manager.get("language_type"),
-        }
-
-        success = user_form_storage.save_form_data(user_id, complete_form_data)
-        return success
+        # 表单数据保存功能已移除
+        return False
 
     @staticmethod
     def _snapshot_hash(snapshot: dict) -> str:

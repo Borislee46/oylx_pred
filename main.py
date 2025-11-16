@@ -93,7 +93,6 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hk", False):
         available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", False))
-        available_buttons.append(("案例库极速版", "pages/case_lib.py", False))
         available_buttons.append(
             ("Power BI 完整版案例库", "https://qtpbi.staff.xdf.cn/powerbi/index.html#/home", True)
         )

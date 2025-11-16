@@ -3,10 +3,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src.pages.prediction.page_data_loader import (
-    cached_get_prediction_model,
-    cached_load_bg_target_similarity_cache,
-)
+from src.pages.prediction.page_data_loader import cached_get_prediction_model
+from src.utils.app_data_loader import load_bg_target_similarity_cache
 from src.pages.prediction.prediction_fingerprint import compute_df_fingerprint
 from src.pages.prediction.prediction_result_adjuster import batch_adjust_results
 from src.pages.prediction.result_modifier.config import DEFAULT_TEXT_BOOST_CONFIG
@@ -30,11 +28,6 @@ from src.utils.session_manager import PredictionResultModel
 prediction_handler_logger = setup_logger("page3", "prediction")
 
 
-@st.cache_data(ttl=3600)
-def _get_cached_cases_df() -> pd.DataFrame:
-    return load_raw_cases_data()
-
-
 @st.cache_data(ttl=600, show_spinner="预测中...")
 def run_prediction_pipeline(
     input_data: dict[str, Any],
@@ -49,7 +42,7 @@ def run_prediction_pipeline(
     if prediction_model is None:
         return PredictionResultModel()
 
-    cases_df = _get_cached_cases_df()
+    cases_df = load_raw_cases_data()
 
     if cases_df_fingerprint != compute_df_fingerprint(cases_df):
         prediction_handler_logger.debug(
@@ -64,7 +57,7 @@ def run_prediction_pipeline(
     all_majors_target_value = input_data.get("_all_majors_target", [])
     all_majors_target = all_majors_target_value if isinstance(all_majors_target_value, list) else []
 
-    bg_target_similarity_cache = cached_load_bg_target_similarity_cache()
+    bg_target_similarity_cache = load_bg_target_similarity_cache()
 
     target_universities_value = input_data.get("target_universities", [])
     target_universities = (

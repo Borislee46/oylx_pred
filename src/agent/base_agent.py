@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from src.pages.prediction.page_components.pdf_generation.utils import pdf_cache
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 
@@ -64,25 +63,6 @@ class BaseAgent(ABC):
             self.logger.warning(f"[{self.agent_name}] API 未配置，无法调用")
             return None
 
-        cache_key = None
-        if use_cache and self.cache_ttl is not None:
-            if custom_cache_key:
-                cache_key = custom_cache_key
-            else:
-                cache_prefix = cache_prefix or f"llm_call:{self.agent_name}"
-                cache_key = f"{cache_prefix}:{self._generate_cache_key(prompt, cache_prefix)}"
-            try:
-                pdf_cache.clear_expired()
-                cached_data = pdf_cache.get(cache_key)
-                if cached_data and isinstance(cached_data, dict):
-                    cached_value = cached_data.get("value")
-                    if cached_value:
-                        self.logger.debug(
-                            f"[{self.agent_name}] 使用缓存结果，缓存键: {cache_key[:50]}..."
-                        )
-                        return cached_value
-            except Exception as e:
-                self.logger.warning(f"[{self.agent_name}] 缓存读取失败: {e}，继续调用API")
 
         data = self._build_request_data(prompt)
 
@@ -107,14 +87,6 @@ class BaseAgent(ABC):
                     content = message.get("content", "")
                     if content:
                         result = content.strip()
-                        if use_cache and self.cache_ttl is not None and cache_key:
-                            try:
-                                pdf_cache.set(cache_key, result, self.cache_ttl)
-                                self.logger.debug(
-                                    f"[{self.agent_name}] 已缓存结果，TTL: {self.cache_ttl}秒"
-                                )
-                            except Exception as e:
-                                self.logger.warning(f"[{self.agent_name}] 缓存写入失败: {e}")
                         return result
                     else:
                         self.logger.warning(f"[{self.agent_name}] API返回的content为空")

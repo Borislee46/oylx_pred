@@ -56,7 +56,6 @@ def _load_similarity_rules() -> list[dict[str, Any]]:
                     "adjustment": float(r.get("adjustment", 0.0)),
                 }
             )
-        logger.info(f"加载了 {len(enabled_rules)} 条相似度调整规则")
         return enabled_rules
     except json.JSONDecodeError as e:
         logger.error(f"解析相似度调整规则JSON失败: {str(e)}")

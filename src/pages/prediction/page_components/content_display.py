@@ -2,9 +2,6 @@ from typing import Any
 
 import streamlit as st
 
-from src.pages.prediction.page_components.combination_analysis_section import (
-    display_combination_analysis_section,
-)
 from src.pages.prediction.page_components.result_section import display_results_section
 from src.pages.prediction.results_handler import reset_prediction_results
 from src.utils.logger import setup_logger
@@ -62,19 +59,10 @@ def display_content(
             user_specified_results_display,
             page_state.cases_df,
             submitted=submitted,
-            prediction_model=page_state.prediction_model,
-            feature_names=page_state.loaded_feature_names,
         )
 
         if not submitted and form_data_changed:
             session_manager.set(**{session_key_form_data_changed: False})
-
-        display_combination_analysis_section(
-            session_manager,
-            prediction_results_model,
-            current_input_data,
-            page_state.cases_df,
-        )
 
     else:
         st.info("请填写表单并点击预测以查看结果。")
