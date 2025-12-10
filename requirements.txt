@@ -1,8 +1,24 @@
+# Data processing
 numpy==2.3.1
 pandas==2.3.1
-streamlit==1.46.1
 scikit-learn==1.7.2
-xgboost-cpu==3.1.0
+
+# Machine learning models
+xgboost-cpu==3.1.0 # 3.1.0 supports auto-recoding
+# optuna 线下用
+# imblearn 线下用
+
+# Visualization
 plotly==6.3.0
-streamlit-aggrid==1.1.9
+
+# UI components
+streamlit==1.52.0
+streamlit-aggrid==1.1.9 # for grid display, hr_dashboard
+streamlit-elements==0.1.* # for custom UI components, hr_structure_dashboard
+streamlit-searchbox # for search box 暂时先不用
+
+# Version 1.52.0 For better performance, Streamlit uses uvloop if it's installed (#13047).
+# uvloop
+
+# Excel processing
 openpyxl==3.1.5

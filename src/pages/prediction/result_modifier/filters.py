@@ -1,0 +1,127 @@
+import heapq
+from typing import Any
+
+import pandas as pd
+
+from src.pages.prediction.result_modifier.admission_cache import (
+    get_admitted_combinations_from_dataframe,
+)
+from src.pages.prediction.result_modifier.config import (
+    CROSS_MAJOR_SIMILARITY_MIN,
+    HIGHER_SIMILARITY_THRESHOLD,
+    MIN_SIMILARITY_THRESHOLD,
+    TOP_N_RECOMMENDATIONS,
+    UNIVERSITY_COUNT_THRESHOLD,
+)
+from src.pages.prediction.result_modifier.utils import clip_probability
+
+
+def get_similar_major_recommendations(
+    results_with_similarity: list[dict[str, Any]],
+    num_target_universities: int,
+    probability_adjuster: Any | None = None,
+    gpa: float | None = None,
+    language_score: float | None = None,
+    background_university: str | None = None,
+) -> list[dict[str, Any]]:
+    if not results_with_similarity:
+        return []
+
+    use_higher_threshold = 0 < num_target_universities <= UNIVERSITY_COUNT_THRESHOLD
+    current_threshold = (
+        HIGHER_SIMILARITY_THRESHOLD if use_higher_threshold else MIN_SIMILARITY_THRESHOLD
+    )
+
+    filtered_by_similarity = [
+        res for res in results_with_similarity if res.get("similarity", 0.0) >= current_threshold
+    ]
+
+    if not filtered_by_similarity and use_higher_threshold:
+        filtered_by_similarity = [
+            res
+            for res in results_with_similarity
+            if res.get("similarity", 0.0) >= MIN_SIMILARITY_THRESHOLD
+        ]
+
+    if not filtered_by_similarity:
+        return []
+
+    def get_sort_key(res: dict[str, Any]) -> float:
+        similarity = res.get("similarity", 0.0)
+        if probability_adjuster and gpa is not None and language_score is not None:
+            target_uni = str(res.get("university", ""))
+            return probability_adjuster.calculate_selection_score(
+                similarity, target_uni, gpa, language_score, background_university
+            )
+        return similarity
+
+    top_candidates = heapq.nlargest(
+        TOP_N_RECOMMENDATIONS,
+        filtered_by_similarity,
+        key=get_sort_key,
+    )
+
+    for c in top_candidates:
+        if isinstance(c, dict) and "probability" in c:
+            c["probability"] = clip_probability(c.get("probability", 0.0))
+
+    top_candidates.sort(key=lambda x: x.get("probability", 0.0), reverse=True)
+    return top_candidates
+
+
+def get_cross_major_recommendations(
+    results_with_similarity: list[dict[str, Any]],
+    background_major: str,
+    cases_df: pd.DataFrame | None = None,
+    background_faculty: str | None = None,
+) -> list[dict[str, Any]]:
+    if not background_major or not results_with_similarity:
+        return []
+
+    bg_major_clean = str(background_major).strip()
+    admitted_combinations = get_admitted_combinations_from_dataframe(cases_df, bg_major_clean)
+
+    if not admitted_combinations:
+        return []
+
+    faculty_filter = _create_faculty_filter(background_faculty)
+
+    admitted_results = [
+        res
+        for res in results_with_similarity
+        if (res.get("university"), res.get("major")) in admitted_combinations
+        and CROSS_MAJOR_SIMILARITY_MIN <= res.get("similarity", 0.0) < MIN_SIMILARITY_THRESHOLD
+        and faculty_filter(res)
+    ]
+
+    if admitted_results:
+        admitted_results.sort(key=lambda x: x.get("similarity", 0.0))
+        top_least_similar = admitted_results[:TOP_N_RECOMMENDATIONS]
+        top_least_similar.sort(key=lambda x: x.get("probability", 0), reverse=True)
+        return top_least_similar
+    return []
+
+
+def _create_faculty_filter(background_faculty: str | None):
+    if not background_faculty:
+        return lambda res: True
+
+    from src.pages.prediction.result_modifier.faculty_filters import get_allowed_target_faculties
+
+    allowed_faculties = get_allowed_target_faculties(background_faculty)
+    bg_faculty_clean = background_faculty.strip()
+
+    if allowed_faculties:
+        return lambda res: _check_faculty(res, allowed_faculties, bg_faculty_clean)
+    else:
+        return lambda res: _check_faculty_simple(res, bg_faculty_clean)
+
+
+def _check_faculty(res, allowed_faculties, bg_faculty_clean):
+    faculty = res.get("faculty", "").strip()
+    return not faculty or (faculty in allowed_faculties and faculty != bg_faculty_clean)
+
+
+def _check_faculty_simple(res, bg_faculty_clean):
+    faculty = res.get("faculty", "").strip()
+    return not faculty or faculty != bg_faculty_clean

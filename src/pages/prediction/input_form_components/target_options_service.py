@@ -2,11 +2,19 @@ import hashlib
 from typing import Dict, List, Set
 
 import pandas as pd
+import streamlit as st
 
 from src.pages.prediction.input_form_components.form_config import (
     TARGET_COUNTRY_UNIVERSITY_MAP,
     UNIVERSITY_SORT_ORDER,
 )
+
+
+@st.cache_data
+def build_target_base_df_cached(
+    unique_targets_df: pd.DataFrame | None, details_df: pd.DataFrame | None
+) -> tuple[pd.DataFrame, Dict[str, str]]:
+    return build_target_base_df(unique_targets_df, details_df)
 
 
 def build_target_base_df(

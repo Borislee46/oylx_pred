@@ -1,8 +1,8 @@
 ## EasyApply 留学择校系统
 
-本数据产品提供一套从"模型训练 → 表单校验与归一 → 预测编排 → 结果调整"的端到端解决方案。
+本数据产品提供一套从“模型训练 → 表单校验与归一 → 预测编排 → 结果调整”的端到端解决方案。
 核心亮点为：
-1）极致的I/O和开销，几乎0成本+秒推理。
+1）极致的I/O和开销，几乎0成本+秒级推理。
 2）和业务专家对齐效果，已非常逼近人工选校。
 部分算法的边界case可用agents解或全部换成agent如有足够的资源
 
@@ -79,6 +79,7 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
   - 历史恢复：从用户级存储（`UserFormStorage`）恢复表单数据
   - 目标选择自动扩展：未选择院校但选择了国家/专业时，自动扩展为所有符合条件的院校
 - **跨学院提示**：`cross_faculty_guard.py` 在用户选择跨学院专业时弹出确认对话框
+- **UI组件与服务**：`target_options_service.py` 提供四级联动筛选服务；`widget_helpers.py` (v2.3) 封装通用组件渲染逻辑
 - **文档**：`docs/input_form_components_api.md`
 
 ---
@@ -114,8 +115,10 @@ python -m src.machine_learning_models.train --model xgboost --sampling_method sm
   - `penalize_cross_major_without_cases`：针对用户显式指定的跨专业组合，如果历史中无录取案例，则对概率乘以 `CROSS_MAJOR_PENALTY_FACTOR`（默认 0.5）
 - **行业规则**：`professional_adjustment`（针对无实习经历申请商科的情况进行调整）
   - 职业型专业关键词：`PROFESSIONAL_MAJORS = ["Business Administration", "MBA"]`
-  - 无实习时降权：默认 `PROFESSIONAL_REDUCTION_FACTOR=0.70`；用户显式指定时 `PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR=0.85`
-- **相似度调整**：`adjust_similarity_score` 根据配置 `config/similarity_adjustment_rules.json` 的关键字规则对相似度小幅修正
+  - 无实习时降权：默认 `PROFESSIONAL_REDUCTION_FACTOR=0.30`；用户显式指定时 `PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR=0.50`
+- **相似度调整**：
+  - `adjust_similarity_score`：根据配置 `config/similarity_adjustment_rules.json` 的关键字规则对相似度小幅修正
+  - **Agent 动态调整**：引入 Agent 机制（`AgentAdjustmentEngine`），基于结果平衡性动态选择 Relax 或 Tighten 策略，在边界处探索更多候选以优化推荐列表
 - **文本加成（TF‑IDF Logit Uplift）**：
   - 外层 `GatedTextBoostProvider` 做门控与缓存；核心 `LogitUpliftProvider` 基于四段文本相似度与计数交互项计算 logit 增量
   - 向量器参数：`analyzer='char_wb'`, `ngram_range=(2,4)`, `min_df=1`, `max_features=20000`（与训练一致）
@@ -154,7 +157,7 @@ python scripts/precompute_similarities.py
 - `config/dev_config.json`：开发环境配置（debug 模式等）
 - `config/gpa_conversion_rules.json`：GPA 分制规则（院校/国家 → 区间映射/兜底公式）
 - `config/similarity_adjustment_rules.json`：相似度关键字微调规则
-- `config/school_specific_content.json`：学校特定内容配置
+- `config/university_difficulty.json`：院校难度分级配置
 - `src/pages/prediction/result_modifier/config.py`：结果调整模块配置（概率阈值、文本加成参数等）
 
 ---

@@ -1,4 +1,6 @@
+import hashlib
 import json
+import os
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -6,11 +8,56 @@ import pandas as pd
 from src.agent.base_agent import BaseAgent
 from src.agent.boundary_case_prompts import build_boundary_evaluation_prompt
 
+CACHE_DIR = "cache/agent_cache"
+CACHE_FILE = "boundary_case_decisions.json"
+
 
 class BoundaryCaseAgent(BaseAgent):
     def __init__(self, cases_df: pd.DataFrame, config: Optional[Dict[str, Any]] = None):
-        super().__init__(config=config, timeout=5, agent_name="边界CaseAgent")
+        super().__init__(config=config, timeout=10, agent_name="边界CaseAgent")
         self.cases_df = cases_df
+
+    def _get_persistent_cache_key(
+        self, background_major: str, boundary_cases: List[Dict[str, Any]], mode: str
+    ) -> str:
+        key_data = {
+            "background_major": background_major,
+            "boundary_cases": boundary_cases,
+            "mode": mode,
+            "model": self.model,
+        }
+        payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
+        return hashlib.md5(payload.encode("utf-8")).hexdigest()
+
+    def _load_persistent_cache(self) -> Dict[str, Any]:
+        if not os.path.exists(CACHE_DIR):
+            return {}
+
+        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
+        if not os.path.exists(file_path):
+            return {}
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.warning(f"[{self.agent_name}] 加载持久化缓存失败: {e}")
+            return {}
+
+    def _save_persistent_cache(self, key: str, value: Any) -> None:
+        try:
+            if not os.path.exists(CACHE_DIR):
+                os.makedirs(CACHE_DIR, exist_ok=True)
+
+            cache_data = self._load_persistent_cache()
+            cache_data[key] = value
+
+            file_path = os.path.join(CACHE_DIR, CACHE_FILE)
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+        except Exception as e:
+            self.logger.error(f"[{self.agent_name}] 保存持久化缓存失败: {e}")
 
     def evaluate_boundary_cases(
         self, background_major: str, boundary_cases: List[Dict[str, Any]], mode: str
@@ -18,12 +65,22 @@ class BoundaryCaseAgent(BaseAgent):
         fallback_result = {
             "decisions": [False] * len(boundary_cases) if boundary_cases else [],
             "needs_adjustment": False,
-            "reason": "",
         }
 
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
-            return {"decisions": [], "needs_adjustment": False, "reason": "无待评估案例"}
+            return {"decisions": [], "needs_adjustment": False}
+
+        cache_key = self._get_persistent_cache_key(background_major, boundary_cases, mode)
+        cached_data = self._load_persistent_cache()
+        if cache_key in cached_data:
+            result = cached_data[cache_key]
+            decisions = result.get("decisions", [])
+            self.logger.info(
+                f"[{self.agent_name}] 命中持久化缓存 - 模式: {mode}, "
+                f"决策数: {len(decisions)}, 通过数: {sum(decisions) if decisions else 0}"
+            )
+            return result
 
         self.logger.info(
             f"[{self.agent_name}] 开始评估 - 模式: {mode}, 背景专业: {background_major}, "
@@ -48,7 +105,6 @@ class BoundaryCaseAgent(BaseAgent):
 
             decisions = result.get("decisions", [])
             needs_adjustment = result.get("needs_adjustment", True)
-            reason = result.get("reason", "")
 
             if len(decisions) != len(boundary_cases):
                 self.logger.warning(
@@ -61,8 +117,10 @@ class BoundaryCaseAgent(BaseAgent):
             result = {
                 "decisions": decisions,
                 "needs_adjustment": needs_adjustment,
-                "reason": reason,
             }
+
+            self._save_persistent_cache(cache_key, result)
+
             self.logger.info(
                 f"[{self.agent_name}] 评估完成 - 需要调整: {needs_adjustment}, "
                 f"决策数: {len(decisions)}, 通过数: {sum(decisions) if decisions else 0}"
@@ -75,19 +133,3 @@ class BoundaryCaseAgent(BaseAgent):
             )
             self.logger.debug(f"[{self.agent_name}] 响应内容预览: {content[:200]}")
             return fallback_result
-
-    def _clean_json_content(self, content: str) -> str:
-        if not content:
-            return ""
-        content = content.strip()
-        while content.startswith("```json"):
-            content = content[7:].strip()
-        while content.startswith("```"):
-            content = content[3:].strip()
-        while content.endswith("```"):
-            content = content[:-3].strip()
-        start_idx = content.find("{")
-        end_idx = content.rfind("}")
-        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-            content = content[start_idx : end_idx + 1]
-        return content.strip()

@@ -21,11 +21,11 @@ from src.utils.session_manager import SessionManager
 form_logger = setup_logger("page3", "prediction")
 
 
+@st.fragment
 def create_input_form(session_manager: SessionManager, cases_df, disabled_status=False):
     FormStateManager.initialize_session_state(session_manager)
 
-    user_history_data = session_manager.get("user_history_data", {})
-    current_user_id = session_manager.get("current_user_id")
+    disabled_status = session_manager.get("prediction_submit_lock", False)
 
     if session_manager.get("school_base_df") is None:
         session_manager.set(school_base_df=load_school_base_data())
@@ -94,6 +94,7 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
                 submitted=False, form_data_changed=False, prediction_submit_lock=False
             )
             reset_prediction_results(session_manager)
+            st.rerun()
         else:
             session_manager.set(prediction_submit_lock=True)
             success, processed_input_data, all_unis, all_majors, original_form_data = (
@@ -107,13 +108,26 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
                 )
             )
 
-            return (
-                success,
-                processed_input_data,
-                all_unis,
-                all_majors,
-                original_form_data,
+            session_manager.set(
+                _input_form_pending_submission={
+                    "input_data": processed_input_data,
+                    "all_unis": all_unis,
+                    "all_majors": all_majors,
+                    "original_form": original_form_data,
+                }
             )
+            st.rerun()
+
+    pending_submission = session_manager.get("_input_form_pending_submission")
+    if pending_submission:
+        session_manager.set(_input_form_pending_submission=None)
+        return (
+            True,
+            pending_submission["input_data"],
+            pending_submission["all_unis"],
+            pending_submission["all_majors"],
+            pending_submission["original_form"],
+        )
 
     return _get_current_form_state(
         session_manager,
@@ -189,6 +203,7 @@ def _process_successful_submission(
     input_data = {
         "background_university": background_uni_for_model,
         "background_major": form_data["background_major"],
+        "background_major_original": form_data.get("background_major_original"),
         "target_universities": form_data["target_universities"],
         "target_majors": form_data["target_majors"],
         "gpa": normalized_gpa,
@@ -269,7 +284,7 @@ def _get_current_form_state(
     }
 
     return (
-        session_manager.get("submitted", False),
+        False,
         input_data,
         all_universities_target,
         all_majors_target,

@@ -68,39 +68,24 @@ class PredictionModel:
 
     def _log_transform_value(self, value: Any) -> float:
         numeric_val = pd.to_numeric(value, errors="coerce")
-        return np.log1p(max(0, numeric_val if not pd.isna(numeric_val) else 0))
+        return float(np.log1p(max(0, numeric_val if not pd.isna(numeric_val) else 0)))
 
     def _get_category_code(self, col: str, value: Any) -> int:
         index_map = self.global_category_index.get(col)
         if index_map is None:
             return 0
 
-        code = index_map.get(str(value), -1)
+        str_val = str(value)
+        code = index_map.get(str_val, -1)
 
         if code == -1 and col == "background_university" and self.level_fallback_mapping:
-            original_school = str(value)
-            school_level = self.school_level_service.get_school_level(original_school)
+            school_level = self.school_level_service.get_school_level(str_val)
             fallback_school = self.level_fallback_mapping.get(school_level)
 
             if fallback_school:
                 fallback_code = index_map.get(str(fallback_school), -1)
                 if fallback_code != -1:
-                    page_logger.info(
-                        f"未知学校 '{original_school}' (level: {school_level}) "
-                        f"使用 fallback 学校 '{fallback_school}' (code: {fallback_code})"
-                    )
                     return fallback_code
-                else:
-                    page_logger.warning(
-                        f"学校 '{original_school}' 的 fallback 学校 '{fallback_school}' 也未在训练集中，使用 -1"
-                    )
-            else:
-                page_logger.warning(
-                    f"学校 '{original_school}' (level: {school_level}) 无法找到 fallback 学校，使用 -1"
-                )
-
-        if code == -1:
-            page_logger.warning(f"列 '{col}' 的值 '{value}' 不在训练时的类别中，将使用 -1")
 
         return code
 
@@ -110,7 +95,10 @@ class PredictionModel:
         elif col in CATEGORICAL_COLUMNS:
             return float(self._get_category_code(col, value))
         else:
-            return float(value)
+            try:
+                return float(value)
+            except (ValueError, TypeError):
+                return 0.0
 
     @lru_cache(maxsize=128)
     def _get_preprocessed_base_features(self, input_data_tuple: tuple) -> dict[str, float]:
@@ -137,13 +125,13 @@ class PredictionModel:
         for feat, value in preprocessed_base.items():
             data_dict[feat] = np.full(n, value, dtype=np.float32)
 
-        self._add_categorical_feature(data_dict, "target_university", list(universities), n)
-        self._add_categorical_feature(data_dict, "target_major", list(majors), n)
+        self._add_categorical_feature(data_dict, "target_university", list(universities))
+        self._add_categorical_feature(data_dict, "target_major", list(majors))
 
         features_to_use = self.feature_names or list(data_dict.keys())
         return pd.DataFrame(data_dict, columns=features_to_use)
 
-    def _add_categorical_feature(self, data_dict: dict, feature_name: str, values: list, n: int):
+    def _add_categorical_feature(self, data_dict: dict, feature_name: str, values: list):
         if feature_name not in (self.feature_names or []):
             return
 
@@ -153,8 +141,16 @@ class PredictionModel:
             )
         else:
             index_map = self.global_category_index.get(feature_name, {})
-            codes = [index_map.get(str(val), -1) for val in values]
-            data_dict[feature_name] = np.array(codes, dtype=np.int32)
+
+            codes = (
+                pd.Series(values, dtype=object)
+                .astype(str)
+                .map(index_map)
+                .fillna(-1)
+                .astype(np.int32)
+            )
+
+            data_dict[feature_name] = codes.values
 
     def predict_batch(
         self,
@@ -162,8 +158,6 @@ class PredictionModel:
         combinations: list[tuple[str, str]],
         expected_features: list[str],
     ) -> list[dict[str, Any]]:
-        from src.pages.prediction.prediction_exceptions import InvalidInputError
-
         if not combinations:
             page_logger.warning("预测组合列表为空")
             return []
@@ -171,26 +165,6 @@ class PredictionModel:
         if not self.model:
             page_logger.error("预测模型未初始化")
             raise ValueError("预测模型未初始化")
-
-        if not isinstance(input_data, dict):
-            raise InvalidInputError("input_data 必须是字典类型")
-
-        if not isinstance(expected_features, list) or not expected_features:
-            raise InvalidInputError("expected_features 必须是非空列表")
-
-        base_expected_features = [
-            f for f in expected_features if f not in ["target_university", "target_major"]
-        ]
-        missing_features = [feat for feat in base_expected_features if feat not in input_data]
-
-        if missing_features:
-            page_logger.warning(f"缺少输入特征: {missing_features}")
-
-        for idx, combo in enumerate(combinations):
-            if not isinstance(combo, tuple) or len(combo) != 2:
-                raise InvalidInputError(f"组合 {idx} 格式不正确，应为 (university, major) 元组")
-            if not all(isinstance(item, str) and item for item in combo):
-                raise InvalidInputError(f"组合 {idx} 包含空值或非字符串值")
 
         input_data_tuple = tuple(sorted(input_data.items()))
         preprocessed_base = self._get_preprocessed_base_features(input_data_tuple)

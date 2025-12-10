@@ -65,4 +65,4 @@ def display_content(
             session_manager.set(**{session_key_form_data_changed: False})
 
     else:
-        st.info("请填写表单并点击预测以查看结果。")
+        pass

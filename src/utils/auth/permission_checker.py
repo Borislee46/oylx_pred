@@ -1,14 +1,7 @@
 from src.utils.auth.config_processor import get_processed_auth_config
-from src.utils.auth.dev_config_loader import load_dev_config
 
 
 def check_user_access_permission(user_email: str) -> bool:
-    dev_config = load_dev_config()
-    if dev_config.get("DEBUG_MODE", False):
-        debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
-        if debug_user_email and user_email.lower() == debug_user_email.lower():
-            return True
-
     if not user_email:
         return False
 
@@ -23,12 +16,6 @@ def check_user_access_permission(user_email: str) -> bool:
 
 
 def check_module_permission(user_email: str, module_name: str) -> bool:
-    dev_config = load_dev_config()
-    if dev_config.get("DEBUG_MODE", False):
-        debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
-        if debug_user_email and user_email.lower() == debug_user_email.lower():
-            return True
-
     if not check_user_access_permission(user_email):
         return False
 
@@ -51,27 +38,10 @@ def is_admin(user_email: str) -> bool:
     processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
 
-    dev_config = load_dev_config()
-    if dev_config.get("DEBUG_MODE", False):
-        debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
-        if debug_user_email and user_email_lower == debug_user_email.lower():
-            return True
-
     return user_email_lower in processed_config["ADMIN_EMAILS_LOWER"]
 
 
 def get_user_accessible_modules(user_email: str) -> dict:
-    dev_config = load_dev_config()
-    if dev_config.get("DEBUG_MODE", False):
-        debug_user_email = dev_config.get("DEBUG_USER", {}).get("email")
-        if debug_user_email and user_email.lower() == debug_user_email.lower():
-            return {
-                "hk": True,
-                "admin": True,
-                "hr_dashboard": True,
-                "hr_structure_dashboard": True,
-            }
-
     empty_modules = {
         "hk": False,
         "admin": False,

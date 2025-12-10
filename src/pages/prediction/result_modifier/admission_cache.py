@@ -1,30 +1,12 @@
-import hashlib
 from typing import Any
 
 import pandas as pd
 import streamlit as st
 
+from src.pages.prediction.result_modifier.utils import compute_dataframe_hash
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
-
-
-def _generate_dataframe_hash(cases_df: pd.DataFrame) -> str:
-    try:
-        required_cols = ["admitted", "target_university", "target_major", "background_major"]
-        if not all(col in cases_df.columns for col in required_cols):
-            return ""
-
-        df_subset = cases_df[required_cols].copy()
-        data_str = ""
-        for col in required_cols:
-            col_str = "|".join(sorted(df_subset[col].astype(str).tolist()))
-            data_str += f"{col}:{col_str};"
-
-        return hashlib.md5(data_str.encode("utf-8")).hexdigest()
-    except Exception as e:
-        logger.warning(f"生成DataFrame哈希失败: {str(e)}")
-        return ""
 
 
 @st.cache_data
@@ -66,7 +48,7 @@ def get_admitted_combinations_from_dataframe(
         return set()
 
     try:
-        df_hash = _generate_dataframe_hash(cases_df)
+        df_hash = compute_dataframe_hash(cases_df[required_cols])
         cases_df_tuple = tuple(cases_df[required_cols].itertuples(index=False, name=None))
         return get_admitted_combinations_for_major(df_hash, cases_df_tuple, background_major)
     except Exception as e:

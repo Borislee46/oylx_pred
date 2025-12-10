@@ -8,9 +8,11 @@
 - 文本加成：`providers/logit_uplift_provider.py`（模型由脚本 `scripts/train_text_tfidf.py` 训练导出）
 - 概率调整：`probability_adjuster.py`
 - 相似度调整：`similarity_adjuster.py`
-- 排序与推荐：`ranker.py`
+- 筛选与推荐：`filters.py`
+- 排序与 Agent 调整：`ranker.py`
 - 行业专业调整：`professional_adjustment.py`
 - 录取案例缓存：`admission_cache.py`
+- 调整流水线：`adjustment_pipeline.py`
 
 ### 配置参数说明（config.py）
 - 所有关键参数集中于 `src/pages/prediction/result_modifier/config.py`，修改后将影响对应模块的行为。
@@ -22,18 +24,24 @@
 
 - 职业型专业规则
   - `PROFESSIONAL_MAJORS = ["Business Administration", "MBA"]`：职业型专业关键词。
-  - `PROFESSIONAL_REDUCTION_FACTOR = 0.70`：无实习时对职业型专业的默认降权因子。
-  - `PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR = 0.85`：若用户显式指定该职业型专业，降权较轻。
+  - `PROFESSIONAL_REDUCTION_FACTOR = 0.30`：无实习时对职业型专业的默认降权因子。
+  - `PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR = 0.50`：若用户显式指定该职业型专业，降权较轻。
 
 - 相似度阈值（用于筛选/推荐策略）
   - `MIN_SIMILARITY_THRESHOLD = 0.89`
   - `HIGHER_SIMILARITY_THRESHOLD = 0.92`
-  - `UNIVERSITY_COUNT_THRESHOLD = 5`
+  - `UNIVERSITY_COUNT_THRESHOLD = 2`
 
 - 推荐与缓存配置
-  - `TOP_N_RECOMMENDATIONS = 50`：`ranker.py` 中返回的最大推荐数量。
+  - `TOP_N_RECOMMENDATIONS = 30`：`filters.py` 中返回的最大推荐数量。
   - `PROBABILITY_ADJUSTER_CACHE_SIZE = 50`：`ProbabilityAdjuster` 统计缓存容量。
   -（已移除）关键词缓存相关配置。
+
+- Agent 调整相关配置
+  - `AGENT_BOUNDARY_SIMILARITY_RANGE = 0.03`：边界探索的相似度范围。
+  - `AGENT_MAX_BOUNDARY_CASES = 20`：最大边界案例数。
+  - `AGENT_TAIL_PERCENTAGE = 0.2`：尾部样本比例。
+  - `AGENT_MIN_BALANCE_DIFF = 5`：触发调整的最小平衡差。
 
 - 文本加成默认配置（节选，与实现保持一致）
 ```python
@@ -61,7 +69,7 @@ DEFAULT_TEXT_BOOST_CONFIG = {
 - 使用位置速览
   - 概率调整：`probability_adjuster.py` 使用 `GPA_MINIMUM`、`LANGUAGE_MINIMUM`、`CROSS_MAJOR_PENALTY_FACTOR`。
   - 职业型专业：`professional_adjustment.py` 使用 `PROFESSIONAL_*` 参数。
-  - 相似度阈值：`config.py` 集中定义，`ranker.py` 等处引用。
+  - 相似度阈值：`config.py` 集中定义，`filters.py` 等处引用。
   - 公共工具：`utils.py` 提供 `is_effectively_empty`、`clip_probability`、`generate_content_hash`、`has_valid_experience_details`、`has_meaningful_experience_text` 等函数，被多个模块复用。
   - 文本加成：`text_boost_provider.py` 使用 `DEFAULT_TEXT_BOOST_CONFIG`。
 
@@ -98,10 +106,13 @@ DEFAULT_TEXT_BOOST_CONFIG = {
 - `penalize_cross_major_without_cases(user_specified_results, background_major, cases_df)`：针对用户指明的跨专业组合，如果历史中无录取案例，则对概率乘以 `PENALTY_FACTOR`（默认 0.5）。
   - 截断细节：当 GPA 与语言均低于最低线（`GPA_MINIMUM=2.0`、`LANGUAGE_MINIMUM=0.6`）时直接返回 `0.001`；若惩罚后仍极低且显著低于均线/通过线，也会截断为 `0.001`。
 
-### 相似度与推荐（similarity_adjuster.py, ranker.py）
-- `adjust_similarity_score(background_major, target_major, similarity)`：根据配置 `config/similarity_adjustment_rules.json` 的关键字规则对相似度小幅修正（0–1 截断）。
-- `get_similar_major_recommendations`：先按相似度阈值过滤（申请院校数较少≤`UNIVERSITY_COUNT_THRESHOLD=5`时使用更高阈值 `0.92`，否则 `0.89`）；再取前 `TOP_N=50`（按相似度筛）；随后对概率做裁剪；最终按概率降序返回。
-- `get_cross_major_recommendations`：在历史中存在录取案例的跨专业中，筛选 `0.8 < similarity < MIN_SIMILARITY_THRESHOLD` 的候选，并按概率降序返回。
+### 相似度与推荐（similarity_adjuster.py, filters.py）
+- `adjust_similarity_score(background_major, target_major, similarity)`（`similarity_adjuster.py`）：根据配置 `config/similarity_adjustment_rules.json` 的关键字规则对相似度小幅修正（0–1 截断）。
+- `get_similar_major_recommendations`（`filters.py`）：先按相似度阈值过滤（申请院校数较少≤`UNIVERSITY_COUNT_THRESHOLD=2`时使用更高阈值 `0.92`，否则 `0.89`）；再取前 `TOP_N=30`（按相似度筛）；随后对概率做裁剪；最终按概率降序返回。
+- `get_cross_major_recommendations`（`filters.py`）：在历史中存在录取案例的跨专业中，筛选 `0.8 < similarity < MIN_SIMILARITY_THRESHOLD` 的候选，并按概率降序返回。
+
+### 排序与 Agent 调整（ranker.py）
+- `adjust_similarity_results_with_agent`：引入 Agent 机制（`AgentAdjustmentEngine`），基于结果平衡性（`balance_diff`）动态选择 `Relax` 或 `Tighten` 策略，在边界处（`AGENT_BOUNDARY_SIMILARITY_RANGE`）探索更多候选。
 
 ### 行业专业调整（professional_adjustment.py）
 - 对职业类项目（如 MBA/BA）在缺少实习经历时降低概率；若用户显式指定该类专业，降幅较轻。
@@ -133,5 +144,3 @@ DEFAULT_TEXT_BOOST_CONFIG = {
 ---
 维护人：lijiapeng8@xdf.cn
 版本：v2.7
-
-

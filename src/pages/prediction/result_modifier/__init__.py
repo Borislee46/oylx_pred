@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+from src.pages.prediction.result_modifier.adjustment_pipeline import (
+    AdjustmentContext,
+    ProbabilityAdjustmentPipeline,
+    create_adjustment_context,
+    create_adjustment_pipeline,
+)
 from src.pages.prediction.result_modifier.config import (
     HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
@@ -9,19 +15,17 @@ from src.pages.prediction.result_modifier.probability_adjuster import (
     ProbabilityAdjuster,
     penalize_cross_major_without_cases,
 )
-from src.pages.prediction.result_modifier.ranker import (
-    get_cross_major_recommendations,
-    get_similar_major_recommendations,
-)
 from src.pages.prediction.result_modifier.similarity_adjuster import (
     adjust_similarity_score,
 )
 
 __all__ = [
     "ProbabilityAdjuster",
+    "ProbabilityAdjustmentPipeline",
+    "AdjustmentContext",
+    "create_adjustment_pipeline",
+    "create_adjustment_context",
     "adjust_similarity_score",
-    "get_similar_major_recommendations",
-    "get_cross_major_recommendations",
     "MIN_SIMILARITY_THRESHOLD",
     "HIGHER_SIMILARITY_THRESHOLD",
     "UNIVERSITY_COUNT_THRESHOLD",

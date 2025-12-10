@@ -14,7 +14,7 @@ class AIAgent(BaseAgent):
         cases_df: pd.DataFrame,
         config: Optional[Dict[str, Any]] = None,
     ):
-        super().__init__(config=config, timeout=5, agent_name="咨询Agent")
+        super().__init__(config=config, timeout=10, agent_name="咨询Agent")
         self.cases_df = cases_df
         self.update_context(user_profile, prediction_results)
 

@@ -6,7 +6,7 @@ from src.agent.text_preprocessing_prompts import build_field_validation_prompt
 
 class TextPreprocessingAgent(BaseAgent):
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        super().__init__(config=config, timeout=5, agent_name="文本预处理Agent")
+        super().__init__(config=config, timeout=10, agent_name="文本预处理Agent")
 
     def validate_field(self, field_type: str, content: str) -> bool:
         if not content or not content.strip():

@@ -1,5 +1,7 @@
 from typing import Any, Dict
 
+import pandas as pd
+
 DEFAULT_SYSTEM_PROMPT = (
     """你是一位资深的留学顾问。请根据以下信息，用亲切、专业的口吻回答用户的问题。"""
 )
@@ -21,10 +23,28 @@ def format_prediction_results(prediction_results: Any) -> str:
         return "用户尚未进行预测。"
 
     try:
-        results_summary = prediction_results.unified_results.head().to_string()
-        return f"以下是部分预测结果摘要:\n{results_summary}"
-    except Exception:
-        return "无法格式化预测结果。"
+        results = prediction_results.unified_results
+
+        if isinstance(results, pd.DataFrame):
+            results_summary = results.head().to_string()
+            return f"以下是部分预测结果摘要:\n{results_summary}"
+
+        if isinstance(results, list):
+            if not results:
+                return "预测结果为空。"
+            top_results = results[:5]
+            formatted_items = []
+            for i, item in enumerate(top_results):
+                item_str = ", ".join(f"{k}: {v}" for k, v in item.items() if not k.startswith("_"))
+                formatted_items.append(f"{i + 1}. {item_str}")
+
+            results_summary = "\n".join(formatted_items)
+            return f"以下是部分预测结果摘要(前5条):\n{results_summary}"
+
+        return f"预测结果类型未知: {type(results)}"
+
+    except Exception as e:
+        return f"无法格式化预测结果: {str(e)}"
 
 
 def build_consultation_prompt(

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List
+
+import streamlit as st
 
 from src.pages.prediction.result_modifier.config import SIMILARITY_ADJUSTMENT_RULES_PATH
 from src.utils.logger import setup_logger
@@ -34,8 +35,8 @@ def _get_config_path() -> Path:
     return config_path
 
 
-@lru_cache(maxsize=1)
-def _load_similarity_rules() -> list[dict[str, Any]]:
+@st.cache_resource(show_spinner=False, ttl=3600)
+def _load_similarity_rules_cached() -> List[Dict[str, Any]]:
     try:
         config_path = _get_config_path()
         if not config_path.exists():
@@ -44,19 +45,26 @@ def _load_similarity_rules() -> list[dict[str, Any]]:
 
         with open(config_path, encoding="utf-8") as f:
             data = json.load(f)
+
         rules = data.get("rules", [])
         enabled_rules: list[dict[str, Any]] = []
         for r in rules:
             if not isinstance(r, dict) or not r.get("enabled", False):
                 continue
-            enabled_rules.append(
-                {
-                    "background_keywords": _normalize_keywords(r.get("background_keywords", [])),
-                    "target_keywords": _normalize_keywords(r.get("target_keywords", [])),
-                    "adjustment": float(r.get("adjustment", 0.0)),
-                }
-            )
+
+            bks = _normalize_keywords(r.get("background_keywords", []))
+            tks = _normalize_keywords(r.get("target_keywords", []))
+
+            if bks and tks:
+                enabled_rules.append(
+                    {
+                        "background_keywords": bks,
+                        "target_keywords": tks,
+                        "adjustment": float(r.get("adjustment", 0.0)),
+                    }
+                )
         return enabled_rules
+
     except json.JSONDecodeError as e:
         logger.error(f"解析相似度调整规则JSON失败: {str(e)}")
         return []
@@ -72,15 +80,36 @@ def adjust_similarity_score(background_major: str, target_major: str, similarity
     if not background_major or not target_major:
         return similarity
 
+    rules = _load_similarity_rules_cached()
+
+    if not rules:
+        return similarity
+
     bg = background_major.lower()
     tgt = target_major.lower()
     adjusted = float(similarity)
 
-    for rule in _load_similarity_rules():
+    for rule in rules:
         bks = rule.get("background_keywords", [])
         tks = rule.get("target_keywords", [])
         adj = float(rule.get("adjustment", 0.0))
-        if any(k in bg for k in bks) and any(k in tgt for k in tks):
+
+        bg_match = False
+        for k in bks:
+            if k in bg:
+                bg_match = True
+                break
+
+        if not bg_match:
+            continue
+
+        tgt_match = False
+        for k in tks:
+            if k in tgt:
+                tgt_match = True
+                break
+
+        if bg_match and tgt_match:
             adjusted += adj
             break
 

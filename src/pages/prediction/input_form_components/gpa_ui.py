@@ -23,11 +23,11 @@ def _check_and_show_gpa_warning(session_manager):
 
 
 def render_gpa_section(session_manager, form_state_manager, logger):
-    st.radio(
+    st.segmented_control(
         "GPA 分制",
         options=list(GPA_SCALES.keys()),
-        index=list(GPA_SCALES.keys()).index(session_manager.get("gpa_scale")),
-        horizontal=True,
+        selection_mode="single",
+        default=session_manager.get("gpa_scale"),
         on_change=partial(form_state_manager.gpa_scale_changed, session_manager),
         key="gpa_scale_widget_key",
     )
@@ -36,7 +36,7 @@ def render_gpa_section(session_manager, form_state_manager, logger):
     if "gpa_raw_input_widget" not in st.session_state:
         default_gpa_value = session_manager.get("gpa_raw_input")
         st.session_state["gpa_raw_input_widget"] = (
-            default_gpa_value if default_gpa_value is not None else 0.0
+            default_gpa_value if default_gpa_value is not None else 3.0
         )
     gpa_raw = st.number_input(
         f"GPA (满分 {session_manager.get('gpa_scale')})",

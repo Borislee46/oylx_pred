@@ -2,9 +2,9 @@ from functools import lru_cache
 from typing import List, Set, Tuple, Union
 
 import pandas as pd
-import streamlit as st
 
 from src.pages.prediction.input_form_components.form_validator import FormValidator
+from src.pages.prediction.school_details_config import school_details_key_fields
 from src.utils.app_data_loader import load_school_major_details_df
 from src.utils.logger import setup_logger
 
@@ -107,29 +107,6 @@ def format_float(value, decimals: int = 2):
         return value
 
 
-def format_display_value(value, value_type: str, language_type: str = None) -> str:
-    try:
-        if value_type == "gpa":
-            return f"{float(value):.2f}"
-        elif value_type == "language_score":
-            round_to_half = language_type == "雅思"
-            score = denormalize_language_score(
-                float(value), language_type, round_to_half=round_to_half
-            )
-            return f"{score:.1f} ({language_type})"
-        elif value_type in [
-            "research_count",
-            "award_count",
-            "internship_count",
-            "paper_count",
-        ]:
-            return f"{int(value)} 个"
-        else:
-            return str(value)
-    except Exception:
-        return str(value)
-
-
 def _create_major_similarity_key(major1: str, major2: str) -> str:
     key_pair = tuple(sorted([major1, major2]))
     return f"{key_pair[0]}|{key_pair[1]}"
@@ -168,31 +145,7 @@ def format_school_major_details_from_row(row: pd.Series) -> str:
     if row is None or row.empty:
         return "无详细信息"
 
-    key_fields = [
-        "专业中文名称",
-        "开学季",
-        "申请开始时间",
-        "申请截止时间",
-        "学习年限",
-        "学费",
-        "授课语言",
-        "录取要求",
-        "专业背景要求",
-        "GPA要求",
-        "IELTS",
-        "TOEFL",
-        "CET-6",
-        "考试要求",
-        "特殊要求",
-        "申请方式",
-        "推荐信方式",
-        "成绩送分要求",
-        "是否面试",
-        "是否笔试",
-        "考核形式",
-        "申请注意事项",
-        "专业网址",
-    ]
+    key_fields = school_details_key_fields
 
     details = []
     for field in key_fields:
@@ -252,6 +205,37 @@ def _is_new_major_cached(university: str, major: str, version: int) -> bool:
     return False
 
 
-@st.cache_data(ttl=3600)
-def get_cached_data_manager() -> SchoolMajorDataManager:
-    return SchoolMajorDataManager()
+class AnimatedProgress:
+    def __init__(self, placeholder, message: str, interval: float = 0.3):
+        self.placeholder = placeholder
+        self._message = message
+        self.interval = interval
+        self._cycle_count = 0
+        import time
+
+        self._time = time
+
+    @property
+    def message(self):
+        return self._message
+
+    @message.setter
+    def message(self, value):
+        self._message = value
+
+    def update(self):
+        dots_sequence = [".", "..", "...", "."]
+        dots = dots_sequence[self._cycle_count % len(dots_sequence)]
+        self.placeholder.markdown(
+            f'<span style="color: #888888; font-size: 0.85em;">{self._message}{dots}</span>',
+            unsafe_allow_html=True,
+        )
+        self._cycle_count += 1
+
+    def __enter__(self):
+        self.update()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.placeholder.empty()
+        return False

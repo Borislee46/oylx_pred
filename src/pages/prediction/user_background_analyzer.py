@@ -4,7 +4,7 @@ import streamlit as st
 from src.utils.school_level_service import get_school_level_service
 
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=1800, show_spinner=False)
 def _get_substitution_map(cases_df: pd.DataFrame):
     if cases_df is None or cases_df.empty:
         return {}, None

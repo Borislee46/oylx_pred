@@ -1,6 +1,7 @@
 import hashlib
 import json
 import time
+from typing import Any, Dict
 
 import streamlit as st
 
@@ -33,7 +34,7 @@ class FormStateManager:
         current_user = session_manager.get_current_user_info()
         user_id = current_user.get("username") if current_user else None
 
-        default_states = {
+        default_states: Dict[str, Any] = {
             "selected_target_universities": [],
             "selected_target_majors": [],
             "selected_target_countries": [],
@@ -67,11 +68,6 @@ class FormStateManager:
 
         if not session_manager.get("current_user_id") and user_id:
             session_manager.set(current_user_id=user_id)
-
-    @staticmethod
-    def save_current_form_data(session_manager: SessionManager, form_data: dict) -> bool:
-        # 表单数据保存功能已移除
-        return False
 
     @staticmethod
     def _snapshot_hash(snapshot: dict) -> str:
@@ -127,9 +123,7 @@ class FormStateManager:
         cur_hash = FormStateManager._snapshot_hash(current_form_data)
 
         if (now - last_save_ts) >= throttle_seconds and cur_hash != last_hash:
-            success = FormStateManager.save_current_form_data(session_manager, current_form_data)
-            if success:
-                session_manager.set(last_auto_save_ts=now, last_saved_form_snapshot_hash=cur_hash)
+            session_manager.set(last_auto_save_ts=now, last_saved_form_snapshot_hash=cur_hash)
 
     @staticmethod
     def update_form_snapshot_hash_after_prediction(session_manager: SessionManager) -> None:
@@ -235,6 +229,14 @@ class FormStateManager:
         FormStateManager._auto_save_form_data(session_manager)
 
     @staticmethod
+    def _convert_language_score(old_type: str, new_type: str, score: float) -> float | None:
+        if old_type == "托福" and new_type == "雅思":
+            return LanguageScoreConverter.toefl_to_ielts(score)
+        if old_type == "雅思" and new_type == "托福":
+            return LanguageScoreConverter.ielts_to_toefl(score)
+        return None
+
+    @staticmethod
     def on_language_type_change(session_manager: SessionManager) -> None:
         old_lang_type = session_manager.get("language_type")
         new_lang_type = session_manager.get_widget_value("language_type_widget_key")
@@ -245,36 +247,45 @@ class FormStateManager:
         form_state_logger.info(f"用户更改语言类型 - 从 {old_lang_type} 变更为 {new_lang_type}")
 
         current_score = session_manager.get("language_score_input")
+        converted_score = None
+
         if current_score is not None:
             cache_key = f"{old_lang_type}_{new_lang_type}_{current_score}"
+            lang_cache = session_manager.get("lang_conversion_cache", {})
 
-            lang_conversion_cache = session_manager.get("lang_conversion_cache", {})
-
-            if cache_key in lang_conversion_cache:
-                converted_score = lang_conversion_cache[cache_key]
+            if cache_key in lang_cache:
+                converted_score = lang_cache[cache_key]
             else:
-                converted_score = None
-                if old_lang_type == "托福" and new_lang_type == "雅思":
-                    converted_score = LanguageScoreConverter.toefl_to_ielts(float(current_score))
-                elif old_lang_type == "雅思" and new_lang_type == "托福":
-                    converted_score = LanguageScoreConverter.ielts_to_toefl(float(current_score))
-
-                lang_conversion_cache[cache_key] = converted_score
-                session_manager.set(lang_conversion_cache=lang_conversion_cache)
+                converted_score = FormStateManager._convert_language_score(
+                    old_lang_type, new_lang_type, float(current_score)
+                )
+                lang_cache[cache_key] = converted_score
+                session_manager.set(lang_conversion_cache=lang_cache)
 
             if converted_score is not None:
                 form_state_logger.info(
                     f"语言成绩自动转换 - {old_lang_type}: {current_score} -> {new_lang_type}: {converted_score}"
                 )
-
             session_manager.set(language_score_input=converted_score)
 
-            FormStateManager._clear_widget_state("language_score_input_widget")
-        else:
-            FormStateManager._clear_widget_state("language_score_input_widget")
-
+        FormStateManager._clear_widget_state("language_score_input_widget")
         session_manager.set(language_type=new_lang_type)
-        FormStateManager.on_form_change(session_manager)
+
+    @staticmethod
+    def _convert_gpa(old_scale_key: str, new_scale_key: str, gpa: float) -> float | None:
+        old_scale = GPA_SCALES.get(old_scale_key)
+        new_scale = GPA_SCALES.get(new_scale_key)
+        if not old_scale or not new_scale:
+            return None
+
+        old_max = old_scale.get("max")
+        new_max = new_scale.get("max")
+        if not isinstance(old_max, (int, float)) or not isinstance(new_max, (int, float)):
+            return None
+        if old_max <= 0:
+            return None
+
+        return round((gpa / old_max) * new_max, 2)
 
     @staticmethod
     def gpa_scale_changed(session_manager: SessionManager) -> None:
@@ -287,37 +298,19 @@ class FormStateManager:
         form_state_logger.info(f"用户更改GPA分制 - 从 {old_scale_key} 变更为 {new_scale_key}")
 
         current_gpa = session_manager.get("gpa_raw_input")
-
-        if current_gpa is not None:
+        if current_gpa is not None and isinstance(current_gpa, (int, float)):
             cache_key = f"{old_scale_key}_{new_scale_key}_{current_gpa}"
+            gpa_cache = session_manager.get("gpa_conversion_cache", {})
 
-            gpa_conversion_cache = session_manager.get("gpa_conversion_cache", {})
-
-            if cache_key in gpa_conversion_cache:
-                converted_gpa = gpa_conversion_cache[cache_key]
+            if cache_key in gpa_cache:
+                converted_gpa = gpa_cache[cache_key]
             else:
-                old_scale_details = GPA_SCALES.get(old_scale_key)
-                new_scale_details = GPA_SCALES.get(new_scale_key)
-
-                if old_scale_details and new_scale_details:
-                    old_max = old_scale_details.get("max")
-                    new_max = new_scale_details.get("max")
-
-                    if (
-                        old_max
-                        and new_max
-                        and isinstance(old_max, (int, float))
-                        and isinstance(new_max, (int, float))
-                        and old_max > 0
-                        and isinstance(current_gpa, (int, float))
-                    ):
-                        converted_gpa = round(
-                            (float(current_gpa) / float(old_max)) * float(new_max), 2
-                        )
-                        gpa_conversion_cache[cache_key] = converted_gpa
-                        session_manager.set(gpa_conversion_cache=gpa_conversion_cache)
-                    else:
-                        converted_gpa = current_gpa
+                converted_gpa = FormStateManager._convert_gpa(
+                    old_scale_key, new_scale_key, current_gpa
+                )
+                if converted_gpa is not None:
+                    gpa_cache[cache_key] = converted_gpa
+                    session_manager.set(gpa_conversion_cache=gpa_cache)
                 else:
                     converted_gpa = current_gpa
 
@@ -327,8 +320,6 @@ class FormStateManager:
                 )
 
             session_manager.set(gpa_raw_input=converted_gpa)
-
             st.session_state["gpa_raw_input_widget"] = converted_gpa
 
         session_manager.set(gpa_scale=new_scale_key)
-        FormStateManager.on_form_change(session_manager)

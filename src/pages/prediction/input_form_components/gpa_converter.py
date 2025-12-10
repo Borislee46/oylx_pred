@@ -2,80 +2,72 @@ import json
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import streamlit as st
 
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
-
-def _get_gpa_rules_config_path() -> Path:
-    config_dir = Path.cwd() / "config"
-    config_file = config_dir / "gpa_conversion_rules.json"
-
-    try:
-        config_file.resolve().relative_to(Path.cwd().resolve())
-    except ValueError:
-        logger.error(f"警告：GPA转换规则文件路径不安全: {config_file}")
-        raise ValueError("不安全的文件路径")
-
-    return config_file
+GPA_RULES_CONFIG_PATH = Path("config/gpa_conversion_rules.json")
 
 
 class GPAConverter:
     def __init__(self, school_base_df):
         if school_base_df is not None and not school_base_df.empty:
-            self.school_country_map = pd.Series(
-                school_base_df["国家"].values, index=school_base_df["学校名称"]
-            ).to_dict()
+            self.school_country_map = dict(zip(school_base_df["学校名称"], school_base_df["国家"]))
         else:
             self.school_country_map = {}
 
-        self._country_cache = {}
-
     def get_university_country(self, university_name):
-        if not self.school_country_map or university_name is None:
+        if not university_name:
             return None
-
-        if university_name in self._country_cache:
-            return self._country_cache[university_name]
-
-        country = self.school_country_map.get(university_name)
-        self._country_cache[university_name] = country
-        return country
+        return self.school_country_map.get(university_name)
 
     @staticmethod
     @st.cache_data
-    def load_gpa_conversion_rules(config_path: Path, file_mtime: float):
-        try:
-            if not config_path.exists():
-                logger.warning(f"警告：GPA转换规则文件不存在: {config_path}")
-                return None
-
-            with config_path.open(encoding="utf-8") as f:
-                config = json.load(f)
-
-            if not isinstance(config, dict):
-                logger.warning("警告：GPA转换规则文件格式错误，应为JSON对象")
-                return None
-
-            required_keys = ["conversion_rules", "country_rules"]
-            missing_keys = [key for key in required_keys if key not in config]
-            if missing_keys:
-                logger.warning(f"警告：GPA转换规则文件缺少必要字段: {missing_keys}")
-                return None
-
-            return config
-        except json.JSONDecodeError as e:
-            logger.error(f"错误：GPA转换规则文件JSON格式错误: {e}", exc_info=True)
+    def load_gpa_conversion_rules(config_path: str, file_mtime: float):
+        path = Path(config_path)
+        if not path.exists():
+            logger.warning(f"GPA转换规则文件不存在: {config_path}")
             return None
-        except PermissionError as e:
-            logger.error(f"错误：无法读取GPA转换规则文件（权限不足）: {e}", exc_info=True)
+
+        with path.open(encoding="utf-8") as f:
+            config = json.load(f)
+
+        if not isinstance(config, dict):
+            logger.warning("GPA转换规则文件格式错误，应为JSON对象")
             return None
-        except Exception as e:
-            logger.error(f"错误：无法加载GPA转换规则文件: {e}", exc_info=True)
+
+        required_keys = ["conversion_rules", "country_rules"]
+        missing = [k for k in required_keys if k not in config]
+        if missing:
+            logger.warning(f"GPA转换规则文件缺少必要字段: {missing}")
             return None
+
+        return config
+
+    @staticmethod
+    def _get_rules_config() -> dict | None:
+        file_mtime = (
+            GPA_RULES_CONFIG_PATH.stat().st_mtime if GPA_RULES_CONFIG_PATH.exists() else 0.0
+        )
+        return GPAConverter.load_gpa_conversion_rules(str(GPA_RULES_CONFIG_PATH), file_mtime)
+
+    @staticmethod
+    def _find_matching_rule(
+        rules_config: dict, scale_key: str, background_university: str = None, country: str = None
+    ) -> tuple[dict | None, str]:
+        if background_university:
+            rule = rules_config.get("conversion_rules", {}).get(background_university)
+            if rule and rule.get("trigger_scale") == scale_key:
+                return rule, f"大学规则({background_university})"
+
+        if country:
+            rule = rules_config.get("country_rules", {}).get(country)
+            if rule and rule.get("trigger_scale") == scale_key:
+                return rule, f"国家规则({country})"
+
+        return None, ""
 
     @staticmethod
     def convert_gpa_by_rules(
@@ -90,86 +82,72 @@ class GPAConverter:
         try:
             raw_gpa = float(raw_gpa)
         except (ValueError, TypeError):
-            logger.warning(f"警告：无法转换GPA值为数字: {raw_gpa}")
+            logger.warning(f"无法转换GPA值为数字: {raw_gpa}")
             return None
 
-        config_path = _get_gpa_rules_config_path()
-        try:
-            file_mtime = config_path.stat().st_mtime if config_path.exists() else 0.0
-        except (OSError, ValueError) as e:
-            logger.warning(f"警告：无法获取配置文件修改时间: {e}")
-            file_mtime = 0.0
-        rules_config = GPAConverter.load_gpa_conversion_rules(config_path, file_mtime)
+        rules_config = GPAConverter._get_rules_config()
         if not rules_config:
             return None
 
-        if background_university and background_university in rules_config.get(
-            "conversion_rules", {}
-        ):
-            rule = rules_config["conversion_rules"][background_university]
-            if rule.get("trigger_scale") == scale_key:
-                try:
-                    return GPAConverter._apply_conversion_rule(raw_gpa, rule)
-                except Exception as e:
-                    logger.error(f"错误：应用大学转换规则失败 ({background_university}): {e}")
+        rule, rule_name = GPAConverter._find_matching_rule(
+            rules_config, scale_key, background_university, country
+        )
+        if not rule:
+            return None
 
-        if country and country in rules_config.get("country_rules", {}):
-            rule = rules_config["country_rules"][country]
-            if rule.get("trigger_scale") == scale_key:
-                try:
-                    return GPAConverter._apply_conversion_rule(raw_gpa, rule)
-                except Exception as e:
-                    logger.error(f"错误：应用国家转换规则失败 ({country}): {e}")
+        return GPAConverter._apply_conversion_rule(raw_gpa, rule)
+
+    @staticmethod
+    def _interpolate(
+        raw_value: float, min_val: float, max_val: float, target_min: float, target_max: float
+    ) -> float:
+        if abs(max_val - min_val) < 1e-9:
+            return target_min
+        ratio = (raw_value - min_val) / (max_val - min_val)
+        return target_min + ratio * (target_max - target_min)
+
+    @staticmethod
+    def _apply_range_rule(raw_value: float, range_rule: dict) -> float | None:
+        min_val = float(range_rule.get("min", 0))
+        max_val = float(range_rule.get("max", 0))
+
+        if not (min_val <= raw_value < max_val):
+            return None
+
+        if "target_gpa" in range_rule:
+            return round(float(range_rule["target_gpa"]), 2)
+
+        if "target_min" in range_rule and "target_max" in range_rule:
+            result = GPAConverter._interpolate(
+                raw_value,
+                min_val,
+                max_val,
+                float(range_rule["target_min"]),
+                float(range_rule["target_max"]),
+            )
+            return round(result, 2)
 
         return None
 
     @staticmethod
+    def _apply_fallback(raw_value: float, rule: dict) -> float:
+        multiplier = float(rule.get("fallback_multiplier", 1.0))
+        if rule.get("is_percentage"):
+            result = (raw_value / 100.0) * 4.0 * multiplier
+        else:
+            result = raw_value * multiplier
+        return round(max(0.0, min(result, 4.0)), 2)
+
+    @staticmethod
     def _apply_conversion_rule(raw_value: float, rule: dict[str, Any]) -> float:
-        if not isinstance(rule, dict):
-            raise ValueError("转换规则必须是字典格式")
-
         raw_value = float(raw_value)
-
         ranges = rule.get("ranges", [])
-        if not isinstance(ranges, list):
-            raise ValueError("ranges字段必须是列表格式")
 
         for range_rule in ranges:
             if not isinstance(range_rule, dict):
                 continue
+            result = GPAConverter._apply_range_rule(raw_value, range_rule)
+            if result is not None:
+                return result
 
-            try:
-                min_val = float(range_rule.get("min", 0))
-                max_val = float(range_rule.get("max", 0))
-
-                if min_val <= raw_value < max_val:
-                    if "target_gpa" in range_rule:
-                        return round(float(range_rule["target_gpa"]), 2)
-                    elif "target_min" in range_rule and "target_max" in range_rule:
-                        target_min = float(range_rule["target_min"])
-                        target_max = float(range_rule["target_max"])
-
-                        if abs(max_val - min_val) < 1e-9:
-                            ratio = 0.0
-                        else:
-                            ratio = (raw_value - min_val) / (max_val - min_val)
-
-                        target_val = target_min + ratio * (target_max - target_min)
-                        return round(target_val, 2)
-            except (ValueError, TypeError, KeyError) as e:
-                logger.warning(f"警告：跳过无效的范围规则: {e}")
-                continue
-
-        try:
-            if rule.get("is_percentage"):
-                base = (raw_value / 100.0) * 4.0
-                multiplier = float(rule.get("fallback_multiplier", 1.0))
-                result = base * multiplier
-                return round(max(0.0, min(result, 4.0)), 2)
-
-            multiplier = float(rule.get("fallback_multiplier", 1.0))
-            result = raw_value * multiplier
-            return round(max(0.0, min(result, 4.0)), 2)
-        except (ValueError, TypeError) as e:
-            logger.warning(f"警告：应用fallback公式失败: {e}")
-            return round(raw_value, 2)
+        return GPAConverter._apply_fallback(raw_value, rule)

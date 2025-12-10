@@ -11,12 +11,10 @@ def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
     if not lst:
         return (0, 0)
     try:
-        import hashlib
-
         sorted_list = sorted(lst)
-        list_str = ",".join(str(item) for item in sorted_list)
-        hash_value = int(hashlib.md5(list_str.encode()).hexdigest()[:16], 16)
-        return (len(lst), hash_value)
+
+        list_tuple = tuple(sorted_list)
+        return (len(lst), hash(list_tuple))
     except Exception as e:
         prediction_handler_logger.warning(f"计算列表指纹失败: {e}")
         return (len(lst), 0)
@@ -25,6 +23,7 @@ def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
 def compute_df_fingerprint(df: Optional[pd.DataFrame]) -> int:
     if df is None or df.empty:
         return 0
+
     try:
         from pandas.util import hash_pandas_object
 
@@ -33,8 +32,10 @@ def compute_df_fingerprint(df: Optional[pd.DataFrame]) -> int:
             for c in ["background_university", "target_university", "target_major"]
             if c in df.columns
         ]
+
         if key_cols:
             return int(hash_pandas_object(df[key_cols]).sum())
+
         return len(df)
     except Exception as e:
         prediction_handler_logger.warning(f"计算DataFrame指纹失败: {e}")

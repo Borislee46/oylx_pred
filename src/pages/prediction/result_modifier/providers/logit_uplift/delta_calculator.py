@@ -37,6 +37,9 @@ class DeltaCalculator:
         text_keys = self._text_processor.text_keys
         count_keys = self._text_processor.count_keys
 
+        num_text_features = len(text_keys)
+        num_count_features = len(count_keys)
+
         try:
             details = json.loads(sig)
         except Exception:
@@ -56,14 +59,33 @@ class DeltaCalculator:
 
         s_arr = np.array(s_values, dtype=np.float64)
 
-        delta = weights_array[0]
-        delta += np.dot(weights_array[1:5], s_arr)
-        delta += np.dot(weights_array[5:9], s_arr * log_counts)
+        bias_idx = 0
+        text_weights_start = bias_idx + 1
+        text_weights_end = text_weights_start + num_text_features
+
+        interact_weights_start = text_weights_end
+        interact_weights_end = interact_weights_start + num_text_features
+
+        if len(weights_array) < interact_weights_end:
+            return 0.0, sims
+
+        delta = weights_array[bias_idx]
+        delta += np.dot(weights_array[text_weights_start:text_weights_end], s_arr)
+
+        if num_count_features == num_text_features:
+            delta += np.dot(
+                weights_array[interact_weights_start:interact_weights_end], s_arr * log_counts
+            )
 
         delta = max(0.0, float(delta))
 
         return delta, sims
 
     @lru_cache(maxsize=512)
+    def _cached_delta_logit_internal(self, sig: str) -> tuple[float, tuple[tuple[str, float], ...]]:
+        delta, sims = self._compute_delta_logit(sig)
+        return delta, tuple(sims.items())
+
     def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float]]:
-        return self._compute_delta_logit(sig)
+        delta, sims_tuple = self._cached_delta_logit_internal(sig)
+        return delta, dict(sims_tuple)

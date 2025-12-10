@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from functools import lru_cache
+from typing import Any
 
 import pandas as pd
 
@@ -19,11 +21,11 @@ from src.pages.prediction.result_modifier.config import (
     USER_SPECIFIED_MEDIUM_RANGE_TOP_N,
     USER_SPECIFIED_SMALL_RANGE_THRESHOLD,
 )
-from src.pages.prediction.result_modifier.ranker import (
-    adjust_similarity_results_with_agent,
+from src.pages.prediction.result_modifier.filters import (
     get_cross_major_recommendations,
     get_similar_major_recommendations,
 )
+from src.pages.prediction.result_modifier.ranker import adjust_similarity_results_with_agent
 from src.pages.prediction.result_modifier.similarity_adjuster import (
     adjust_similarity_score,
 )
@@ -32,9 +34,47 @@ from src.utils.logger import setup_logger
 boundary_processor_logger = setup_logger("page3", "prediction")
 
 
+@dataclass
+class ProcessingContext:
+    background_major: str
+    bg_target_similarity_cache: dict
+    num_target_universities: int
+    cases_df: pd.DataFrame | None = None
+    user_specified_combinations: list[tuple[str, str]] | None = None
+    background_faculty: str | None = None
+    background_major_original: str | None = None
+    probability_adjuster: Any | None = None
+    gpa: float | None = None
+    language_score: float | None = None
+    background_university: str | None = None
+
+
+@dataclass
+class ProcessingResult:
+    similarity_results: list[dict[str, Any]]
+    cross_major_results: list[dict[str, Any]]
+    user_specified_results: list[dict[str, Any]]
+
+
 @lru_cache(maxsize=1)
 def _get_cached_details_df():
     return get_school_major_details(None, None, return_df=True)
+
+
+@lru_cache(maxsize=1)
+def _get_faculty_mapping() -> dict[tuple[str, str], str]:
+    df = _get_cached_details_df()
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        return {}
+
+    valid_df = df[["学校", "专业英文名称", "专业大类"]].dropna(subset=["学校", "专业英文名称"])
+
+    return {
+        (str(school), str(major)): str(faculty) if pd.notna(faculty) else ""
+        for school, major, faculty in zip(
+            valid_df["学校"], valid_df["专业英文名称"], valid_df["专业大类"]
+        )
+    }
 
 
 def generate_prediction_combinations(
@@ -51,43 +91,55 @@ def generate_prediction_combinations(
     estimated_total = len(universities_to_consider) * len(majors_to_consider)
 
     if estimated_total <= 100:
-        valid_combinations = [
-            (univ, major)
-            for univ in universities_to_consider
-            for major in majors_to_consider
-            if has_school_major_details(univ, major)
-        ]
+        valid_combinations = _generate_combinations_small_scale(
+            universities_to_consider, majors_to_consider
+        )
     else:
-        valid_set = get_valid_school_major_set()
-        if not valid_set:
-            return [], {"combination_count": 0}
+        valid_combinations = _generate_combinations_large_scale(
+            universities_to_consider, majors_to_consider
+        )
 
-        valid_universities = set()
-        valid_majors = set()
-        for key in valid_set:
-            parts = key.split("|", 1)
-            if len(parts) == 2:
-                valid_universities.add(parts[0])
-                valid_majors.add(parts[1])
+    return valid_combinations, {"combination_count": len(valid_combinations)}
 
-        universities_filtered = [u for u in universities_to_consider if u in valid_universities]
-        majors_filtered = [m for m in majors_to_consider if m in valid_majors]
 
-        if not universities_filtered or not majors_filtered:
-            return [], {"combination_count": 0}
+def _generate_combinations_small_scale(
+    universities: list[str], majors: list[str]
+) -> list[tuple[str, str]]:
+    return [
+        (univ, major)
+        for univ in universities
+        for major in majors
+        if has_school_major_details(univ, major)
+    ]
 
-        valid_combinations = [
-            (univ, major)
-            for univ in universities_filtered
-            for major in majors_filtered
-            if f"{univ}|{major}" in valid_set
-        ]
 
-    combination_count = len(valid_combinations)
+def _generate_combinations_large_scale(
+    universities: list[str], majors: list[str]
+) -> list[tuple[str, str]]:
+    valid_set = get_valid_school_major_set()
+    if not valid_set:
+        return []
 
-    meta = {"combination_count": combination_count}
+    valid_universities = set()
+    valid_majors = set()
+    for key in valid_set:
+        parts = key.split("|", 1)
+        if len(parts) == 2:
+            valid_universities.add(parts[0])
+            valid_majors.add(parts[1])
 
-    return valid_combinations, meta
+    universities_filtered = [u for u in universities if u in valid_universities]
+    majors_filtered = [m for m in majors if m in valid_majors]
+
+    if not universities_filtered or not majors_filtered:
+        return []
+
+    return [
+        (univ, major)
+        for univ in universities_filtered
+        for major in majors_filtered
+        if f"{univ}|{major}" in valid_set
+    ]
 
 
 def _filter_part_time_majors(results: list) -> list:
@@ -103,51 +155,19 @@ def _filter_part_time_majors(results: list) -> list:
     ]
 
 
-def _attach_chinese_names_batch(results: list, details_df_full: pd.DataFrame | None = None) -> list:
+def _attach_faculty_batch(results: list) -> list:
     if not results:
         return results
 
-    if details_df_full is None:
-        details_df_full = _get_cached_details_df()
+    faculty_map = _get_faculty_mapping()
 
-    if (
-        details_df_full is None
-        or not isinstance(details_df_full, pd.DataFrame)
-        or details_df_full.empty
-    ):
+    if not faculty_map:
         for res in results:
-            res["chinese_name"] = ""
             res["faculty"] = ""
         return results
-
-    query_data = [
-        {"学校": r["university"], "专业英文名称": r["major"]}
-        for r in results
-        if isinstance(r, dict)
-    ]
-    if not query_data:
-        for res in results:
-            res["chinese_name"] = ""
-            res["faculty"] = ""
-        return results
-
-    query_df = pd.DataFrame(query_data).drop_duplicates()
-
-    merged_df = pd.merge(query_df, details_df_full, on=["学校", "专业英文名称"], how="left")
-
-    cn_map = pd.Series(
-        merged_df.get("专业中文名称", "").fillna("").values,
-        index=pd.MultiIndex.from_frame(merged_df[["学校", "专业英文名称"]]),
-    ).to_dict()
-
-    faculty_map = pd.Series(
-        merged_df.get("专业大类", "").fillna("").values,
-        index=pd.MultiIndex.from_frame(merged_df[["学校", "专业英文名称"]]),
-    ).to_dict()
 
     for res in results:
-        key = (res.get("university"), res.get("major"))
-        res["chinese_name"] = cn_map.get(key, "")
+        key = (str(res.get("university", "")), str(res.get("major", "")))
         res["faculty"] = faculty_map.get(key, "")
 
     return results
@@ -182,7 +202,7 @@ def _calculate_and_attach_similarities(
 
         for idx, similarity in zip(valid_indices, batch_similarities):
             result = valid_results[idx]
-            target_major = result.get("major", "")
+            target_major = str(result.get("major", "")).strip()
 
             adjusted_similarity = adjust_similarity_score(
                 background_major=bg_major_clean,
@@ -228,6 +248,99 @@ def _get_user_specified_results(
     return filtered[:USER_SPECIFIED_LARGE_RANGE_TOP_N]
 
 
+def _apply_faculty_filter(results: list, background_faculty: str | None) -> list:
+    if not background_faculty:
+        return results
+
+    from src.pages.prediction.result_modifier.faculty_filters import (
+        filter_schools_by_faculty_rules,
+    )
+
+    return filter_schools_by_faculty_rules(results, background_faculty)
+
+
+def _get_similarity_threshold(num_target_universities: int) -> float:
+    if num_target_universities > 0 and num_target_universities <= UNIVERSITY_COUNT_THRESHOLD:
+        return HIGHER_SIMILARITY_THRESHOLD
+    return MIN_SIMILARITY_THRESHOLD
+
+
+def _apply_agent_balance_adjustment(
+    top_similarity_results: list,
+    top_cross_major_results: list,
+    results_with_similarity: list,
+    ctx: ProcessingContext,
+) -> tuple[list, list]:
+    balance_diff = len(top_cross_major_results) - len(top_similarity_results)
+
+    if abs(balance_diff) < AGENT_MIN_BALANCE_DIFF:
+        return top_similarity_results, top_cross_major_results
+
+    if ctx.cases_df is None or not ctx.background_major:
+        return top_similarity_results, top_cross_major_results
+
+    from src.agent.boundary_case_agent import BoundaryCaseAgent
+
+    agent = BoundaryCaseAgent(cases_df=ctx.cases_df)
+    current_threshold = _get_similarity_threshold(ctx.num_target_universities)
+    agent_background_major = ctx.background_major_original or ctx.background_major
+
+    top_similarity_results = adjust_similarity_results_with_agent(
+        top_similarity_results,
+        results_with_similarity,
+        balance_diff,
+        agent_background_major,
+        current_threshold,
+        agent,
+        ctx.background_faculty,
+    )
+
+    sim_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
+    top_cross_major_results = [
+        r for r in top_cross_major_results if (r.get("university"), r.get("major")) not in sim_set
+    ]
+
+    return top_similarity_results, top_cross_major_results
+
+
+def _preprocess_results(results: list, ctx: ProcessingContext) -> list:
+    filtered_results = _filter_part_time_majors(results)
+    if not filtered_results:
+        return []
+
+    results_with_similarity = _calculate_and_attach_similarities(
+        filtered_results, ctx.background_major, ctx.bg_target_similarity_cache
+    )
+
+    return _attach_faculty_batch(results_with_similarity)
+
+
+def _generate_recommendations(
+    results_with_similarity: list, ctx: ProcessingContext
+) -> tuple[list, list]:
+    results_for_recommendations = _apply_faculty_filter(
+        results_with_similarity, ctx.background_faculty
+    )
+
+    top_similarity_results = get_similar_major_recommendations(
+        results_for_recommendations,
+        ctx.num_target_universities,
+        probability_adjuster=ctx.probability_adjuster,
+        gpa=ctx.gpa,
+        language_score=ctx.language_score,
+        background_university=ctx.background_university,
+    )
+
+    top_cross_major_results = get_cross_major_recommendations(
+        results_for_recommendations,
+        ctx.background_major,
+        ctx.cases_df,
+        ctx.background_faculty,
+    )
+
+    return top_similarity_results, top_cross_major_results
+
+
 def process_prediction_results(
     results: list,
     background_major: str,
@@ -236,74 +349,46 @@ def process_prediction_results(
     cases_df: pd.DataFrame | None = None,
     user_specified_combinations: list[tuple[str, str]] | None = None,
     background_faculty: str | None = None,
-):
+    background_major_original: str | None = None,
+    probability_adjuster: Any | None = None,
+    gpa: float | None = None,
+    language_score: float | None = None,
+    background_university: str | None = None,
+) -> tuple[list, list, list]:
     if not results:
         return [], [], []
 
-    filtered_results = _filter_part_time_majors(results)
-    if not filtered_results:
+    ctx = ProcessingContext(
+        background_major=background_major,
+        bg_target_similarity_cache=bg_target_similarity_cache,
+        num_target_universities=num_target_universities,
+        cases_df=cases_df,
+        user_specified_combinations=user_specified_combinations,
+        background_faculty=background_faculty,
+        background_major_original=background_major_original,
+        probability_adjuster=probability_adjuster,
+        gpa=gpa,
+        language_score=language_score,
+        background_university=background_university,
+    )
+
+    results_with_similarity = _preprocess_results(results, ctx)
+    if not results_with_similarity:
         return [], [], []
 
-    results_with_similarity = _calculate_and_attach_similarities(
-        filtered_results, background_major, bg_target_similarity_cache
-    )
-
-    details_df_full = _get_cached_details_df()
-    results_with_similarity = _attach_chinese_names_batch(
-        results_with_similarity, details_df_full=details_df_full
-    )
-
     final_user_specified_results = _get_user_specified_results(
-        results_with_similarity, user_specified_combinations
+        results_with_similarity, ctx.user_specified_combinations
     )
 
-    if background_faculty:
-        from src.pages.prediction.result_modifier.faculty_filters import (
-            filter_schools_by_faculty_rules,
-        )
-
-        results_for_recommendations = filter_schools_by_faculty_rules(
-            results_with_similarity, background_faculty
-        )
-    else:
-        results_for_recommendations = results_with_similarity
-
-    top_similarity_results = get_similar_major_recommendations(
-        results_for_recommendations, num_target_universities
+    top_similarity_results, top_cross_major_results = _generate_recommendations(
+        results_with_similarity, ctx
     )
 
-    top_cross_major_results = get_cross_major_recommendations(
-        results_for_recommendations, background_major, cases_df, user_specified_combinations
+    top_similarity_results, top_cross_major_results = _apply_agent_balance_adjustment(
+        top_similarity_results,
+        top_cross_major_results,
+        results_with_similarity,
+        ctx,
     )
-
-    balance_diff = len(top_cross_major_results) - len(top_similarity_results)
-
-    if abs(balance_diff) >= AGENT_MIN_BALANCE_DIFF:
-        current_threshold = MIN_SIMILARITY_THRESHOLD
-        if num_target_universities > 0 and num_target_universities <= UNIVERSITY_COUNT_THRESHOLD:
-            current_threshold = HIGHER_SIMILARITY_THRESHOLD
-
-        agent = None
-        if cases_df is not None and background_major:
-            from src.agent.boundary_case_agent import BoundaryCaseAgent
-
-            agent = BoundaryCaseAgent(cases_df=cases_df)
-
-        if agent:
-            top_similarity_results = adjust_similarity_results_with_agent(
-                top_similarity_results,
-                results_for_recommendations,
-                balance_diff,
-                background_major,
-                current_threshold,
-                agent,
-            )
-
-            sim_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
-            top_cross_major_results = [
-                r
-                for r in top_cross_major_results
-                if (r.get("university"), r.get("major")) not in sim_set
-            ]
 
     return top_similarity_results, top_cross_major_results, final_user_specified_results

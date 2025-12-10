@@ -61,8 +61,7 @@ def build_boundary_evaluation_prompt(
 4. 返回 JSON 格式，严格遵循以下结构：
    {{
      "decisions": [bool, bool, ...],
-     "needs_adjustment": bool,
-     "reason": "简要说明原因"
+     "needs_adjustment": bool
    }}
 
 [输出格式]

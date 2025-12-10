@@ -6,13 +6,8 @@ def reset_prediction_results(session_manager: SessionManager):
         has_predicted=False,
         prediction_results=PredictionResultModel(),
         prediction_submit_lock=False,
-        optimization_performed=False,
         processing_lock=False,
         lock_start_time=0,
-        run_optimization=False,
-        optimization_recommendations=None,
-        adaptive_thresholds=None,
-        optimization_input_hash=None,
     )
 
 

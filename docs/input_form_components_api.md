@@ -42,7 +42,7 @@
   - 业务校验，返回 `ValidationError` 对象列表，包含：
     - 背景院校/专业必填，且映射有效
     - GPA 不能为空/不为 0，分制有效
-    - 语言分数校验（通过 `LanguageScoreValidator`）：雅思分数必须是 0.5 的倍数；非海外院校语言分数不为 0
+    - 语言分数校验（通过 `LanguageScoreValidator`）：雅思分数必须是 0.5 的倍数；非海外院校语言分数不为 0；**检查是否存在输入格式错误**（`language_score_input_error`）
     - 经历数量字段非空，经历详情与数量一致性检查
 
 ---
@@ -160,7 +160,10 @@
     - `selected_target_*`、`gpa_scale`、`language_type`、`*_input`、`submitted`、`form_data_changed`、`prediction_submit_lock` 等。
 
 - `save_current_form_data(session_manager, form_data: dict) -> bool`
-  - 将当前表单快照持久化（用户级）。
+  - 将当前表单快照持久化（用户级）。*(注意：此方法在代码中体现为 `_auto_save_form_data` 的内部调用或间接调用)*
+
+- `update_form_snapshot_hash_after_prediction(session_manager) -> None`
+  - 预测完成后更新表单快照哈希，防止重复自动保存。
 
 - `on_form_change(session_manager, change_type: str | None=None) -> None`
   - 通用变更入口：重置提交相关标志；按变更类型节流自动保存（文本 4s，其它 1.5s）。
@@ -281,6 +284,7 @@ def validate_and_prepare(form_data, school_base_df):
   - 合并 `cases_df[['target_university','target_major']]` 与 `details_df`，生成列：`target_university`、`target_major`、`major_category`、`target_major_agg`、`country`。
   - 兼容：`details_df` 无 `专业英文名称_聚合` 时回退为 `专业英文名称`。
   - 返回：`(base_df, university_country_map)`，其中 `university_country_map` 为院校到国家的映射字典。
+  - 备注：提供 `build_target_base_df_cached` 作为缓存封装。
 
 - `compute_selection_cache_key(selected_countries: Set[str], selected_universities: Set[str], selected_categories: Set[str], selected_majors: Set[str]) -> str`
   - 用于 `target_options_cache` 的稳定键（SHA256 哈希），保持与旧实现一致。
@@ -389,8 +393,9 @@ if ui.render_submit_button(disabled_status=False):
 - 提供方法：
   - `check_cross_faculty_situation(background_major, target_majors, target_universities, cases_df) -> (has_cross: bool, background_faculty: str | None, target_faculties: set[str])`
     - 基于“院校+原始专业”的精确匹配，判断所选目标是否跨学院，适合在已明确“目标院校+原始专业列表”后进行最终校验。
-  - `quick_cross_faculty_check(background_major, selected_categories, selected_majors, cases_df=None, details_df=None) -> (has_cross: bool, background_faculty: str | None, target_faculties: set[str])`
+  - `quick_cross_faculty_check(background_major, selected_categories, selected_majors, cases_df=None) -> (has_cross: bool, background_faculty: str | None, target_faculties: set[str], agent_approved: bool)`
     - 轻量快速检查：仅依赖“背景专业 + 已选专业大类/聚合专业”，适合提交前进行早期拦截与提示。
+    - **v2.5 新增**：支持 `BoundaryCaseAgent` 智能兜底（`agent_approved`），当发现潜在跨学院但 Agent 判定为合理（如相似性高）时，`agent_approved` 为 True。
   - `cross_faculty_confirm_dialog(session_manager, background_faculty, target_faculties) -> None`
     - 使用 `st.dialog` 弹出确认框。文案："您明确选择的目标专业包含跨学院方向，是否继续？"；确认/取消分别写入会话态键并触发 `st.rerun()`。
 
@@ -414,14 +419,14 @@ from src.pages.prediction.input_form_components.cross_faculty_guard import (
 )
 
 # 假设已有 session_manager, cases_df
-has_cross, bg_faculty, target_faculties = quick_cross_faculty_check(
+has_cross, bg_faculty, target_faculties, agent_approved = quick_cross_faculty_check(
     background_major=session_manager.get("background_major"),
     selected_categories=session_manager.get("selected_major_categories"),
     selected_majors=session_manager.get("selected_target_majors"),  # 聚合或原始名均可
     cases_df=cases_df,
 )
 
-if has_cross and not session_manager.get("cross_faculty_confirmed"):
+if has_cross and not agent_approved and not session_manager.get("cross_faculty_confirmed"):
     cross_faculty_confirm_dialog(session_manager, bg_faculty, target_faculties)
     st.stop()  # 等待用户确认；确认后会 rerun
 ```

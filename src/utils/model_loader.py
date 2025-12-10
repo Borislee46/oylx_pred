@@ -42,7 +42,6 @@ class _CalibratedPredictor:
             y_thr = params.get("y_thresholds", [])
             calibrated_p1 = np.interp(p1, x_thr, y_thr)
         else:
-            logger.warning(f"未知校准方法: {method}")
             return base_proba
         p0 = 1.0 - calibrated_p1
         return np.vstack([p0, calibrated_p1]).T

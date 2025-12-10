@@ -18,6 +18,9 @@ from src.pages.prediction.result_modifier.providers.logit_uplift import (
 )
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
 from src.pages.prediction.result_modifier.utils import has_valid_experience_details
+from src.utils.logger import setup_logger
+
+logger = setup_logger("page3", "prediction")
 
 
 class LogitUpliftProvider(TextBoostProvider):
@@ -98,7 +101,8 @@ class LogitUpliftProvider(TextBoostProvider):
         sig = self._text_processor.make_signature(experience_details)
         try:
             delta_logit, sims = self._delta_calculator.cached_delta_logit(sig)
-        except Exception:
+        except Exception as e:
+            logger.error(f"LogitUpliftProvider apply error: {str(e)}")
             return probabilities, ""
 
         if delta_logit <= 0:

@@ -147,11 +147,11 @@ def render_language_section(session_manager, form_state_manager, logger):
         )
 
     language_type = session_manager.get("language_type")
-    st.radio(
+    st.segmented_control(
         "语言成绩类型",
         LANGUAGE_TYPES,
-        index=LANGUAGE_TYPES.index(language_type),
-        horizontal=True,
+        selection_mode="single",
+        default=language_type,
         on_change=partial(form_state_manager.on_language_type_change, session_manager),
         key="language_type_widget_key",
     )

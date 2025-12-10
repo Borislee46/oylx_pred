@@ -1,13 +1,11 @@
 from typing import Any
 
 from src.pages.prediction.result_modifier.config import (
-    PROFESSIONAL_MAJORS,
+    PROFESSIONAL_MAJORS_LOWER,
     PROFESSIONAL_REDUCTION_FACTOR,
     PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
 from src.pages.prediction.result_modifier.utils import clip_probability
-
-_PROFESSIONAL_MAJORS_LOWER = [m.lower() for m in PROFESSIONAL_MAJORS]
 
 
 def adjust_for_professional_majors(
@@ -32,7 +30,7 @@ def adjust_for_professional_majors(
 
         target_major_lower = target_major.lower()
         is_professional = any(
-            prof_major in target_major_lower for prof_major in _PROFESSIONAL_MAJORS_LOWER
+            prof_major in target_major_lower for prof_major in PROFESSIONAL_MAJORS_LOWER
         )
 
         if not is_professional:

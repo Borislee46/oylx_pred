@@ -1,0 +1,28 @@
+{
+  "12d8ef33b418094f75b95211c1d5ea67": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "4bab04c874716db7da4faa2af3c6fbef": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "f851fb981711dcd0685d0e3e81aa034d": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  }
+}

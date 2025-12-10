@@ -1,9 +1,11 @@
 import hashlib
+import random
 import re
 import string
 import time
 from typing import Any
 
+import pandas as pd
 import requests
 import streamlit as st
 
@@ -13,12 +15,33 @@ from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
+
+def compute_dataframe_hash(df: pd.DataFrame) -> str:
+    if df is None or df.empty:
+        return "empty_df"
+    try:
+        meta_str = f"{df.shape}-{tuple(df.columns)}"
+        sample = pd.concat([df.head(1), df.tail(1)])
+        sample_hash = hash(str(sample.values.tobytes()))
+        return hashlib.md5(f"{meta_str}-{sample_hash}".encode()).hexdigest()
+    except Exception:
+        return "fallback_hash"
+
+
 FIELD_NAME_MAP = {
     "research_details": "研究",
     "award_details": "奖项",
     "internship_details": "实习",
     "paper_details": "论文",
 }
+
+EXPERIENCE_ANALYSIS_MESSAGES = [
+    "正在智能分析您的背景经历",
+    "深度解析{field}经历中",
+    "正在评估您的{field}背景",
+    "智能识别{field}相关信息",
+    "分析{field}内容与专业匹配度",
+]
 
 INVALID_TOKENS = {
     "",
@@ -139,6 +162,14 @@ def _validate_field_with_llm(field_type: str, content: str) -> bool:
     return _validate_field_with_llm_cached(field_type, content_hash, content)
 
 
+def _get_analysis_message(field_names: list[str]) -> str:
+    if len(field_names) == 1:
+        msg = random.choice(EXPERIENCE_ANALYSIS_MESSAGES)
+        return msg.format(field=field_names[0]) if "{field}" in msg else msg
+    fields_text = "、".join(field_names)
+    return f"正在智能分析您的{fields_text}等背景经历"
+
+
 def has_meaningful_experience_text(experience_details: dict[str, str] | None) -> bool:
     if not has_valid_experience_details(experience_details):
         return False
@@ -153,15 +184,33 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
         "paper_details",
     )
 
-    validated_keys = []
+    fields_to_validate = []
     for k in keys:
         content = str(experience_details.get(k, "")).strip()
         if not is_effectively_empty(content):
-            if not _validate_field_with_llm(k, content):
-                field_name = FIELD_NAME_MAP.get(k, k)
-                st.toast(f"{field_name}填写的内容无效")
-                continue
-            validated_keys.append(k)
+            fields_to_validate.append((k, content))
+
+    if not fields_to_validate:
+        return False
+
+    field_names = [FIELD_NAME_MAP.get(k, k) for k, _ in fields_to_validate]
+    msg = _get_analysis_message(field_names)
+
+    placeholder = st.empty()
+    placeholder.markdown(
+        f'<span style="color: #888888; font-size: 0.85em;">{msg}...</span>',
+        unsafe_allow_html=True,
+    )
+
+    validated_keys = []
+    for k, content in fields_to_validate:
+        if not _validate_field_with_llm(k, content):
+            field_name = FIELD_NAME_MAP.get(k, k)
+            st.toast(f"{field_name}填写的内容无效")
+            continue
+        validated_keys.append(k)
+
+    placeholder.empty()
 
     if not validated_keys:
         return False

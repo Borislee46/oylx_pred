@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Set, Tuple
 
 import pandas as pd
@@ -10,6 +11,25 @@ from src.utils.session_manager import SessionManager
 guard_logger = setup_logger("page3", "prediction")
 
 
+@lru_cache(maxsize=1)
+def _get_major_category_cache() -> dict[str, str]:
+    details_df = load_school_major_details_df()
+    if details_df is None or details_df.empty:
+        return {}
+
+    required_cols = ["学校", "专业英文名称", "专业大类"]
+    if not all(col in details_df.columns for col in required_cols):
+        return {}
+
+    df = details_df[required_cols].dropna()
+    df = df[~df["专业大类"].astype(str).str.lower().isin(["nan", "none"])]
+
+    return {
+        f"{row['学校'].strip()}|{row['专业英文名称'].strip()}": row["专业大类"].strip()
+        for _, row in df.iterrows()
+    }
+
+
 def check_cross_faculty_situation(
     background_major: str,
     target_majors: list[str],
@@ -19,29 +39,11 @@ def check_cross_faculty_situation(
     from src.pages.prediction.prediction_utils import get_background_faculty
 
     background_faculty = get_background_faculty(background_major, cases_df)
-
     if not background_faculty:
         return False, None, set()
 
-    details_df = load_school_major_details_df()
-    major_category_cache: dict[str, str] = {}
-
-    if details_df is not None and not details_df.empty:
-        required_cols = ["学校", "专业英文名称", "专业大类"]
-        if all(col in details_df.columns for col in required_cols):
-            try:
-                for _, row in details_df.iterrows():
-                    uni = str(row.get("学校", "")).strip()
-                    maj = str(row.get("专业英文名称", "")).strip()
-                    cat = str(row.get("专业大类", "")).strip()
-                    if uni and maj and cat and cat.lower() not in ["nan", "none"]:
-                        cache_key = f"{uni}|{maj}"
-                        major_category_cache[cache_key] = cat
-            except Exception as e:
-                guard_logger.warning(f"构建专业大类缓存失败: {e}", exc_info=True)
-
+    major_category_cache = _get_major_category_cache()
     target_faculties: Set[str] = set()
-    has_cross_faculty = False
 
     for major in target_majors:
         if not major:
@@ -49,13 +51,11 @@ def check_cross_faculty_situation(
         for university in target_universities:
             if not university:
                 continue
-            cache_key = f"{university}|{major}"
-            target_faculty = major_category_cache.get(cache_key)
+            target_faculty = major_category_cache.get(f"{university}|{major}")
             if target_faculty:
                 target_faculties.add(target_faculty)
-                if target_faculty != background_faculty:
-                    has_cross_faculty = True
 
+    has_cross_faculty = any(f != background_faculty for f in target_faculties)
     return has_cross_faculty, background_faculty, target_faculties
 
 
@@ -70,8 +70,9 @@ def cross_faculty_confirm_dialog(
         if st.button(
             "确定继续预测",
             type="primary",
-            use_container_width=True,
+            width="stretch",
             key="cross_faculty_confirm_btn",
+            shortcut="Enter",
         ):
             session_manager.set(
                 cross_faculty_confirmed=True,
@@ -81,7 +82,7 @@ def cross_faculty_confirm_dialog(
             st.rerun()
 
     with col2:
-        if st.button("取消", use_container_width=True, key="cross_faculty_cancel_btn"):
+        if st.button("取消", width="stretch", key="cross_faculty_cancel_btn", shortcut="Esc"):
             session_manager.set(
                 cross_faculty_confirmed=False,
                 cross_faculty_cancelled=True,
@@ -93,70 +94,100 @@ def cross_faculty_confirm_dialog(
             st.rerun()
 
 
+@lru_cache(maxsize=1)
+def _get_major_to_faculty_map() -> dict[str, str]:
+    details_df = load_school_major_details_df()
+    if details_df is None or details_df.empty or "专业大类" not in details_df.columns:
+        return {}
+
+    result: dict[str, str] = {}
+    df = details_df.dropna(subset=["专业大类"])
+
+    if "专业英文名称_聚合" in df.columns:
+        for major, faculty in zip(df["专业英文名称_聚合"].astype(str), df["专业大类"].astype(str)):
+            if major.strip():
+                result[major.strip()] = faculty.strip()
+
+    if "专业英文名称" in df.columns:
+        for major, faculty in zip(df["专业英文名称"].astype(str), df["专业大类"].astype(str)):
+            major_key = major.strip()
+            if major_key and major_key not in result:
+                result[major_key] = faculty.strip()
+
+    return result
+
+
+def _check_majors_with_agent(
+    background_major: str, majors: list[str], cases_df: pd.DataFrame
+) -> bool:
+    if not majors:
+        return False
+    try:
+        from src.agent.boundary_case_agent import BoundaryCaseAgent
+
+        cases = []
+        for m in majors:
+            cases.append(
+                {
+                    "university": "Target University",
+                    "major": m,
+                    "similarity": 0.85,
+                }
+            )
+
+        agent = BoundaryCaseAgent(cases_df=cases_df)
+        result = agent.evaluate_boundary_cases(background_major, cases, mode="relax")
+        decisions = result.get("decisions", [])
+
+        if any(decisions):
+            guard_logger.info(
+                f"Agent验证通过跨学院专业: {[m for m, d in zip(majors, decisions) if d]}"
+            )
+            return True
+        return False
+    except Exception as e:
+        guard_logger.error(f"Agent跨学院验证失败: {e}")
+        return False
+
+
 def quick_cross_faculty_check(
     background_major: str | None,
     selected_categories: list[str] | None,
     selected_majors: list[str] | None,
     cases_df: pd.DataFrame | None = None,
-    details_df: pd.DataFrame | None = None,
-) -> tuple[bool, str | None, set[str]]:
+) -> tuple[bool, str | None, set[str], bool]:
     selected_categories = selected_categories or []
     selected_majors = selected_majors or []
 
     if not background_major or (not selected_categories and not selected_majors):
-        return False, None, set()
+        return False, None, set(), False
 
     if cases_df is None:
-        try:
-            cases_df = load_raw_cases_data()
-        except Exception:
-            cases_df = pd.DataFrame()
+        cases_df = load_raw_cases_data()
 
     from src.pages.prediction.prediction_utils import get_background_faculty
 
     background_faculty = get_background_faculty(background_major, cases_df)
-
     if not background_faculty:
-        return False, None, set()
+        return False, None, set(), False
 
     target_faculties: set[str] = set(selected_categories)
 
+    cross_majors = []
     if selected_majors:
-        if details_df is None:
-            try:
-                details_df = load_school_major_details_df()
-            except Exception:
-                details_df = pd.DataFrame()
-        try:
-            has_agg_col = "专业英文名称_聚合" in details_df.columns
-            has_std_col = "专业英文名称" in details_df.columns
-            has_cat_col = "专业大类" in details_df.columns
+        major_to_faculty = _get_major_to_faculty_map()
+        for major in selected_majors:
+            major_str = str(major).strip()
+            faculty = major_to_faculty.get(major_str)
+            if faculty:
+                target_faculties.add(faculty)
+                if faculty != background_faculty:
+                    cross_majors.append(major_str)
 
-            if details_df is not None and not details_df.empty and has_cat_col:
-                if has_agg_col and has_std_col:
-                    df = details_df[["专业英文名称_聚合", "专业英文名称", "专业大类"]].dropna(
-                        subset=["专业大类"]
-                    )
+    has_cross = any(f and f != background_faculty for f in target_faculties)
+    agent_approved = False
 
-                    matched_df = df[
-                        df["专业英文名称_聚合"].astype(str).isin([str(m) for m in selected_majors])
-                    ]
-                    if len(matched_df) < len(selected_majors):
-                        matched_std = df[
-                            df["专业英文名称"].astype(str).isin([str(m) for m in selected_majors])
-                        ]
-                        matched_df = pd.concat([matched_df, matched_std]).drop_duplicates()
-                elif has_std_col:
-                    df = details_df[["专业英文名称", "专业大类"]].dropna()
-                    matched_df = df[
-                        df["专业英文名称"].astype(str).isin([str(m) for m in selected_majors])
-                    ]
-                else:
-                    matched_df = pd.DataFrame()
+    if has_cross and cross_majors and cases_df is not None:
+        agent_approved = _check_majors_with_agent(background_major, cross_majors, cases_df)
 
-                target_faculties.update(matched_df["专业大类"].astype(str).str.strip().tolist())
-        except Exception as e:
-            guard_logger.error(f"根据目标专业解析专业大类失败: {e}", exc_info=True)
-
-    has_cross = any(f for f in target_faculties if f and f != background_faculty)
-    return has_cross, background_faculty, target_faculties
+    return has_cross, background_faculty, target_faculties, agent_approved
