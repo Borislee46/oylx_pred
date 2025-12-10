@@ -241,7 +241,6 @@
     color: var(--hk-surface-bg) !important;
     border: none !important;
     padding: 0.6rem 1.5rem !important;
-    border-radius: var(--hk-radius) !important;
     font-family: var(--hk-font-sans) !important;
     font-weight: 600 !important;
     font-size: var(--hk-text-sm) !important;
@@ -263,7 +262,6 @@
 }
 
 .stApp .stButton > button:focus {
-    box-shadow: var(--hk-shadow-focus), var(--hk-shadow-md) !important;
     outline: none !important;
 }
 
