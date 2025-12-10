@@ -1,9 +1,9 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from src.pages.prediction.prediction_types import PredictionInput
 
 
-def _safe_float(value: Any) -> Optional[float]:
+def _safe_float(value: Any) -> float | None:
     if value is None or value == "":
         return None
     try:
@@ -27,19 +27,19 @@ def _safe_str(value: Any) -> str:
     return str(value).strip()
 
 
-def _safe_list_str(value: Any) -> List[str]:
+def _safe_list_str(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(v) for v in value if v]
 
 
-def _safe_dict_str(value: Any) -> Dict[str, str]:
+def _safe_dict_str(value: Any) -> dict[str, str]:
     if not isinstance(value, dict):
         return {}
     return {str(k): str(v) for k, v in value.items()}
 
 
-def validate_and_clean_input(input_data: Dict[str, Any]) -> PredictionInput:
+def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
     cleaned: PredictionInput = {
         "background_university": _safe_str(input_data.get("background_university")),
         "background_major": _safe_str(input_data.get("background_major")),

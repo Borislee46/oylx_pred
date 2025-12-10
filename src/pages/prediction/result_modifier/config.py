@@ -95,10 +95,10 @@ def _load_university_difficulty_order() -> list[str]:
     if not UNIVERSITY_DIFFICULTY_CONFIG_PATH.exists():
         return default_order
     try:
-        with open(UNIVERSITY_DIFFICULTY_CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(UNIVERSITY_DIFFICULTY_CONFIG_PATH, encoding="utf-8") as f:
             config = json.load(f)
             return config.get("difficulty_order", default_order)
-    except (json.JSONDecodeError, IOError):
+    except (OSError, json.JSONDecodeError):
         return default_order
 
 

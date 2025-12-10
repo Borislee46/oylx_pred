@@ -1,10 +1,10 @@
-from typing import Any, Optional
+from typing import Any
 
 
 def get_user_specified_combinations(
     current_input_data: dict[str, Any],
     all_universities_target: list[str],
-) -> Optional[list[tuple[str, str]]]:
+) -> list[tuple[str, str]] | None:
     target_majors = current_input_data.get("target_majors")
 
     if not target_majors or not isinstance(target_majors, list) or len(target_majors) == 0:

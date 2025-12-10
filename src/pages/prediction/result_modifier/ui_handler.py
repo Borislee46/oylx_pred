@@ -1,6 +1,5 @@
 import random
 import time
-from typing import List
 
 import streamlit as st
 
@@ -69,7 +68,7 @@ class RankerUIHandler:
         self._last_update_time = 0.0
         self._message_pools = self._build_message_pools()
 
-    def _build_message_pools(self) -> List[List[str]]:
+    def _build_message_pools(self) -> list[list[str]]:
         pools = [self.BASIC_MESSAGES]
         if self.background_major:
             pools.append(self.WITH_BG_MAJOR_MESSAGES)
@@ -107,7 +106,7 @@ class RankerUIHandler:
         if self.is_active and hasattr(self, "_current_message"):
             self._render(self._current_message)
 
-    def _pick_fresh_message(self, pool: List[str], **kwargs) -> str:
+    def _pick_fresh_message(self, pool: list[str], **kwargs) -> str:
         available = [m for m in pool if m not in self._message_history]
         if not available:
             self._message_history.clear()
@@ -116,7 +115,7 @@ class RankerUIHandler:
         self._message_history.add(msg)
         return msg.format(**kwargs) if kwargs else msg
 
-    def show_candidates(self, major_names: List[str]):
+    def show_candidates(self, major_names: list[str]):
         now = time.time()
         if now - self._last_update_time < self.MIN_DISPLAY_INTERVAL:
             return

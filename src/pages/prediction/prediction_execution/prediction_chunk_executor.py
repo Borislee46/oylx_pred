@@ -1,5 +1,3 @@
-from typing import Optional
-
 from src.pages.prediction.prediction_execution.worker_model_manager import (
     get_worker_model,
 )
@@ -10,11 +8,11 @@ prediction_runner_logger = setup_logger("page3", "prediction")
 
 
 def run_prediction_chunk(
-    prediction_model: Optional[PredictionModel],
+    prediction_model: PredictionModel | None,
     model_input_features: dict[str, float | int | str],
     combinations_chunk: list[tuple[str, str]],
     expected_features: list[str],
-) -> Optional[list[dict[str, float | str]]]:
+) -> list[dict[str, float | str]] | None:
     if not combinations_chunk or prediction_model is None:
         return None
 
@@ -31,7 +29,7 @@ def run_prediction_chunk_in_process(
     model_input_features: dict[str, float | int | str],
     combinations_chunk: list[tuple[str, str]],
     expected_features: list[str],
-) -> Optional[list[dict[str, float | str]]]:
+) -> list[dict[str, float | str]] | None:
     model = get_worker_model()
     return run_prediction_chunk(
         model,

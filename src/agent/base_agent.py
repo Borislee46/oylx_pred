@@ -1,7 +1,6 @@
 import hashlib
 import time
-from abc import ABC
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 
@@ -9,15 +8,15 @@ from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 
 
-class BaseAgent(ABC):
-    _memory_cache: Dict[str, Dict[str, Any]] = {}
+class BaseAgent:
+    _memory_cache: dict[str, dict[str, Any]] = {}
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         timeout: int = 10,
         agent_name: str = "Agent",
-        cache_ttl: Optional[int] = 3600,
+        cache_ttl: int | None = 3600,
     ):
         if config is None:
             app_config = load_app_config()
@@ -40,14 +39,14 @@ class BaseAgent(ABC):
             "Authorization": f"Bearer {self.api_key}",
         }
 
-    def _build_request_data(self, prompt: str) -> Dict[str, Any]:
+    def _build_request_data(self, prompt: str) -> dict[str, Any]:
         return {
             "model": self.model,
             "messages": [{"content": [{"text": prompt, "type": "text"}], "role": "user"}],
             "thinking": {"type": "disabled"},
         }
 
-    def _generate_cache_key(self, prompt: str, cache_prefix: Optional[str] = None) -> str:
+    def _generate_cache_key(self, prompt: str, cache_prefix: str | None = None) -> str:
         key_data = {
             "model": self.model,
             "prompt": prompt,
@@ -55,7 +54,7 @@ class BaseAgent(ABC):
         key_str = f"{cache_prefix}:{key_data}" if cache_prefix else str(key_data)
         return hashlib.md5(key_str.encode("utf-8")).hexdigest()
 
-    def _get_from_cache(self, key: str) -> Optional[str]:
+    def _get_from_cache(self, key: str) -> str | None:
         if key not in self._memory_cache:
             return None
 
@@ -114,10 +113,10 @@ class BaseAgent(ABC):
     def _call_api(
         self,
         prompt: str,
-        cache_prefix: Optional[str] = None,
+        cache_prefix: str | None = None,
         use_cache: bool = True,
-        custom_cache_key: Optional[str] = None,
-    ) -> Optional[str]:
+        custom_cache_key: str | None = None,
+    ) -> str | None:
         if not self.api_url or not self.api_key:
             self.logger.warning(f"[{self.agent_name}] API 未配置，无法调用")
             return None

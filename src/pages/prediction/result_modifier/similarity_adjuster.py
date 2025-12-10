@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import streamlit as st
 
@@ -36,7 +36,7 @@ def _get_config_path() -> Path:
 
 
 @st.cache_resource(show_spinner=False, ttl=3600)
-def _load_similarity_rules_cached() -> List[Dict[str, Any]]:
+def _load_similarity_rules_cached() -> list[dict[str, Any]]:
     try:
         config_path = _get_config_path()
         if not config_path.exists():

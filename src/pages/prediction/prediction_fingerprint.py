@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pandas as pd
 
 from src.utils.logger import setup_logger
@@ -20,7 +18,7 @@ def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
         return (len(lst), 0)
 
 
-def compute_df_fingerprint(df: Optional[pd.DataFrame]) -> int:
+def compute_df_fingerprint(df: pd.DataFrame | None) -> int:
     if df is None or df.empty:
         return 0
 

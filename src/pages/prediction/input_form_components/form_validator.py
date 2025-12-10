@@ -1,5 +1,3 @@
-from typing import List
-
 from src.pages.prediction.input_form_components.form_config import GPA_SCALES
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
 from src.pages.prediction.input_form_components.language_score_validator import (
@@ -69,8 +67,8 @@ class FormValidator:
             return None
 
     @staticmethod
-    def validate_form_data(form_data, gpa_converter=None) -> List[ValidationError]:
-        errors: List[ValidationError] = []
+    def validate_form_data(form_data, gpa_converter=None) -> list[ValidationError]:
+        errors: list[ValidationError] = []
 
         if not form_data["background_university"]:
             errors.append(ValidationError("background_university", "请选择背景院校"))

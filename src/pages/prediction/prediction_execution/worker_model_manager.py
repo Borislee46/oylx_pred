@@ -1,5 +1,4 @@
 from threading import local
-from typing import Optional
 
 from src.pages.prediction.prediction_model import PredictionModel
 from src.utils.logger import setup_logger
@@ -9,13 +8,13 @@ prediction_runner_logger = setup_logger("page3", "prediction")
 _thread_local = local()
 
 
-def get_worker_model() -> Optional[PredictionModel]:
+def get_worker_model() -> PredictionModel | None:
     if not hasattr(_thread_local, "model"):
         return None
     return _thread_local.model
 
 
-def set_worker_model(model: Optional[PredictionModel]) -> None:
+def set_worker_model(model: PredictionModel | None) -> None:
     _thread_local.model = model
 
 

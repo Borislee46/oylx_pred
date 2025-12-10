@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 from src.utils.logger import setup_logger
 
@@ -8,7 +8,7 @@ prediction_runner_logger = setup_logger("page3", "prediction")
 def prepare_model_inputs(
     current_input_data: dict[str, Any],
     expected_features: list[str],
-) -> Tuple[dict[str, float | int | str], list[str]]:
+) -> tuple[dict[str, float | int | str], list[str]]:
     base_expected_features = [
         f for f in expected_features if f not in ["target_university", "target_major"]
     ]

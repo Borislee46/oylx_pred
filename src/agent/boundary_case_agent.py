@@ -1,7 +1,7 @@
 import hashlib
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -13,12 +13,12 @@ CACHE_FILE = "boundary_case_decisions.json"
 
 
 class BoundaryCaseAgent(BaseAgent):
-    def __init__(self, cases_df: pd.DataFrame, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, cases_df: pd.DataFrame, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="边界CaseAgent")
         self.cases_df = cases_df
 
     def _get_persistent_cache_key(
-        self, background_major: str, boundary_cases: List[Dict[str, Any]], mode: str
+        self, background_major: str, boundary_cases: list[dict[str, Any]], mode: str
     ) -> str:
         key_data = {
             "background_major": background_major,
@@ -29,7 +29,7 @@ class BoundaryCaseAgent(BaseAgent):
         payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(payload.encode("utf-8")).hexdigest()
 
-    def _load_persistent_cache(self) -> Dict[str, Any]:
+    def _load_persistent_cache(self) -> dict[str, Any]:
         if not os.path.exists(CACHE_DIR):
             return {}
 
@@ -38,7 +38,7 @@ class BoundaryCaseAgent(BaseAgent):
             return {}
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             self.logger.warning(f"[{self.agent_name}] 加载持久化缓存失败: {e}")
@@ -60,8 +60,8 @@ class BoundaryCaseAgent(BaseAgent):
             self.logger.error(f"[{self.agent_name}] 保存持久化缓存失败: {e}")
 
     def evaluate_boundary_cases(
-        self, background_major: str, boundary_cases: List[Dict[str, Any]], mode: str
-    ) -> Dict[str, Any]:
+        self, background_major: str, boundary_cases: list[dict[str, Any]], mode: str
+    ) -> dict[str, Any]:
         fallback_result = {
             "decisions": [False] * len(boundary_cases) if boundary_cases else [],
             "needs_adjustment": False,

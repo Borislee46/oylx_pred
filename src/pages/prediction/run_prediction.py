@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import pandas as pd
 
@@ -20,7 +20,7 @@ prediction_runner_logger = setup_logger("page3", "prediction")
 
 
 def run_single_prediction(
-    current_input_data: Dict[str, Any],
+    current_input_data: dict[str, Any],
     prediction_model: PredictionModel,
     cases_df: pd.DataFrame,
     bg_target_similarity_cache: dict[str, float],
@@ -29,15 +29,15 @@ def run_single_prediction(
     all_majors_target: list[str],
     num_target_universities: int,
     cross_faculty_confirmed: bool = False,
-    probability_adjuster: Optional[Any] = None,
-    gpa: Optional[float] = None,
-    language_score: Optional[float] = None,
-    background_university: Optional[str] = None,
-) -> Tuple[
+    probability_adjuster: Any | None = None,
+    gpa: float | None = None,
+    language_score: float | None = None,
+    background_university: str | None = None,
+) -> tuple[
     list[dict[str, float | str]],
     list[dict[str, float | str]],
-    Optional[list[dict[str, float | str]]],
-    Optional[Dict[str, Any]],
+    list[dict[str, float | str]] | None,
+    dict[str, Any] | None,
 ]:
     prediction_input: PredictionInput = validate_and_clean_input(current_input_data)
 

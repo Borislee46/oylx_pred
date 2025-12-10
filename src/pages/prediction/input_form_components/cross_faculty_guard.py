@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import Set, Tuple
 
 import pandas as pd
 import streamlit as st
@@ -35,7 +34,7 @@ def check_cross_faculty_situation(
     target_majors: list[str],
     target_universities: list[str],
     cases_df: pd.DataFrame,
-) -> Tuple[bool, str | None, Set[str]]:
+) -> tuple[bool, str | None, set[str]]:
     from src.pages.prediction.prediction_utils import get_background_faculty
 
     background_faculty = get_background_faculty(background_major, cases_df)
@@ -43,7 +42,7 @@ def check_cross_faculty_situation(
         return False, None, set()
 
     major_category_cache = _get_major_category_cache()
-    target_faculties: Set[str] = set()
+    target_faculties: set[str] = set()
 
     for major in target_majors:
         if not major:
@@ -61,14 +60,18 @@ def check_cross_faculty_situation(
 
 @st.dialog("提示", width="small")
 def cross_faculty_confirm_dialog(
-    session_manager: SessionManager, background_faculty: str, target_faculties: Set[str]
+    session_manager: SessionManager, background_faculty: str, target_faculties: set[str]
 ) -> None:
-    st.write("您明确选择的目标专业包含跨学院方向，是否继续？")
+    target_str = "、".join(sorted(target_faculties))
+    st.markdown(
+        f"检测到您的背景属于 **{background_faculty}**，而目标专业包含 **{target_str}** 方向。\n\n"
+        "这属于跨大类申请，可能面临不同的评估标准，是否继续？"
+    )
 
     col1, col2 = st.columns(2)
     with col1:
         if st.button(
-            "确定继续预测",
+            "继续",
             type="primary",
             width="stretch",
             key="cross_faculty_confirm_btn",
@@ -104,12 +107,16 @@ def _get_major_to_faculty_map() -> dict[str, str]:
     df = details_df.dropna(subset=["专业大类"])
 
     if "专业英文名称_聚合" in df.columns:
-        for major, faculty in zip(df["专业英文名称_聚合"].astype(str), df["专业大类"].astype(str)):
+        for major, faculty in zip(
+            df["专业英文名称_聚合"].astype(str), df["专业大类"].astype(str), strict=True
+        ):
             if major.strip():
                 result[major.strip()] = faculty.strip()
 
     if "专业英文名称" in df.columns:
-        for major, faculty in zip(df["专业英文名称"].astype(str), df["专业大类"].astype(str)):
+        for major, faculty in zip(
+            df["专业英文名称"].astype(str), df["专业大类"].astype(str), strict=True
+        ):
             major_key = major.strip()
             if major_key and major_key not in result:
                 result[major_key] = faculty.strip()
@@ -141,7 +148,7 @@ def _check_majors_with_agent(
 
         if any(decisions):
             guard_logger.info(
-                f"Agent验证通过跨学院专业: {[m for m, d in zip(majors, decisions) if d]}"
+                f"Agent验证通过跨学院专业: {[m for m, d in zip(majors, decisions, strict=False) if d]}"
             )
             return True
         return False

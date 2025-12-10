@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Set, Tuple
 
 from src.pages.prediction.result_modifier.config import (
     AGENT_BOUNDARY_SIMILARITY_RANGE,
@@ -22,32 +21,32 @@ class RankerStrategy(ABC):
 
     @abstractmethod
     def get_initial_candidates(
-        self, top_similarity_results: List[Dict], results_for_agent: List[Dict], top_set: Set[Tuple]
-    ) -> Tuple[List[Dict], List[Dict]]:
+        self, top_similarity_results: list[dict], results_for_agent: list[dict], top_set: set[tuple]
+    ) -> tuple[list[dict], list[dict]]:
         pass
 
     @abstractmethod
     def update_results(
-        self, adjusted_results: List[Dict], cases_to_evaluate: List[Dict], decisions: List[bool]
-    ) -> Tuple[int, List[Dict]]:
+        self, adjusted_results: list[dict], cases_to_evaluate: list[dict], decisions: list[bool]
+    ) -> tuple[int, list[dict]]:
         pass
 
     @abstractmethod
     def update_boundary_cases(
         self,
-        boundary_candidates: List[Dict],
-        evaluated_cases: Set[Tuple],
-        adjusted_results: List[Dict],
-    ) -> List[Dict]:
+        boundary_candidates: list[dict],
+        evaluated_cases: set[tuple],
+        adjusted_results: list[dict],
+    ) -> list[dict]:
         pass
 
     @abstractmethod
     def get_exploration_candidates(
         self,
-        adjusted_results: List[Dict],
-        pool_for_exploration: List[Dict],
-        evaluated_cases: Set[Tuple],
-    ) -> List[Dict]:
+        adjusted_results: list[dict],
+        pool_for_exploration: list[dict],
+        evaluated_cases: set[tuple],
+    ) -> list[dict]:
         pass
 
 

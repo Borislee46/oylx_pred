@@ -7,16 +7,11 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "B", "I", "C4", "UP"]
 ignore = [
   "E203",
   "E501",
   "E402",
-  "E731",
-  "E741",
-  "F821",
-  "F841",
-  "F601",
 ]
 
 [tool.ruff.format]
@@ -27,17 +22,21 @@ skip-magic-trailing-comma = false
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
-no_implicit_optional = false
+no_implicit_optional = true
 warn_unused_ignores = true
 warn_redundant_casts = true
-check_untyped_defs = false
+check_untyped_defs = true
 follow_imports = "silent"
 exclude = [
-  ".*",
+    ".venv/",
+    ".git/",
+    "__pycache__/",
+    "build/",
+    "dist/",
+    ".mypy_cache/",
 ]
 explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --maxfail=1 --disable-warnings"
-
+addopts = "-v --disable-warnings"

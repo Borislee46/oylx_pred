@@ -29,7 +29,7 @@ class SimilarityComputer:
         texts = [self._text_processor.prep_text(details.get(k, "")) for k in text_keys]
 
         if all(not t for t in texts):
-            return {k: 0.0 for k in text_keys}
+            return dict.fromkeys(text_keys, 0.0)
 
         X = vectorizer.transform(texts)
 

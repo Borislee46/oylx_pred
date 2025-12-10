@@ -1,6 +1,5 @@
 import os
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import List, Optional, Tuple
 
 from src.pages.prediction.prediction_execution.prediction_chunk_executor import (
     run_prediction_chunk,
@@ -20,7 +19,7 @@ class PredictionExecutor:
         self.total_tasks = total_tasks
         self.cpu_count = os.cpu_count() or 2
 
-    def get_execution_strategy(self) -> Tuple[Optional[type], int, int]:
+    def get_execution_strategy(self) -> tuple[type | None, int, int]:
         if self.total_tasks < 128:
             return None, 1, self.total_tasks
 
@@ -50,7 +49,7 @@ class PredictionExecutor:
         combinations: list[tuple[str, str]],
         model_input_features: dict[str, float | int | str],
         expected_features: list[str],
-    ) -> List[dict[str, float | str]]:
+    ) -> list[dict[str, float | str]]:
         executor_class, num_workers, chunk_size = self.get_execution_strategy()
 
         chunks = [combinations[i : i + chunk_size] for i in range(0, len(combinations), chunk_size)]
@@ -79,10 +78,10 @@ class PredictionExecutor:
     def _execute_single_threaded(
         self,
         prediction_model: PredictionModel,
-        chunks: List[list[tuple[str, str]]],
+        chunks: list[list[tuple[str, str]]],
         model_input_features: dict[str, float | int | str],
         expected_features: list[str],
-    ) -> List[dict[str, float | str]]:
+    ) -> list[dict[str, float | str]]:
         results = []
         for chunk in chunks:
             chunk_results = run_prediction_chunk(
@@ -95,10 +94,10 @@ class PredictionExecutor:
     def _execute_with_process_pool(
         self,
         prediction_model: PredictionModel,
-        chunks: List[list[tuple[str, str]]],
+        chunks: list[list[tuple[str, str]]],
         model_input_features: dict[str, float | int | str],
         expected_features: list[str],
-    ) -> Optional[List[dict[str, float | str]]]:
+    ) -> list[dict[str, float | str]] | None:
         try:
             with ProcessPoolExecutor(
                 max_workers=len(chunks),
@@ -115,11 +114,11 @@ class PredictionExecutor:
     def _execute_with_thread_pool(
         self,
         prediction_model: PredictionModel,
-        chunks: List[list[tuple[str, str]]],
+        chunks: list[list[tuple[str, str]]],
         model_input_features: dict[str, float | int | str],
         expected_features: list[str],
         num_workers: int,
-    ) -> List[dict[str, float | str]]:
+    ) -> list[dict[str, float | str]]:
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             return self._collect_results(
                 executor,
@@ -132,11 +131,11 @@ class PredictionExecutor:
     def _collect_results(
         self,
         executor: ProcessPoolExecutor | ThreadPoolExecutor,
-        chunks: List[list[tuple[str, str]]],
+        chunks: list[list[tuple[str, str]]],
         model_input_features: dict[str, float | int | str],
         expected_features: list[str],
-        prediction_model: Optional[PredictionModel] = None,
-    ) -> List[dict[str, float | str]]:
+        prediction_model: PredictionModel | None = None,
+    ) -> list[dict[str, float | str]]:
         results = []
 
         if prediction_model:

@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ logger = setup_logger("page3", "prediction")
 
 
 @st.cache_data(show_spinner=False)
-def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> Dict[str, float]:
+def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[str, float]:
     stats = {
         "gpa_mean": 0.0,
         "gpa_std": 1e-6,

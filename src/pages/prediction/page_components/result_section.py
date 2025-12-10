@@ -1,6 +1,6 @@
 import hashlib
 import json
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -10,7 +10,7 @@ from src.utils.session_manager import SessionManager
 PROBABILITY_PRECISION = 6
 
 
-def _extract_key_fields(results: Optional[list[dict[str, Any]]]) -> list[tuple[str, str, float]]:
+def _extract_key_fields(results: list[dict[str, Any]] | None) -> list[tuple[str, str, float]]:
     if not results:
         return []
     return [
@@ -25,9 +25,9 @@ def _extract_key_fields(results: Optional[list[dict[str, Any]]]) -> list[tuple[s
 
 
 def _compute_results_hash(
-    sim_results: Optional[list[dict[str, Any]]],
-    cross_results: Optional[list[dict[str, Any]]],
-    user_specified_results: Optional[list[dict[str, Any]]],
+    sim_results: list[dict[str, Any]] | None,
+    cross_results: list[dict[str, Any]] | None,
+    user_specified_results: list[dict[str, Any]] | None,
 ) -> str:
     combined = {
         "sim": _extract_key_fields(sim_results),
@@ -40,9 +40,9 @@ def _compute_results_hash(
 
 def display_results_section(
     input_data: dict[str, Any],
-    sim_results: Optional[list[dict[str, Any]]],
-    cross_results: Optional[list[dict[str, Any]]],
-    user_specified_results: Optional[list[dict[str, Any]]],
+    sim_results: list[dict[str, Any]] | None,
+    cross_results: list[dict[str, Any]] | None,
+    user_specified_results: list[dict[str, Any]] | None,
     cases_df: pd.DataFrame,
     submitted: bool = True,
 ) -> None:
@@ -50,8 +50,6 @@ def display_results_section(
         return
 
     session_manager = SessionManager()
-    background_university = input_data.get("background_university")
-    background_major = input_data.get("background_major")
 
     results_display = ResultsDisplay(
         top_similarity_results=sim_results,

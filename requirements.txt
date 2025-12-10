@@ -22,3 +22,6 @@ streamlit-searchbox # for search box 暂时先不用
 
 # Excel processing
 openpyxl==3.1.5
+
+# Testing
+# pytest

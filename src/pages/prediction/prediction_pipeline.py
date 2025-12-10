@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -29,7 +29,7 @@ prediction_handler_logger = setup_logger("page3", "prediction")
 
 @st.cache_data(ttl=600, show_spinner=False)
 def run_prediction_pipeline(
-    input_data: Dict[str, Any],
+    input_data: dict[str, Any],
     model_name: str,
     cases_df_fingerprint: int,
     loaded_feature_names: list[str],

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -7,7 +7,7 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-def format_user_profile(profile: Dict[str, Any]) -> str:
+def format_user_profile(profile: dict[str, Any]) -> str:
     if not profile:
         return "用户尚未填写背景信息。"
 
@@ -49,7 +49,7 @@ def format_prediction_results(prediction_results: Any) -> str:
 
 def build_consultation_prompt(
     user_query: str,
-    user_profile: Dict[str, Any],
+    user_profile: dict[str, Any],
     prediction_results: Any,
     system_prompt: str = DEFAULT_SYSTEM_PROMPT,
 ) -> str:

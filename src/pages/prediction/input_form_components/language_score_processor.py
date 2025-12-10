@@ -1,4 +1,4 @@
-from typing import Union, cast
+from typing import cast
 
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_LANGUAGE_SCORES,
@@ -20,6 +20,6 @@ def apply_overseas_language_boost(school_name: str, language_type: str) -> float
     multiplier = school_service.get_language_boost_multiplier(school_name)
     boosted_score = base_score * multiplier
 
-    max_value = cast(Union[int, float], LANGUAGE_SCORE_RANGES[language_type]["max"])
+    max_value = cast(int | float, LANGUAGE_SCORE_RANGES[language_type]["max"])
     max_score = float(max_value)
     return min(boosted_score, max_score)

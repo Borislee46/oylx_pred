@@ -65,7 +65,7 @@ class ModelLoader:
                     logger.debug(f"加载质心: {self._centroids_path}")
 
                 if self._weights_array is None:
-                    with open(self._weights_path, "r", encoding="utf-8") as f:
+                    with open(self._weights_path, encoding="utf-8") as f:
                         self._weights = json.load(f) or {}
                     self._weights_array = np.array(
                         [

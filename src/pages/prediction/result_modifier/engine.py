@@ -1,6 +1,6 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 from src.pages.prediction.result_modifier.config import (
     AGENT_EARLY_STOP_THRESHOLD,
@@ -27,10 +27,10 @@ class AgentAdjustmentSession:
         self.in_exploration_mode = False
         self.exploration_no_change_count = 0
 
-        self.evaluated_cases: Set[Tuple[str, str]] = set()
+        self.evaluated_cases: set[tuple[str, str]] = set()
         self.stop_requested = False
 
-    def record_evaluation(self, cases: List[Dict]):
+    def record_evaluation(self, cases: list[dict]):
         for case in cases:
             university = case.get("university")
             major = case.get("major")
@@ -48,7 +48,7 @@ class AgentAdjustmentSession:
             return True
         return False
 
-    def handle_no_adjustment(self) -> Tuple[bool, bool]:
+    def handle_no_adjustment(self) -> tuple[bool, bool]:
         should_stop = False
         should_explore = False
 
@@ -96,10 +96,10 @@ class AgentAdjustmentEngine:
 
     def run(
         self,
-        initial_boundary_cases: List[Dict],
-        initial_pool: List[Dict],
-        initial_results: List[Dict],
-    ) -> List[Dict]:
+        initial_boundary_cases: list[dict],
+        initial_pool: list[dict],
+        initial_results: list[dict],
+    ) -> list[dict]:
         boundary_cases = initial_boundary_cases[
             : min(self.session.target_diff, len(initial_boundary_cases), AGENT_MAX_BOUNDARY_CASES)
         ]

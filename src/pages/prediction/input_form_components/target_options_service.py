@@ -1,5 +1,4 @@
 import hashlib
-from typing import Dict, List, Set
 
 import pandas as pd
 import streamlit as st
@@ -13,13 +12,13 @@ from src.pages.prediction.input_form_components.form_config import (
 @st.cache_data
 def build_target_base_df_cached(
     unique_targets_df: pd.DataFrame | None, details_df: pd.DataFrame | None
-) -> tuple[pd.DataFrame, Dict[str, str]]:
+) -> tuple[pd.DataFrame, dict[str, str]]:
     return build_target_base_df(unique_targets_df, details_df)
 
 
 def build_target_base_df(
     cases_df: pd.DataFrame | None, details_df: pd.DataFrame | None
-) -> tuple[pd.DataFrame, Dict[str, str]]:
+) -> tuple[pd.DataFrame, dict[str, str]]:
     base_df = pd.DataFrame(columns=["target_university", "target_major"])
     if cases_df is not None and all(
         col in cases_df.columns for col in ["target_university", "target_major"]
@@ -59,10 +58,10 @@ def build_target_base_df(
 
 
 def compute_selection_cache_key(
-    selected_countries: Set[str],
-    selected_universities: Set[str],
-    selected_categories: Set[str],
-    selected_majors: Set[str],
+    selected_countries: set[str],
+    selected_universities: set[str],
+    selected_categories: set[str],
+    selected_majors: set[str],
 ) -> str:
     key_parts = (
         tuple(sorted(selected_countries)),
@@ -74,16 +73,16 @@ def compute_selection_cache_key(
     return hashlib.sha256(key_string).hexdigest()
 
 
-def _get_options(df: pd.DataFrame, column: str, selections: Set[str]) -> Set[str]:
+def _get_options(df: pd.DataFrame, column: str, selections: set[str]) -> set[str]:
     return set(df[column].dropna().unique()).union(selections)
 
 
 def _filter_df_for_options(
     base_df: pd.DataFrame,
-    countries: Set[str] | None = None,
-    universities: Set[str] | None = None,
-    categories: Set[str] | None = None,
-    majors: Set[str] | None = None,
+    countries: set[str] | None = None,
+    universities: set[str] | None = None,
+    categories: set[str] | None = None,
+    majors: set[str] | None = None,
 ) -> pd.DataFrame:
     df = base_df
     if countries and "country" in df.columns:
@@ -99,20 +98,18 @@ def _filter_df_for_options(
 
 def compute_options(
     base_df: pd.DataFrame,
-    selected_countries: Set[str],
-    selected_universities: Set[str],
-    selected_categories: Set[str],
-    selected_majors: Set[str],
-) -> tuple[List[str], List[str], List[str], List[str]]:
+    selected_countries: set[str],
+    selected_universities: set[str],
+    selected_categories: set[str],
+    selected_majors: set[str],
+) -> tuple[list[str], list[str], list[str], list[str]]:
     df_for_country = _filter_df_for_options(
         base_df,
         universities=selected_universities,
         categories=selected_categories,
         majors=selected_majors,
     )
-    options_for_country_select = sorted(
-        list(_get_options(df_for_country, "country", selected_countries))
-    )
+    options_for_country_select = sorted(_get_options(df_for_country, "country", selected_countries))
 
     df_for_uni = _filter_df_for_options(
         base_df,
@@ -121,9 +118,12 @@ def compute_options(
         majors=selected_majors,
     )
     sort_order_map = {uni: i for i, uni in enumerate(UNIVERSITY_SORT_ORDER)}
-    sort_key = lambda uni: (sort_order_map.get(uni, len(UNIVERSITY_SORT_ORDER)), uni)
+
+    def sort_key(uni: str) -> tuple[int, str]:
+        return (sort_order_map.get(uni, len(UNIVERSITY_SORT_ORDER)), uni)
+
     options_for_uni_select = sorted(
-        list(_get_options(df_for_uni, "target_university", selected_universities)),
+        _get_options(df_for_uni, "target_university", selected_universities),
         key=sort_key,
     )
 
@@ -134,7 +134,7 @@ def compute_options(
         majors=selected_majors,
     )
     options_for_category_select = sorted(
-        list(_get_options(df_for_cat, "major_category", selected_categories))
+        _get_options(df_for_cat, "major_category", selected_categories)
     )
 
     df_for_major = _filter_df_for_options(
@@ -144,7 +144,7 @@ def compute_options(
         categories=selected_categories,
     )
     options_for_major_select = sorted(
-        list(_get_options(df_for_major, "target_major_agg", selected_majors))
+        _get_options(df_for_major, "target_major_agg", selected_majors)
     )
 
     return (
@@ -157,11 +157,11 @@ def compute_options(
 
 def expand_aggregated_majors_for_prediction(
     base_df: pd.DataFrame,
-    selected_countries: Set[str],
-    selected_universities: Set[str],
-    selected_categories: Set[str],
-    aggregated_to_use: List[str],
-) -> List[str]:
+    selected_countries: set[str],
+    selected_universities: set[str],
+    selected_categories: set[str],
+    aggregated_to_use: list[str],
+) -> list[str]:
     if not aggregated_to_use:
         return []
 

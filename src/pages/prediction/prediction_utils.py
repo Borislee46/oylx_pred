@@ -1,5 +1,4 @@
 from functools import lru_cache
-from typing import List, Set, Tuple, Union
 
 import pandas as pd
 
@@ -44,12 +43,12 @@ class SchoolMajorDataManager:
             return len(df)
 
     @property
-    def valid_combinations(self) -> Set[str]:
+    def valid_combinations(self) -> set[str]:
         if self._valid_combinations is None:
             self._valid_combinations = self._load_valid_combinations()
         return self._valid_combinations
 
-    def _load_valid_combinations(self) -> Set[str]:
+    def _load_valid_combinations(self) -> set[str]:
         df = self.details_df
         if df is None:
             return set()
@@ -130,8 +129,8 @@ def get_cached_major_similarity(
 
 
 def get_cached_major_similarities_batch(
-    pairs: List[Tuple[str, str]], cache: dict = None
-) -> List[float]:
+    pairs: list[tuple[str, str]], cache: dict = None
+) -> list[float]:
     if not pairs or cache is None:
         return [0.0] * len(pairs)
 
@@ -165,7 +164,7 @@ def format_school_major_details_from_row(row: pd.Series) -> str:
 
 def get_school_major_details(
     university: str | None, major: str | None, return_df: bool = False
-) -> Union[str, pd.DataFrame, None]:
+) -> str | pd.DataFrame | None:
     if return_df:
         return _data_manager.details_df
 
@@ -181,7 +180,7 @@ def _get_school_major_details_cached(university: str, major: str, version: int) 
     return "无详细信息"
 
 
-def get_valid_school_major_set() -> Set[str]:
+def get_valid_school_major_set() -> set[str]:
     return _data_manager.valid_combinations
 
 

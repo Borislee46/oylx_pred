@@ -3,11 +3,11 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src.pages.prediction.input_form_components.form_config import (
+from src.utils.app_data_loader import load_school_base_data
+from src.utils.school_constants import (
     LANGUAGE_BOOST_MULTIPLIERS,
     OVERSEAS_SCHOOL_LEVELS,
 )
-from src.utils.app_data_loader import load_school_base_data
 
 SCHOOL_LEVEL_PRIORITY = {
     "985": 1,
@@ -46,7 +46,7 @@ def _get_school_level_mapping() -> dict[str, dict[str, Any]]:
 
         names = df_local["学校名称"].tolist()
         levels = df_local["school_level"].tolist()
-        for school_name, level in zip(names, levels):
+        for school_name, level in zip(names, levels, strict=True):
             info = {
                 "school_level": level,
                 "priority": SCHOOL_LEVEL_PRIORITY.get(level, SCHOOL_LEVEL_PRIORITY["未知"]),

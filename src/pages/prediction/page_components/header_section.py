@@ -15,7 +15,7 @@ def get_product_logo_image_as_base64(path: str) -> str:
         with open(full_path, "rb") as f:
             data = f.read()
         return base64.b64encode(data).decode()
-    except (FileNotFoundError, IOError) as e:
+    except (OSError, FileNotFoundError) as e:
         header_logger.error(f"无法读取logo文件 {full_path}: {e}")
         raise
 

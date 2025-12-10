@@ -1,5 +1,4 @@
 from functools import partial
-from typing import List, Set, Tuple
 
 import pandas as pd
 import streamlit as st
@@ -40,11 +39,11 @@ def _build_target_cache(session_manager, cases_df) -> pd.DataFrame:
 def _get_target_options(
     session_manager,
     base_df: pd.DataFrame,
-    selected_countries: Set[str],
-    selected_universities: Set[str],
-    selected_categories: Set[str],
-    selected_majors: Set[str],
-) -> Tuple[List[str], List[str], List[str], List[str]]:
+    selected_countries: set[str],
+    selected_universities: set[str],
+    selected_categories: set[str],
+    selected_majors: set[str],
+) -> tuple[list[str], list[str], list[str], list[str]]:
     selection_cache_key = compute_selection_cache_key(
         selected_countries, selected_universities, selected_categories, selected_majors
     )
@@ -82,14 +81,14 @@ def _get_target_options(
 def _render_target_multiselects(
     helper: SelectBoxHelper,
     form_state_manager,
-    selected_countries: Set[str],
-    selected_universities: Set[str],
-    selected_categories: Set[str],
-    selected_majors: Set[str],
-    options_for_country_select: List[str],
-    options_for_uni_select: List[str],
-    options_for_category_select: List[str],
-    options_for_major_select: List[str],
+    selected_countries: set[str],
+    selected_universities: set[str],
+    selected_categories: set[str],
+    selected_majors: set[str],
+    options_for_country_select: list[str],
+    options_for_uni_select: list[str],
+    options_for_category_select: list[str],
+    options_for_major_select: list[str],
 ) -> None:
     row1_col1, row1_col2 = st.columns(2)
     with row1_col1:
@@ -140,13 +139,13 @@ def _render_target_multiselects(
 
 def _calculate_prediction_scope(
     base_df: pd.DataFrame,
-    selected_countries: Set[str],
-    selected_universities: Set[str],
-    selected_categories: Set[str],
-    selected_majors: Set[str],
-    options_for_uni_select: List[str],
-    options_for_major_select: List[str],
-) -> Tuple[List[str], List[str]]:
+    selected_countries: set[str],
+    selected_universities: set[str],
+    selected_categories: set[str],
+    selected_majors: set[str],
+    options_for_uni_select: list[str],
+    options_for_major_select: list[str],
+) -> tuple[list[str], list[str]]:
     expand_universities = not selected_universities and (
         selected_countries or selected_categories or selected_majors
     )
@@ -170,7 +169,7 @@ def _calculate_prediction_scope(
     return prediction_universities, prediction_majors
 
 
-def _get_all_targets(base_df: pd.DataFrame, cases_df: pd.DataFrame) -> Tuple[List[str], List[str]]:
+def _get_all_targets(base_df: pd.DataFrame, cases_df: pd.DataFrame) -> tuple[list[str], list[str]]:
     all_unis = []
     all_majors = []
 

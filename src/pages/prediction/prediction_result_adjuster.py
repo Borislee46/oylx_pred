@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import streamlit as st
 
@@ -24,15 +24,15 @@ def _validate_probability(prob: Any) -> float:
 
 
 def pipeline_adjust_results(
-    results: List[Dict[str, Union[float, str]]],
-    probability_adjuster: Optional[ProbabilityAdjuster],
-    text_boost_provider: Optional[TextBoostProvider],
-    experience_details: Dict[str, str],
-    gpa: Optional[float],
-    language_score: Optional[float],
-    background_university: Optional[str],
-    is_new_major_cache: Optional[Dict[Tuple[str, str], bool]] = None,
-) -> List[Dict[str, Union[float, str]]]:
+    results: list[dict[str, float | str]],
+    probability_adjuster: ProbabilityAdjuster | None,
+    text_boost_provider: TextBoostProvider | None,
+    experience_details: dict[str, str],
+    gpa: float | None,
+    language_score: float | None,
+    background_university: str | None,
+    is_new_major_cache: dict[tuple[str, str], bool] | None = None,
+) -> list[dict[str, float | str]]:
     if not results or not isinstance(results, list):
         return results
 
@@ -40,12 +40,12 @@ def pipeline_adjust_results(
     if not dict_indices:
         return results
 
-    base_probs: List[float] = []
+    base_probs: list[float] = []
     for i in dict_indices:
         prob_value = results[i].get("probability", 0.0)
         base_probs.append(_validate_probability(prob_value))
 
-    adjusted_probs: List[float] = []
+    adjusted_probs: list[float] = []
     if probability_adjuster and gpa is not None and language_score is not None:
         for idx, p in enumerate(base_probs):
             try:
@@ -95,7 +95,7 @@ def pipeline_adjust_results(
     return results
 
 
-def _get_text_boost_message(experience_details: Dict[str, str]) -> str:
+def _get_text_boost_message(experience_details: dict[str, str]) -> str:
     items = []
     if experience_details.get("research_details"):
         items.append("科研经历")
@@ -135,18 +135,18 @@ def _render_animated_message(placeholder, message: str):
 
 
 def batch_adjust_results(
-    results_list: List[List[Dict[str, Union[float, str]]]],
-    probability_adjuster: Optional[ProbabilityAdjuster],
-    text_boost_provider: Optional[TextBoostProvider],
-    experience_details: Dict[str, str],
-    gpa: Optional[float],
-    language_score: Optional[float],
-    background_university: Optional[str],
-) -> List[List[Dict[str, Union[float, str]]]]:
+    results_list: list[list[dict[str, float | str]]],
+    probability_adjuster: ProbabilityAdjuster | None,
+    text_boost_provider: TextBoostProvider | None,
+    experience_details: dict[str, str],
+    gpa: float | None,
+    language_score: float | None,
+    background_university: str | None,
+) -> list[list[dict[str, float | str]]]:
     if not results_list:
         return results_list
 
-    all_combinations: set[Tuple[str, str]] = set()
+    all_combinations: set[tuple[str, str]] = set()
     for results in results_list:
         if results and isinstance(results, list):
             for r in results:
@@ -156,7 +156,7 @@ def batch_adjust_results(
                     if isinstance(uni_value, str) and isinstance(major_value, str):
                         all_combinations.add((uni_value, major_value))
 
-    is_new_major_cache: Dict[Tuple[str, str], bool] = {}
+    is_new_major_cache: dict[tuple[str, str], bool] = {}
     if all_combinations:
         try:
             for uni, major in all_combinations:

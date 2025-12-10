@@ -1,9 +1,9 @@
-from typing import Any, Dict, List
+from typing import Any
 
 
 def build_boundary_evaluation_prompt(
     background_major: str,
-    boundary_cases: List[Dict[str, Any]],
+    boundary_cases: list[dict[str, Any]],
     mode: str,
 ) -> str:
     mode_desc = "放宽" if mode == "relax" else "收紧"

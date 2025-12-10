@@ -1,7 +1,7 @@
 import hashlib
 import json
 import time
-from typing import Any, Dict
+from typing import Any
 
 import streamlit as st
 
@@ -34,7 +34,7 @@ class FormStateManager:
         current_user = session_manager.get_current_user_info()
         user_id = current_user.get("username") if current_user else None
 
-        default_states: Dict[str, Any] = {
+        default_states: dict[str, Any] = {
             "selected_target_universities": [],
             "selected_target_majors": [],
             "selected_target_countries": [],
