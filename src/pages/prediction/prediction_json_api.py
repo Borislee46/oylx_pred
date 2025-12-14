@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from typing import Any
 
 import pandas as pd
 
 from src.pages.prediction.input_form_components import FormValidator, GPAConverter
+from src.pages.prediction.input_form_components.cross_faculty_guard import (
+    quick_cross_faculty_check,
+)
 from src.pages.prediction.input_form_components.form_config import DEFAULT_GPA_SCALE, LANGUAGE_TYPES
 from src.pages.prediction.input_form_components.validation_errors import ValidationError
 from src.pages.prediction.input_normalizer import normalize_form_data_for_prediction
@@ -13,6 +17,7 @@ from src.pages.prediction.page_data_loader import cached_get_prediction_model
 from src.pages.prediction.prediction_data_preparer import prepare_input_data
 from src.pages.prediction.prediction_input_validator import validate_and_clean_input
 from src.pages.prediction.prediction_pipeline import DEFAULT_TEXT_BOOST_CONFIG
+from src.pages.prediction.prediction_utils import get_valid_school_major_set
 from src.pages.prediction.result_modifier import AdjustmentContext, ProbabilityAdjustmentPipeline
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
@@ -25,7 +30,13 @@ from src.pages.prediction.result_modifier.text_boost_provider import get_text_bo
 from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
 from src.pages.prediction.results_handler import combine_and_deduplicate_results
 from src.pages.prediction.run_prediction import run_single_prediction
-from src.utils.app_data_loader import load_raw_cases_data, load_school_base_data
+from src.utils.app_data_loader import (
+    load_bg_target_similarity_cache,
+    load_raw_cases_data,
+    load_school_base_data,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def _list_str(value: Any) -> list[str]:
@@ -135,155 +146,177 @@ def _load_model_and_features():
 
 
 def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dict[str, Any]:
-    cases_df = load_raw_cases_data()
-    v = validate_and_normalize(payload, cases_df=cases_df)
-    if not v.get("ok"):
-        v["needs_confirmation"] = False
-        return v
+    try:
+        cases_df = load_raw_cases_data()
+        school_base_df = load_school_base_data()
+        
+        v = validate_and_normalize(payload, cases_df=cases_df, school_base_df=school_base_df)
+        if not v.get("ok"):
+            v["needs_confirmation"] = False
+            return v
 
-    normalized_input = v["normalized_input"]
+        normalized_input = v["normalized_input"]
 
-    selected_categories = _list_str(payload.get("selected_major_categories"))
-    selected_majors = _list_str(payload.get("selected_target_majors")) or _list_str(
-        normalized_input.get("target_majors")
-    )
-
-    is_cross_faculty = False
-    background_faculty = None
-    target_faculties: set[str] = set()
-    agent_approved = False
-
-    if normalized_input.get("background_major") and (selected_categories or selected_majors):
-        from src.pages.prediction.input_form_components.cross_faculty_guard import (
-            quick_cross_faculty_check,
+        selected_categories = _list_str(payload.get("selected_major_categories"))
+        selected_majors = _list_str(payload.get("selected_target_majors")) or _list_str(
+            normalized_input.get("target_majors")
         )
 
-        is_cross_faculty, background_faculty, target_faculties, agent_approved = (
-            quick_cross_faculty_check(
-                normalized_input.get("background_major"),
-                selected_categories,
-                selected_majors,
-                cases_df,
+        is_cross_faculty = False
+        background_faculty = None
+        target_faculties: set[str] = set()
+        agent_approved = False
+
+        if normalized_input.get("background_major") and (selected_categories or selected_majors):
+            is_cross_faculty, background_faculty, target_faculties, agent_approved = (
+                quick_cross_faculty_check(
+                    normalized_input.get("background_major"),
+                    selected_categories,
+                    selected_majors,
+                    cases_df,
+                )
             )
+
+        if is_cross_faculty and not agent_approved and not confirm_cross_faculty:
+            return {
+                "ok": True,
+                "errors": [],
+                "warnings": v.get("warnings", []),
+                "needs_confirmation": True,
+                "confirmation": {
+                    "background_faculty": background_faculty,
+                    "target_faculties": sorted(target_faculties),
+                    "agent_approved": agent_approved,
+                },
+                "normalized_input": normalized_input,
+                "result": None,
+            }
+
+        all_unis = _list_str(payload.get("all_universities_target"))
+        all_majors = _list_str(payload.get("all_majors_target"))
+
+        if not all_unis or not all_majors:
+            valid_set = get_valid_school_major_set()
+            uni_set = set()
+            major_set = set()
+            for item in valid_set:
+                parts = item.split("|")
+                if len(parts) == 2:
+                    uni_set.add(parts[0])
+                    major_set.add(parts[1])
+
+            if not all_unis:
+                all_unis = sorted(list(uni_set))
+            if not all_majors:
+                all_majors = sorted(list(major_set))
+
+        input_data = prepare_input_data(normalized_input)
+        cleaned_input = validate_and_clean_input(input_data)
+        current_input_data = input_data.copy()
+        current_input_data.update(cleaned_input)
+
+        num_target_universities = len(cleaned_input.get("target_universities", []))
+        cross_faculty_confirmed = bool(confirm_cross_faculty or agent_approved)
+
+        gpa = cleaned_input.get("gpa")
+        language_score = cleaned_input.get("language_score")
+        background_university = cleaned_input.get("background_university")
+
+        probability_adjuster = None
+        if gpa is not None and language_score is not None:
+            probability_adjuster = ProbabilityAdjuster(cases_df)
+
+        model, expected_features = _load_model_and_features()
+        bg_target_similarity_cache = load_bg_target_similarity_cache()
+
+        sim_results, cross_results, user_specified_results, meta = run_single_prediction(
+            current_input_data=current_input_data,
+            prediction_model=model,
+            cases_df=cases_df,
+            bg_target_similarity_cache=bg_target_similarity_cache,
+            expected_features=expected_features,
+            all_universities_target=all_unis,
+            all_majors_target=all_majors,
+            num_target_universities=num_target_universities,
+            cross_faculty_confirmed=cross_faculty_confirmed,
+            probability_adjuster=probability_adjuster,
+            gpa=gpa,
+            language_score=language_score,
+            background_university=background_university,
         )
 
-    if is_cross_faculty and not agent_approved and not confirm_cross_faculty:
+        internship_count = cleaned_input.get("internship_count", 0)
+        user_specified_majors = cleaned_input.get("target_majors", [])
+
+        sim_results = adjust_for_professional_majors(
+            sim_results, internship_count, user_specified_majors
+        )
+        cross_results = adjust_for_professional_majors(
+            cross_results, internship_count, user_specified_majors
+        )
+        user_specified_results = adjust_for_professional_majors(
+            user_specified_results if isinstance(user_specified_results, list) else [],
+            internship_count,
+            user_specified_majors,
+        )
+
+        admitted_combinations = get_admitted_combinations_from_dataframe(
+            cases_df, cleaned_input.get("background_major", "")
+        )
+        adj_ctx = AdjustmentContext(
+            gpa=gpa,
+            language_score=language_score,
+            background_university=background_university,
+            background_major=cleaned_input.get("background_major"),
+            internship_count=internship_count,
+            user_specified_majors=user_specified_majors,
+            experience_details=cleaned_input.get("experience_details", {}),
+            cases_df=cases_df,
+            admitted_combinations=admitted_combinations,
+        )
+
+        has_valid_experience = has_meaningful_experience_text(adj_ctx.experience_details)
+        text_provider = (
+            get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_experience else None
+        )
+
+        adjuster_pipeline = ProbabilityAdjustmentPipeline(
+            probability_adjuster=probability_adjuster,
+            text_boost_provider=text_provider,
+            enable_professional_adjustment=False,
+            enable_cross_major_penalty=True,
+        )
+
+        sim_results = adjuster_pipeline.adjust_batch(sim_results, adj_ctx)
+        cross_results = adjuster_pipeline.adjust_batch(cross_results, adj_ctx)
+        user_specified_results = adjuster_pipeline.adjust_batch(user_specified_results, adj_ctx)
+
+        unified_results = combine_and_deduplicate_results(
+            sim_results, cross_results, user_specified_results
+        )
+        result = {
+            "similarity_results": sim_results,
+            "cross_major_results": cross_results,
+            "user_specified_results": user_specified_results,
+            "unified_results": unified_results,
+            "meta": meta,
+        }
+
         return {
             "ok": True,
             "errors": [],
             "warnings": v.get("warnings", []),
-            "needs_confirmation": True,
-            "confirmation": {
-                "background_faculty": background_faculty,
-                "target_faculties": sorted(target_faculties),
-                "agent_approved": agent_approved,
-            },
+            "needs_confirmation": False,
             "normalized_input": normalized_input,
-            "result": None,
+            "result": result,
         }
 
-    all_unis = _list_str(payload.get("all_universities_target"))
-    all_majors = _list_str(payload.get("all_majors_target"))
-
-    input_data = prepare_input_data(normalized_input)
-    cleaned_input = validate_and_clean_input(input_data)
-    current_input_data = input_data.copy()
-    current_input_data.update(cleaned_input)
-
-    num_target_universities = len(cleaned_input.get("target_universities", []))
-    cross_faculty_confirmed = bool(confirm_cross_faculty or agent_approved)
-
-    gpa = cleaned_input.get("gpa")
-    language_score = cleaned_input.get("language_score")
-    background_university = cleaned_input.get("background_university")
-
-    probability_adjuster = None
-    if gpa is not None and language_score is not None:
-        probability_adjuster = ProbabilityAdjuster(cases_df)
-
-    model, expected_features = _load_model_and_features()
-    from src.utils.app_data_loader import load_bg_target_similarity_cache
-
-    bg_target_similarity_cache = load_bg_target_similarity_cache()
-
-    sim_results, cross_results, user_specified_results, meta = run_single_prediction(
-        current_input_data=current_input_data,
-        prediction_model=model,
-        cases_df=cases_df,
-        bg_target_similarity_cache=bg_target_similarity_cache,
-        expected_features=expected_features,
-        all_universities_target=all_unis,
-        all_majors_target=all_majors,
-        num_target_universities=num_target_universities,
-        cross_faculty_confirmed=cross_faculty_confirmed,
-        probability_adjuster=probability_adjuster,
-        gpa=gpa,
-        language_score=language_score,
-        background_university=background_university,
-    )
-
-    internship_count = cleaned_input.get("internship_count", 0)
-    user_specified_majors = cleaned_input.get("target_majors", [])
-
-    sim_results = adjust_for_professional_majors(
-        sim_results, internship_count, user_specified_majors
-    )
-    cross_results = adjust_for_professional_majors(
-        cross_results, internship_count, user_specified_majors
-    )
-    user_specified_results = adjust_for_professional_majors(
-        user_specified_results if isinstance(user_specified_results, list) else [],
-        internship_count,
-        user_specified_majors,
-    )
-
-    admitted_combinations = get_admitted_combinations_from_dataframe(
-        cases_df, cleaned_input.get("background_major", "")
-    )
-    adj_ctx = AdjustmentContext(
-        gpa=gpa,
-        language_score=language_score,
-        background_university=background_university,
-        background_major=cleaned_input.get("background_major"),
-        internship_count=internship_count,
-        user_specified_majors=user_specified_majors,
-        experience_details=cleaned_input.get("experience_details", {}),
-        cases_df=cases_df,
-        admitted_combinations=admitted_combinations,
-    )
-
-    has_valid_experience = has_meaningful_experience_text(adj_ctx.experience_details)
-    text_provider = (
-        get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_experience else None
-    )
-
-    adjuster_pipeline = ProbabilityAdjustmentPipeline(
-        probability_adjuster=probability_adjuster,
-        text_boost_provider=text_provider,
-        enable_professional_adjustment=False,
-        enable_cross_major_penalty=True,
-    )
-
-    sim_results = adjuster_pipeline.adjust_batch(sim_results, adj_ctx)
-    cross_results = adjuster_pipeline.adjust_batch(cross_results, adj_ctx)
-    user_specified_results = adjuster_pipeline.adjust_batch(user_specified_results, adj_ctx)
-
-    unified_results = combine_and_deduplicate_results(
-        sim_results, cross_results, user_specified_results
-    )
-    result = {
-        "similarity_results": sim_results,
-        "cross_major_results": cross_results,
-        "user_specified_results": user_specified_results,
-        "unified_results": unified_results,
-        "meta": meta,
-    }
-
-    return {
-        "ok": True,
-        "errors": [],
-        "warnings": v.get("warnings", []),
-        "needs_confirmation": False,
-        "normalized_input": normalized_input,
-        "result": result,
-    }
+    except Exception as e:
+        logger.error(f"Prediction failed: {e}", exc_info=True)
+        return {
+            "ok": False,
+            "errors": [
+                {"field": "_", "message": f"Server Error: {str(e)}", "severity": "error"}
+            ],
+            "warnings": [],
+        }

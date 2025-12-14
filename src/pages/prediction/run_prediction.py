@@ -14,6 +14,7 @@ from src.pages.prediction.prediction_processor import (
     process_prediction_results,
 )
 from src.pages.prediction.prediction_types import PredictionInput
+from src.pages.prediction.prediction_utils import get_valid_school_major_set
 from src.utils.logger import setup_logger
 
 prediction_runner_logger = setup_logger("page3", "prediction")

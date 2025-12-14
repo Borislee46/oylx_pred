@@ -220,6 +220,7 @@ class ProbabilityAdjuster:
         probability: float,
         gpa: float | None,
         language_score: float | None,
+        background_university_name: str | None = None,
     ) -> float:
         if gpa is None or language_score is None:
             return probability
