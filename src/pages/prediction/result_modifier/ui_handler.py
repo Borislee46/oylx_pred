@@ -12,7 +12,11 @@ def _has_streamlit_runtime() -> bool:
 
 class LoadingMessageAnimator:
     def __init__(self, placeholder=None, min_interval: float = 1.2):
-        self.placeholder = placeholder if placeholder is not None else (st.empty() if _has_streamlit_runtime() else None)
+        self.placeholder = (
+            placeholder
+            if placeholder is not None
+            else (st.empty() if _has_streamlit_runtime() else None)
+        )
         self.min_interval = min_interval
         self._cycle_count = 0
         self._current_message = ""

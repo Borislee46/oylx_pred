@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 
 import numpy as np
 
@@ -31,6 +30,10 @@ class DeltaCalculator:
         self._text_processor = text_processor
         self._sim_gate_sum_min = sim_gate_sum_min
         self._sim_gate_max_min = sim_gate_max_min
+        self._delta_cache: dict[
+            str, tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]
+        ] = {}
+        self._cache_maxsize = 512
 
     def _compute_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
         weights_array = self._model_loader.weights_array
@@ -81,12 +84,19 @@ class DeltaCalculator:
 
         return delta, sims, reasons
 
-    @lru_cache(maxsize=512)
     def _cached_delta_logit_internal(
         self, sig: str
     ) -> tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]:
+        if sig in self._delta_cache:
+            return self._delta_cache[sig]
+
         delta, sims, reasons = self._compute_delta_logit(sig)
-        return delta, tuple(sims.items()), reasons
+        result = delta, tuple(sims.items()), reasons
+
+        if len(self._delta_cache) >= self._cache_maxsize:
+            self._delta_cache.clear()
+        self._delta_cache[sig] = result
+        return result
 
     def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
         delta, sims_tuple, reasons = self._cached_delta_logit_internal(sig)

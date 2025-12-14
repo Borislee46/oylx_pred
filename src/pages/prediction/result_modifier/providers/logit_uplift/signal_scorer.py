@@ -73,7 +73,9 @@ class SignalScorer:
                 fields = tuple(fields_raw)
             else:
                 continue
-            out.append(_Rule(pattern=pattern.strip().lower(), score=score, tag=tag.strip(), fields=fields))
+            out.append(
+                _Rule(pattern=pattern.strip().lower(), score=score, tag=tag.strip(), fields=fields)
+            )
         return tuple(out)
 
     def score(self, texts_by_field: dict[str, str]) -> tuple[dict[str, float], tuple[str, ...]]:
@@ -117,5 +119,3 @@ class SignalScorer:
             if len(picked) >= self._max_reasons:
                 break
         return bonuses, tuple(picked)
-
-

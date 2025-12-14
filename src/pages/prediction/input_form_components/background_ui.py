@@ -46,7 +46,9 @@ def _generate_major_options(cases_df):
         return {"majors_display": [], "major_map": {}}
 
     mapping_df = cases_df[required_cols].drop_duplicates()
-    major_map = dict(zip(mapping_df["background_major_original"], mapping_df["background_major"]))
+    major_map = dict(
+        zip(mapping_df["background_major_original"], mapping_df["background_major"], strict=True)
+    )
     major_counts = cases_df["background_major"].value_counts().to_dict()
 
     majors_display = [

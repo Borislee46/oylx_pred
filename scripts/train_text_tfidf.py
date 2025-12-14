@@ -3,7 +3,6 @@ import logging
 import pickle
 import sys
 from pathlib import Path
-from typing import Optional
 
 import joblib
 import numpy as np
@@ -67,7 +66,7 @@ def _text_prep(s: str) -> str:
 
 def _build_corpus(df: pd.DataFrame) -> list[str]:
     texts = []
-    for canonical, candidates in COLUMN_MAP.items():
+    for _canonical, candidates in COLUMN_MAP.items():
         for col in candidates:
             if col in df.columns:
                 col_texts = df[col].fillna("").astype(str).map(_text_prep).tolist()
@@ -183,7 +182,7 @@ def _compute_similarities(
 def _fit_uplift_weights(
     df: pd.DataFrame,
     sims_df: pd.DataFrame,
-    p_base: Optional[np.ndarray],
+    p_base: np.ndarray | None,
 ) -> dict[str, float]:
     def _clip01(x: np.ndarray) -> np.ndarray:
         return np.clip(x, PROB_CLIP_MIN, PROB_CLIP_MAX)
@@ -349,7 +348,7 @@ def _compute_p_base_with_xgb(df: pd.DataFrame) -> np.ndarray | None:
             logger.warning("未找到XGBoost模型或特征文件，跳过基础概率计算")
             return None
 
-        with open(features_path, "r", encoding="utf-8") as f:
+        with open(features_path, encoding="utf-8") as f:
             feature_names = json.load(f)
         if not isinstance(feature_names, list) or not feature_names:
             logger.warning("特征列表无效")
@@ -370,7 +369,7 @@ def _compute_p_base_with_xgb(df: pd.DataFrame) -> np.ndarray | None:
 
         if calib_path is not None and calib_path.exists():
             try:
-                with open(calib_path, "r", encoding="utf-8") as f:
+                with open(calib_path, encoding="utf-8") as f:
                     calib = json.load(f)
                 if calib and calib.get("method") == "sigmoid":
                     a = float(calib.get("params", {}).get("a", 0.0))

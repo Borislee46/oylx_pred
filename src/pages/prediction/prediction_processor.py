@@ -72,7 +72,7 @@ def _get_faculty_mapping() -> dict[tuple[str, str], str]:
     return {
         (str(school), str(major)): str(faculty) if pd.notna(faculty) else ""
         for school, major, faculty in zip(
-            valid_df["学校"], valid_df["专业英文名称"], valid_df["专业大类"]
+            valid_df["学校"], valid_df["专业英文名称"], valid_df["专业大类"], strict=True
         )
     }
 
@@ -200,7 +200,7 @@ def _calculate_and_attach_similarities(
             similarity_pairs, cache=bg_target_similarity_cache
         )
 
-        for idx, similarity in zip(valid_indices, batch_similarities):
+        for idx, similarity in zip(valid_indices, batch_similarities, strict=True):
             result = valid_results[idx]
             target_major = str(result.get("major", "")).strip()
 

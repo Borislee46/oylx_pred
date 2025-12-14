@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def feather_to_excel(feather_files: list[str], xlsx_files: list[str]):
-    for feather_file, xlsx_file in zip(feather_files, xlsx_files):
+    for feather_file, xlsx_file in zip(feather_files, xlsx_files, strict=True):
         df = pd.read_feather(feather_file)
         df.to_excel(xlsx_file, index=False)
     return True

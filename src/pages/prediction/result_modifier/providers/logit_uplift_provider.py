@@ -145,6 +145,8 @@ class LogitUpliftProvider(TextBoostProvider):
             sims=sims,
         )
 
-        summary = self._probability_applier.generate_summary(boosts=boosts, sims=sims, reasons=reasons)
+        summary = self._probability_applier.generate_summary(
+            boosts=boosts, sims=sims, reasons=reasons
+        )
 
         return updated, summary

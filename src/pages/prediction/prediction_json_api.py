@@ -17,10 +17,10 @@ from src.pages.prediction.result_modifier import AdjustmentContext, ProbabilityA
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
+from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.professional_adjustment import (
     adjust_for_professional_majors,
 )
-from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.text_boost_provider import get_text_boost_provider
 from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
 from src.pages.prediction.results_handler import combine_and_deduplicate_results
@@ -95,7 +95,12 @@ def validate_and_normalize(
     school_base_df: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     if not isinstance(payload, dict):
-        return {"ok": False, "errors": [{"field": "_", "message": "payload 必须是 JSON object", "severity": "error"}]}
+        return {
+            "ok": False,
+            "errors": [
+                {"field": "_", "message": "payload 必须是 JSON object", "severity": "error"}
+            ],
+        }
 
     cases_df = cases_df if cases_df is not None else load_raw_cases_data()
     school_base_df = school_base_df if school_base_df is not None else load_school_base_data()
@@ -106,7 +111,9 @@ def validate_and_normalize(
     if errors:
         return {"ok": False, "errors": _errors_to_dict(errors), "warnings": []}
 
-    normalized_input, warnings = normalize_form_data_for_prediction(form_data, cases_df, gpa_converter)
+    normalized_input, warnings = normalize_form_data_for_prediction(
+        form_data, cases_df, gpa_converter
+    )
     return {
         "ok": True,
         "errors": [],
@@ -151,11 +158,13 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
             quick_cross_faculty_check,
         )
 
-        is_cross_faculty, background_faculty, target_faculties, agent_approved = quick_cross_faculty_check(
-            normalized_input.get("background_major"),
-            selected_categories,
-            selected_majors,
-            cases_df,
+        is_cross_faculty, background_faculty, target_faculties, agent_approved = (
+            quick_cross_faculty_check(
+                normalized_input.get("background_major"),
+                selected_categories,
+                selected_majors,
+                cases_df,
+            )
         )
 
     if is_cross_faculty and not agent_approved and not confirm_cross_faculty:
@@ -166,7 +175,7 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
             "needs_confirmation": True,
             "confirmation": {
                 "background_faculty": background_faculty,
-                "target_faculties": sorted(list(target_faculties)),
+                "target_faculties": sorted(target_faculties),
                 "agent_approved": agent_approved,
             },
             "normalized_input": normalized_input,
@@ -216,8 +225,12 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
     internship_count = cleaned_input.get("internship_count", 0)
     user_specified_majors = cleaned_input.get("target_majors", [])
 
-    sim_results = adjust_for_professional_majors(sim_results, internship_count, user_specified_majors)
-    cross_results = adjust_for_professional_majors(cross_results, internship_count, user_specified_majors)
+    sim_results = adjust_for_professional_majors(
+        sim_results, internship_count, user_specified_majors
+    )
+    cross_results = adjust_for_professional_majors(
+        cross_results, internship_count, user_specified_majors
+    )
     user_specified_results = adjust_for_professional_majors(
         user_specified_results if isinstance(user_specified_results, list) else [],
         internship_count,
@@ -240,7 +253,9 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
     )
 
     has_valid_experience = has_meaningful_experience_text(adj_ctx.experience_details)
-    text_provider = get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_experience else None
+    text_provider = (
+        get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_experience else None
+    )
 
     adjuster_pipeline = ProbabilityAdjustmentPipeline(
         probability_adjuster=probability_adjuster,
@@ -253,7 +268,9 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
     cross_results = adjuster_pipeline.adjust_batch(cross_results, adj_ctx)
     user_specified_results = adjuster_pipeline.adjust_batch(user_specified_results, adj_ctx)
 
-    unified_results = combine_and_deduplicate_results(sim_results, cross_results, user_specified_results)
+    unified_results = combine_and_deduplicate_results(
+        sim_results, cross_results, user_specified_results
+    )
     result = {
         "similarity_results": sim_results,
         "cross_major_results": cross_results,

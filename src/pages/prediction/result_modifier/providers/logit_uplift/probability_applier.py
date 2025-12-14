@@ -93,6 +93,10 @@ class ProbabilityApplier:
             r = ", ".join(reasons)
             detail = f"{detail}; {r}" if detail else r
 
-        summary = f"+{avg_boost:.1%} ({detail})" if avg_boost > 0 and detail else (f"+{avg_boost:.1%}" if avg_boost > 0 else "")
+        summary = (
+            f"+{avg_boost:.1%} ({detail})"
+            if avg_boost > 0 and detail
+            else (f"+{avg_boost:.1%}" if avg_boost > 0 else "")
+        )
 
         return summary

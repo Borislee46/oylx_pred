@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Any
 
 import numpy as np
@@ -37,6 +36,8 @@ class PredictionModel:
 
         self._setup_global_categories(global_categories_df)
         self._enable_categorical = self._check_categorical_support()
+        self._preprocessed_cache: dict[tuple, dict[str, float]] = {}
+        self._cache_maxsize = 128
 
     def _setup_global_categories(self, global_categories_df: pd.DataFrame | None):
         self.global_categories = {}
@@ -100,17 +101,24 @@ class PredictionModel:
             except (ValueError, TypeError):
                 return 0.0
 
-    @lru_cache(maxsize=128)
     def _get_preprocessed_base_features(self, input_data_tuple: tuple) -> dict[str, float]:
+        if input_data_tuple in self._preprocessed_cache:
+            return self._preprocessed_cache[input_data_tuple]
+
         input_data = dict(input_data_tuple)
         base_features = [
             f for f in (self.feature_names or []) if f not in ["target_university", "target_major"]
         ]
 
-        return {
+        result = {
             feat: self._preprocess_single_value(feat, input_data.get(feat, np.nan))
             for feat in base_features
         }
+
+        if len(self._preprocessed_cache) >= self._cache_maxsize:
+            self._preprocessed_cache.clear()
+        self._preprocessed_cache[input_data_tuple] = result
+        return result
 
     def _create_prediction_dataframe(
         self, combinations: list[tuple[str, str]], preprocessed_base: dict[str, float]
@@ -118,7 +126,7 @@ class PredictionModel:
         if not combinations:
             return pd.DataFrame()
 
-        universities, majors = zip(*combinations)
+        universities, majors = zip(*combinations, strict=True)
         n = len(combinations)
 
         data_dict = {}
@@ -182,7 +190,7 @@ class PredictionModel:
 
             return [
                 {"university": univ, "major": major, "probability": float(proba)}
-                for (univ, major), proba in zip(combinations, probas)
+                for (univ, major), proba in zip(combinations, probas, strict=True)
             ]
         except Exception as e:
             page_logger.error(f"模型预测失败: {e}", exc_info=True)

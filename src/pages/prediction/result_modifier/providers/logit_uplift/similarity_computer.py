@@ -47,7 +47,9 @@ class SimilarityComputer:
         raw = float(np.clip((max_val - 0.18) / 0.35, 0.0, 1.0))
         return float(np.clip(raw * self._novelty_weight, 0.0, 1.0))
 
-    def compute_similarities(self, details: dict[str, Any]) -> tuple[dict[str, float], tuple[str, ...]]:
+    def compute_similarities(
+        self, details: dict[str, Any]
+    ) -> tuple[dict[str, float], tuple[str, ...]]:
         vectorizer = self._model_loader.vectorizer
         centroids = self._model_loader.centroids
         text_keys = self._text_processor.text_keys

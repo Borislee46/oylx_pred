@@ -25,7 +25,9 @@ def calculate_gpa_bonus(exam_type, exam_score) -> float:
     if exam_type == "GRE":
         if exam_score < GRE_BONUS_THRESHOLD:
             return 0.0
-        bonus = GRE_MAX_BONUS / (1 + np.exp(-GRE_SIGMOID_STEEPNESS * (exam_score - GRE_SIGMOID_MIDPOINT)))
+        bonus = GRE_MAX_BONUS / (
+            1 + np.exp(-GRE_SIGMOID_STEEPNESS * (exam_score - GRE_SIGMOID_MIDPOINT))
+        )
         return max(0.0, float(bonus))
 
     if exam_type == "GMAT":
@@ -79,8 +81,12 @@ def normalize_form_data_for_prediction(
         school_service.is_overseas_school(background_university) if background_university else False
     )
 
-    if (language_score_for_submission is None or language_score_for_submission == 0) and is_overseas:
-        boosted = apply_overseas_language_boost(background_university, form_data.get("language_type"))
+    if (
+        language_score_for_submission is None or language_score_for_submission == 0
+    ) and is_overseas:
+        boosted = apply_overseas_language_boost(
+            background_university, form_data.get("language_type")
+        )
         language_score_for_submission = boosted
         warnings.append("海外背景触发语言成绩默认加成")
 

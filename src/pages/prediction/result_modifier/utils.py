@@ -17,6 +17,7 @@ from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
+
 def _has_streamlit_runtime() -> bool:
     runtime = getattr(st, "runtime", None)
     exists = getattr(runtime, "exists", None)

@@ -98,11 +98,9 @@ def precompute_similarities():
 
     all_target_majors = raw_case_target_majors.union(raw_school_english_majors)
 
-    background_major_list_orig = sorted(list(raw_case_background_majors))
-    target_major_list_orig = sorted(list(all_target_majors))
-    all_majors_for_embedding_orig = sorted(
-        list(set(background_major_list_orig + target_major_list_orig))
-    )
+    background_major_list_orig = sorted(raw_case_background_majors)
+    target_major_list_orig = sorted(all_target_majors)
+    all_majors_for_embedding_orig = sorted(set(background_major_list_orig + target_major_list_orig))
 
     original_to_embedding_representation_map = {}
     embedding_representation_set = set()
@@ -125,7 +123,7 @@ def precompute_similarities():
         if representation:
             embedding_representation_set.add(representation)
 
-    embedding_input_list = sorted(list(embedding_representation_set))
+    embedding_input_list = sorted(embedding_representation_set)
 
     embedding_representation_to_idx_map = {name: i for i, name in enumerate(embedding_input_list)}
     model = get_model(MODEL_NAME)
