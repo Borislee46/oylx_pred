@@ -43,7 +43,7 @@ class AgentAdjustmentSession:
         if self.adjusted_count >= self.target_diff:
             logger.info(f"Agent 已调整 {self.adjusted_count} 个，达到目标 {self.target_diff}")
             return True
-        if self.exploration_rounds > AGENT_EXPLORATION_MAX_ROUNDS:
+        if self.in_exploration_mode and self.exploration_rounds >= AGENT_EXPLORATION_MAX_ROUNDS:
             logger.info(f"达到最大探索轮数 {AGENT_EXPLORATION_MAX_ROUNDS}")
             return True
         return False
@@ -76,7 +76,7 @@ class AgentAdjustmentSession:
 
         if should_explore:
             self.in_exploration_mode = True
-            self.exploration_rounds = 1
+            self.exploration_rounds = 0
             self.exploration_no_change_count = 0
 
         return should_stop, should_explore
@@ -100,93 +100,116 @@ class AgentAdjustmentEngine:
         initial_pool: list[dict],
         initial_results: list[dict],
     ) -> list[dict]:
-        boundary_cases = initial_boundary_cases[
-            : min(self.session.target_diff, len(initial_boundary_cases), AGENT_MAX_BOUNDARY_CASES)
-        ]
+        boundary_cases = initial_boundary_cases
         pool_for_exploration = initial_pool
         adjusted_results = initial_results.copy()
 
-        while boundary_cases:
-            self.ui.update_loop()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            while True:
+                self.ui.update_loop()
 
-            if self.session.should_stop():
-                break
-
-            cases_to_evaluate = self._prepare_next_batch(boundary_cases)
-            if not cases_to_evaluate:
-                break
-
-            majors = [c.get("major", "") for c in cases_to_evaluate if c.get("major")]
-            self.ui.show_candidates(majors)
-
-            evaluation_result = self._evaluate_batch_with_ui_animation(
-                cases_to_evaluate, self.session.strategy.background_major
-            )
-
-            if not evaluation_result:
-                continue
-
-            decisions = evaluation_result.get("decisions", [])
-            needs_adjustment = evaluation_result.get("needs_adjustment", False)
-
-            self.session.record_evaluation(cases_to_evaluate)
-
-            if not needs_adjustment:
-                should_stop, should_explore = self.session.handle_no_adjustment()
-
-                if should_stop:
+                if self.session.should_stop():
                     break
 
-                if should_explore:
-                    next_candidates = self.session.strategy.get_exploration_candidates(
+                remaining = self.session.target_diff - self.session.adjusted_count
+                if remaining <= 0:
+                    break
+
+                batch_size = min(AGENT_MAX_BOUNDARY_CASES, remaining + 1)
+                if self.session.in_exploration_mode:
+                    exploration_candidates = self.session.strategy.get_exploration_candidates(
                         adjusted_results, pool_for_exploration, self.session.evaluated_cases
                     )
-                    if not next_candidates:
+                    candidate_pool = exploration_candidates + boundary_cases
+                else:
+                    candidate_pool = boundary_cases
+
+                cases_to_evaluate = self._prepare_next_batch(candidate_pool, batch_size)
+                if not cases_to_evaluate:
+                    break
+
+                majors = [c.get("major", "") for c in cases_to_evaluate if c.get("major")]
+                self.ui.show_candidates(majors)
+
+                decisions = [False] * len(cases_to_evaluate)
+                agent_cases: list[dict] = []
+                agent_indices: list[int] = []
+                for i, case in enumerate(cases_to_evaluate):
+                    triage = self.session.strategy.triage_decision(case)
+                    if triage is None:
+                        agent_cases.append(case)
+                        agent_indices.append(i)
+                    else:
+                        decisions[i] = triage
+
+                if agent_cases:
+                    evaluation_result = self._evaluate_batch_with_ui_animation(
+                        executor, agent_cases, self.session.strategy.background_major
+                    )
+                    agent_decisions = (
+                        evaluation_result.get("decisions", []) if evaluation_result else []
+                    )
+                    if len(agent_decisions) != len(agent_cases):
+                        agent_decisions = [False] * len(agent_cases)
+                    for j, idx in enumerate(agent_indices):
+                        decisions[idx] = bool(agent_decisions[j])
+
+                self.session.record_evaluation(cases_to_evaluate)
+
+                needs_adjustment = any(decisions)
+                if not needs_adjustment:
+                    should_stop, should_explore = self.session.handle_no_adjustment()
+                    if should_stop:
                         break
-                    boundary_cases = next_candidates
-                    continue
-            else:
-                self.session.reset_no_change_counters()
+                    if should_explore:
+                        continue
+                else:
+                    self.session.reset_no_change_counters()
 
-            count, new_results = self.session.strategy.update_results(
-                adjusted_results, cases_to_evaluate, decisions
-            )
-            adjusted_results = new_results
-            self.session.adjusted_count += count
+                count, new_results = self.session.strategy.update_results(
+                    adjusted_results, cases_to_evaluate, decisions, max_adjust=remaining
+                )
+                adjusted_results = new_results
+                self.session.adjusted_count += count
 
-            if self.session.in_exploration_mode:
-                self.session.exploration_rounds += 1
-                boundary_cases = self.session.strategy.get_exploration_candidates(
-                    adjusted_results, pool_for_exploration, self.session.evaluated_cases
-                )
-            else:
-                boundary_cases = self.session.strategy.update_boundary_cases(
-                    boundary_cases, self.session.evaluated_cases, adjusted_results
-                )
+                if self.session.in_exploration_mode:
+                    self.session.exploration_rounds += 1
+                else:
+                    boundary_cases = self.session.strategy.update_boundary_cases(
+                        boundary_cases, self.session.evaluated_cases, adjusted_results
+                    )
 
         return adjusted_results
 
-    def _prepare_next_batch(self, boundary_cases):
-        cases = [
-            c
-            for c in boundary_cases
-            if (
-                isinstance(c.get("university"), str)
-                and isinstance(c.get("major"), str)
-                and (c.get("university"), c.get("major")) not in self.session.evaluated_cases
-            )
-        ]
-        return cases[:AGENT_MAX_BOUNDARY_CASES]
+    def _prepare_next_batch(self, candidate_pool: list[dict], batch_size: int) -> list[dict]:
+        result: list[dict] = []
+        seen: set[tuple[str, str]] = set()
+        for c in candidate_pool:
+            if not isinstance(c, dict):
+                continue
+            university = c.get("university")
+            major = c.get("major")
+            if not isinstance(university, str) or not isinstance(major, str):
+                continue
+            key = (university, major)
+            if key in self.session.evaluated_cases or key in seen:
+                continue
+            seen.add(key)
+            result.append(c)
+            if len(result) >= batch_size:
+                break
+        return result
 
-    def _evaluate_batch_with_ui_animation(self, cases_to_evaluate, background_major):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                self.agent.evaluate_boundary_cases,
-                background_major,
-                cases_to_evaluate,
-                self.session.mode,
-            )
-            while not future.done():
-                self.ui.update_loop()
-                time.sleep(0.3)
-            return future.result(timeout=1.0)
+    def _evaluate_batch_with_ui_animation(
+        self, executor: ThreadPoolExecutor, cases_to_evaluate: list[dict], background_major: str
+    ):
+        future = executor.submit(
+            self.agent.evaluate_boundary_cases,
+            background_major,
+            cases_to_evaluate,
+            self.session.mode,
+        )
+        while not future.done():
+            self.ui.update_loop()
+            time.sleep(0.3)
+        return future.result(timeout=1.0)

@@ -103,7 +103,7 @@ class ResultsDisplay:
 
         if not has_results:
             combination_count = session_manager.get("combination_count", 0)
-            st.info("专业跨度过大，无法进行预测。")
+            st.info("无推荐结果。")
             return
 
         combination_count = session_manager.get("combination_count", 0)
