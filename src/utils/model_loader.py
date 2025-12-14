@@ -26,6 +26,16 @@ class _CalibratedPredictor:
         self.base_model = base_model
         self.calibration = calibration
 
+    def get_xgb_params(self):
+        if hasattr(self.base_model, "get_xgb_params"):
+            return self.base_model.get_xgb_params()
+        return {}
+
+    def get_booster(self):
+        if hasattr(self.base_model, "get_booster"):
+            return self.base_model.get_booster()
+        return None
+
     def predict_proba(self, X):
         base_proba = self.base_model.predict_proba(X)
         if base_proba is None or len(base_proba.shape) != 2 or base_proba.shape[1] < 2:

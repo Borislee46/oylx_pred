@@ -342,5 +342,71 @@
       false
     ],
     "needs_adjustment": true
+  },
+  "75c6a5dd341e628e4ad294d6c49aa4f5": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "9301651068a0582dc9695fe86e148810": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "fcfedc5dbb61b29aa3f982f99f66a59d": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "29e18c918eb178cb5d4475fc5c142ecd": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "f0bb427e89ac53b692cb50ef8ca39e06": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "97874d43fa1191b5be87026380134d3f": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
   }
 }
