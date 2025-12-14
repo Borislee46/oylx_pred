@@ -44,6 +44,37 @@ def get_allowed_target_faculties(background_faculty: str | None) -> set[str]:
     return CROSS_FACULTY_RULES.get(background_faculty, set())
 
 
+def filter_schools_by_allowed_faculties(
+    schools: list[dict[str, Any]], allowed_faculties: set[str]
+) -> list[dict[str, Any]]:
+    if not schools or not allowed_faculties:
+        return schools
+    return [
+        school
+        for school in schools
+        if not (faculty := school.get("faculty", "").strip()) or faculty in allowed_faculties
+    ]
+
+
+def get_allowed_target_faculties_from_background_faculties(
+    background_faculties: list[str] | None, max_allowed: int = 6
+) -> set[str]:
+    if not background_faculties:
+        return set()
+
+    allowed: set[str] = set()
+    for bg in background_faculties:
+        if not bg:
+            continue
+        allowed |= CROSS_FACULTY_RULES.get(bg, {bg})
+        if max_allowed > 0 and len(allowed) >= max_allowed:
+            break
+
+    if max_allowed > 0 and len(allowed) > max_allowed:
+        return set(list(allowed)[:max_allowed])
+    return allowed
+
+
 def filter_schools_by_faculty_rules(
     schools: list[dict[str, Any]],
     background_faculty: str | None,
@@ -55,8 +86,4 @@ def filter_schools_by_faculty_rules(
     if not allowed_faculties:
         return schools
 
-    return [
-        school
-        for school in schools
-        if not (faculty := school.get("faculty", "").strip()) or faculty in allowed_faculties
-    ]
+    return filter_schools_by_allowed_faculties(schools, allowed_faculties)

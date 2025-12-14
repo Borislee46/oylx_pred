@@ -13,6 +13,80 @@ from src.pages.prediction.result_modifier.ui_handler import RankerUIHandler
 from src.pages.prediction.result_modifier.utils import clip_probability
 
 
+def _looks_cross_background_major(background_major: str) -> bool:
+    s = str(background_major or "").strip().lower()
+    if not s:
+        return False
+    signals = [
+        "双学位",
+        "联合",
+        "交叉",
+        "跨",
+        "interdisciplinary",
+        "joint",
+        "dual",
+        "double",
+        "&",
+        "/",
+    ]
+    return any(x in s for x in signals) or ("(" in s and ")" in s) or ("（" in s and "）" in s)
+
+
+def _pick_supplement_cases_by_probability(
+    results_with_similarity: list[dict[str, Any]],
+    extra_faculty: str,
+    top_set: set[tuple[Any, Any]],
+    p_min: float,
+    k_high: int = 8,
+    k_band: int = 8,
+    band_delta: float = 0.03,
+) -> list[dict[str, Any]]:
+    if not results_with_similarity or not extra_faculty:
+        return []
+
+    candidates = [
+        r
+        for r in results_with_similarity
+        if isinstance(r, dict) and str(r.get("faculty", "")).strip() == extra_faculty
+    ]
+    if not candidates:
+        return []
+
+    def _p(x: dict[str, Any]) -> float:
+        try:
+            return float(x.get("probability", 0.0) or 0.0)
+        except Exception:
+            return 0.0
+
+    seen: set[tuple[Any, Any]] = set()
+    picked: list[dict[str, Any]] = []
+
+    for r in sorted(candidates, key=_p, reverse=True):
+        key = (r.get("university"), r.get("major"))
+        if key in top_set or key in seen:
+            continue
+        seen.add(key)
+        picked.append(r)
+        if len(picked) >= k_high:
+            break
+
+    low = max(0.0, p_min - band_delta)
+    high = min(1.0, p_min + band_delta)
+    band = [r for r in candidates if low <= _p(r) <= high]
+    band.sort(key=lambda r: abs(_p(r) - p_min))
+
+    for r in band:
+        if len(picked) >= (k_high + k_band):
+            break
+        key = (r.get("university"), r.get("major"))
+        if key in top_set or key in seen:
+            continue
+        seen.add(key)
+        picked.append(r)
+
+    return picked
+
+
 def adjust_similarity_results_with_agent(
     top_similarity_results: list[dict[str, Any]],
     results_with_similarity: list[dict[str, Any]],
@@ -46,6 +120,63 @@ def adjust_similarity_results_with_agent(
         results_for_agent = results_with_similarity
 
     top_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
+
+    if _looks_cross_background_major(background_major):
+        try:
+            from src.agent.background_faculty_agent import BackgroundFacultyAgent
+        except Exception:
+            BackgroundFacultyAgent = None
+
+        bg_faculties: list[str] = []
+        if BackgroundFacultyAgent is not None:
+            bg_agent = BackgroundFacultyAgent()
+            bg_faculties = bg_agent.resolve_background_faculties(
+                background_major_original=background_major,
+                base_faculty=background_faculty,
+                max_total=3,
+                max_extra=2,
+                use_persistent_cache=True,
+            )
+
+        base = background_faculty.strip() if isinstance(background_faculty, str) else ""
+        extras = [f for f in bg_faculties if f and f != base]
+        if extras:
+            p_min = 0.0
+            if top_similarity_results:
+                try:
+                    p_min = min(
+                        float(r.get("probability", 0.0) or 0.0) for r in top_similarity_results
+                    )
+                except Exception:
+                    p_min = 0.0
+
+            supplements: list[dict[str, Any]] = []
+            for extra in extras[:2]:
+                supplements.extend(
+                    _pick_supplement_cases_by_probability(
+                        results_with_similarity=results_with_similarity,
+                        extra_faculty=extra,
+                        top_set=top_set,
+                        p_min=p_min,
+                        k_high=8,
+                        k_band=8,
+                        band_delta=0.03,
+                    )
+                )
+
+            if supplements:
+                merged = results_for_agent + supplements
+                deduped: list[dict[str, Any]] = []
+                seen_keys: set[tuple[Any, Any]] = set()
+                for r in merged:
+                    if not isinstance(r, dict):
+                        continue
+                    key = (r.get("university"), r.get("major"))
+                    if key in seen_keys:
+                        continue
+                    seen_keys.add(key)
+                    deduped.append(r)
+                results_for_agent = deduped
 
     boundary_candidates, pool_for_exploration = strategy.get_initial_candidates(
         top_similarity_results, results_for_agent, top_set
