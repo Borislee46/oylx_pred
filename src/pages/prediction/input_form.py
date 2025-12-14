@@ -1,6 +1,5 @@
 import time
 
-import numpy as np
 import streamlit as st
 
 from src.pages.prediction.input_form_components import (
@@ -9,52 +8,21 @@ from src.pages.prediction.input_form_components import (
     FormValidator,
     GPAConverter,
 )
-from src.pages.prediction.input_form_components.form_config import (
-    GMAT_BONUS_THRESHOLD,
-    GMAT_MAX_BONUS,
-    GMAT_SIGMOID_MIDPOINT,
-    GMAT_SIGMOID_STEEPNESS,
-    GRE_BONUS_THRESHOLD,
-    GRE_MAX_BONUS,
-    GRE_SIGMOID_MIDPOINT,
-    GRE_SIGMOID_STEEPNESS,
-)
 from src.pages.prediction.input_form_components.language_score_processor import (
     apply_overseas_language_boost,
 )
+from src.pages.prediction.input_normalizer import (
+    calculate_gpa_bonus,
+    get_background_university_for_model,
+    normalize_form_data_for_prediction,
+)
 from src.pages.prediction.results_handler import reset_prediction_results
-from src.pages.prediction.user_background_analyzer import find_substitute_university
 from src.utils.app_data_loader import load_school_base_data
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
 from src.utils.session_manager import SessionManager
 
 form_logger = setup_logger("page3", "prediction")
-
-
-def _calculate_gpa_bonus(exam_type, exam_score):
-    if not exam_type or exam_type == "无" or not exam_score:
-        return 0.0
-
-    bonus = 0.0
-
-    if exam_type == "GRE":
-        if exam_score < GRE_BONUS_THRESHOLD:
-            return 0.0
-
-        bonus = GRE_MAX_BONUS / (
-            1 + np.exp(-GRE_SIGMOID_STEEPNESS * (exam_score - GRE_SIGMOID_MIDPOINT))
-        )
-
-    elif exam_type == "GMAT":
-        if exam_score < GMAT_BONUS_THRESHOLD:
-            return 0.0
-
-        bonus = GMAT_MAX_BONUS / (
-            1 + np.exp(-GMAT_SIGMOID_STEEPNESS * (exam_score - GMAT_SIGMOID_MIDPOINT))
-        )
-
-    return max(0.0, bonus)
 
 
 @st.fragment
@@ -195,17 +163,6 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
     )
 
 
-def _get_background_university_for_model(selected_background_university, cases_df):
-    if not selected_background_university:
-        return None
-
-    unique_background_universities = cases_df["background_university"].unique()
-    if selected_background_university not in unique_background_universities:
-        return find_substitute_university(selected_background_university, cases_df)
-
-    return selected_background_university
-
-
 def _process_successful_submission(
     session_manager,
     form_data,
@@ -214,58 +171,10 @@ def _process_successful_submission(
     all_majors_target,
     gpa_converter,
 ):
-    normalized_gpa = FormValidator.normalize_gpa(
-        form_data["gpa_raw"],
-        form_data["gpa_scale"],
-        form_data.get("background_university"),
-        gpa_converter,
-    )
-
-    bonus_gpa = _calculate_gpa_bonus(form_data.get("exam_type"), form_data.get("exam_score"))
-    if normalized_gpa is not None and bonus_gpa > 0:
-        normalized_gpa += bonus_gpa
-        st.toast(f"标化成绩加成生效: GPA +{bonus_gpa:.3f}")
-
-    language_score_for_submission = form_data["language_score_raw"]
-
-    school_service = get_school_level_service()
-    background_university = form_data.get("background_university")
-    is_overseas = (
-        school_service.is_overseas_school(background_university) if background_university else False
-    )
-
-    if (
-        language_score_for_submission is None or language_score_for_submission == 0
-    ) and is_overseas:
-        language_score_for_submission = apply_overseas_language_boost(
-            background_university, form_data["language_type"]
-        )
-
-    final_normalized_lang_score = None
-    if language_score_for_submission is not None:
-        final_normalized_lang_score = FormValidator.normalize_language_score(
-            language_score_for_submission, form_data["language_type"]
-        )
-
-    background_uni_for_model = _get_background_university_for_model(
-        form_data["background_university"], cases_df
-    )
-
-    input_data = {
-        "background_university": background_uni_for_model,
-        "background_major": form_data["background_major"],
-        "background_major_original": form_data.get("background_major_original"),
-        "target_universities": form_data["target_universities"],
-        "target_majors": form_data["target_majors"],
-        "gpa": normalized_gpa,
-        "language_score": final_normalized_lang_score,
-        "language_type": form_data["language_type"],
-        "research_count": form_data["research_count"],
-        "award_count": form_data["award_count"],
-        "internship_count": form_data["internship_count"],
-        "paper_count": form_data["paper_count"],
-        "experience_details": form_data["experience_details"],
-    }
+    input_data, warnings = normalize_form_data_for_prediction(form_data, cases_df, gpa_converter)
+    for w in warnings:
+        if w.startswith("标化成绩加成生效"):
+            st.toast(w)
 
     session_manager.set(submitted=True, form_data_changed=False)
     return True, input_data, all_universities_target, all_majors_target, form_data
@@ -319,11 +228,11 @@ def _get_current_form_state(
             gpa_converter,
         )
 
-        bonus_gpa = _calculate_gpa_bonus(exam_type, exam_score)
+        bonus_gpa = calculate_gpa_bonus(exam_type, exam_score)
         if bonus_gpa > 0:
             current_normalized_gpa += bonus_gpa
 
-    background_uni_for_model = _get_background_university_for_model(background_university, cases_df)
+    background_uni_for_model = get_background_university_for_model(background_university, cases_df)
 
     input_data = {
         "background_university": background_uni_for_model,

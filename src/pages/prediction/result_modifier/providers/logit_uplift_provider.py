@@ -16,6 +16,9 @@ from src.pages.prediction.result_modifier.providers.logit_uplift import (
     SimilarityComputer,
     TextProcessor,
 )
+from src.pages.prediction.result_modifier.providers.logit_uplift.signal_scorer import (
+    SignalScorer,
+)
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
 from src.pages.prediction.result_modifier.utils import has_valid_experience_details
 from src.utils.logger import setup_logger
@@ -35,6 +38,7 @@ class LogitUpliftProvider(TextBoostProvider):
         smoothing: float | None = None,
         cap_min_factor: float | None = None,
         cap_quality_gamma: float | None = None,
+        high_signal: dict[str, Any] | None = None,
     ) -> None:
         self._max_total_boost = float(max_total_boost)
         self._sim_gate_sum_min = (
@@ -65,6 +69,30 @@ class LogitUpliftProvider(TextBoostProvider):
         )
         count_keys = ("research_count", "award_count", "internship_count", "paper_count")
 
+        hs = high_signal or {}
+        hs_enabled = bool(hs.get("enabled", False))
+        signal_scorer: SignalScorer | None = None
+        novelty_weight = 0.0
+        novelty_min_chars = 12
+        if hs_enabled:
+            enabled_fields_raw = hs.get("enabled_fields")
+            enabled_fields = (
+                tuple(enabled_fields_raw)
+                if isinstance(enabled_fields_raw, list)
+                and all(isinstance(x, str) and x.strip() for x in enabled_fields_raw)
+                else None
+            )
+            lexicon_path = hs.get("lexicon_path")
+            signal_scorer = SignalScorer(
+                lexicon_path=lexicon_path if isinstance(lexicon_path, str) else None,
+                enabled_fields=enabled_fields,
+                per_field_cap=float(hs.get("bonus_cap_per_field", 0.6)),
+                max_reasons=int(hs.get("max_reasons", 3)),
+                lexicon_weight=float(hs.get("lexicon_weight", 1.0)),
+            )
+            novelty_weight = float(hs.get("novelty_weight", 0.12))
+            novelty_min_chars = int(hs.get("novelty_min_chars", 12))
+
         self._text_processor = TextProcessor(text_keys=text_keys, count_keys=count_keys)
         self._model_loader = ModelLoader(
             vectorizer_path=vectorizer_path,
@@ -74,6 +102,9 @@ class LogitUpliftProvider(TextBoostProvider):
         self._similarity_computer = SimilarityComputer(
             model_loader=self._model_loader,
             text_processor=self._text_processor,
+            signal_scorer=signal_scorer,
+            novelty_weight=novelty_weight,
+            novelty_min_chars=novelty_min_chars,
         )
         self._delta_calculator = DeltaCalculator(
             model_loader=self._model_loader,
@@ -100,7 +131,7 @@ class LogitUpliftProvider(TextBoostProvider):
 
         sig = self._text_processor.make_signature(experience_details)
         try:
-            delta_logit, sims = self._delta_calculator.cached_delta_logit(sig)
+            delta_logit, sims, reasons = self._delta_calculator.cached_delta_logit(sig)
         except Exception as e:
             logger.error(f"LogitUpliftProvider apply error: {str(e)}")
             return probabilities, ""
@@ -114,6 +145,6 @@ class LogitUpliftProvider(TextBoostProvider):
             sims=sims,
         )
 
-        summary = self._probability_applier.generate_summary(boosts=boosts, sims=sims)
+        summary = self._probability_applier.generate_summary(boosts=boosts, sims=sims, reasons=reasons)
 
         return updated, summary

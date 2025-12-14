@@ -4,15 +4,23 @@ import time
 import streamlit as st
 
 
+def _has_streamlit_runtime() -> bool:
+    runtime = getattr(st, "runtime", None)
+    exists = getattr(runtime, "exists", None)
+    return bool(exists and exists())
+
+
 class LoadingMessageAnimator:
     def __init__(self, placeholder=None, min_interval: float = 1.2):
-        self.placeholder = placeholder or st.empty()
+        self.placeholder = placeholder if placeholder is not None else (st.empty() if _has_streamlit_runtime() else None)
         self.min_interval = min_interval
         self._cycle_count = 0
         self._current_message = ""
         self._last_update_time = 0.0
 
     def _render(self, message: str):
+        if self.placeholder is None:
+            return
         dots = [".", "..", "..."][self._cycle_count % 3]
         self.placeholder.markdown(
             f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{message}{dots}</div>',
@@ -37,7 +45,8 @@ class LoadingMessageAnimator:
             self._render(self._current_message)
 
     def clear(self):
-        self.placeholder.empty()
+        if self.placeholder is not None:
+            self.placeholder.empty()
         self._current_message = ""
 
 
@@ -97,7 +106,7 @@ class RankerUIHandler:
         self.background_major = background_major
         self.background_faculty = background_faculty
         self.mode = mode
-        self.placeholder = st.empty()
+        self.placeholder = st.empty() if _has_streamlit_runtime() else None
         self._animator = LoadingMessageAnimator(self.placeholder, self.MIN_DISPLAY_INTERVAL)
         self.is_active = False
         self._message_history: set = set()

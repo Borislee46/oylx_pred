@@ -32,7 +32,7 @@ class DeltaCalculator:
         self._sim_gate_sum_min = sim_gate_sum_min
         self._sim_gate_max_min = sim_gate_max_min
 
-    def _compute_delta_logit(self, sig: str) -> tuple[float, dict[str, float]]:
+    def _compute_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
         weights_array = self._model_loader.weights_array
         text_keys = self._text_processor.text_keys
         count_keys = self._text_processor.count_keys
@@ -45,14 +45,14 @@ class DeltaCalculator:
         except Exception:
             details = {}
 
-        sims = self._similarity_computer.compute_similarities(details)
+        sims, reasons = self._similarity_computer.compute_similarities(details)
 
         s_values = [sims.get(k, 0.0) for k in text_keys]
         ssum = sum(s_values)
         smax = max(s_values) if s_values else 0.0
 
         if ssum < self._sim_gate_sum_min or smax < self._sim_gate_max_min:
-            return 0.0, sims
+            return 0.0, sims, reasons
 
         counts = np.array([safe_float(details.get(k, 0)) for k in count_keys], dtype=np.float64)
         log_counts = np.log1p(counts)
@@ -67,7 +67,7 @@ class DeltaCalculator:
         interact_weights_end = interact_weights_start + num_text_features
 
         if len(weights_array) < interact_weights_end:
-            return 0.0, sims
+            return 0.0, sims, reasons
 
         delta = weights_array[bias_idx]
         delta += np.dot(weights_array[text_weights_start:text_weights_end], s_arr)
@@ -79,13 +79,15 @@ class DeltaCalculator:
 
         delta = max(0.0, float(delta))
 
-        return delta, sims
+        return delta, sims, reasons
 
     @lru_cache(maxsize=512)
-    def _cached_delta_logit_internal(self, sig: str) -> tuple[float, tuple[tuple[str, float], ...]]:
-        delta, sims = self._compute_delta_logit(sig)
-        return delta, tuple(sims.items())
+    def _cached_delta_logit_internal(
+        self, sig: str
+    ) -> tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]:
+        delta, sims, reasons = self._compute_delta_logit(sig)
+        return delta, tuple(sims.items()), reasons
 
-    def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float]]:
-        delta, sims_tuple = self._cached_delta_logit_internal(sig)
-        return delta, dict(sims_tuple)
+    def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
+        delta, sims_tuple, reasons = self._cached_delta_logit_internal(sig)
+        return delta, dict(sims_tuple), reasons

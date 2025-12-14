@@ -10,6 +10,15 @@ DEFAULT_TEXT_BOOST_CONFIG: dict = {
     "smoothing": 0.7,
     "cap_min_factor": 0.10,
     "cap_quality_gamma": 1.2,
+    "high_signal": {
+        "enabled": True,
+        "lexicon_path": "config/text_high_signal_terms.json",
+        "lexicon_weight": 1.0,
+        "novelty_weight": 0.12,
+        "novelty_min_chars": 12,
+        "bonus_cap_per_field": 0.6,
+        "max_reasons": 3,
+    },
     "model_paths": {
         "tfidf_vectorizer": "src/machine_learning_models/pre-trained_models/tfidf_vectorizer.joblib",
         "tfidf_centroids": "src/machine_learning_models/pre-trained_models/tfidf_centroids.npz",

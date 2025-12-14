@@ -69,7 +69,9 @@ class ProbabilityApplier:
 
         return updated, boosts
 
-    def generate_summary(self, boosts: list[float], sims: dict[str, float]) -> str:
+    def generate_summary(
+        self, boosts: list[float], sims: dict[str, float], reasons: tuple[str, ...] | None = None
+    ) -> str:
         if not boosts:
             return ""
 
@@ -86,6 +88,11 @@ class ProbabilityApplier:
                 parts.append(f"{name_map[k]}: {s:.2f}")
 
         avg_boost = float(np.mean(boosts))
-        summary = f"+{avg_boost:.1%} ({', '.join(parts)})" if avg_boost > 0 else ""
+        detail = ", ".join(parts)
+        if reasons:
+            r = ", ".join(reasons)
+            detail = f"{detail}; {r}" if detail else r
+
+        summary = f"+{avg_boost:.1%} ({detail})" if avg_boost > 0 and detail else (f"+{avg_boost:.1%}" if avg_boost > 0 else "")
 
         return summary

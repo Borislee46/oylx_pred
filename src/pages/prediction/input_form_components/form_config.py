@@ -67,21 +67,17 @@ DEFAULT_LANGUAGE_SCORES = {
     "托福": 90,
 }
 
-# Standardized Test Configuration
 STANDARDIZED_TEST_TYPES = ["GRE", "GMAT"]
 
 GRE_SCORE_RANGE = {"min": 260, "max": 340, "step": 1, "format": "%d"}
 GMAT_SCORE_RANGE = {"min": 200, "max": 800, "step": 10, "format": "%d"}
 
-# Sigmoid Bonus Parameters
-# GRE Parameters
-GRE_BONUS_THRESHOLD = 311  # Score below this gets 0 bonus (conservative 10th percentile)
-GRE_SIGMOID_MIDPOINT = 325  # Score where bonus is half of max (strong score)
-GRE_SIGMOID_STEEPNESS = 0.5  # Controls how fast bonus ramps up
-GRE_MAX_BONUS = 0.5  # Maximum GPA points to add
+GRE_BONUS_THRESHOLD = 311
+GRE_SIGMOID_MIDPOINT = 325
+GRE_SIGMOID_STEEPNESS = 0.5
+GRE_MAX_BONUS = 0.5
 
-# GMAT Parameters
-GMAT_BONUS_THRESHOLD = 611  # Score below this gets 0 bonus
-GMAT_SIGMOID_MIDPOINT = 700  # Strong score
+GMAT_BONUS_THRESHOLD = 611
+GMAT_SIGMOID_MIDPOINT = 700
 GMAT_SIGMOID_STEEPNESS = 0.05
 GMAT_MAX_BONUS = 0.5

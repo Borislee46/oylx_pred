@@ -17,6 +17,11 @@ from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
+def _has_streamlit_runtime() -> bool:
+    runtime = getattr(st, "runtime", None)
+    exists = getattr(runtime, "exists", None)
+    return bool(exists and exists())
+
 
 def compute_dataframe_hash(df: pd.DataFrame) -> str:
     if df is None or df.empty:
@@ -196,13 +201,15 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
         return False
 
     field_names = [FIELD_NAME_MAP.get(k, k) for k, _ in fields_to_validate]
-    animator = LoadingMessageAnimator()
-    animator.show(_get_analysis_message(field_names), force=True)
+    animator = LoadingMessageAnimator() if _has_streamlit_runtime() else None
+    if animator is not None:
+        animator.show(_get_analysis_message(field_names), force=True)
 
     validated_keys = []
     for k, content in fields_to_validate:
         field_name = FIELD_NAME_MAP.get(k, k)
-        animator.show(_get_analysis_message([field_name]), force=True)
+        if animator is not None:
+            animator.show(_get_analysis_message([field_name]), force=True)
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(_validate_field_with_llm, k, content)
@@ -212,11 +219,13 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
             is_valid = future.result()
 
         if not is_valid:
-            st.toast(f"{field_name}填写的内容无效")
+            if _has_streamlit_runtime():
+                st.toast(f"{field_name}填写的内容无效")
             continue
         validated_keys.append(k)
 
-    animator.clear()
+    if animator is not None:
+        animator.clear()
 
     if not validated_keys:
         return False

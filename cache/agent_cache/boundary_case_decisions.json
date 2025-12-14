@@ -206,5 +206,135 @@
       false
     ],
     "needs_adjustment": false
+  },
+  "b30ffab08933d199254be44c0ef76622": {
+    "decisions": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ],
+    "needs_adjustment": true
+  },
+  "ec9911abf0f803a3107e6121ddc2bba3": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "dfb9b95cf216207686a78814dfce1c96": {
+    "decisions": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ],
+    "needs_adjustment": true
+  },
+  "3bb3c7c44a9a6adb7028501076ff6079": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "4e3f9fbe353b49349b1e84b999fc7fed": {
+    "decisions": [
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "0949271057aef2b62a5169cb775ebb49": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "1efb2fdba9150bbc0884bce729bdccf1": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "e46a59ddc004874d71ed2ba6438cbccb": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "9c32b7d1119bc72a8a4c1b96634e5ac1": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
   }
 }

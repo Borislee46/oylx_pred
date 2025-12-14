@@ -73,6 +73,7 @@ def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
         smoothing = config.get("smoothing")
         cap_min_factor = config.get("cap_min_factor")
         cap_quality_gamma = config.get("cap_quality_gamma")
+        high_signal = config.get("high_signal")
 
         provider = LogitUpliftProvider(
             vectorizer_path=vec_path,
@@ -84,6 +85,7 @@ def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
             smoothing=smoothing,
             cap_min_factor=cap_min_factor,
             cap_quality_gamma=cap_quality_gamma,
+            high_signal=high_signal if isinstance(high_signal, dict) else None,
         )
         logger.info("成功创建LogitUpliftProvider实例")
         return GatedTextBoostProvider(provider)
