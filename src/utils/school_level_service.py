@@ -28,7 +28,7 @@ SCHOOL_LEVEL_PRIORITY = {
 }
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _get_school_level_mapping() -> dict[str, dict[str, Any]]:
     school_mapping = {}
 

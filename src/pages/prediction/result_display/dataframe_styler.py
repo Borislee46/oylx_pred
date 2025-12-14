@@ -12,11 +12,11 @@ class DataFrameStyler:
 
         major_column = None
         for col in df.columns:
-            if col.startswith("目标专业"):
+            if col == "推荐专业" or col.startswith("推荐专业"):
                 major_column = col
                 break
 
-        if major_column and df[major_column].astype(str).str.contains("(New!)", regex=False).any():
+        if major_column and df[major_column].astype(str).str.contains("(new!)", regex=False).any():
             style_needed = True
             style_columns.append(major_column)
 
@@ -25,8 +25,8 @@ class DataFrameStyler:
 
         def style_cells(val):
             if isinstance(val, str):
-                if "(New!)" in val:
-                    return "color: #FF4B4B;"
+                if "(new!)" in val:
+                    return "color: #06b6d4;"
             return ""
 
         return df.style.map(style_cells, subset=style_columns)
@@ -36,17 +36,17 @@ class DataFrameStyler:
         column_widths = column_widths or {}
         label_map = label_map or {}
 
-        if "专业详情" in df.columns and "专业详情" not in column_widths:
-            column_widths["专业详情"] = "large"
+        if "推荐专业详情" in df.columns and "推荐专业详情" not in column_widths:
+            column_widths["推荐专业详情"] = "large"
 
         column_config = {}
         for col_name in df.columns:
             width = column_widths.get(col_name, "small")
             label = label_map.get(col_name)
 
-            if col_name == "专业详情":
+            if col_name == "推荐专业详情":
                 column_config[col_name] = st.column_config.TextColumn(
-                    label=label, width=width, help="学校和专业的详细信息", max_chars=None
+                    label=label, width=width, help="推荐学校和专业的详细信息", max_chars=None
                 )
             elif col_name == "录取概率":
                 column_config[col_name] = st.column_config.ProgressColumn(
@@ -55,6 +55,9 @@ class DataFrameStyler:
                     min_value=0,
                     max_value=1,
                     format=" ",
+                    pinned=True,
+                    help="基于用户输入和历史数据，计算出的录取概率",
+                    color="#06b6d4",
                 )
             else:
                 column_config[col_name] = st.column_config.TextColumn(label=label, width=width)

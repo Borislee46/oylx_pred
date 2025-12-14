@@ -1,4 +1,9 @@
-from src.pages.prediction.input_form_components.form_config import GPA_SCALES
+from src.pages.prediction.input_form_components.form_config import (
+    GMAT_SCORE_RANGE,
+    GPA_SCALES,
+    GRE_SCORE_RANGE,
+    STANDARDIZED_TEST_TYPES,
+)
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
 from src.pages.prediction.input_form_components.language_score_validator import (
     LanguageScoreValidator,
@@ -35,6 +40,38 @@ class FormValidator:
                 return score
         except Exception:
             return normalized_score
+
+    @staticmethod
+    def validate_standardized_test_score(exam_type, score):
+        if not score:
+            return True, None, None
+
+        if exam_type not in STANDARDIZED_TEST_TYPES:
+            return False, f"{exam_type}分数无效，请选择有效的考试类型", None
+
+        try:
+            parsed_score = float(score)
+
+            if not parsed_score.is_integer():
+                return False, f"{exam_type}分数无效，请输入整数", None
+
+            score_int = int(parsed_score)
+            ranges = GRE_SCORE_RANGE if exam_type == "GRE" else GMAT_SCORE_RANGE
+
+            if score_int < 0:
+                return False, f"{exam_type}分数无效，请输入大于0的整数", None
+
+            if score_int < ranges["min"] or score_int > ranges["max"]:
+                return (
+                    False,
+                    f"{exam_type}分数无效，请输入 {ranges['min']} - {ranges['max']} 之间的整数",
+                    None,
+                )
+
+            return True, None, parsed_score
+
+        except ValueError:
+            return False, f"{exam_type}分数无效，请输入整数", None
 
     @staticmethod
     def normalize_gpa(raw_gpa, scale_key, background_university=None, gpa_converter=None):
@@ -91,6 +128,15 @@ class FormValidator:
             )
             if normalized_gpa == 0.0 and form_data["gpa_raw"] > 0:
                 errors.append(ValidationError("gpa_scale", "GPA分制无效"))
+
+        exam_type = form_data.get("exam_type")
+        exam_score = form_data.get("exam_score")
+        if exam_score:
+            is_valid, error_msg, _ = FormValidator.validate_standardized_test_score(
+                exam_type, exam_score
+            )
+            if not is_valid:
+                errors.append(ValidationError("exam_score", error_msg))
 
         school_service = get_school_level_service()
         background_university = form_data.get("background_university")

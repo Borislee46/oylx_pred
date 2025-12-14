@@ -10,7 +10,7 @@ from src.utils.logger import setup_logger
 data_loader_logger = setup_logger("page3", "prediction")
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_raw_cases_data(
     path: str = "src/machine_learning_models/data/cases_min.feather",
 ):
@@ -18,7 +18,7 @@ def load_raw_cases_data(
     return df
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_global_categories_dataframe(
     path: str = "src/machine_learning_models/data/cases_min.feather",
 ):
@@ -32,12 +32,12 @@ def load_global_categories_dataframe(
     return _cases_df_prepared
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_school_base_data(path="src/machine_learning_models/data/school_base.feather"):
     return pd.read_feather(path)
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_school_major_details_df(
     path="src/machine_learning_models/data/school_major_details.feather",
 ):
@@ -52,6 +52,6 @@ def _load_similarity_cache(path: str) -> dict:
     return {}
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_bg_target_similarity_cache(path="cache/background_target_similarity.feather"):
     return _load_similarity_cache(path)

@@ -17,7 +17,7 @@ def get_prediction_model(model_name):
     return model_instance
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def cached_get_prediction_model(model_name):
     return get_prediction_model(model_name)
 

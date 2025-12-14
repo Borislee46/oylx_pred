@@ -3,6 +3,7 @@ import random
 import re
 import string
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import pandas as pd
@@ -10,6 +11,7 @@ import requests
 import streamlit as st
 
 from src.agent.text_preprocessing_prompts import build_field_validation_prompt
+from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 
@@ -94,7 +96,7 @@ def has_valid_experience_details(experience_details: dict[str, str] | None) -> b
     return False
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def _validate_field_with_llm_cached(field_type: str, content_hash: str, content: str) -> bool:
     if is_effectively_empty(content):
         return False
@@ -194,23 +196,27 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
         return False
 
     field_names = [FIELD_NAME_MAP.get(k, k) for k, _ in fields_to_validate]
-    msg = _get_analysis_message(field_names)
-
-    placeholder = st.empty()
-    placeholder.markdown(
-        f'<span style="color: #888888; font-size: 0.85em;">{msg}...</span>',
-        unsafe_allow_html=True,
-    )
+    animator = LoadingMessageAnimator()
+    animator.show(_get_analysis_message(field_names), force=True)
 
     validated_keys = []
     for k, content in fields_to_validate:
-        if not _validate_field_with_llm(k, content):
-            field_name = FIELD_NAME_MAP.get(k, k)
+        field_name = FIELD_NAME_MAP.get(k, k)
+        animator.show(_get_analysis_message([field_name]), force=True)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_validate_field_with_llm, k, content)
+            while not future.done():
+                animator.tick()
+                time.sleep(0.3)
+            is_valid = future.result()
+
+        if not is_valid:
             st.toast(f"{field_name}填写的内容无效")
             continue
         validated_keys.append(k)
 
-    placeholder.empty()
+    animator.clear()
 
     if not validated_keys:
         return False

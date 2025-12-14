@@ -656,7 +656,7 @@ div[data-baseweb="menu"] > div:only-child {
 }
 
 .stApp .stButtonGroup div[data-baseweb="button-group"] {
-    gap: var(--hk-space-xs) !important;
+    gap: 0 !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_control"] {
@@ -667,14 +667,34 @@ div[data-baseweb="menu"] > div:only-child {
     box-shadow: none !important;
 }
 
+.stApp button[data-testid="stBaseButton-segmented_control"]:first-child {
+    margin-left: 0 !important;
+    border-top-left-radius: var(--hk-radius-sm) !important;
+    border-bottom-left-radius: var(--hk-radius-sm) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:last-child {
+    border-top-right-radius: var(--hk-radius-sm) !important;
+    border-bottom-right-radius: var(--hk-radius-sm) !important;
+    z-index: 0 !important;
+}
+
 .stApp button[data-testid="stBaseButton-segmented_control"] p {
     color: var(--hk-slate-500) !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:hover {
+.stApp button[data-testid="stBaseButton-segmented_control"]:hover:not(:last-child) {
     background-color: var(--hk-cyan-alpha-10) !important;
     border-color: var(--hk-cyan-alpha-30) !important;
     color: var(--hk-cyan) !important;
+    z-index: 1 !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:hover:last-child {
+    background-color: var(--hk-cyan-alpha-10) !important;
+    border-color: var(--hk-cyan-alpha-30) !important;
+    color: var(--hk-cyan) !important;
+    z-index: 1 !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_control"]:hover p {
@@ -686,6 +706,12 @@ div[data-baseweb="menu"] > div:only-child {
     color: var(--hk-cyan-dark) !important;
     border: 1px solid var(--hk-cyan) !important;
     box-shadow: none !important;
+    z-index: 1 !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"]:last-child {
+    border-right: 1px solid var(--hk-cyan) !important;
+    z-index: 1 !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_controlActive"] p {

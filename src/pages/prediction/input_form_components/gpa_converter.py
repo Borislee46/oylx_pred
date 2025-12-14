@@ -14,7 +14,9 @@ GPA_RULES_CONFIG_PATH = Path("config/gpa_conversion_rules.json")
 class GPAConverter:
     def __init__(self, school_base_df):
         if school_base_df is not None and not school_base_df.empty:
-            self.school_country_map = dict(zip(school_base_df["学校名称"], school_base_df["国家"]))
+            self.school_country_map = dict(
+                zip(school_base_df["学校名称"], school_base_df["国家"], strict=True)
+            )
         else:
             self.school_country_map = {}
 
@@ -24,7 +26,7 @@ class GPAConverter:
         return self.school_country_map.get(university_name)
 
     @staticmethod
-    @st.cache_data
+    @st.cache_data(show_spinner=False)
     def load_gpa_conversion_rules(config_path: str, file_mtime: float):
         path = Path(config_path)
         if not path.exists():

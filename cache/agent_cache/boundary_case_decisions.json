@@ -50,5 +50,161 @@
       false
     ],
     "needs_adjustment": false
+  },
+  "5387cfff9fea4d65ee8df30b085de8f8": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "d6b3067f551ba60aab1e62302eab03a6": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "50b81f700f2820fe869f70f25005b543": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "dc15e5f6317d91c8c840381011c274f3": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "3ef95d03953dab1b9e9c1a163b59c839": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "98e604a69022e8e74d85e787a2dc40ea": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "7b347abdfbb90673ee63a1a4a60489fd": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "b19488a6656e50b777bf7727f87b9a61": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "466a3e5ef44f261ee4bb659b825dbbf3": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "1494615cde75eededb16586c496f7b68": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "47c90d9b3ff0eb7a728313c29bb118f3": {
+    "decisions": [
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "b311259f3f039f83862b86b33655db54": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "2139b5ccdb4d77e2c0aa307e9015adfe": {
+    "decisions": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": false
+  },
+  "2e2cceb8f49e2d73d2dc35a99683db51": {
+    "decisions": [
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": true
+  },
+  "8072c20272a646220b333ae2387969b2": {
+    "decisions": [
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "needs_adjustment": true
+  },
+  "e705d0cb5a91090a0f7f46a63b733bab": {
+    "decisions": [
+      false,
+      false
+    ],
+    "needs_adjustment": false
   }
 }

@@ -49,7 +49,10 @@ def _generate_card_html(available_buttons: list, base_url: str, trace_id: str) -
         )
         cards_html += (
             f'<div class="card-wrapper" {data_attrs}>'
-            f'<div class="card"><span class="card-text">{button_text}</span></div>'
+            f'<div class="card">'
+            f'<div class="glare"></div>'
+            f'<span class="card-text">{button_text}</span>'
+            f"</div>"
             f"</div>"
         )
     return cards_html
@@ -92,14 +95,19 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             align-items: flex-end;
             transform-style: preserve-3d;
         }}
-        
+
         .card-wrapper {{
             position: absolute;
             width: {card_width}px;
             height: {card_height}px;
             cursor: pointer;
             transform-origin: center 350px;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+        }}
+
+        .card-wrapper.pressed .card {{
+            transform: scale(0.95) !important;
+            transition: transform 0.1s ease-out;
         }}
         
         .card {{
@@ -114,14 +122,28 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
             box-shadow: 
                 0 10px 30px -10px rgba(0, 0, 0, 0.15),
                 0 5px 15px -5px rgba(0, 0, 0, 0.1),
                 inset 0 1px 0 rgba(255, 255, 255, 0.8);
             pointer-events: none;
+            overflow: hidden;
         }}
         
+        .glare {{
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 80%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }}
+
         .card::before {{
             content: '';
             position: absolute;
@@ -319,10 +341,12 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                 isTransitioning = true;
                 
                 cardWrappers.forEach((cw, index) => {{
-                    cw.style.transition = `all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${{index * 40}}ms`;
+                    cw.style.transition = `all 0.5s cubic-bezier(0.23, 1, 0.32, 1) ${{index * 40}}ms`;
                     cw.classList.remove('hovered');
                     const card = cw.querySelector('.card');
                     card.style.transform = '';
+                    const glare = card.querySelector('.glare');
+                    if (glare) glare.style.opacity = '0';
                 }});
                 
                 wrapper.classList.remove('linear');
@@ -334,7 +358,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                     calculateFanAngles();
                     setTimeout(() => {{
                         cardWrappers.forEach((cw) => {{
-                            cw.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                            cw.style.transition = 'all 0.35s cubic-bezier(0.23, 1, 0.32, 1)';
                         }});
                         isTransitioning = false;
                     }}, 300 + numCards * 40);
@@ -351,7 +375,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                     const card = cw.querySelector('.card');
                     const distFromCenter = Math.abs(index - centerIndex);
                     const delay = distFromCenter * 50;
-                    cw.style.transition = `all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) ${{delay}}ms`;
+                    cw.style.transition = `all 0.5s cubic-bezier(0.23, 1, 0.32, 1) ${{delay}}ms`;
                     cw.style.transform = 'translateX(0) rotate(0deg) translateZ(0)';
                     cw.style.zIndex = 1;
                     card.style.filter = 'brightness(1) blur(0px)';
@@ -366,7 +390,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                     
                     setTimeout(() => {{
                         cardWrappers.forEach((cw) => {{
-                            cw.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                            cw.style.transition = 'all 0.35s cubic-bezier(0.23, 1, 0.32, 1)';
                         }});
                         isTransitioning = false;
                     }}, 100);
@@ -377,6 +401,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                 if (currentMode !== 'linear' || isTransitioning) return;
                 
                 const card = cw.querySelector('.card');
+                const glare = card.querySelector('.glare');
                 const rect = cw.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
@@ -387,12 +412,23 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                 const rotateY = (x - centerX) / centerX * 10;
                 
                 card.style.transform = `perspective(600px) rotateX(${{rotateX}}deg) rotateY(${{rotateY}}deg) translateY(-12px) scale(1.04)`;
+                
+                if (glare) {{
+                    const glareX = (x / rect.width) * 100;
+                    const glareY = (y / rect.height) * 100;
+                    glare.style.background = `radial-gradient(circle at ${{glareX}}% ${{glareY}}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 80%)`;
+                    glare.style.opacity = '0.6';
+                }}
             }}
             
             function resetTilt(cw) {{
                 if (currentMode !== 'linear') return;
                 const card = cw.querySelector('.card');
+                const glare = card.querySelector('.glare');
                 card.style.transform = '';
+                if (glare) {{
+                    glare.style.opacity = '0';
+                }}
             }}
             
             calculateFanAngles();
@@ -432,16 +468,17 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             }}
             
             cardWrappers.forEach((cw) => {{
-                cw.addEventListener('mouseenter', function() {{
-                    if (currentMode === 'fan') {{
-                        if (hoverTimeout) clearTimeout(hoverTimeout);
-                        hoverTimeout = setTimeout(() => {{
-                            setActiveWrapper(this);
-                        }}, 80);
-                    }} else if (currentMode === 'linear') {{
-                        this.classList.add('hovered');
-                    }}
-                }});
+            cw.addEventListener('mouseenter', function() {{
+                if (currentMode === 'fan') {{
+                    if (hoverTimeout) clearTimeout(hoverTimeout);
+                    const delay = activeWrapper ? 25 : 80;
+                    hoverTimeout = setTimeout(() => {{
+                        setActiveWrapper(this);
+                    }}, delay);
+                }} else if (currentMode === 'linear') {{
+                    this.classList.add('hovered');
+                }}
+            }});
                 
                 cw.addEventListener('mousemove', function(e) {{
                     if (currentMode === 'linear') {{
@@ -456,6 +493,23 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                         this.classList.remove('hovered');
                         resetTilt(this);
                     }}
+                    this.classList.remove('pressed');
+                }});
+                
+                cw.addEventListener('mousedown', function() {{
+                    this.classList.add('pressed');
+                }});
+                
+                cw.addEventListener('mouseup', function() {{
+                    this.classList.remove('pressed');
+                }});
+                
+                cw.addEventListener('touchstart', function() {{
+                    this.classList.add('pressed');
+                }});
+                
+                cw.addEventListener('touchend', function() {{
+                    this.classList.remove('pressed');
                 }});
                 
                 cw.addEventListener('click', function() {{

@@ -19,7 +19,7 @@ class DataFrameBuilder:
         max_items: int | None = None,
     ):
         if not results:
-            return pd.DataFrame(columns=["目标院校", "目标专业", "录取概率", "专业详情"])
+            return pd.DataFrame(columns=["推荐院校", "推荐专业", "录取概率", "推荐专业详情"])
 
         results.sort(
             key=lambda item: (
@@ -32,10 +32,10 @@ class DataFrameBuilder:
             results = results[:max_items]
 
         data = {
-            "目标院校": [result["university"] for result in results],
-            "目标专业": [
+            "推荐院校": [result["university"] for result in results],
+            "推荐专业": [
                 (
-                    f"{result['major']} (New!)"
+                    f"{result['major']}(new!)"
                     if result.get("is_new_major", False)
                     else result["major"]
                 )
@@ -44,7 +44,7 @@ class DataFrameBuilder:
             "录取概率": [
                 cls.get_probability_value(result.get("probability")) for result in results
             ],
-            "专业详情": [
+            "推荐专业详情": [
                 get_school_major_details(result.get("university"), result.get("major")) or ""
                 for result in results
             ],

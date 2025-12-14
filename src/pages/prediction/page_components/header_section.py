@@ -8,7 +8,7 @@ from src.utils.logger import setup_logger
 header_logger = setup_logger("page3", "prediction")
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_product_logo_image_as_base64(path: str) -> str:
     full_path = Path.cwd() / path
     try:

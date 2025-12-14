@@ -1,5 +1,6 @@
 import time
 
+import numpy as np
 import streamlit as st
 
 from src.pages.prediction.input_form_components import (
@@ -7,6 +8,16 @@ from src.pages.prediction.input_form_components import (
     FormUIComponents,
     FormValidator,
     GPAConverter,
+)
+from src.pages.prediction.input_form_components.form_config import (
+    GMAT_BONUS_THRESHOLD,
+    GMAT_MAX_BONUS,
+    GMAT_SIGMOID_MIDPOINT,
+    GMAT_SIGMOID_STEEPNESS,
+    GRE_BONUS_THRESHOLD,
+    GRE_MAX_BONUS,
+    GRE_SIGMOID_MIDPOINT,
+    GRE_SIGMOID_STEEPNESS,
 )
 from src.pages.prediction.input_form_components.language_score_processor import (
     apply_overseas_language_boost,
@@ -19,6 +30,31 @@ from src.utils.school_level_service import get_school_level_service
 from src.utils.session_manager import SessionManager
 
 form_logger = setup_logger("page3", "prediction")
+
+
+def _calculate_gpa_bonus(exam_type, exam_score):
+    if not exam_type or exam_type == "无" or not exam_score:
+        return 0.0
+
+    bonus = 0.0
+
+    if exam_type == "GRE":
+        if exam_score < GRE_BONUS_THRESHOLD:
+            return 0.0
+
+        bonus = GRE_MAX_BONUS / (
+            1 + np.exp(-GRE_SIGMOID_STEEPNESS * (exam_score - GRE_SIGMOID_MIDPOINT))
+        )
+
+    elif exam_type == "GMAT":
+        if exam_score < GMAT_BONUS_THRESHOLD:
+            return 0.0
+
+        bonus = GMAT_MAX_BONUS / (
+            1 + np.exp(-GMAT_SIGMOID_STEEPNESS * (exam_score - GMAT_SIGMOID_MIDPOINT))
+        )
+
+    return max(0.0, bonus)
 
 
 @st.fragment
@@ -43,7 +79,13 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
                 selected_background_major_original,
                 background_major,
             ) = ui_components.render_background_section(cases_df)
-            gpa_raw = ui_components.render_gpa_section()
+
+            gpa_col, test_col = st.columns([2, 1], gap="medium")
+            with gpa_col:
+                ui_components.render_gpa_section()
+            with test_col:
+                exam_type, exam_score = ui_components.render_standardized_test_section()
+
             (
                 final_target_universities,
                 final_target_majors,
@@ -72,6 +114,8 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
             "background_major": background_major,
             "gpa_raw": session_manager.get("gpa_raw_input"),
             "gpa_scale": session_manager.get("gpa_scale"),
+            "exam_type": exam_type,
+            "exam_score": exam_score,
             "language_type": language_type,
             "language_score_raw": raw_language_score_value,
             "language_score_input_error": session_manager.get("language_score_input_error", False),
@@ -89,7 +133,7 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
             form_logger.warning(f"表单验证失败 - 错误信息: {error_messages}")
             for err in validation_errors:
                 st.toast(str(err))
-                time.sleep(0.5)
+                time.sleep(0.3)
             session_manager.set(
                 submitted=False, form_data_changed=False, prediction_submit_lock=False
             )
@@ -146,6 +190,8 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
         all_universities_target,
         all_majors_target,
         gpa_converter,
+        exam_type,
+        exam_score,
     )
 
 
@@ -174,6 +220,11 @@ def _process_successful_submission(
         form_data.get("background_university"),
         gpa_converter,
     )
+
+    bonus_gpa = _calculate_gpa_bonus(form_data.get("exam_type"), form_data.get("exam_score"))
+    if normalized_gpa is not None and bonus_gpa > 0:
+        normalized_gpa += bonus_gpa
+        st.toast(f"标化成绩加成生效: GPA +{bonus_gpa:.3f}")
 
     language_score_for_submission = form_data["language_score_raw"]
 
@@ -237,6 +288,8 @@ def _get_current_form_state(
     all_universities_target,
     all_majors_target,
     gpa_converter,
+    exam_type=None,
+    exam_score=None,
 ):
     current_display_lang_score = raw_language_score_value
 
@@ -265,6 +318,10 @@ def _get_current_form_state(
             background_university,
             gpa_converter,
         )
+
+        bonus_gpa = _calculate_gpa_bonus(exam_type, exam_score)
+        if bonus_gpa > 0:
+            current_normalized_gpa += bonus_gpa
 
     background_uni_for_model = _get_background_university_for_model(background_university, cases_df)
 

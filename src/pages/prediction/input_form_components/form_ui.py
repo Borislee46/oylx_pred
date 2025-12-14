@@ -11,6 +11,9 @@ from src.pages.prediction.input_form_components.gpa_ui import (
 from src.pages.prediction.input_form_components.language_ui import (
     render_language_section as render_language_section_component,
 )
+from src.pages.prediction.input_form_components.standardized_test_ui import (
+    render_standardized_test_section as render_standardized_test_section_component,
+)
 from src.pages.prediction.input_form_components.submit_ui import (
     render_submit_button as render_submit_button_component,
 )
@@ -35,6 +38,11 @@ class FormUIComponents:
 
     def render_gpa_section(self):
         return render_gpa_section_component(
+            self.session_manager, self.form_state_manager, form_ui_logger
+        )
+
+    def render_standardized_test_section(self):
+        return render_standardized_test_section_component(
             self.session_manager, self.form_state_manager, form_ui_logger
         )
 

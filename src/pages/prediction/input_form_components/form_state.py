@@ -85,6 +85,8 @@ class FormStateManager:
             "selected_target_majors": session_manager.get("selected_target_majors", []),
             "gpa_raw": session_manager.get("gpa_raw_input"),
             "gpa_scale": session_manager.get("gpa_scale"),
+            "exam_type": session_manager.get("standardized_test_type"),
+            "exam_score": session_manager.get("current_exam_score"),
             "language_type": session_manager.get("language_type"),
             "language_score_raw": session_manager.get("language_score_input"),
             "background_university": session_manager.get_widget_value(
@@ -285,7 +287,8 @@ class FormStateManager:
         if old_max <= 0:
             return None
 
-        return round((gpa / old_max) * new_max, 2)
+        raw_val = (gpa / old_max) * new_max
+        return int(raw_val * 100 + 0.5 + 1e-9) / 100.0
 
     @staticmethod
     def gpa_scale_changed(session_manager: SessionManager) -> None:

@@ -37,10 +37,6 @@ class _CalibratedPredictor:
             a = float(params.get("a"))
             b = float(params.get("b"))
             calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
-        elif method == "isotonic":
-            x_thr = params.get("x_thresholds", [])
-            y_thr = params.get("y_thresholds", [])
-            calibrated_p1 = np.interp(p1, x_thr, y_thr)
         else:
             return base_proba
         p0 = 1.0 - calibrated_p1
@@ -93,7 +89,7 @@ def load_model_dependencies(
     return final_model, feature_names, level_fallback_mapping
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def load_model(
     model_name: str = "xgboost",
 ) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:

@@ -9,7 +9,7 @@ from src.pages.prediction.input_form_components.form_config import (
 )
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def build_target_base_df_cached(
     unique_targets_df: pd.DataFrame | None, details_df: pd.DataFrame | None
 ) -> tuple[pd.DataFrame, dict[str, str]]:

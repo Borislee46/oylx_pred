@@ -1,10 +1,11 @@
+import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
-
-import streamlit as st
 
 from src.pages.prediction.prediction_utils import is_new_major
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
+from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
 from src.utils.logger import setup_logger
 
 prediction_handler_logger = setup_logger("page3", "prediction")
@@ -112,28 +113,6 @@ def _get_text_boost_message(experience_details: dict[str, str]) -> str:
     return f"正在分析您的{'、'.join(items)}对申请的加成效果"
 
 
-DOTS_CSS = """
-<style>
-.dots::after {
-    content: '.';
-    animation: dots 1.2s steps(3, end) infinite;
-}
-@keyframes dots {
-    0% { content: '.'; }
-    33% { content: '..'; }
-    66% { content: '...'; }
-}
-</style>
-"""
-
-
-def _render_animated_message(placeholder, message: str):
-    placeholder.markdown(
-        f'{DOTS_CSS}<span style="color:#888;font-size:0.85em">{message}<span class="dots"></span></span>',
-        unsafe_allow_html=True,
-    )
-
-
 def batch_adjust_results(
     results_list: list[list[dict[str, float | str]]],
     probability_adjuster: ProbabilityAdjuster | None,
@@ -164,27 +143,35 @@ def batch_adjust_results(
         except Exception as e:
             prediction_handler_logger.warning(f"批量查询新专业失败: {e}")
 
-    placeholder = None
+    def _process():
+        adjusted_results_list = []
+        for results in results_list:
+            adjusted = pipeline_adjust_results(
+                results,
+                probability_adjuster,
+                text_boost_provider,
+                experience_details,
+                gpa,
+                language_score,
+                background_university,
+                is_new_major_cache,
+            )
+            adjusted_results_list.append(adjusted)
+        return adjusted_results_list
+
+    animator = None
     if text_boost_provider is not None and experience_details:
-        placeholder = st.empty()
-        message = _get_text_boost_message(experience_details)
-        _render_animated_message(placeholder, message)
+        animator = LoadingMessageAnimator()
+        animator.show(_get_text_boost_message(experience_details), force=True)
 
-    adjusted_results_list = []
-    for results in results_list:
-        adjusted = pipeline_adjust_results(
-            results,
-            probability_adjuster,
-            text_boost_provider,
-            experience_details,
-            gpa,
-            language_score,
-            background_university,
-            is_new_major_cache,
-        )
-        adjusted_results_list.append(adjusted)
+    if animator is None:
+        return _process()
 
-    if placeholder is not None:
-        placeholder.empty()
-
-    return adjusted_results_list
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(_process)
+        while not future.done():
+            animator.tick()
+            time.sleep(0.3)
+        result = future.result()
+    animator.clear()
+    return result

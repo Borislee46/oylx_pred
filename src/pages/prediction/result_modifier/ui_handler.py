@@ -4,6 +4,43 @@ import time
 import streamlit as st
 
 
+class LoadingMessageAnimator:
+    def __init__(self, placeholder=None, min_interval: float = 1.2):
+        self.placeholder = placeholder or st.empty()
+        self.min_interval = min_interval
+        self._cycle_count = 0
+        self._current_message = ""
+        self._last_update_time = 0.0
+
+    def _render(self, message: str):
+        dots = [".", "..", "..."][self._cycle_count % 3]
+        self.placeholder.markdown(
+            f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{message}{dots}</div>',
+            unsafe_allow_html=True,
+        )
+        self._cycle_count += 1
+        self._current_message = message
+        self._last_update_time = time.time()
+
+    def show(self, message: str, force: bool = False):
+        now = time.time()
+        if (
+            not force
+            and message == self._current_message
+            and now - self._last_update_time < self.min_interval
+        ):
+            return
+        self._render(message)
+
+    def tick(self):
+        if self._current_message:
+            self._render(self._current_message)
+
+    def clear(self):
+        self.placeholder.empty()
+        self._current_message = ""
+
+
 class RankerUIHandler:
     BASIC_MESSAGES = [
         "分析 {majors} 是否为交叉学科",
@@ -61,10 +98,10 @@ class RankerUIHandler:
         self.background_faculty = background_faculty
         self.mode = mode
         self.placeholder = st.empty()
+        self._animator = LoadingMessageAnimator(self.placeholder, self.MIN_DISPLAY_INTERVAL)
         self.is_active = False
         self._message_history: set = set()
         self._round_count = 0
-        self._cycle_count = 0
         self._last_update_time = 0.0
         self._message_pools = self._build_message_pools()
 
@@ -87,24 +124,19 @@ class RankerUIHandler:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.is_active = False
-        self.placeholder.empty()
+        self._animator.clear()
         return False
 
     def _render(self, message: str):
-        dots = [".", "..", "..."][self._cycle_count % 3]
-        self.placeholder.markdown(
-            f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{message}{dots}</div>',
-            unsafe_allow_html=True,
-        )
-        self._cycle_count += 1
         self._current_message = message
+        self._animator.show(message, force=True)
 
     def update_message(self, message: str):
         self._render(message)
 
     def update_loop(self):
         if self.is_active and hasattr(self, "_current_message"):
-            self._render(self._current_message)
+            self._animator.tick()
 
     def _pick_fresh_message(self, pool: list[str], **kwargs) -> str:
         available = [m for m in pool if m not in self._message_history]

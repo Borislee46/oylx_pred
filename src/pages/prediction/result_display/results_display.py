@@ -54,12 +54,12 @@ class ResultsDisplay:
             return
 
         label_map = {}
-        if result_type and result_type in self.result_types and "目标专业" in df.columns:
+        if result_type and result_type in self.result_types and "推荐专业" in df.columns:
             title = self.result_types[result_type]["title"]
             if title == "指定专业":
-                label_map["目标专业"] = title
+                label_map["推荐专业"] = title
             else:
-                label_map["目标专业"] = f"{title} 推荐"
+                label_map["推荐专业"] = f"{title} 推荐"
 
         styled_df = self.dataframe_styler.create_styled_dataframe(df)
         column_config = self.dataframe_styler.get_column_config(

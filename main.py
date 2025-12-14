@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.utils.auth.auth_json_loader import load_auth_config
 from src.utils.auth.permission_checker import (
@@ -45,9 +46,6 @@ def _initialize_page_and_state():
 
     if "logged_in_user" not in st.session_state:
         st.session_state.logged_in_user = None
-
-    if "last_seen_version" not in st.session_state:
-        st.session_state.last_seen_version = None
 
     return user_info, user_nickname
 
@@ -105,6 +103,24 @@ def main() -> None:
     accessible_modules, is_user_admin = _enforce_access_and_get_modules(user_email)
 
     render_header(user_nickname)
+
+    scroll_to = st.query_params.get("scroll_to")
+    if scroll_to:
+        components.html(
+            f"""
+            <script>
+            setTimeout(() => {{
+                const el = window.parent.document.getElementById("{scroll_to}");
+                if (el) {{
+                    el.scrollIntoView({{behavior: "smooth", block: "start"}});
+                }}
+            }}, 50);
+           </script>
+            """,
+            height=0,
+            width=0,
+        )
+    st.query_params.clear()
 
     available_buttons = _collect_available_buttons(accessible_modules, is_user_admin, user_email)
     button_names = [name for name, _, _ in available_buttons]

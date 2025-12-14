@@ -31,6 +31,8 @@ def build_user_form_log(
         "background_major": format_field(log_data_source.get("background_major_original")),
         "gpa_scale": format_field(log_data_source.get("gpa_scale")),
         "gpa_score": format_float(log_data_source.get("gpa_raw"), 2),
+        "exam_type": format_field(log_data_source.get("exam_type")),
+        "exam_score": format_field(log_data_source.get("exam_score")),
         "target_universities": format_list_field(log_data_source.get("target_universities", [])),
         "major_categories": format_list_field(session_manager.get("selected_major_categories", [])),
         "target_majors": format_list_field(log_data_source.get("target_majors", [])),
