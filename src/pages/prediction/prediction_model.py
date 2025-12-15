@@ -36,7 +36,7 @@ class PredictionModel:
 
         self._setup_global_categories(global_categories_df)
         self._enable_categorical = self._check_categorical_support()
-        self._preprocessed_cache: dict[tuple, dict[str, float]] = {}
+        self._preprocessed_cache: dict[tuple, dict[str, Any]] = {}
         self._cache_maxsize = 128
 
     def _setup_global_categories(self, global_categories_df: pd.DataFrame | None):
@@ -61,11 +61,17 @@ class PredictionModel:
             self.global_category_index[col] = {str(cat): idx for idx, cat in enumerate(categories)}
 
     def _check_categorical_support(self) -> bool:
-        return (
-            bool(self.model.get_xgb_params().get("enable_categorical", False))
-            if hasattr(self.model, "get_xgb_params")
-            else False
-        )
+        booster = None
+        if hasattr(self.model, "get_booster"):
+            booster = self.model.get_booster()
+        if booster is not None:
+            feature_types = getattr(booster, "feature_types", None)
+            if feature_types and any(t == "c" for t in feature_types):
+                return True
+
+        if hasattr(self.model, "get_xgb_params"):
+            return bool(self.model.get_xgb_params().get("enable_categorical", False))
+        return False
 
     def _log_transform_value(self, value: Any) -> float:
         numeric_val = pd.to_numeric(value, errors="coerce")
@@ -94,6 +100,10 @@ class PredictionModel:
         if col in COUNT_COLUMNS_FOR_LOG_TRANSFORM:
             return self._log_transform_value(value)
         elif col in CATEGORICAL_COLUMNS:
+            if self._enable_categorical:
+                if value is None or (isinstance(value, float) and np.isnan(value)):
+                    return ""
+                return str(value)
             return float(self._get_category_code(col, value))
         else:
             try:
@@ -101,13 +111,16 @@ class PredictionModel:
             except (ValueError, TypeError):
                 return 0.0
 
-    def _get_preprocessed_base_features(self, input_data_tuple: tuple) -> dict[str, float]:
-        if input_data_tuple in self._preprocessed_cache:
-            return self._preprocessed_cache[input_data_tuple]
+    def _get_preprocessed_base_features(
+        self, input_data_tuple: tuple, features_to_use: list[str]
+    ) -> dict[str, Any]:
+        cache_key = (input_data_tuple, tuple(features_to_use))
+        if cache_key in self._preprocessed_cache:
+            return self._preprocessed_cache[cache_key]
 
         input_data = dict(input_data_tuple)
         base_features = [
-            f for f in (self.feature_names or []) if f not in ["target_university", "target_major"]
+            f for f in features_to_use if f not in ["target_university", "target_major"]
         ]
 
         result = {
@@ -117,11 +130,14 @@ class PredictionModel:
 
         if len(self._preprocessed_cache) >= self._cache_maxsize:
             self._preprocessed_cache.clear()
-        self._preprocessed_cache[input_data_tuple] = result
+        self._preprocessed_cache[cache_key] = result
         return result
 
     def _create_prediction_dataframe(
-        self, combinations: list[tuple[str, str]], preprocessed_base: dict[str, float]
+        self,
+        combinations: list[tuple[str, str]],
+        preprocessed_base: dict[str, Any],
+        features_to_use: list[str],
     ) -> pd.DataFrame:
         if not combinations:
             return pd.DataFrame()
@@ -130,17 +146,24 @@ class PredictionModel:
         n = len(combinations)
 
         data_dict = {}
+        allowed_features = set(features_to_use)
         for feat, value in preprocessed_base.items():
-            data_dict[feat] = np.full(n, value, dtype=np.float32)
+            if feat in CATEGORICAL_COLUMNS:
+                self._add_categorical_feature(data_dict, feat, [value] * n, allowed_features)
+            else:
+                data_dict[feat] = np.full(n, value, dtype=np.float32)
 
-        self._add_categorical_feature(data_dict, "target_university", list(universities))
-        self._add_categorical_feature(data_dict, "target_major", list(majors))
+        self._add_categorical_feature(
+            data_dict, "target_university", list(universities), allowed_features
+        )
+        self._add_categorical_feature(data_dict, "target_major", list(majors), allowed_features)
 
-        features_to_use = self.feature_names or list(data_dict.keys())
         return pd.DataFrame(data_dict, columns=features_to_use)
 
-    def _add_categorical_feature(self, data_dict: dict, feature_name: str, values: list):
-        if feature_name not in (self.feature_names or []):
+    def _add_categorical_feature(
+        self, data_dict: dict, feature_name: str, values: list, allowed_features: set[str]
+    ):
+        if feature_name not in allowed_features:
             return
 
         if self._enable_categorical and feature_name in self.global_categories:
@@ -174,10 +197,21 @@ class PredictionModel:
             page_logger.error("预测模型未初始化")
             raise ValueError("预测模型未初始化")
 
-        input_data_tuple = tuple(sorted(input_data.items()))
-        preprocessed_base = self._get_preprocessed_base_features(input_data_tuple)
+        features_to_use = (
+            self.feature_names
+            if isinstance(self.feature_names, list) and self.feature_names
+            else expected_features
+        )
+        if not features_to_use:
+            page_logger.warning("预测特征列表为空")
+            return []
 
-        prediction_df = self._create_prediction_dataframe(combinations, preprocessed_base)
+        input_data_tuple = tuple(sorted(input_data.items()))
+        preprocessed_base = self._get_preprocessed_base_features(input_data_tuple, features_to_use)
+
+        prediction_df = self._create_prediction_dataframe(
+            combinations, preprocessed_base, features_to_use
+        )
 
         if prediction_df.empty:
             page_logger.warning("预测DataFrame为空")

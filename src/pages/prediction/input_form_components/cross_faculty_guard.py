@@ -143,7 +143,9 @@ def _check_majors_with_agent(
             )
 
         agent = BoundaryCaseAgent(cases_df=cases_df)
-        result = agent.evaluate_boundary_cases(background_major, cases, mode="relax")
+        result = agent.evaluate_boundary_cases(
+            background_major, cases, mode="relax", use_persistent_cache=False
+        )
         decisions = result.get("decisions", [])
 
         if any(decisions):

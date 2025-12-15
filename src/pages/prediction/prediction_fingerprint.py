@@ -1,3 +1,5 @@
+import hashlib
+
 import pandas as pd
 
 from src.utils.logger import setup_logger
@@ -9,10 +11,11 @@ def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
     if not lst:
         return (0, 0)
     try:
-        sorted_list = sorted(lst)
-
-        list_tuple = tuple(sorted_list)
-        return (len(lst), hash(list_tuple))
+        sorted_list = sorted(str(x) for x in lst)
+        payload = "\n".join(sorted_list).encode("utf-8")
+        digest = hashlib.sha1(payload).digest()
+        stable_hash = int.from_bytes(digest[:8], "big", signed=False)
+        return (len(lst), stable_hash)
     except Exception as e:
         prediction_handler_logger.warning(f"计算列表指纹失败: {e}")
         return (len(lst), 0)

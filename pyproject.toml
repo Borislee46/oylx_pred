@@ -39,4 +39,4 @@ explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --disable-warnings"
+addopts = "-v --disable-warnings --import-mode=importlib"

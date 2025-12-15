@@ -10,8 +10,11 @@ from src.pages.prediction.prediction_fingerprint import (
     compute_list_fingerprint,
 )
 from src.pages.prediction.prediction_pipeline import run_prediction_pipeline
-from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
+from src.pages.prediction.result_modifier.experience_text_validator import (
+    has_meaningful_experience_text,
+)
 from src.pages.prediction.results_handler import reset_prediction_results
+from src.utils.app_data_loader import load_raw_cases_data
 from src.utils.logger import setup_logger
 
 if TYPE_CHECKING:
@@ -53,7 +56,7 @@ def run_prediction_with_guard(
     has_valid_experience = has_meaningful_experience_text(experience_details)
     input_data_with_lists["_has_valid_experience"] = has_valid_experience
 
-    cases_df_fingerprint = compute_df_fingerprint(page_state.cases_df)
+    cases_df_fingerprint = compute_df_fingerprint(load_raw_cases_data())
     all_universities_fingerprint = compute_list_fingerprint(all_universities_target)
     all_majors_fingerprint = compute_list_fingerprint(all_majors_target)
 
@@ -65,10 +68,11 @@ def run_prediction_with_guard(
         all_universities_fingerprint,
         all_majors_fingerprint,
     )
-    if prediction_result_model and prediction_result_model.unified_results is not None:
-        if prediction_result_model.meta:
-            session_manager.set(**prediction_result_model.meta)
+    if prediction_result_model and prediction_result_model.meta:
+        session_manager.set(**prediction_result_model.meta)
 
+    unified = getattr(prediction_result_model, "unified_results", None)
+    if isinstance(unified, list) and len(unified) > 0:
         session_manager.set(
             prediction_results=prediction_result_model,
             **{session_keys.has_predicted: True, session_keys.predict_lock: False},

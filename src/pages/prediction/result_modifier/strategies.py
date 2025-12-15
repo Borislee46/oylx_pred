@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 from src.pages.prediction.result_modifier.config import (
     AGENT_BOUNDARY_SIMILARITY_RANGE,
-    AGENT_MAX_BOUNDARY_CASES,
     AGENT_MIN_SAFE_RELAX_THRESHOLD,
     AGENT_TAIL_PERCENTAGE,
     CROSS_MAJOR_SIMILARITY_MIN,
@@ -26,8 +25,16 @@ class RankerStrategy(ABC):
         pass
 
     @abstractmethod
+    def triage_decision(self, case: dict) -> bool | None:
+        pass
+
+    @abstractmethod
     def update_results(
-        self, adjusted_results: list[dict], cases_to_evaluate: list[dict], decisions: list[bool]
+        self,
+        adjusted_results: list[dict],
+        cases_to_evaluate: list[dict],
+        decisions: list[bool],
+        max_adjust: int,
     ) -> tuple[int, list[dict]]:
         pass
 
@@ -80,24 +87,43 @@ class RelaxStrategy(RankerStrategy):
         ]
         pool_for_exploration.sort(key=lambda x: x.get("similarity", 0.0), reverse=True)
 
-        return boundary_candidates[:AGENT_MAX_BOUNDARY_CASES], pool_for_exploration
+        return boundary_candidates, pool_for_exploration
 
-    def update_results(self, adjusted_results, cases_to_evaluate, decisions):
+    def triage_decision(self, case: dict) -> bool | None:
+        similarity = case.get("similarity", 0.0)
+        if similarity < CROSS_MAJOR_SIMILARITY_MIN:
+            return False
+        return None
+
+    def update_results(self, adjusted_results, cases_to_evaluate, decisions, max_adjust: int):
+        if max_adjust <= 0:
+            return 0, adjusted_results
+
+        selected = [
+            (i, cases_to_evaluate[i].get("similarity", 0.0))
+            for i, d in enumerate(decisions)
+            if d and i < len(cases_to_evaluate)
+        ]
+        selected.sort(key=lambda x: x[1], reverse=True)
+        selected_indices = {i for i, _ in selected[:max_adjust]}
+
+        existing_keys = {
+            (r.get("university"), r.get("major")) for r in adjusted_results if isinstance(r, dict)
+        }
+
         added_count = 0
-        new_results = adjusted_results
+        for i in selected_indices:
+            case = cases_to_evaluate[i]
+            if self.triage_decision(case) is False:
+                continue
+            key = (case.get("university"), case.get("major"))
+            if key in existing_keys:
+                continue
+            adjusted_results.append(case)
+            existing_keys.add(key)
+            added_count += 1
 
-        for i, decision in enumerate(decisions):
-            if i < len(cases_to_evaluate) and decision:
-                case = cases_to_evaluate[i]
-                similarity = case.get("similarity", 0.0)
-                if similarity < CROSS_MAJOR_SIMILARITY_MIN:
-                    logger.warning(
-                        f"Agent 添加相似度过低的专业: {case.get('major')} "
-                        f"(Sim: {similarity:.3f}, BG: {self.background_major})"
-                    )
-                adjusted_results.append(case)
-                added_count += 1
-        return added_count, new_results
+        return added_count, adjusted_results
 
     def update_boundary_cases(self, boundary_candidates, evaluated_cases, adjusted_results):
         filtered = [
@@ -105,7 +131,7 @@ class RelaxStrategy(RankerStrategy):
             for c in boundary_candidates
             if (c.get("university"), c.get("major")) not in evaluated_cases
         ]
-        return filtered[:AGENT_MAX_BOUNDARY_CASES]
+        return filtered
 
     def get_exploration_candidates(self, adjusted_results, pool_for_exploration, evaluated_cases):
         next_candidates = [
@@ -113,7 +139,7 @@ class RelaxStrategy(RankerStrategy):
             for c in pool_for_exploration
             if (c.get("university"), c.get("major")) not in evaluated_cases
         ]
-        return next_candidates[:AGENT_MAX_BOUNDARY_CASES]
+        return next_candidates
 
 
 class TightenStrategy(RankerStrategy):
@@ -134,28 +160,35 @@ class TightenStrategy(RankerStrategy):
 
         pool_for_exploration = candidates_pool
 
-        return tail_candidates[:AGENT_MAX_BOUNDARY_CASES], pool_for_exploration
+        return tail_candidates, pool_for_exploration
 
-    def update_results(self, adjusted_results, cases_to_evaluate, decisions):
+    def triage_decision(self, case: dict) -> bool | None:
+        similarity = case.get("similarity", 0.0)
+        if similarity >= self.current_threshold:
+            return False
+        return None
+
+    def update_results(self, adjusted_results, cases_to_evaluate, decisions, max_adjust: int):
+        if max_adjust <= 0:
+            return 0, adjusted_results
+
+        selected = [
+            (i, cases_to_evaluate[i].get("similarity", 0.0))
+            for i, d in enumerate(decisions)
+            if d and i < len(cases_to_evaluate)
+        ]
+        selected.sort(key=lambda x: x[1])
+        selected_indices = [i for i, _ in selected[:max_adjust]]
         cases_to_remove = [
-            cases_to_evaluate[i]
-            for i, decision in enumerate(decisions)
-            if i < len(cases_to_evaluate) and decision
+            cases_to_evaluate[i] for i in selected_indices if i < len(cases_to_evaluate)
         ]
 
-        for case in cases_to_remove:
-            similarity = case.get("similarity", 0.0)
-            if similarity >= self.current_threshold:
-                logger.warning(
-                    f"Agent 移除相似度较高的专业: {case.get('major')} "
-                    f"(Sim: {similarity:.3f}, Threshold: {self.current_threshold:.3f})"
-                )
-
-        remove_keys = {(c.get("university"), c.get("major")) for c in cases_to_remove}
+        filtered_to_remove = [c for c in cases_to_remove if self.triage_decision(c) is not False]
+        remove_keys = {(c.get("university"), c.get("major")) for c in filtered_to_remove}
         new_results = [
             r for r in adjusted_results if (r.get("university"), r.get("major")) not in remove_keys
         ]
-        return len(cases_to_remove), new_results
+        return len(filtered_to_remove), new_results
 
     def update_boundary_cases(self, boundary_candidates, evaluated_cases, adjusted_results):
         remaining_tail = [
@@ -165,7 +198,7 @@ class TightenStrategy(RankerStrategy):
         ]
         remaining_tail.sort(key=lambda x: x.get("similarity", 0.0))
         tail_count = max(1, int(len(remaining_tail) * AGENT_TAIL_PERCENTAGE))
-        return remaining_tail[: min(tail_count, AGENT_MAX_BOUNDARY_CASES)]
+        return remaining_tail[:tail_count]
 
     def get_exploration_candidates(self, adjusted_results, pool_for_exploration, evaluated_cases):
         remaining_for_exploration = [
@@ -174,4 +207,4 @@ class TightenStrategy(RankerStrategy):
             if (r.get("university"), r.get("major")) not in evaluated_cases
         ]
         remaining_for_exploration.sort(key=lambda x: x.get("similarity", 0.0))
-        return remaining_for_exploration[:AGENT_MAX_BOUNDARY_CASES]
+        return remaining_for_exploration

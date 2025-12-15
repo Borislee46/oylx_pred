@@ -3,7 +3,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import streamlit as st
 
 from src.pages.prediction.prediction_utils import normalize_language_score
 from src.pages.prediction.result_modifier.admission_cache import (
@@ -31,6 +30,7 @@ from src.pages.prediction.result_modifier.config import (
     SELECTION_SCORE_BOOST_FACTOR,
     get_university_difficulty_order,
 )
+from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import clip_probability, compute_dataframe_hash
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
@@ -38,7 +38,7 @@ from src.utils.school_level_service import get_school_level_service
 logger = setup_logger("page3", "prediction")
 
 
-@st.cache_data(show_spinner=False)
+@cache_data(show_spinner=False)
 def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[str, float]:
     stats = {
         "gpa_mean": 0.0,
@@ -220,6 +220,7 @@ class ProbabilityAdjuster:
         probability: float,
         gpa: float | None,
         language_score: float | None,
+        background_university_name: str | None = None,
     ) -> float:
         if gpa is None or language_score is None:
             return probability

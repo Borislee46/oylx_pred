@@ -57,6 +57,11 @@ class SelectBoxHelper:
             )
         except Exception as e:
             self.logger.error(f"渲染selectbox失败 ({widget_key}): {e}", exc_info=True)
+            toast_key = f"_selectbox_error_toast_{widget_key}"
+            err_sig = f"{type(e).__name__}:{e}"
+            if st.session_state.get(toast_key) != err_sig:
+                st.toast("选项加载失败，请稍后重试")
+                st.session_state[toast_key] = err_sig
             return st.selectbox(
                 label,
                 [],

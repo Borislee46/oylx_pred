@@ -1,346 +1,296 @@
 {
-  "12d8ef33b418094f75b95211c1d5ea67": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "b1b7751dca4f45646420175c50174b81": {
+    "decision": true
   },
-  "4bab04c874716db7da4faa2af3c6fbef": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "a43520086062a06d04d05b8c0f5d543d": {
+    "decision": true
   },
-  "f851fb981711dcd0685d0e3e81aa034d": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "20d82de8d55b04866791b6be64b5e816": {
+    "decision": true
   },
-  "6110df8a5b0cd2af96581b38415a2f23": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "685141e1453dd5180511d18a8c698ab3": {
+    "decision": true
   },
-  "583f5c8b9db75b2b0c91f3b55f081d2e": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "c31cf1c51238274a95167cede2f503a4": {
+    "decision": true
   },
-  "39583b266d50c7aeaae6be45b73b564c": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "dc77b58200793fa52d93652e52796d93": {
+    "decision": true
   },
-  "5387cfff9fea4d65ee8df30b085de8f8": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "66c81d57ae579acc5d2950744930f791": {
+    "decision": true
   },
-  "d6b3067f551ba60aab1e62302eab03a6": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "2a3452b5afc353874dca60d5d29e362d": {
+    "decision": true
   },
-  "50b81f700f2820fe869f70f25005b543": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "956133d681d085677237392525351268": {
+    "decision": true
   },
-  "dc15e5f6317d91c8c840381011c274f3": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "0b9b2ff16e2843af9bd949c826bc7aae": {
+    "decision": false
   },
-  "3ef95d03953dab1b9e9c1a163b59c839": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "e27063c45ccf0be581e7e1c474e2335d": {
+    "decision": true
   },
-  "98e604a69022e8e74d85e787a2dc40ea": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "3974a081bfb750234dbcdc92b81a2450": {
+    "decision": true
   },
-  "7b347abdfbb90673ee63a1a4a60489fd": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "225085947e2d25bfddb4732945b38044": {
+    "decision": true
   },
-  "b19488a6656e50b777bf7727f87b9a61": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "a80a37d043d824a1b1dc9a21dad8affa": {
+    "decision": true
   },
-  "466a3e5ef44f261ee4bb659b825dbbf3": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "f0a85067c694937566411bf91b1c38dc": {
+    "decision": false
   },
-  "1494615cde75eededb16586c496f7b68": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "b7ee4514bb9dab5e9b8debe98859aff7": {
+    "decision": true
   },
-  "47c90d9b3ff0eb7a728313c29bb118f3": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "498943a3c50a2b47f54ef9349b4d28b0": {
+    "decision": true
   },
-  "b311259f3f039f83862b86b33655db54": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "8e918454df79f0a138e42d7bb689db4c": {
+    "decision": true
   },
-  "2139b5ccdb4d77e2c0aa307e9015adfe": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "4c04b477bad80ae9f89cb969d3b26f34": {
+    "decision": true
   },
-  "2e2cceb8f49e2d73d2dc35a99683db51": {
-    "decisions": [
-      true,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": true
+  "a778624272eb7a5a4c41ebaab882b645": {
+    "decision": true
   },
-  "8072c20272a646220b333ae2387969b2": {
-    "decisions": [
-      true,
-      false,
-      false,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": true
+  "76658e4de2a93b47bb133e866b70b539": {
+    "decision": true
   },
-  "e705d0cb5a91090a0f7f46a63b733bab": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "cc90a8515f85bf9f0ddf49ba3ab83d24": {
+    "decision": false
   },
-  "b30ffab08933d199254be44c0ef76622": {
-    "decisions": [
-      true,
-      true,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      true,
-      true
-    ],
-    "needs_adjustment": true
+  "c110434ac775527eb204eab2065a834b": {
+    "decision": false
   },
-  "ec9911abf0f803a3107e6121ddc2bba3": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "e667ecee99ac9b14ff34ff3d12e6a7e6": {
+    "decision": false
   },
-  "dfb9b95cf216207686a78814dfce1c96": {
-    "decisions": [
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      false,
-      false,
-      true,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      true,
-      true,
-      true
-    ],
-    "needs_adjustment": true
+  "cc51ef0898e52d349282c6bdbae1e543": {
+    "decision": false
   },
-  "3bb3c7c44a9a6adb7028501076ff6079": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "1d7abaab9cbf1a5a1a173cb38ab9368f": {
+    "decision": false
   },
-  "4e3f9fbe353b49349b1e84b999fc7fed": {
-    "decisions": [
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "f26245774c17ae8335de3be2b0f73620": {
+    "decision": false
   },
-  "0949271057aef2b62a5169cb775ebb49": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "763ff6ceec26be9c6b4bf564f301a357": {
+    "decision": false
   },
-  "1efb2fdba9150bbc0884bce729bdccf1": {
-    "decisions": [
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "833666f47243f9025f96491dc569e370": {
+    "decision": false
   },
-  "e46a59ddc004874d71ed2ba6438cbccb": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": false
+  "ffc2c6579a8185fba052c02298970130": {
+    "decision": false
   },
-  "9c32b7d1119bc72a8a4c1b96634e5ac1": {
-    "decisions": [
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false
-    ],
-    "needs_adjustment": false
+  "6636c7f8aeff1283ae326d20106f3f23": {
+    "decision": false
   },
-  "2a0ec3d587975731369731e28fd51166": {
-    "decisions": [
-      false
-    ],
-    "needs_adjustment": true
+  "351eb7954a520b06b57c35957ba8465d": {
+    "decision": false
+  },
+  "882b91bd5b5e2d54d1b575504fa7ac7f": {
+    "decision": false
+  },
+  "4ddbbdc079c0af13ccd7ec7c9b7dbf0f": {
+    "decision": false
+  },
+  "1053ede333472b6280104202e63be791": {
+    "decision": false
+  },
+  "4617705b03277c97d0555f12ad9602e6": {
+    "decision": false
+  },
+  "f4a5925f03f18aaf3bd55e0be3eb9c48": {
+    "decision": false
+  },
+  "547743c28035dcd74ac1c55565594d09": {
+    "decision": false
+  },
+  "e770bb0a623f1a27086d6c1c9ea00860": {
+    "decision": false
+  },
+  "f7649c3d0d933c47a699bc0055735f2e": {
+    "decision": false
+  },
+  "3cc09dcaa94380379c5385e9215c7c22": {
+    "decision": false
+  },
+  "98c38e738228ed7cf5183466034cfef3": {
+    "decision": false
+  },
+  "0ed574b39eb7de75b39af9bad88fa0b2": {
+    "decision": false
+  },
+  "6ec6c277b5835cdb7f04299e5b87067b": {
+    "decision": false
+  },
+  "be899e16bc47064dce262cde460425f6": {
+    "decision": false
+  },
+  "f30cc20d46515f7cfd426e9400454b1f": {
+    "decision": false
+  },
+  "25072e5c0c64b03e2ab2901ae4dcaca0": {
+    "decision": false
+  },
+  "e6850ccadbd7c89b6c9256d2523c630d": {
+    "decision": false
+  },
+  "285cabc4497b14cec687009ac0727af4": {
+    "decision": false
+  },
+  "25e0e92a175bf1c87efd087534acd336": {
+    "decision": false
+  },
+  "fcd4a463ea236c8130ba7325c70047b4": {
+    "decision": false
+  },
+  "7427fa843dea44445c6962a38f10f347": {
+    "decision": false
+  },
+  "673ab54307862124c23f5ee77a7a5b00": {
+    "decision": false
+  },
+  "04e77961b475567707c8e17a6d6ffd42": {
+    "decision": false
+  },
+  "881f99a855038e665987f069299381c5": {
+    "decision": false
+  },
+  "98dd66d906de54e6f5a2a47dc930ddc8": {
+    "decision": false
+  },
+  "ff5b8cb488c29e3431410163437ceef7": {
+    "decision": false
+  },
+  "cd7e93c358aaa3fde13542c2e4dece6f": {
+    "decision": false
+  },
+  "c5ce21b58ef3811da081cb291bd5b2b4": {
+    "decision": true
+  },
+  "04f8cf620e0ac922259cefd5477d1230": {
+    "decision": false
+  },
+  "f73b95263e25c6d976793aa05b1b2a0e": {
+    "decision": false
+  },
+  "310fdaade34dac1bc7ea6bb94c299b00": {
+    "decision": false
+  },
+  "67d3f864abd16d74b2c449dec7339e63": {
+    "decision": true
+  },
+  "ef7997963fb000e7d74f766e2cb9c9ea": {
+    "decision": false
+  },
+  "aa57bd55dea4eaf5340814d6e304ba89": {
+    "decision": false
+  },
+  "b6c2db29d4a9a80c284a0b142ed12e2c": {
+    "decision": true
+  },
+  "df067af252e2d06fb4374b8d5dbc74af": {
+    "decision": false
+  },
+  "6f3effadc34b6aa3ddb487287de72d99": {
+    "decision": false
+  },
+  "de5e9c07f38279fd0c7ef06945206e39": {
+    "decision": true
+  },
+  "28e4d9c7a9e4403758d61e95048b0d8c": {
+    "decision": false
+  },
+  "cc6a5bb0284074b9d134cbbe380b5872": {
+    "decision": true
+  },
+  "edda2fb754cfb6c4aa77f7fca3feed1a": {
+    "decision": true
+  },
+  "0a609220146f98bb76b0258c6392729a": {
+    "decision": true
+  },
+  "b68c2946c214ecccd910f1430f9d934f": {
+    "decision": true
+  },
+  "82fc30290ab967b4d1e9bc48e6a6be06": {
+    "decision": true
+  },
+  "0557bb3bbbfe2237c3d1b5b3608fdb6c": {
+    "decision": true
+  },
+  "4ffdb29a4655139aa9735bc6ad7bdd7c": {
+    "decision": true
+  },
+  "d240da8d6af82547971cbd336750969e": {
+    "decision": true
+  },
+  "2e7b759572f8d72e26ad587dcf9347d6": {
+    "decision": true
+  },
+  "5968d662b0214dc08be935c4c7052d70": {
+    "decision": false
+  },
+  "a2706d8d18d7bd3de764910fa4b5a50e": {
+    "decision": true
+  },
+  "8cab5dbc77a89015f1ea212d2b9fb21c": {
+    "decision": true
+  },
+  "520d7a52612de4263b38e6dfd3f5002c": {
+    "decision": true
+  },
+  "28202f30a01479d2e646b5b2e3209f9a": {
+    "decision": true
+  },
+  "246bc0a804cfe705b8d2162e40772f58": {
+    "decision": false
+  },
+  "cfa6c6b1006cf29b637f91e9f7923261": {
+    "decision": false
+  },
+  "ce414221e2c3c83676bc333e084760fa": {
+    "decision": false
+  },
+  "2b9a27c2a89937879c87bb2b3a06638c": {
+    "decision": true
+  },
+  "f3af8e5abd0b0139316e0d494733f7fc": {
+    "decision": true
+  },
+  "6a2fcd656b04a8f13a519d0f99dace23": {
+    "decision": true
+  },
+  "f1dc5b0cfef8dbfe78acea723d2afa88": {
+    "decision": true
+  },
+  "4c2d1286b53d2cdf85b46a33c970e0ed": {
+    "decision": false
+  },
+  "c6ac4d2dfc29e160829c0ea5281d1158": {
+    "decision": false
+  },
+  "6c89e9b7f282f5205a109930e1c162ca": {
+    "decision": false
+  },
+  "d586bab33be44d085d6ffa16b342deae": {
+    "decision": false
+  },
+  "58d44b6dc7670b598d75310fbe707cef": {
+    "decision": true
+  },
+  "5803cdb5c89fbcd4d38c919a9d38ea01": {
+    "decision": false
+  },
+  "5f1abb1f56666cd1699ec3e71b622159": {
+    "decision": false
   }
 }

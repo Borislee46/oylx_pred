@@ -29,12 +29,12 @@ class ResultsDisplay:
         self.result_types = {
             "similarity": {
                 "results": self.top_similarity_results,
-                "title": f"相似专业 Top {TOP_N_RECOMMENDATIONS}",
+                "title": "相似专业 Top N",
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
             "cross_major": {
                 "results": self.top_cross_major_results,
-                "title": f"跨专业 Top {TOP_N_RECOMMENDATIONS}",
+                "title": "跨专业 Top N",
                 "config": TOP_CROSS_RESULT_UI_CONFIG,
             },
             "user_specified": {
@@ -103,7 +103,7 @@ class ResultsDisplay:
 
         if not has_results:
             combination_count = session_manager.get("combination_count", 0)
-            st.info("专业跨度过大，无法进行预测。")
+            st.info("无推荐结果。")
             return
 
         combination_count = session_manager.get("combination_count", 0)

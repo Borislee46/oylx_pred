@@ -185,6 +185,13 @@ class FormStateManager:
                         f"由于国家变更，目标院校自动筛选 - 从 {current_selected_unis} 筛选为 {filtered_unis}"
                     )
                 session_manager.set(selected_target_universities=filtered_unis)
+                if "target_universities_multiselect" in st.session_state:
+                    widget_val = st.session_state.get("target_universities_multiselect")
+                    widget_list = (
+                        list(widget_val) if isinstance(widget_val, (list, tuple, set)) else []
+                    )
+                    if widget_list != filtered_unis:
+                        st.session_state["target_universities_multiselect"] = filtered_unis
 
         session_manager.set(target_options_cache={})
         FormStateManager.on_form_change(session_manager)

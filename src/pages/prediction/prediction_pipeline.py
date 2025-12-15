@@ -43,9 +43,17 @@ def run_prediction_pipeline(
 
     cases_df = load_raw_cases_data()
 
-    if cases_df_fingerprint != compute_df_fingerprint(cases_df):
-        prediction_handler_logger.debug(
-            f"案例数据指纹不匹配: 期望 {cases_df_fingerprint}, 实际 {compute_df_fingerprint(cases_df)}"
+    actual_cases_fingerprint = compute_df_fingerprint(cases_df)
+    if cases_df_fingerprint != actual_cases_fingerprint:
+        prediction_handler_logger.warning(
+            f"案例数据指纹不匹配: 期望 {cases_df_fingerprint}, 实际 {actual_cases_fingerprint}"
+        )
+        return PredictionResultModel(
+            meta={
+                "error": "cases_df_fingerprint_mismatch",
+                "expected_cases_df_fingerprint": cases_df_fingerprint,
+                "actual_cases_df_fingerprint": actual_cases_fingerprint,
+            }
         )
 
     cleaned_input = validate_and_clean_input(input_data)
@@ -97,8 +105,8 @@ def run_prediction_pipeline(
         background_university=background_university,
     )
 
-    if all(x is None for x in [sim_results, cross_results, user_specified_results]):
-        prediction_handler_logger.error("预测失败：所有结果为None")
+    if meta and meta.get("error"):
+        prediction_handler_logger.info(f"预测未生成有效结果: {meta.get('error')}")
         return PredictionResultModel(meta=meta)
 
     internship_count = cleaned_input.get("internship_count", 0)
@@ -151,6 +159,13 @@ def run_prediction_pipeline(
     unique_results = combine_and_deduplicate_results(
         sim_results, cross_results, user_specified_results
     )
+
+    if not unique_results:
+        if meta is None:
+            meta = {}
+        meta["error"] = "empty_results"
+        prediction_handler_logger.info("预测结果为空")
+        return PredictionResultModel(meta=meta)
 
     return PredictionResultModel(
         similarity_results=sim_results,
