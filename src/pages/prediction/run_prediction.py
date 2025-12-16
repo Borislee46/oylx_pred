@@ -14,7 +14,6 @@ from src.pages.prediction.prediction_processor import (
     process_prediction_results,
 )
 from src.pages.prediction.prediction_types import PredictionInput
-from src.pages.prediction.prediction_utils import get_valid_school_major_set
 from src.utils.logger import setup_logger
 
 prediction_runner_logger = setup_logger("page3", "prediction")
@@ -48,18 +47,33 @@ def run_single_prediction(
 
     if not combinations:
         prediction_runner_logger.warning("有效组合为空：请检查候选池或筛选条件。")
+        if meta is None:
+            meta = {}
+        meta["error"] = "no_valid_combinations"
         return [], [], None, meta
 
     model_input_features, missing_inputs = prepare_model_inputs(
         current_input_data, expected_features
     )
     if missing_inputs or prediction_model is None:
+        if meta is None:
+            meta = {}
+        if prediction_model is None:
+            meta["error"] = "model_unavailable"
+        else:
+            meta["error"] = "missing_features"
+            meta["missing_features"] = missing_inputs
         return [], [], None, meta
 
     executor = PredictionExecutor(len(combinations))
     all_prediction_outputs = executor.execute_parallel(
         prediction_model, combinations, model_input_features, expected_features
     )
+    if not all_prediction_outputs:
+        if meta is None:
+            meta = {}
+        meta["error"] = "execution_failed"
+        return [], [], None, meta
 
     all_prediction_outputs.sort(
         key=lambda x: (

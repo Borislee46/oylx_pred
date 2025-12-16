@@ -1,5 +1,7 @@
 from typing import Any
 
+from src.agent.utils import to_float, to_str_singleline
+
 
 def build_boundary_evaluation_prompt(
     background_major: str,
@@ -15,10 +17,10 @@ def build_boundary_evaluation_prompt(
 
     cases_text = []
     for i, case in enumerate(boundary_cases, 1):
-        university = case.get("university", "")
-        major = case.get("major", "")
-        similarity = case.get("similarity", 0.0)
-        probability = case.get("probability", 0.0)
+        university = to_str_singleline(case.get("university"))
+        major = to_str_singleline(case.get("major"))
+        similarity = to_float(case.get("similarity"))
+        probability = to_float(case.get("probability"))
         cases_text.append(
             f"{i}. {university} - {major} (相似度: {similarity:.3f}, 录取概率: {probability:.3f})"
         )

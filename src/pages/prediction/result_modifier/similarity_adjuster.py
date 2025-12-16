@@ -4,9 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-import streamlit as st
-
 from src.pages.prediction.result_modifier.config import SIMILARITY_ADJUSTMENT_RULES_PATH
+from src.pages.prediction.result_modifier.streamlit_cache import cache_resource
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -35,7 +34,7 @@ def _get_config_path() -> Path:
     return config_path
 
 
-@st.cache_resource(show_spinner=False, ttl=3600)
+@cache_resource(show_spinner=False, ttl=3600)
 def _load_similarity_rules_cached() -> list[dict[str, Any]]:
     try:
         config_path = _get_config_path()

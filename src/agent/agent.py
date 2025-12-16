@@ -33,7 +33,7 @@ class AIAgent(BaseAgent):
             prediction_results=self.prediction_results,
         )
 
-        content = self._call_api(prompt)
+        content = self._call_api(prompt, cache_prefix="consultation", use_cache=True)
         if not content:
             self.logger.warning(f"[{self.agent_name}] API调用失败，返回空响应")
         return content

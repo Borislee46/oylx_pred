@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src.pages.prediction.prediction_model import PredictionModel
+from src.pages.prediction.modeling.model import PredictionModel
 from src.utils.app_data_loader import (
     load_global_categories_dataframe,
     load_raw_cases_data,
@@ -31,7 +31,7 @@ class machine_learning_model:
     @classmethod
     @st.cache_resource(show_spinner=False)
     def resource_loader(cls) -> "machine_learning_model":
-        from src.pages.prediction.prediction_validator import validate_model_and_features
+        from src.pages.prediction.modeling.validator import validate_model_and_features
 
         model = cached_get_prediction_model("xgboost")
         features = validate_model_and_features(model)

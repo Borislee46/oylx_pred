@@ -22,12 +22,20 @@ class TextPreprocessingAgent(BaseAgent):
             f"内容长度: {len(content)}"
         )
 
-        content_response = self._call_api(prompt)
+        content_response = self._call_api(prompt, cache_prefix="field_validation", use_cache=True)
         if content_response is None:
             return False
 
-        content_response = content_response.lower()
-        is_valid = content_response == "是" or content_response.startswith("是")
+        s = str(content_response).strip()
+        if not s:
+            return False
+        first = s[0]
+        if first == "是":
+            is_valid = True
+        elif first == "否":
+            is_valid = False
+        else:
+            is_valid = s.startswith("是")
 
         self.logger.info(
             f"[{self.agent_name}] 字段验证完成 - 字段类型: {field_type}, 验证结果: {is_valid}"

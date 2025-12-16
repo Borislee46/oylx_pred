@@ -1,3 +1,7 @@
+"""
+此维表维护人为gongmengjiao2@xdf.cn
+"""
+
 school_details_key_fields = [
     "专业中文名称",
     "开学季",

@@ -1,3 +1,7 @@
+"""
+非生产模块，后续前后端解耦用
+"""
+
 from __future__ import annotations
 
 import logging
@@ -22,12 +26,14 @@ from src.pages.prediction.result_modifier import AdjustmentContext, ProbabilityA
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
+from src.pages.prediction.result_modifier.experience_text_validator import (
+    has_meaningful_experience_text,
+)
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.professional_adjustment import (
     adjust_for_professional_majors,
 )
 from src.pages.prediction.result_modifier.text_boost_provider import get_text_boost_provider
-from src.pages.prediction.result_modifier.utils import has_meaningful_experience_text
 from src.pages.prediction.results_handler import combine_and_deduplicate_results
 from src.pages.prediction.run_prediction import run_single_prediction
 from src.utils.app_data_loader import (
@@ -149,7 +155,7 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
     try:
         cases_df = load_raw_cases_data()
         school_base_df = load_school_base_data()
-        
+
         v = validate_and_normalize(payload, cases_df=cases_df, school_base_df=school_base_df)
         if not v.get("ok"):
             v["needs_confirmation"] = False
@@ -206,9 +212,9 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
                     major_set.add(parts[1])
 
             if not all_unis:
-                all_unis = sorted(list(uni_set))
+                all_unis = sorted(uni_set)
             if not all_majors:
-                all_majors = sorted(list(major_set))
+                all_majors = sorted(major_set)
 
         input_data = prepare_input_data(normalized_input)
         cleaned_input = validate_and_clean_input(input_data)
@@ -315,8 +321,6 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         logger.error(f"Prediction failed: {e}", exc_info=True)
         return {
             "ok": False,
-            "errors": [
-                {"field": "_", "message": f"Server Error: {str(e)}", "severity": "error"}
-            ],
+            "errors": [{"field": "_", "message": f"Server Error: {str(e)}", "severity": "error"}],
             "warnings": [],
         }

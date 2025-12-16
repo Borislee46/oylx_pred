@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
@@ -12,7 +13,8 @@ from src.pages.prediction.prediction_utils import (
     has_school_major_details,
 )
 from src.pages.prediction.result_modifier.config import (
-    AGENT_MIN_BALANCE_DIFF,
+    AGENT_MIN_BALANCE_DIFF_MIN,
+    AGENT_MIN_BALANCE_DIFF_RATIO,
     HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
     UNIVERSITY_COUNT_THRESHOLD,
@@ -273,7 +275,11 @@ def _apply_agent_balance_adjustment(
 ) -> tuple[list, list]:
     balance_diff = len(top_cross_major_results) - len(top_similarity_results)
 
-    if abs(balance_diff) < AGENT_MIN_BALANCE_DIFF:
+    max_len = max(len(top_similarity_results), len(top_cross_major_results))
+    balance_threshold = max(
+        AGENT_MIN_BALANCE_DIFF_MIN, int(math.ceil(AGENT_MIN_BALANCE_DIFF_RATIO * max_len))
+    )
+    if abs(balance_diff) < balance_threshold:
         return top_similarity_results, top_cross_major_results
 
     if ctx.cases_df is None or not ctx.background_major:

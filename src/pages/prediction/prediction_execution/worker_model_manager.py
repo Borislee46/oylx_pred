@@ -1,21 +1,18 @@
-from threading import local
-
-from src.pages.prediction.prediction_model import PredictionModel
+from src.pages.prediction.modeling.model import PredictionModel
 from src.utils.logger import setup_logger
 
 prediction_runner_logger = setup_logger("page3", "prediction")
 
-_thread_local = local()
+_WORKER_MODEL: PredictionModel | None = None
 
 
 def get_worker_model() -> PredictionModel | None:
-    if not hasattr(_thread_local, "model"):
-        return None
-    return _thread_local.model
+    return _WORKER_MODEL
 
 
 def set_worker_model(model: PredictionModel | None) -> None:
-    _thread_local.model = model
+    global _WORKER_MODEL
+    _WORKER_MODEL = model
 
 
 def init_worker_process(model_type: str) -> None:

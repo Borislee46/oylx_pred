@@ -9,6 +9,12 @@ from src.pages.prediction.result_modifier.config import (
     AGENT_NO_CHANGE_THRESHOLD,
 )
 from src.pages.prediction.result_modifier.strategies import RankerStrategy
+from src.pages.prediction.result_modifier.types import (
+    AdjustmentDecision,
+    CaseKey,
+    case_key,
+    is_case_with_key,
+)
 from src.pages.prediction.result_modifier.ui_handler import RankerUIHandler
 from src.utils.logger import setup_logger
 
@@ -27,15 +33,14 @@ class AgentAdjustmentSession:
         self.in_exploration_mode = False
         self.exploration_no_change_count = 0
 
-        self.evaluated_cases: set[tuple[str, str]] = set()
+        self.evaluated_cases: set[CaseKey] = set()
         self.stop_requested = False
 
     def record_evaluation(self, cases: list[dict]):
         for case in cases:
-            university = case.get("university")
-            major = case.get("major")
-            if isinstance(university, str) and isinstance(major, str):
-                self.evaluated_cases.add((university, major))
+            k = case_key(case)
+            if k:
+                self.evaluated_cases.add(k)
 
     def should_stop(self) -> bool:
         if self.stop_requested:
@@ -136,11 +141,11 @@ class AgentAdjustmentEngine:
                 agent_indices: list[int] = []
                 for i, case in enumerate(cases_to_evaluate):
                     triage = self.session.strategy.triage_decision(case)
-                    if triage is None:
+                    if triage is AdjustmentDecision.DEFER_TO_AGENT:
                         agent_cases.append(case)
                         agent_indices.append(i)
                     else:
-                        decisions[i] = triage
+                        decisions[i] = triage is AdjustmentDecision.ADJUST
 
                 if agent_cases:
                     evaluation_result = self._evaluate_batch_with_ui_animation(
@@ -183,15 +188,11 @@ class AgentAdjustmentEngine:
 
     def _prepare_next_batch(self, candidate_pool: list[dict], batch_size: int) -> list[dict]:
         result: list[dict] = []
-        seen: set[tuple[str, str]] = set()
+        seen: set[CaseKey] = set()
         for c in candidate_pool:
-            if not isinstance(c, dict):
+            if not is_case_with_key(c):
                 continue
-            university = c.get("university")
-            major = c.get("major")
-            if not isinstance(university, str) or not isinstance(major, str):
-                continue
-            key = (university, major)
+            key = (c["university"], c["major"])
             if key in self.session.evaluated_cases or key in seen:
                 continue
             seen.add(key)

@@ -1,15 +1,15 @@
 from typing import Any
 
 import pandas as pd
-import streamlit as st
 
+from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import compute_dataframe_hash
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
 
 
-@st.cache_data(show_spinner=False)
+@cache_data(show_spinner=False)
 def get_admitted_combinations_for_major(
     cases_df_hash: str, cases_df_tuple: tuple[tuple[Any, ...], ...], background_major: str
 ) -> set[tuple[str, str]]:

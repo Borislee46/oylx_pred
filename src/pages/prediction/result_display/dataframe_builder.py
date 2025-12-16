@@ -1,10 +1,10 @@
 import pandas as pd
 
+from src.pages.prediction.core.utils import get_school_major_details
 from src.pages.prediction.data_sort_config.top_result_school_order import (
     UNIVERSITY_ORDER_MAP,
     UNIVERSITY_SORT_ORDER,
 )
-from src.pages.prediction.prediction_utils import get_school_major_details
 
 
 class DataFrameBuilder:

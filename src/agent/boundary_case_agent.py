@@ -7,6 +7,7 @@ import pandas as pd
 
 from src.agent.base_agent import BaseAgent
 from src.agent.boundary_case_prompts import build_boundary_evaluation_prompt
+from src.agent.utils import parse_bool
 
 CACHE_DIR = "cache/agent_cache"
 CACHE_FILE = "boundary_case_decisions.json"
@@ -61,11 +62,6 @@ class BoundaryCaseAgent(BaseAgent):
         mode: str,
         use_persistent_cache: bool = True,
     ) -> dict[str, Any]:
-        fallback_result = {
-            "decisions": [False] * len(boundary_cases) if boundary_cases else [],
-            "needs_adjustment": False,
-        }
-
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
             return {"decisions": [], "needs_adjustment": False}
@@ -124,6 +120,12 @@ class BoundaryCaseAgent(BaseAgent):
                 self.logger.debug(f"[{self.agent_name}] 响应内容预览: {content[:200]}")
                 return {"decisions": decisions, "needs_adjustment": any(decisions)}
 
+            if not isinstance(result, dict):
+                self.logger.warning(
+                    f"[{self.agent_name}] 返回JSON不是对象: {type(result).__name__}"
+                )
+                return {"decisions": decisions, "needs_adjustment": any(decisions)}
+
             agent_decisions = result.get("decisions", [])
             if len(agent_decisions) != len(pending_cases):
                 self.logger.warning(
@@ -133,11 +135,11 @@ class BoundaryCaseAgent(BaseAgent):
                 agent_decisions = [False] * len(pending_cases)
 
             for j, idx in enumerate(pending_indices):
-                d = bool(agent_decisions[j])
+                d = parse_bool(agent_decisions[j])
                 decisions[idx] = d
                 if use_persistent_cache:
                     cache_key = self._case_cache_key(background_major, boundary_cases[idx], mode)
-                    self._persistent_cache[cache_key] = {"decision": d}
+                    self._persistent_cache[cache_key] = d
                     new_cache_entries += 1
 
             if use_persistent_cache and new_cache_entries:

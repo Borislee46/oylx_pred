@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.pages.prediction.prediction_utils import format_field, format_float, format_list_field
+from src.pages.prediction.core.utils import format_field, format_float, format_list_field
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
 

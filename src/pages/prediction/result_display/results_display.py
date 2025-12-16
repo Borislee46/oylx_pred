@@ -29,12 +29,12 @@ class ResultsDisplay:
         self.result_types = {
             "similarity": {
                 "results": self.top_similarity_results,
-                "title": f"相似专业 Top {TOP_N_RECOMMENDATIONS}",
+                "title": "相似专业 Top N",
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
             "cross_major": {
                 "results": self.top_cross_major_results,
-                "title": f"跨专业 Top {TOP_N_RECOMMENDATIONS}",
+                "title": "跨专业 Top N",
                 "config": TOP_CROSS_RESULT_UI_CONFIG,
             },
             "user_specified": {
@@ -50,7 +50,7 @@ class ResultsDisplay:
 
     def _display_dataframe(self, df, column_widths=None, result_type=None):
         if df.empty:
-            st.info("没有可显示的预测结果")
+            st.info("暂无可展示内容")
             return
 
         label_map = {}

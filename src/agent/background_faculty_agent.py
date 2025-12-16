@@ -14,7 +14,7 @@ from src.utils.app_data_loader import load_school_major_details_df
 
 CACHE_DIR = "cache/agent_cache"
 CACHE_FILE = "background_faculty_candidates.json"
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 
 
 @lru_cache(maxsize=1)
@@ -81,17 +81,30 @@ class BackgroundFacultyAgent(BaseAgent):
         if max_extra < 0:
             max_extra = 0
 
-        cache_key = self._cache_key(major, base)
-        if use_persistent_cache:
-            cached = self._persistent_cache.get(cache_key)
-            if isinstance(cached, list):
-                return [str(x).strip() for x in cached if str(x).strip()][:max_total]
-
         valid_faculties = _get_valid_faculties()
         if not valid_faculties:
             if base:
                 return [base]
             return []
+
+        cache_key = self._cache_key(major, base)
+        valid_set = set(valid_faculties)
+        if use_persistent_cache:
+            cached = self._persistent_cache.get(cache_key)
+            if isinstance(cached, list):
+                cached_out: list[str] = []
+                for x in cached:
+                    s = str(x).strip()
+                    if not s or s == base:
+                        continue
+                    if s in valid_set and s not in cached_out:
+                        cached_out.append(s)
+                    if len(cached_out) >= max_total:
+                        break
+                if base and base in valid_set:
+                    cached_out = [base] + [x for x in cached_out if x != base]
+                if cached_out:
+                    return cached_out[:max_total]
 
         prompt = build_background_faculty_prompt(
             background_major_original=major,
@@ -113,11 +126,15 @@ class BackgroundFacultyAgent(BaseAgent):
                 return [base]
             return []
 
+        if not isinstance(result, dict):
+            if base:
+                return [base]
+            return []
+
         extras = result.get("extra_faculties", [])
         if not isinstance(extras, list):
             extras = []
 
-        valid_set = set(valid_faculties)
         out: list[str] = []
         if base and base in valid_set:
             out.append(base)
@@ -154,7 +171,8 @@ def get_background_faculty_from_cases_df(
     major_match = cases_df[cases_df["background_major"] == background_major_agg]
     if major_match.empty:
         return None
-    faculty = major_match["faculty"].iloc[0]
-    faculty_str = str(faculty).strip()
-    return faculty_str if faculty_str and faculty_str.lower() not in {"nan", "none"} else None
-
+    s = major_match["faculty"].dropna().astype(str).map(str.strip)
+    s = s[(s != "") & (~s.str.lower().isin({"nan", "none"}))]
+    if s.empty:
+        return None
+    return s.value_counts().idxmax()
