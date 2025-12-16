@@ -4,15 +4,16 @@ from typing import Any
 import pandas as pd
 
 from src.pages.prediction.result_modifier.config import (
-    CROSS_MAJOR_PENALTY_FACTOR,
+    FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR,
     MIN_SIMILARITY_THRESHOLD,
     PROFESSIONAL_MAJORS_LOWER,
     PROFESSIONAL_REDUCTION_FACTOR,
     PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
+from src.pages.prediction.result_modifier.faculty_filters import apply_out_of_scope_faculty_penalty
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
-from src.pages.prediction.result_modifier.utils import clip_probability
+from src.pages.prediction.result_modifier.utils import clip_probability, cross_major_penalty_factor
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -24,6 +25,7 @@ class AdjustmentContext:
     language_score: float | None = None
     background_university: str | None = None
     background_major: str | None = None
+    background_faculty: str | None = None
     internship_count: int = 0
     user_specified_majors: list[str] = field(default_factory=list)
     experience_details: dict[str, str] = field(default_factory=dict)
@@ -77,6 +79,15 @@ class ProbabilityAdjustmentPipeline:
             current_prob = self._apply_cross_major_penalty(
                 result_copy, current_prob, ctx.background_major, ctx.admitted_combinations
             )
+
+        if ctx.background_faculty:
+            temp = result_copy.copy()
+            temp["probability"] = clip_probability(current_prob)
+            adjusted = apply_out_of_scope_faculty_penalty(
+                [temp], ctx.background_faculty, FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR
+            )
+            if adjusted:
+                current_prob = float(adjusted[0].get("probability", current_prob) or current_prob)
 
         result_copy["probability"] = clip_probability(current_prob)
         return result_copy
@@ -171,12 +182,12 @@ class ProbabilityAdjustmentPipeline:
             return probability
 
         key = (result.get("university"), result.get("major"))
-        has_admitted_case = key in admitted_combinations
+        has_admitted_case = bool(result.get("admitted") == 1 or key in admitted_combinations)
 
         if has_admitted_case:
             return probability
 
-        return probability * CROSS_MAJOR_PENALTY_FACTOR
+        return probability * cross_major_penalty_factor(similarity)
 
     def _apply_text_boost(
         self,
@@ -221,12 +232,14 @@ def create_adjustment_context(
     cleaned_input: dict,
     cases_df: pd.DataFrame | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
+    background_faculty: str | None = None,
 ) -> AdjustmentContext:
     return AdjustmentContext(
         gpa=cleaned_input.get("gpa"),
         language_score=cleaned_input.get("language_score"),
         background_university=cleaned_input.get("background_university"),
         background_major=cleaned_input.get("background_major"),
+        background_faculty=background_faculty,
         internship_count=cleaned_input.get("internship_count", 0),
         user_specified_majors=cleaned_input.get("target_majors", []),
         experience_details=cleaned_input.get("experience_details", {}),

@@ -50,7 +50,7 @@ class ResultsDisplay:
 
     def _display_dataframe(self, df, column_widths=None, result_type=None):
         if df.empty:
-            st.info("没有可显示的预测结果")
+            st.info("暂无可展示内容")
             return
 
         label_map = {}

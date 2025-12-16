@@ -43,7 +43,7 @@
 *   **训练与校准**: XGBoost + 单调约束 + `CalibratedClassifierCV` (sigmoid, prefit)。
 *   **文本加成训练**: 生成 TF-IDF 向量器、质心和权重文件。
 
-👉 **详细文档**: [机器学习训练管线文档](docs/ml_training_api.md)
+**详细文档**: [机器学习训练管线文档](docs/ml_training_api.md)
 
 ## 2. 表单校验与归一
 
@@ -55,7 +55,7 @@
 *   **状态管理**: `FormStateManager` 实现自动保存（节流 + 快照 hash）。
 *   **组件服务**: 跨学院拦截、四级联动筛选 (`target_options_service.py`)。
 
-👉 **详细文档**: [表单组件与校验 API 文档](docs/input_form_components_api.md)
+**详细文档**: [表单组件与校验 API 文档](docs/input_form_components_api.md)
 
 ## 3. 预测模块
 
@@ -68,7 +68,7 @@
     4.  **合并去重**: 按优先级合并 (用户指定 > 跨专业 > 相似)。
 *   **接口**: 提供 Streamlit 页面管线和 JSON API 两种入口。
 
-👉 **详细文档**: [预测模块 API 文档](docs/prediction_api.md)
+**详细文档**: [预测模块 API 文档](docs/prediction_api.md)
 
 ## 4. 结果调整模块
 
@@ -81,7 +81,7 @@
     *   基于文本相似度与计数交互项计算 Logit 增量。
     *   包含门控、平滑、动态封顶机制，防止加成过度。
 
-👉 **详细文档**: [结果修正模块文档](docs/result_modifier_api.md)
+**详细文档**: [结果修正模块文档](docs/result_modifier_api.md)
 
 ## 5. 专业相似度预计算
 
@@ -91,7 +91,7 @@
 *   **功能**: 预计算背景专业-目标专业相似度，加速线上查询。
 *   **缓存**: 生成 `cache/background_target_similarity.feather`。
 
-👉 **详细文档**: [专业相似度预计算文档](docs/major_similarity_precompute.md)
+**详细文档**: [专业相似度预计算文档](docs/major_similarity_precompute.md)
 
 ---
 

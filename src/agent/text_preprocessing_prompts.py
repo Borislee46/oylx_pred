@@ -1,3 +1,6 @@
+from src.agent.utils import truncate_text
+
+
 def build_field_validation_prompt(field_type: str, content: str) -> str:
     field_type_map = {
         "research_details": "科研项目",
@@ -7,10 +10,12 @@ def build_field_validation_prompt(field_type: str, content: str) -> str:
     }
     field_name = field_type_map.get(field_type, field_type)
 
+    text = truncate_text(content, 1200)
+
     return f"""请判断以下文本内容是否与"{field_name}"相关。
 
 字段类型: {field_name}
-文本内容: {content}
+文本内容: {text}
 
 请只回答"是"或"否"，不要添加任何其他说明。
 - 如果文本内容与{field_name}相关，回答"是"

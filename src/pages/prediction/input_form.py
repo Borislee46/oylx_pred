@@ -11,7 +11,7 @@ from src.pages.prediction.input_form_components import (
 from src.pages.prediction.input_form_components.language_score_processor import (
     apply_overseas_language_boost,
 )
-from src.pages.prediction.input_normalizer import (
+from src.pages.prediction.prediction_preparation.form_normalizer import (
     calculate_gpa_bonus,
     get_background_university_for_model,
     normalize_form_data_for_prediction,

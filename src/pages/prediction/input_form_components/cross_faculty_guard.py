@@ -35,7 +35,7 @@ def check_cross_faculty_situation(
     target_universities: list[str],
     cases_df: pd.DataFrame,
 ) -> tuple[bool, str | None, set[str]]:
-    from src.pages.prediction.prediction_utils import get_background_faculty
+    from src.pages.prediction.core.utils import get_background_faculty
 
     background_faculty = get_background_faculty(background_major, cases_df)
     if not background_faculty:
@@ -174,7 +174,7 @@ def quick_cross_faculty_check(
     if cases_df is None:
         cases_df = load_raw_cases_data()
 
-    from src.pages.prediction.prediction_utils import get_background_faculty
+    from src.pages.prediction.core.utils import get_background_faculty
 
     background_faculty = get_background_faculty(background_major, cases_df)
     if not background_faculty:

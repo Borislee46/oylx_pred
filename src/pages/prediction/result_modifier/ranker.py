@@ -9,6 +9,7 @@ from src.pages.prediction.result_modifier.strategies import (
     RelaxStrategy,
     TightenStrategy,
 )
+from src.pages.prediction.result_modifier.types import CaseKey, case_key
 from src.pages.prediction.result_modifier.ui_handler import RankerUIHandler
 from src.pages.prediction.result_modifier.utils import clip_probability
 
@@ -43,10 +44,10 @@ def _pick_supplement_cases_by_probability(
     picked: list[dict[str, Any]] = []
 
     for r in sorted(candidates, key=_p, reverse=True):
-        key = (r.get("university"), r.get("major"))
-        if key in top_set or key in seen:
+        k = case_key(r)
+        if not k or k in top_set or k in seen:
             continue
-        seen.add(key)
+        seen.add(k)
         picked.append(r)
         if len(picked) >= k_high:
             break
@@ -59,10 +60,10 @@ def _pick_supplement_cases_by_probability(
     for r in band:
         if len(picked) >= (k_high + k_band):
             break
-        key = (r.get("university"), r.get("major"))
-        if key in top_set or key in seen:
+        k = case_key(r)
+        if not k or k in top_set or k in seen:
             continue
-        seen.add(key)
+        seen.add(k)
         picked.append(r)
 
     return picked
@@ -100,7 +101,11 @@ def adjust_similarity_results_with_agent(
     else:
         results_for_agent = results_with_similarity
 
-    top_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
+    top_set: set[CaseKey] = set()
+    for r in top_similarity_results:
+        k = case_key(r)
+        if k:
+            top_set.add(k)
 
     bg_faculties: list[str] = []
     if str(background_major or "").strip():
@@ -146,10 +151,10 @@ def adjust_similarity_results_with_agent(
             for r in merged:
                 if not isinstance(r, dict):
                     continue
-                key = (r.get("university"), r.get("major"))
-                if key in seen_keys:
+                k = case_key(r)
+                if not k or k in seen_keys:
                     continue
-                seen_keys.add(key)
+                seen_keys.add(k)
                 deduped.append(r)
             results_for_agent = deduped
 

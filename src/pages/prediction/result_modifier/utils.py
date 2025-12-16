@@ -4,6 +4,12 @@ from typing import Any
 
 import pandas as pd
 
+from src.pages.prediction.result_modifier.config import (
+    CROSS_MAJOR_PENALTY_FACTOR,
+    CROSS_MAJOR_SIMILARITY_MIN,
+    MIN_SIMILARITY_THRESHOLD,
+)
+
 
 def compute_dataframe_hash(df: pd.DataFrame) -> str:
     if df is None or df.empty:
@@ -67,6 +73,25 @@ def is_effectively_empty(text: str | None) -> bool:
 
 def clip_probability(value: Any) -> float:
     return max(0.0, min(1.0, float(value)))
+
+
+def cross_major_penalty_factor(similarity: Any) -> float:
+    try:
+        s = float(similarity)
+    except (TypeError, ValueError):
+        return CROSS_MAJOR_PENALTY_FACTOR
+
+    if s >= MIN_SIMILARITY_THRESHOLD:
+        return 1.0
+    if s <= CROSS_MAJOR_SIMILARITY_MIN:
+        return CROSS_MAJOR_PENALTY_FACTOR
+
+    span = MIN_SIMILARITY_THRESHOLD - CROSS_MAJOR_SIMILARITY_MIN
+    if span <= 0:
+        return CROSS_MAJOR_PENALTY_FACTOR
+
+    t = (s - CROSS_MAJOR_SIMILARITY_MIN) / span
+    return CROSS_MAJOR_PENALTY_FACTOR + (1.0 - CROSS_MAJOR_PENALTY_FACTOR) * t
 
 
 def generate_content_hash(content: str) -> str:

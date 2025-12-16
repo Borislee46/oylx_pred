@@ -26,4 +26,4 @@ class LayoutManager:
         elif has_cross_major:
             self.results_display._display_result_type("cross_major")
         else:
-            st.info("没有可显示的预测结果。")
+            st.info("暂无推荐结果")

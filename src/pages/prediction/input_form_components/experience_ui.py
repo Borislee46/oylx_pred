@@ -4,7 +4,6 @@ import streamlit as st
 
 
 def _log_experience_change(session_manager, form_state_manager, experience_type):
-    # value = session_manager.get_widget_value(f"{experience_type}_count_input", 0)
     form_state_manager.on_form_change(session_manager, change_type="text")
 
 

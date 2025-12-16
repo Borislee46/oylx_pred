@@ -25,11 +25,16 @@ class BaseAgent:
 
         self.api_url = app_config.get("OPEN_AI_BASE_URL")
         self.api_key = app_config.get("OPEN_AI_API_KEY")
-        self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.1")
+        self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.2")
+        self.thinking_type = str(
+            app_config.get("OPEN_AI_THINKING", "disabled") or "disabled"
+        ).strip()
+        self.max_tokens = app_config.get("OPEN_AI_MAX_TOKENS")
         self.timeout = timeout
         self.agent_name = agent_name
         self.cache_ttl = cache_ttl
         self.logger = setup_logger("page3", "prediction")
+        self._session = requests.Session()
 
         if not self.api_url or not self.api_key:
             self.logger.error(f"[{self.agent_name}] API URL 或 API Key 未在配置中找到。")
@@ -39,18 +44,51 @@ class BaseAgent:
             "Authorization": f"Bearer {self.api_key}",
         }
 
-    def _build_request_data(self, prompt: str) -> dict[str, Any]:
-        return {
+    def _build_request_data(
+        self,
+        prompt: str,
+        thinking_type: str | None = None,
+        max_tokens: int | None = None,
+    ) -> dict[str, Any]:
+        data: dict[str, Any] = {
             "model": self.model,
             "messages": [{"content": [{"text": prompt, "type": "text"}], "role": "user"}],
-            "thinking": {"type": "disabled"},
+            "thinking": {"type": thinking_type or self.thinking_type or "disabled"},
         }
 
-    def _generate_cache_key(self, prompt: str, cache_prefix: str | None = None) -> str:
+        resolved_max_tokens: int | None = None
+        if max_tokens is not None:
+            try:
+                resolved_max_tokens = int(max_tokens)
+            except (TypeError, ValueError):
+                resolved_max_tokens = None
+        elif self.max_tokens is not None:
+            try:
+                resolved_max_tokens = int(self.max_tokens)
+            except (TypeError, ValueError):
+                resolved_max_tokens = None
+
+        if resolved_max_tokens and resolved_max_tokens > 0:
+            data["max_tokens"] = resolved_max_tokens
+
+        return data
+
+    def _generate_cache_key(
+        self,
+        prompt: str,
+        cache_prefix: str | None = None,
+        thinking_type: str | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
         key_data = {
             "model": self.model,
             "prompt": prompt,
+            "thinking": thinking_type or self.thinking_type or "disabled",
         }
+        if max_tokens is not None:
+            key_data["max_tokens"] = max_tokens
+        elif self.max_tokens is not None:
+            key_data["max_tokens"] = self.max_tokens
         key_str = f"{cache_prefix}:{key_data}" if cache_prefix else str(key_data)
         return hashlib.md5(key_str.encode("utf-8")).hexdigest()
 
@@ -64,6 +102,28 @@ class BaseAgent:
             return None
 
         return cache_entry["value"]
+
+    def _extract_text_content(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for it in content:
+                if isinstance(it, str):
+                    if it.strip():
+                        parts.append(it)
+                    continue
+                if isinstance(it, dict):
+                    t = it.get("text")
+                    if isinstance(t, str) and t.strip():
+                        parts.append(t)
+                    continue
+            return "\n".join(parts).strip()
+        if isinstance(content, dict):
+            t = content.get("text")
+            if isinstance(t, str):
+                return t
+        return ""
 
     def _save_to_cache(self, key: str, value: str) -> None:
         if len(self._memory_cache) > 1000:
@@ -116,18 +176,25 @@ class BaseAgent:
         cache_prefix: str | None = None,
         use_cache: bool = True,
         custom_cache_key: str | None = None,
+        thinking_type: str | None = None,
+        max_tokens: int | None = None,
     ) -> str | None:
         if not self.api_url or not self.api_key:
             self.logger.warning(f"[{self.agent_name}] API 未配置，无法调用")
             return None
 
-        cache_key = custom_cache_key or self._generate_cache_key(prompt, cache_prefix)
+        cache_key = custom_cache_key or self._generate_cache_key(
+            prompt,
+            cache_prefix=cache_prefix,
+            thinking_type=thinking_type,
+            max_tokens=max_tokens,
+        )
 
         input_tokens = self._estimate_tokens(prompt)
 
         if use_cache:
             cached_result = self._get_from_cache(cache_key)
-            if cached_result:
+            if cached_result is not None:
                 output_tokens = self._estimate_tokens(cached_result)
                 self.logger.info(
                     f"[{self.agent_name}] 命中缓存: {cache_key[:8]}... "
@@ -136,10 +203,10 @@ class BaseAgent:
                 self.logger.debug(f"[{self.agent_name}] 命中缓存: {cache_key[:8]}...")
                 return cached_result
 
-        data = self._build_request_data(prompt)
+        data = self._build_request_data(prompt, thinking_type=thinking_type, max_tokens=max_tokens)
 
         try:
-            response = requests.post(
+            response = self._session.post(
                 self.api_url, headers=self.headers, json=data, timeout=self.timeout
             )
             response.raise_for_status()
@@ -156,10 +223,9 @@ class BaseAgent:
             if choices and isinstance(choices, list) and len(choices) > 0:
                 message = choices[0].get("message", {})
                 if isinstance(message, dict):
-                    content = message.get("content", "")
-                    if content:
-                        result = content.strip()
-
+                    raw_content = message.get("content", "")
+                    result = self._extract_text_content(raw_content).strip()
+                    if result:
                         output_tokens = self._estimate_tokens(result)
                         real_usage = response_json.get("usage", {})
                         usage_info = ""

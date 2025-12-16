@@ -4,13 +4,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.pages.prediction.prediction_utils import normalize_language_score
+from src.pages.prediction.core.utils import normalize_language_score
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
 from src.pages.prediction.result_modifier.config import (
     COMPREHENSIVE_SCORE_BOOST_THRESHOLD,
-    CROSS_MAJOR_PENALTY_FACTOR,
     GPA_MINIMUM,
     GPA_PENALTY_MAX_COEFFICIENT,
     GPA_PENALTY_QUADRATIC_COEFFICIENT,
@@ -31,7 +30,11 @@ from src.pages.prediction.result_modifier.config import (
     get_university_difficulty_order,
 )
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
-from src.pages.prediction.result_modifier.utils import clip_probability, compute_dataframe_hash
+from src.pages.prediction.result_modifier.utils import (
+    clip_probability,
+    compute_dataframe_hash,
+    cross_major_penalty_factor,
+)
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
 
@@ -272,7 +275,9 @@ def penalize_cross_major_without_cases(
         if is_cross_major and not has_admitted_case:
             original_prob = result_copy.get("probability", 0.0)
             if original_prob is not None:
-                adjusted_prob = clip_probability(original_prob) * CROSS_MAJOR_PENALTY_FACTOR
+                adjusted_prob = clip_probability(original_prob) * cross_major_penalty_factor(
+                    result.get("similarity", 0.0)
+                )
                 result_copy["probability"] = clip_probability(adjusted_prob)
 
         adjusted_results.append(result_copy)
