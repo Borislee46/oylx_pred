@@ -168,11 +168,8 @@ class ProbabilityAdjuster:
         gpa_score = self._gpa_to_score(gpa)
         lang_score = self._language_to_score(language_score)
 
-        school_score = 0.5
-        if background_university:
-            service = get_school_level_service()
-            priority = service.get_school_priority(background_university)
-            school_score = max(0.0, min(1.0, 1.0 - (priority - 1) / 10.0))
+        service = get_school_level_service()
+        school_score = service.get_school_score(background_university)
 
         total_score = 0.4 * gpa_score + 0.3 * lang_score + 0.3 * school_score
         return total_score

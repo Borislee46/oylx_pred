@@ -14,7 +14,6 @@ from src.pages.prediction.result_modifier.experience_text_validator import (
     has_meaningful_experience_text,
 )
 from src.pages.prediction.results_handler import reset_prediction_results
-from src.utils.app_data_loader import load_raw_cases_data
 from src.utils.logger import setup_logger
 
 if TYPE_CHECKING:
@@ -56,7 +55,7 @@ def run_prediction_with_guard(
     has_valid_experience = has_meaningful_experience_text(experience_details)
     input_data_with_lists["_has_valid_experience"] = has_valid_experience
 
-    cases_df_fingerprint = compute_df_fingerprint(load_raw_cases_data())
+    cases_df_fingerprint = compute_df_fingerprint(page_state.cases_df)
     all_universities_fingerprint = compute_list_fingerprint(all_universities_target)
     all_majors_fingerprint = compute_list_fingerprint(all_majors_target)
 
@@ -160,37 +159,3 @@ def handle_form_submission(ctx: FormSubmissionContext) -> None:
         ctx.all_majors_target,
         session_keys,
     )
-
-
-def handle_form_submission_legacy(
-    session_manager: "SessionManager",
-    page_state: "machine_learning_model",
-    input_data_from_form: dict,
-    all_universities_target: list[str],
-    all_majors_target: list[str],
-    original_form_data: dict | None,
-    session_key_form_data_changed: str,
-    session_key_input_data: str,
-    session_key_predict_lock: str,
-    session_key_has_predicted: str,
-    session_key_is_school_selection_submit: str,
-    session_key_last_submission_logged: str,
-) -> None:
-    session_keys = SessionKeys(
-        form_data_changed=session_key_form_data_changed,
-        input_data=session_key_input_data,
-        predict_lock=session_key_predict_lock,
-        has_predicted=session_key_has_predicted,
-        is_school_selection_submit=session_key_is_school_selection_submit,
-        last_submission_logged=session_key_last_submission_logged,
-    )
-    ctx = FormSubmissionContext(
-        session_manager=session_manager,
-        page_state=page_state,
-        input_data_from_form=input_data_from_form,
-        all_universities_target=all_universities_target,
-        all_majors_target=all_majors_target,
-        original_form_data=original_form_data,
-        session_keys=session_keys,
-    )
-    handle_form_submission(ctx)

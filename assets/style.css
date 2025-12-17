@@ -1,51 +1,9 @@
-div[data-testid="stSidebarNav"] {
-    display: none;
-}
-
-[data-testid="stSidebar"] {
-    display: none;
-}
-
-[data-testid="collapsedControl"] {
-    display: none;
-}
-
-[data-testid="stElementToolbar"] {
-    display: none;
-}
-
-#MainMenu {visibility: hidden !important;}
-
-footer {visibility: hidden !important;}
-
-.stDeployButton {
-    display: none !important;
-}
-
-header {visibility: hidden !important;}
-
 [data-testid="stHeader"] {
     display: none !important;
 }
 
+[data-testid="stSidebarNav"] { display: none !important; }
+
 button[data-testid="stBaseButton-headerNoPadding"] {
     display: none !important;
 } 
-
-[data-testid="stSpinner"],
-.stSpinner {
-  background: transparent !important;
-}
-
-[data-testid="stSpinner"] > div,
-.stSpinner > div {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-}
-
-[data-baseweb="spinner"] {
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-}

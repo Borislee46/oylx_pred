@@ -26,7 +26,7 @@ form_logger = setup_logger("page3", "prediction")
 
 
 @st.fragment
-def create_input_form(session_manager: SessionManager, cases_df, disabled_status=False):
+def create_input_form(session_manager: SessionManager, cases_df):
     FormStateManager.initialize_session_state(session_manager)
 
     disabled_status = session_manager.get("prediction_submit_lock", False)
@@ -34,7 +34,19 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
     if session_manager.get("school_base_df") is None:
         session_manager.set(school_base_df=load_school_base_data())
 
-    gpa_converter = GPAConverter(session_manager.get("school_base_df"))
+    if session_manager.get("gpa_converter") is None:
+        session_manager.set(gpa_converter=GPAConverter(session_manager.get("school_base_df")))
+    gpa_converter = session_manager.get("gpa_converter")
+
+    if session_manager.get("_cases_background_university_set") is None:
+        if cases_df is not None and "background_university" in cases_df.columns:
+            session_manager.set(
+                _cases_background_university_set=set(
+                    cases_df["background_university"].dropna().astype(str).unique()
+                )
+            )
+        else:
+            session_manager.set(_cases_background_university_set=set())
 
     ui_components = FormUIComponents(session_manager)
 
@@ -171,7 +183,12 @@ def _process_successful_submission(
     all_majors_target,
     gpa_converter,
 ):
-    input_data, warnings = normalize_form_data_for_prediction(form_data, cases_df, gpa_converter)
+    input_data, warnings = normalize_form_data_for_prediction(
+        form_data,
+        cases_df,
+        gpa_converter,
+        background_university_set=session_manager.get("_cases_background_university_set"),
+    )
     for w in warnings:
         if w.startswith("标化成绩加成生效"):
             st.toast(w)
@@ -232,7 +249,11 @@ def _get_current_form_state(
         if bonus_gpa > 0:
             current_normalized_gpa += bonus_gpa
 
-    background_uni_for_model = get_background_university_for_model(background_university, cases_df)
+    background_uni_for_model = get_background_university_for_model(
+        background_university,
+        cases_df,
+        session_manager.get("_cases_background_university_set"),
+    )
 
     input_data = {
         "background_university": background_uni_for_model,

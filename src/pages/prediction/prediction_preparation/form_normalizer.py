@@ -42,13 +42,19 @@ def calculate_gpa_bonus(exam_type, exam_score) -> float:
 
 
 def get_background_university_for_model(
-    selected_background_university: str | None, cases_df
+    selected_background_university: str | None,
+    cases_df,
+    background_university_set: set[str] | None = None,
 ) -> str | None:
     if not selected_background_university:
         return None
 
-    unique_background_universities = cases_df["background_university"].unique()
-    if selected_background_university not in unique_background_universities:
+    if background_university_set is None:
+        background_university_set = set(
+            cases_df["background_university"].dropna().astype(str).unique()
+        )
+
+    if selected_background_university not in background_university_set:
         return find_substitute_university(selected_background_university, cases_df)
 
     return selected_background_university
@@ -58,6 +64,7 @@ def normalize_form_data_for_prediction(
     form_data: dict,
     cases_df,
     gpa_converter: GPAConverter | None,
+    background_university_set: set[str] | None = None,
 ) -> tuple[dict, list[str]]:
     warnings: list[str] = []
 
@@ -97,7 +104,7 @@ def normalize_form_data_for_prediction(
         )
 
     background_uni_for_model = get_background_university_for_model(
-        form_data.get("background_university"), cases_df
+        form_data.get("background_university"), cases_df, background_university_set
     )
 
     input_data = {

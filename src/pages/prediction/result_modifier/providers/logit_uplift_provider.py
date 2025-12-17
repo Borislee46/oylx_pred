@@ -11,10 +11,12 @@ from src.pages.prediction.result_modifier.config import (
 )
 from src.pages.prediction.result_modifier.providers.logit_uplift import (
     DeltaCalculator,
-    ModelLoader,
     ProbabilityApplier,
     SimilarityComputer,
     TextProcessor,
+)
+from src.pages.prediction.result_modifier.providers.logit_uplift.model_loader import (
+    get_model_loader,
 )
 from src.pages.prediction.result_modifier.providers.logit_uplift.signal_scorer import (
     SignalScorer,
@@ -94,7 +96,7 @@ class LogitUpliftProvider(TextBoostProvider):
             novelty_min_chars = int(hs.get("novelty_min_chars", 12))
 
         self._text_processor = TextProcessor(text_keys=text_keys, count_keys=count_keys)
-        self._model_loader = ModelLoader(
+        self._model_loader = get_model_loader(
             vectorizer_path=vectorizer_path,
             centroids_path=centroids_path,
             weights_path=weights_path,
@@ -133,7 +135,7 @@ class LogitUpliftProvider(TextBoostProvider):
         try:
             delta_logit, sims, reasons = self._delta_calculator.cached_delta_logit(sig)
         except Exception as e:
-            logger.error(f"LogitUpliftProvider apply error: {str(e)}")
+            logger.error(f"LogitUpliftProvider 计算 delta_logit 失败: {str(e)}")
             return probabilities, ""
 
         if delta_logit <= 0:

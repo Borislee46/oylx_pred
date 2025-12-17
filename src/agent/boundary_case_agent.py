@@ -118,7 +118,17 @@ class BoundaryCaseAgent(BaseAgent):
                     f"[{self.agent_name}] JSON解析失败 - 错误: {e}, 响应内容长度: {len(content)}"
                 )
                 self.logger.debug(f"[{self.agent_name}] 响应内容预览: {content[:200]}")
-                return {"decisions": decisions, "needs_adjustment": any(decisions)}
+                repaired = self._repair_json_once(
+                    content,
+                    schema_hint='{"decisions":[bool,...],"needs_adjustment":bool}',
+                    cache_prefix="boundary_json_repair",
+                )
+                if not repaired:
+                    return {"decisions": decisions, "needs_adjustment": any(decisions)}
+                try:
+                    result = json.loads(repaired)
+                except json.JSONDecodeError:
+                    return {"decisions": decisions, "needs_adjustment": any(decisions)}
 
             if not isinstance(result, dict):
                 self.logger.warning(
@@ -132,7 +142,21 @@ class BoundaryCaseAgent(BaseAgent):
                     f"[{self.agent_name}] decisions 长度 ({len(agent_decisions)}) 与 boundary_cases 长度 "
                     f"({len(pending_cases)}) 不匹配"
                 )
-                agent_decisions = [False] * len(pending_cases)
+                repaired = self._repair_json_once(
+                    json.dumps(result, ensure_ascii=False),
+                    schema_hint=f'{{"decisions":[bool,...(len={len(pending_cases)})...],"needs_adjustment":bool}}',
+                    cache_prefix="boundary_json_repair_len",
+                )
+                if repaired:
+                    try:
+                        fixed = json.loads(repaired)
+                        if isinstance(fixed, dict) and isinstance(fixed.get("decisions"), list):
+                            result = fixed
+                            agent_decisions = fixed.get("decisions", [])
+                    except json.JSONDecodeError:
+                        pass
+                if len(agent_decisions) != len(pending_cases):
+                    agent_decisions = [False] * len(pending_cases)
 
             for j, idx in enumerate(pending_indices):
                 d = parse_bool(agent_decisions[j])

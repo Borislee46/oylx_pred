@@ -6,9 +6,6 @@ import pandas as pd
 from src.pages.prediction.result_modifier.config import (
     FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR,
     MIN_SIMILARITY_THRESHOLD,
-    PROFESSIONAL_MAJORS_LOWER,
-    PROFESSIONAL_REDUCTION_FACTOR,
-    PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
 from src.pages.prediction.result_modifier.faculty_filters import apply_out_of_scope_faculty_penalty
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
@@ -33,27 +30,15 @@ class AdjustmentContext:
     admitted_combinations: set[tuple[str, str]] = field(default_factory=set)
 
 
-@dataclass
-class AdjustmentResult:
-    original_probability: float
-    final_probability: float
-    adjustments: dict[str, float] = field(default_factory=dict)
-
-    def add_adjustment(self, stage: str, before: float, after: float):
-        self.adjustments[stage] = after - before
-
-
 class ProbabilityAdjustmentPipeline:
     def __init__(
         self,
         probability_adjuster: ProbabilityAdjuster | None = None,
         text_boost_provider: TextBoostProvider | None = None,
-        enable_professional_adjustment: bool = True,
         enable_cross_major_penalty: bool = True,
     ):
         self.probability_adjuster = probability_adjuster
         self.text_boost_provider = text_boost_provider
-        self.enable_professional_adjustment = enable_professional_adjustment
         self.enable_cross_major_penalty = enable_cross_major_penalty
 
     def adjust_single(
@@ -64,11 +49,6 @@ class ProbabilityAdjustmentPipeline:
         result_copy = result.copy()
         original_prob = self._get_probability(result_copy)
         current_prob = original_prob
-
-        if self.enable_professional_adjustment:
-            current_prob = self._apply_professional_adjustment(
-                result_copy, current_prob, ctx.internship_count, ctx.user_specified_majors
-            )
 
         if self.probability_adjuster and ctx.gpa is not None and ctx.language_score is not None:
             current_prob = self._apply_gpa_language_adjustment(
@@ -114,42 +94,6 @@ class ProbabilityAdjustmentPipeline:
             return max(0.0, min(1.0, val))
         except (ValueError, TypeError):
             return 0.0
-
-    def _apply_professional_adjustment(
-        self,
-        result: dict,
-        probability: float,
-        internship_count: int,
-        user_specified_majors: list[str],
-    ) -> float:
-        if internship_count > 0:
-            return probability
-
-        target_major = result.get("major", "")
-        if not target_major:
-            return probability
-
-        target_major_lower = target_major.lower()
-        is_professional = any(
-            prof_major in target_major_lower for prof_major in PROFESSIONAL_MAJORS_LOWER
-        )
-
-        if not is_professional:
-            return probability
-
-        user_majors_lower = (
-            [m.lower() for m in user_specified_majors] if user_specified_majors else []
-        )
-        is_user_specified = any(
-            spec_major in target_major_lower for spec_major in user_majors_lower
-        )
-
-        factor = (
-            PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR
-            if is_user_specified
-            else PROFESSIONAL_REDUCTION_FACTOR
-        )
-        return probability * factor
 
     def _apply_gpa_language_adjustment(
         self,
@@ -212,37 +156,3 @@ class ProbabilityAdjustmentPipeline:
             logger.warning(f"文本增强失败: {e}")
 
         return results
-
-
-def create_adjustment_pipeline(
-    cases_df: pd.DataFrame | None = None,
-    text_boost_provider: TextBoostProvider | None = None,
-) -> ProbabilityAdjustmentPipeline:
-    probability_adjuster = None
-    if cases_df is not None and not cases_df.empty:
-        probability_adjuster = ProbabilityAdjuster(cases_df)
-
-    return ProbabilityAdjustmentPipeline(
-        probability_adjuster=probability_adjuster,
-        text_boost_provider=text_boost_provider,
-    )
-
-
-def create_adjustment_context(
-    cleaned_input: dict,
-    cases_df: pd.DataFrame | None = None,
-    admitted_combinations: set[tuple[str, str]] | None = None,
-    background_faculty: str | None = None,
-) -> AdjustmentContext:
-    return AdjustmentContext(
-        gpa=cleaned_input.get("gpa"),
-        language_score=cleaned_input.get("language_score"),
-        background_university=cleaned_input.get("background_university"),
-        background_major=cleaned_input.get("background_major"),
-        background_faculty=background_faculty,
-        internship_count=cleaned_input.get("internship_count", 0),
-        user_specified_majors=cleaned_input.get("target_majors", []),
-        experience_details=cleaned_input.get("experience_details", {}),
-        cases_df=cases_df,
-        admitted_combinations=admitted_combinations or set(),
-    )

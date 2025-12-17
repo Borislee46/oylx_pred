@@ -8,6 +8,7 @@ import streamlit as st
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_GPA_SCALE,
     GPA_SCALES,
+    LANGUAGE_TYPES,
     TARGET_COUNTRY_UNIVERSITY_MAP,
 )
 from src.pages.prediction.input_form_components.language_score_converter import (
@@ -250,6 +251,12 @@ class FormStateManager:
         old_lang_type = session_manager.get("language_type")
         new_lang_type = session_manager.get_widget_value("language_type_widget_key")
 
+        if new_lang_type not in LANGUAGE_TYPES:
+            fallback = old_lang_type if old_lang_type in LANGUAGE_TYPES else LANGUAGE_TYPES[0]
+            session_manager.set(language_type=fallback)
+            st.session_state["language_type_widget_key"] = fallback
+            return
+
         if old_lang_type == new_lang_type:
             return
 
@@ -303,6 +310,11 @@ class FormStateManager:
         new_scale_key = session_manager.get_widget_value("gpa_scale_widget_key")
 
         if old_scale_key == new_scale_key:
+            return
+
+        if new_scale_key not in GPA_SCALES:
+            session_manager.set(gpa_scale=old_scale_key)
+            st.session_state["gpa_scale_widget_key"] = old_scale_key
             return
 
         form_state_logger.info(f"用户更改GPA分制 - 从 {old_scale_key} 变更为 {new_scale_key}")

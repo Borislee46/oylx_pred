@@ -9,35 +9,25 @@ def _get_substitution_map(cases_df: pd.DataFrame):
     if cases_df is None or cases_df.empty:
         return {}, None
 
-    fallback_uni = (
-        cases_df["background_university"].mode().iloc[0]
-        if not cases_df["background_university"].mode().empty
-        else None
-    )
+    if "background_university" not in cases_df.columns:
+        return {}, None
 
-    service = get_school_level_service()
-    all_unis = cases_df["background_university"].unique()
-    uni_level_map = {uni: service.get_school_level(uni) for uni in all_unis}
-
-    uni_counts = cases_df["background_university"].value_counts().reset_index()
-    uni_counts.columns = ["background_university", "count"]
-
-    uni_level_df = pd.DataFrame(
-        list(uni_level_map.items()), columns=["background_university", "level"]
-    ).dropna()
-
-    merged_df = pd.merge(uni_counts, uni_level_df, on="background_university")
-
-    if merged_df.empty:
+    counts = cases_df["background_university"].dropna().astype(str).str.strip()
+    counts = counts[counts != ""].value_counts()
+    fallback_uni = str(counts.index[0]) if not counts.empty else None
+    if counts.empty:
         return {}, fallback_uni
 
-    most_frequent_unis = merged_df.loc[merged_df.groupby("level")["count"].idxmax()]
+    service = get_school_level_service()
 
-    level_to_substitute_map = pd.Series(
-        most_frequent_unis.background_university.values, index=most_frequent_unis.level
-    ).to_dict()
+    level_best: dict[str, tuple[str, int]] = {}
+    for uni, cnt in counts.items():
+        level = service.get_school_level(uni)
+        prev = level_best.get(level)
+        if prev is None or cnt > prev[1]:
+            level_best[level] = (uni, int(cnt))
 
-    return level_to_substitute_map, fallback_uni
+    return {level: uni for level, (uni, _) in level_best.items()}, fallback_uni
 
 
 def find_substitute_university(selected_uni: str, cases_df: pd.DataFrame) -> str | None:

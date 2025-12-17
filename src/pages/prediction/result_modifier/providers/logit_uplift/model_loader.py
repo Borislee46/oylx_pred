@@ -8,6 +8,7 @@ import joblib
 import numpy as np
 
 from src.pages.prediction.result_modifier.providers.logit_uplift.utils import safe_float
+from src.pages.prediction.result_modifier.streamlit_cache import cache_resource
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -103,3 +104,12 @@ class ModelLoader:
         self.lazy_load()
         assert self._weights_array is not None
         return self._weights_array
+
+
+@cache_resource(show_spinner=False)
+def get_model_loader(vectorizer_path: str, centroids_path: str, weights_path: str) -> ModelLoader:
+    return ModelLoader(
+        vectorizer_path=vectorizer_path,
+        centroids_path=centroids_path,
+        weights_path=weights_path,
+    )

@@ -60,7 +60,7 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
     cleaned["paper_count"] = _safe_int(input_data.get("paper_count"))
 
     if "school_level" in input_data:
-        cleaned["school_level"] = _safe_int(input_data["school_level"])
+        cleaned["school_level"] = _safe_str(input_data["school_level"])
 
     exp_details = _safe_dict_str(input_data.get("experience_details"))
 

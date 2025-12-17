@@ -147,11 +147,20 @@ def render_language_section(session_manager, form_state_manager, logger):
         )
 
     language_type = session_manager.get("language_type")
+    if language_type not in LANGUAGE_TYPES:
+        language_type = LANGUAGE_TYPES[0]
+        session_manager.set(language_type=language_type)
+
+    if (
+        "language_type_widget_key" not in st.session_state
+        or st.session_state.get("language_type_widget_key") not in LANGUAGE_TYPES
+    ):
+        st.session_state["language_type_widget_key"] = language_type
+
     st.segmented_control(
         "语言成绩类型",
         LANGUAGE_TYPES,
         selection_mode="single",
-        default=language_type,
         on_change=partial(form_state_manager.on_language_type_change, session_manager),
         key="language_type_widget_key",
     )

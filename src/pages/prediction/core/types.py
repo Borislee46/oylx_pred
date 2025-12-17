@@ -12,5 +12,5 @@ class PredictionInput(TypedDict, total=False):
     research_count: int
     award_count: int
     paper_count: int
-    school_level: int
+    school_level: str
     experience_details: dict[str, str]

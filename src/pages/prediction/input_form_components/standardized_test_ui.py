@@ -10,8 +10,23 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
         current_test_type = "GRE"
         session_manager.set(standardized_test_type="GRE")
 
+    if (
+        "standardized_test_type_widget" not in st.session_state
+        or st.session_state.get("standardized_test_type_widget") not in STANDARDIZED_TEST_TYPES
+    ):
+        st.session_state["standardized_test_type_widget"] = current_test_type
+
     def on_test_type_change():
+        prev_type = session_manager.get("standardized_test_type") or "GRE"
+        if prev_type not in STANDARDIZED_TEST_TYPES:
+            prev_type = "GRE"
+
         new_type = session_manager.get_widget_value("standardized_test_type_widget")
+        if new_type not in STANDARDIZED_TEST_TYPES:
+            session_manager.set(standardized_test_type=prev_type)
+            st.session_state["standardized_test_type_widget"] = prev_type
+            return
+
         session_manager.set(standardized_test_type=new_type)
         form_state_manager.on_form_change(session_manager, change_type="select")
 
@@ -19,7 +34,6 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
         "标化成绩 (选填)",
         options=STANDARDIZED_TEST_TYPES,
         selection_mode="single",
-        default=current_test_type,
         key="standardized_test_type_widget",
         on_change=on_test_type_change,
     )

@@ -1,3 +1,7 @@
+"""
+非生产模块，后续待从streamlit框架把后端解耦出来用
+"""
+
 from __future__ import annotations
 
 import logging
@@ -354,7 +358,6 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         adjuster_pipeline = ProbabilityAdjustmentPipeline(
             probability_adjuster=probability_adjuster,
             text_boost_provider=text_provider,
-            enable_professional_adjustment=False,
             enable_cross_major_penalty=True,
         )
 
@@ -383,7 +386,7 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         }
 
     except Exception as e:
-        logger.error(f"Prediction failed: {e}", exc_info=True)
+        logger.error(f"预测失败: {e}", exc_info=True)
         return {
             "ok": False,
             "errors": [{"field": "_", "message": f"Server Error: {str(e)}", "severity": "error"}],

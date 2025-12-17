@@ -81,6 +81,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
+[data-testid="stSidebarNav"] { display: none !important; }
+section[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+
 .stApp {
     font-family: var(--hk-font-sans);
 }
@@ -96,20 +100,13 @@
     position: relative;
     display: inline-block;
     cursor: pointer;
-}
-
-.hk-logo-trigger {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
+    overflow: hidden;
 }
 
 .hk-logo-shine {
     position: absolute;
     top: 0;
-    left: -100%;
+    left: 0;
     width: 50%;
     height: 100%;
     background: linear-gradient(
@@ -126,19 +123,19 @@
         transparent 80%,
         transparent 100%
     );
-    transform: skewX(-25deg);
+    transform: translateX(-220%) skewX(-25deg);
     pointer-events: none;
     z-index: 10;
     mix-blend-mode: overlay;
 }
 
-.hk-logo-trigger:checked ~ .hk-logo-shine {
-    animation: metal-shine 1s ease-in-out forwards;
+.hk-logo-container:hover .hk-logo-shine {
+    animation: metal-shine 1.2s ease-in-out infinite;
 }
 
 @keyframes metal-shine {
     0% {
-        left: -100%;
+        transform: translateX(-220%) skewX(-25deg);
         opacity: 0;
     }
     5% {
@@ -148,7 +145,7 @@
         opacity: 1;
     }
     100% {
-        left: 150%;
+        transform: translateX(320%) skewX(-25deg);
         opacity: 0;
     }
 }
@@ -167,7 +164,7 @@
     filter: drop-shadow(0 0 6px var(--hk-glow-strong));
 }
 
-.hk-logo-trigger:checked ~ .hk-header-logo {
+.hk-logo-container:active .hk-header-logo {
     animation: logo-pulse 0.15s ease-out;
 }
 
@@ -175,6 +172,15 @@
     0% { transform: scale(1); }
     50% { transform: scale(0.95); }
     100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hk-logo-container:hover .hk-logo-shine,
+    .hk-logo-container:active .hk-header-logo,
+    .hk-logo-container:hover .hk-header-logo {
+        animation: none;
+        transition: none;
+    }
 }
 
 @keyframes title-gradient-flow {

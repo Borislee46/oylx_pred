@@ -170,6 +170,35 @@ class BaseAgent:
 
         return content.strip()
 
+    def _repair_json_once(
+        self,
+        raw_text: str,
+        schema_hint: str,
+        cache_prefix: str = "json_repair",
+        thinking_type: str | None = None,
+    ) -> str | None:
+        raw_text = str(raw_text or "").strip()
+        if not raw_text:
+            return None
+
+        prompt = (
+            "你是一个 JSON 修复器。你的任务是把输入内容修复为“严格合法”的 JSON。\n"
+            "要求：\n"
+            "- 只输出 JSON，本次输出不得包含任何解释、注释、代码块标记、前后缀文字。\n"
+            "- 如果输入包含多余文字，请删除，只保留 JSON。\n"
+            "- 字段必须严格符合 schema_hint，不要新增字段。\n\n"
+            f"schema_hint:\n{schema_hint}\n\n"
+            "input:\n"
+            f"{raw_text}\n"
+        )
+        fixed = self._call_api(
+            prompt, cache_prefix=cache_prefix, use_cache=True, thinking_type=thinking_type
+        )
+        if not fixed:
+            return None
+        fixed = self._clean_json_content(fixed)
+        return fixed if fixed else None
+
     def _call_api(
         self,
         prompt: str,

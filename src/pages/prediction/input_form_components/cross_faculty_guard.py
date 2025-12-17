@@ -10,54 +10,6 @@ from src.utils.session_manager import SessionManager
 guard_logger = setup_logger("page3", "prediction")
 
 
-@lru_cache(maxsize=1)
-def _get_major_category_cache() -> dict[str, str]:
-    details_df = load_school_major_details_df()
-    if details_df is None or details_df.empty:
-        return {}
-
-    required_cols = ["学校", "专业英文名称", "专业大类"]
-    if not all(col in details_df.columns for col in required_cols):
-        return {}
-
-    df = details_df[required_cols].dropna()
-    df = df[~df["专业大类"].astype(str).str.lower().isin(["nan", "none"])]
-
-    return {
-        f"{row['学校'].strip()}|{row['专业英文名称'].strip()}": row["专业大类"].strip()
-        for _, row in df.iterrows()
-    }
-
-
-def check_cross_faculty_situation(
-    background_major: str,
-    target_majors: list[str],
-    target_universities: list[str],
-    cases_df: pd.DataFrame,
-) -> tuple[bool, str | None, set[str]]:
-    from src.pages.prediction.core.utils import get_background_faculty
-
-    background_faculty = get_background_faculty(background_major, cases_df)
-    if not background_faculty:
-        return False, None, set()
-
-    major_category_cache = _get_major_category_cache()
-    target_faculties: set[str] = set()
-
-    for major in target_majors:
-        if not major:
-            continue
-        for university in target_universities:
-            if not university:
-                continue
-            target_faculty = major_category_cache.get(f"{university}|{major}")
-            if target_faculty:
-                target_faculties.add(target_faculty)
-
-    has_cross_faculty = any(f != background_faculty for f in target_faculties)
-    return has_cross_faculty, background_faculty, target_faculties
-
-
 @st.dialog("提示", width="small")
 def cross_faculty_confirm_dialog(
     session_manager: SessionManager, background_faculty: str, target_faculties: set[str]
