@@ -77,6 +77,7 @@ def adjust_similarity_results_with_agent(
     current_threshold: float,
     agent: Any,
     background_faculty: str | None = None,
+    progress_reporter: Any | None = None,
 ) -> list[dict[str, Any]]:
     if not top_similarity_results or not agent or balance_diff == 0:
         return top_similarity_results
@@ -170,6 +171,7 @@ def adjust_similarity_results_with_agent(
         background_major=background_major,
         background_faculty=background_faculty,
         mode=mode,
+        progress_reporter=progress_reporter,
     ) as ui_handler:
         engine = AgentAdjustmentEngine(agent, session, ui_handler)
         final_results = engine.run(

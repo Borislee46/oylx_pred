@@ -7,6 +7,7 @@ from src.pages.prediction.flow.processor import (
     generate_prediction_combinations,
     process_prediction_results,
 )
+from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.modeling.model import PredictionModel
 from src.pages.prediction.prediction_execution import PredictionExecutor
 from src.pages.prediction.prediction_preparation import (
@@ -33,6 +34,7 @@ def run_single_prediction(
     gpa: float | None = None,
     language_score: float | None = None,
     background_university: str | None = None,
+    progress_reporter: ProgressReporter | None = None,
 ) -> tuple[
     list[dict[str, float | str]],
     list[dict[str, float | str]],
@@ -117,6 +119,7 @@ def run_single_prediction(
         gpa=gpa,
         language_score=language_score,
         background_university=background_university,
+        progress_reporter=progress_reporter,
     )
 
     return (*results, meta)

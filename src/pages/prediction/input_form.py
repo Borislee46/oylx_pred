@@ -1,4 +1,5 @@
 import time
+from contextlib import nullcontext
 
 import streamlit as st
 
@@ -25,8 +26,14 @@ from src.utils.session_manager import SessionManager
 form_logger = setup_logger("page3", "prediction")
 
 
-@st.fragment
-def create_input_form(session_manager: SessionManager, cases_df):
+def create_input_form(
+    session_manager: SessionManager,
+    cases_df,
+    *,
+    parent_container=None,
+    wrap_container: bool = True,
+    border: bool = True,
+):
     FormStateManager.initialize_session_state(session_manager)
 
     disabled_status = session_manager.get("prediction_submit_lock", False)
@@ -50,40 +57,45 @@ def create_input_form(session_manager: SessionManager, cases_df):
 
     ui_components = FormUIComponents(session_manager)
 
-    with st.container(border=True):
-        col1, col2 = st.columns([1, 1], gap="small")
+    outer_ctx = parent_container if parent_container is not None else nullcontext()
+    with outer_ctx:
+        input_ctx = st.container(border=border) if wrap_container else nullcontext()
+        with input_ctx:
+            if wrap_container:
+                st.markdown('<span class="hk-input-glass-marker"></span>', unsafe_allow_html=True)
+            col1, col2 = st.columns([1, 1], gap="small")
 
-        with col1:
-            (
-                background_university,
-                selected_background_major_original,
-                background_major,
-            ) = ui_components.render_background_section(cases_df)
+            with col1:
+                (
+                    background_university,
+                    selected_background_major_original,
+                    background_major,
+                ) = ui_components.render_background_section(cases_df)
 
-            gpa_col, test_col = st.columns([2, 1], gap="medium")
-            with gpa_col:
-                ui_components.render_gpa_section()
-            with test_col:
-                exam_type, exam_score = ui_components.render_standardized_test_section()
+                gpa_col, test_col = st.columns([2, 1], gap="medium")
+                with gpa_col:
+                    ui_components.render_gpa_section()
+                with test_col:
+                    exam_type, exam_score = ui_components.render_standardized_test_section()
 
-            (
-                final_target_universities,
-                final_target_majors,
-                all_universities_target,
-                all_majors_target,
-            ) = ui_components.render_target_section(cases_df)
+                (
+                    final_target_universities,
+                    final_target_majors,
+                    all_universities_target,
+                    all_majors_target,
+                ) = ui_components.render_target_section(cases_df)
 
-        with col2:
-            language_type, raw_language_score_value = ui_components.render_language_section()
-            (
-                research_count,
-                award_count,
-                internship_count,
-                paper_count,
-                experience_details,
-            ) = ui_components.render_experience_section()
+            with col2:
+                language_type, raw_language_score_value = ui_components.render_language_section()
+                (
+                    research_count,
+                    award_count,
+                    internship_count,
+                    paper_count,
+                    experience_details,
+                ) = ui_components.render_experience_section()
 
-        submit_button = ui_components.render_submit_button(disabled_status)
+            submit_button = ui_components.render_submit_button(disabled_status)
 
     if submit_button:
         form_data = {

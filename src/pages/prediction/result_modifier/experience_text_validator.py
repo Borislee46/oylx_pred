@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 from src.agent.text_preprocessing_prompts import build_field_validation_prompt
+from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import generate_content_hash, is_effectively_empty
 from src.utils.env_config_loader import load_app_config
@@ -123,7 +124,11 @@ def _get_analysis_message(field_names: list[str]) -> str:
     return f"正在智能分析您的{fields_text}等背景经历"
 
 
-def has_meaningful_experience_text(experience_details: dict[str, str] | None) -> bool:
+def has_meaningful_experience_text(
+    experience_details: dict[str, str] | None,
+    *,
+    progress_reporter: ProgressReporter | None = None,
+) -> bool:
     if not experience_details:
         return False
 
@@ -138,14 +143,21 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
     if not fields_to_validate:
         return False
 
-    st = _get_streamlit()
     animator = None
-    if st is not None and _has_streamlit_runtime(st):
+    if progress_reporter is not None:
         from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
 
-        animator = LoadingMessageAnimator()
+        animator = LoadingMessageAnimator(progress_reporter=progress_reporter)
         field_names = [FIELD_NAME_MAP.get(k, k) for k, _ in fields_to_validate]
         animator.show(_get_analysis_message(field_names), force=True)
+    else:
+        st = _get_streamlit()
+        if st is not None and _has_streamlit_runtime(st):
+            from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
+
+            animator = LoadingMessageAnimator()
+            field_names = [FIELD_NAME_MAP.get(k, k) for k, _ in fields_to_validate]
+            animator.show(_get_analysis_message(field_names), force=True)
 
     validated_keys: list[str] = []
     for k, content in fields_to_validate:
@@ -156,10 +168,13 @@ def has_meaningful_experience_text(experience_details: dict[str, str] | None) ->
             future = executor.submit(_validate_field_with_llm, k, content)
             while animator is not None and not future.done():
                 animator.tick()
+                if progress_reporter is not None:
+                    progress_reporter.advance_ratio(0.08)
                 time.sleep(0.3)
             is_valid = future.result()
 
         if not is_valid:
+            st = _get_streamlit()
             if st is not None and _has_streamlit_runtime(st):
                 st.toast(f"{FIELD_NAME_MAP.get(k, k)}填写的内容无效")
             continue

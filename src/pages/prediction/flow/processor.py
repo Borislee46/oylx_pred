@@ -277,6 +277,7 @@ def _apply_agent_balance_adjustment(
     top_cross_major_results: list,
     results_with_similarity: list,
     ctx: ProcessingContext,
+    progress_reporter: Any | None = None,
 ) -> tuple[list, list]:
     balance_diff = len(top_cross_major_results) - len(top_similarity_results)
 
@@ -304,6 +305,7 @@ def _apply_agent_balance_adjustment(
         current_threshold,
         agent,
         ctx.background_faculty,
+        progress_reporter=progress_reporter,
     )
 
     sim_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
@@ -366,6 +368,7 @@ def process_prediction_results(
     gpa: float | None = None,
     language_score: float | None = None,
     background_university: str | None = None,
+    progress_reporter: Any | None = None,
 ) -> tuple[list, list, list]:
     if not results:
         return [], [], []
@@ -401,6 +404,7 @@ def process_prediction_results(
         top_cross_major_results,
         results_with_similarity,
         ctx,
+        progress_reporter,
     )
 
     return top_similarity_results, top_cross_major_results, final_user_specified_results

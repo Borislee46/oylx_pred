@@ -14,4 +14,5 @@ def render_submit_button(session_manager, form_state_manager, disabled_status=Fa
         on_click=partial(form_state_manager.on_submit_click, session_manager),
         disabled=final_disabled,
         key="submit_button_key",
+        shortcut="enter",
     )

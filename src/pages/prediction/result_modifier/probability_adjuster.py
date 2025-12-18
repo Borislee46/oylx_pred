@@ -68,48 +68,37 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
         norm_scores = None
 
         if has_toefl or has_ielts:
-            scores_list = []
+            temp_df = pd.DataFrame(index=_cases_df.index)
+
             if has_toefl:
-                valid_toefl = _cases_df["toefl"].dropna()
-                if not valid_toefl.empty:
-                    norm_toefl = valid_toefl.apply(lambda x: normalize_language_score(x, "托福"))
-                    scores_list.append(norm_toefl)
+                temp_df["toefl_norm"] = _cases_df["toefl"].apply(
+                    lambda x: normalize_language_score(x, "托福")
+                )
+            else:
+                temp_df["toefl_norm"] = np.nan
 
             if has_ielts:
-                valid_ielts = _cases_df["ielts"].dropna()
-                if not valid_ielts.empty:
-                    norm_ielts = valid_ielts.apply(lambda x: normalize_language_score(x, "雅思"))
-                    scores_list.append(norm_ielts)
+                temp_df["ielts_norm"] = _cases_df["ielts"].apply(
+                    lambda x: normalize_language_score(x, "雅思")
+                )
+            else:
+                temp_df["ielts_norm"] = np.nan
 
-            if scores_list:
-                temp_df = pd.DataFrame(index=_cases_df.index)
-                if has_toefl:
-                    temp_df["toefl_norm"] = _cases_df["toefl"].apply(
-                        lambda x: normalize_language_score(x, "托福")
-                    )
-                else:
-                    temp_df["toefl_norm"] = np.nan
-
-                if has_ielts:
-                    temp_df["ielts_norm"] = _cases_df["ielts"].apply(
-                        lambda x: normalize_language_score(x, "雅思")
-                    )
-                else:
-                    temp_df["ielts_norm"] = np.nan
-
-                final_scores = temp_df["toefl_norm"].fillna(temp_df["ielts_norm"]).fillna(0.0)
-                norm_scores = final_scores
+            norm_scores = temp_df["toefl_norm"].combine_first(temp_df["ielts_norm"])
 
         if norm_scores is not None:
-            stats["language_mean"] = float(np.nan_to_num(norm_scores.mean(), nan=0.0))
-            stats["language_std"] = float(np.nan_to_num(norm_scores.std(), nan=0.0))
+            valid_scores = pd.to_numeric(norm_scores, errors="coerce").dropna()
+            if not valid_scores.empty:
+                stats["language_mean"] = float(np.nan_to_num(valid_scores.mean(), nan=0.0))
+                stats["language_std"] = float(np.nan_to_num(valid_scores.std(), nan=0.0))
 
         if stats["language_std"] == 0:
             stats["language_std"] = 1e-6
 
-        stats["language_pass_line"] = (
+        pass_line = (
             stats["language_mean"] - LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER * stats["language_std"]
         )
+        stats["language_pass_line"] = max(LANGUAGE_MINIMUM, float(pass_line))
 
     except Exception as e:
         logger.warning(f"计算统计信息失败: {e}")

@@ -16,9 +16,12 @@ def _check_and_show_gpa_warning(session_manager):
         and gpa_raw_input > 0
         and gpa_raw_input < GPA_WARNING_THRESHOLDS[gpa_scale]
     ):
+        threshold = GPA_WARNING_THRESHOLDS[gpa_scale]
         warning_key = f"gpa_warning_{gpa_raw_input:.2f}_{gpa_scale}"
         if session_manager.get("last_gpa_warning_key") != warning_key:
-            st.toast(f"注意！当前GPA {gpa_raw_input:.2f} 远低于入学标准")
+            st.toast(
+                f"注意：当前GPA {gpa_raw_input:.2f}（{gpa_scale}制）低于提示线 {threshold:g}，预测结果可能会明显下调"
+            )
             session_manager.set(last_gpa_warning_key=warning_key)
 
 

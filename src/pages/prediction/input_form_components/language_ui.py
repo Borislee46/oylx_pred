@@ -22,9 +22,18 @@ def _check_and_show_language_warning(session_manager):
         and language_score_input > 0
         and language_score_input < LANGUAGE_WARNING_THRESHOLDS[language_type]
     ):
-        warning_key = f"lang_warning_{language_score_input:.1f}_{language_type}"
+        threshold = LANGUAGE_WARNING_THRESHOLDS[language_type]
+        score_display = (
+            f"{int(language_score_input)}"
+            if language_type == "托福"
+            else f"{language_score_input:.1f}"
+        )
+        threshold_display = f"{int(threshold)}" if language_type == "托福" else f"{threshold:.1f}"
+        warning_key = f"lang_warning_{score_display}_{language_type}"
         if session_manager.get("last_lang_warning_key") != warning_key:
-            st.toast(f"注意！当前{language_type}成绩 {language_score_input:.1f} 远低于入学标准")
+            st.toast(
+                f"注意：当前{language_type}成绩 {score_display} 低于提示线 {threshold_display}，预测结果可能会明显下调"
+            )
             session_manager.set(last_lang_warning_key=warning_key)
 
 

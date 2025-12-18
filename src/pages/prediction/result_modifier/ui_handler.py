@@ -3,6 +3,8 @@ import time
 
 import streamlit as st
 
+from src.pages.prediction.flow.progress_reporter import ProgressReporter
+
 
 def _has_streamlit_runtime() -> bool:
     runtime = getattr(st, "runtime", None)
@@ -11,11 +13,18 @@ def _has_streamlit_runtime() -> bool:
 
 
 class LoadingMessageAnimator:
-    def __init__(self, placeholder=None, min_interval: float = 1.2):
+    def __init__(
+        self,
+        placeholder=None,
+        min_interval: float = 1.2,
+        *,
+        progress_reporter: ProgressReporter | None = None,
+    ):
+        self.progress_reporter = progress_reporter
         self.placeholder = (
             placeholder
             if placeholder is not None
-            else (st.empty() if _has_streamlit_runtime() else None)
+            else (st.empty() if _has_streamlit_runtime() and progress_reporter is None else None)
         )
         self.min_interval = min_interval
         self._cycle_count = 0
@@ -23,13 +32,15 @@ class LoadingMessageAnimator:
         self._last_update_time = 0.0
 
     def _render(self, message: str):
-        if self.placeholder is None:
-            return
         dots = [".", "..", "..."][self._cycle_count % 3]
-        self.placeholder.markdown(
-            f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{message}{dots}</div>',
-            unsafe_allow_html=True,
-        )
+        if self.progress_reporter is not None:
+            self.progress_reporter.emit(f"{message}{dots}", force=True)
+            self.progress_reporter.advance_ratio(0.08)
+        elif self.placeholder is not None:
+            self.placeholder.markdown(
+                f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{message}{dots}</div>',
+                unsafe_allow_html=True,
+            )
         self._cycle_count += 1
         self._current_message = message
         self._last_update_time = time.time()
@@ -106,12 +117,22 @@ class RankerUIHandler:
         background_major: str = "",
         background_faculty: str | None = None,
         mode: str = "relax",
+        progress_reporter: ProgressReporter | None = None,
     ):
         self.background_major = background_major
         self.background_faculty = background_faculty
         self.mode = mode
-        self.placeholder = st.empty() if _has_streamlit_runtime() else None
-        self._animator = LoadingMessageAnimator(self.placeholder, self.MIN_DISPLAY_INTERVAL)
+        self.progress_reporter = progress_reporter
+        self.placeholder = (
+            None
+            if progress_reporter is not None
+            else (st.empty() if _has_streamlit_runtime() else None)
+        )
+        self._animator = LoadingMessageAnimator(
+            self.placeholder,
+            self.MIN_DISPLAY_INTERVAL,
+            progress_reporter=progress_reporter,
+        )
         self.is_active = False
         self._message_history: set = set()
         self._round_count = 0
@@ -179,6 +200,10 @@ class RankerUIHandler:
                 faculty=self.background_faculty or "目标领域",
             )
             self._render(msg)
+            if self.progress_reporter is not None:
+                self.progress_reporter.advance_ratio(0.04, text=msg)
         else:
             msg = self._pick_fresh_message(self.FALLBACK_MESSAGES)
             self._render(msg)
+            if self.progress_reporter is not None:
+                self.progress_reporter.advance_ratio(0.02, text=msg)

@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+:root {
+    --hk-dark-slate: #0f172a;
+    --hk-cyan: #06b6d4;
+    --hk-cyan-dark: #0891b2;
+    --hk-cyan-bright: #21fff4;
+
+    --hk-amber: #f59e0b;
+    --hk-amber-light: #fbbf24;
+    --hk-orange: #f97316;
+
+    --hk-slate-900: #0f172a;
+    --hk-slate-800: #1e293b;
+    --hk-slate-700: #334155;
+    --hk-slate-600: #475569;
+    --hk-slate-500: #64748b;
+    --hk-slate-400: #94a3b8;
+    --hk-slate-300: #cbd5e1;
+    --hk-slate-200: #e2e8f0;
+    --hk-slate-100: #f1f5f9;
+    --hk-slate-50: #f8fafc;
+
+    --hk-surface-bg: #ffffff;
+    --hk-surface-elevated: #f8fafc;
+    --hk-surface-hover: #f1f5f9;
+    --hk-surface-active: #e2e8f0;
+
+    --hk-glow: rgba(33, 255, 244, 0.14);
+    --hk-glow-strong: rgba(33, 255, 244, 0.28);
+    --hk-cyan-alpha-10: rgba(6, 182, 212, 0.1);
+    --hk-cyan-alpha-15: rgba(6, 182, 212, 0.15);
+    --hk-cyan-alpha-20: rgba(6, 182, 212, 0.2);
+    --hk-cyan-alpha-30: rgba(6, 182, 212, 0.3);
+    --hk-cyan-alpha-40: rgba(6, 182, 212, 0.4);
+    --hk-dark-alpha-05: rgba(15, 23, 42, 0.05);
+    --hk-dark-alpha-10: rgba(15, 23, 42, 0.1);
+    --hk-dark-alpha-20: rgba(15, 23, 42, 0.2);
+
+    --hk-radius-xs: 4px;
+    --hk-radius-sm: 6px;
+    --hk-radius: 8px;
+    --hk-radius-md: 10px;
+    --hk-radius-lg: 12px;
+    --hk-radius-xl: 16px;
+
+    --hk-space-xs: 0.25rem;
+    --hk-space-sm: 0.5rem;
+    --hk-space-md: 1rem;
+    --hk-space-lg: 1.5rem;
+    --hk-space-xl: 2rem;
+    --hk-space-2xl: 3rem;
+
+    --hk-transition-fast: 0.15s ease;
+    --hk-transition: 0.25s ease;
+    --hk-transition-smooth: 0.3s ease-in-out;
+
+    --hk-shadow-xs: 0 1px 2px var(--hk-dark-alpha-05);
+    --hk-shadow-sm: 0 2px 4px var(--hk-dark-alpha-10);
+    --hk-shadow-md: 0 4px 6px var(--hk-dark-alpha-10);
+    --hk-shadow-lg: 0 6px 12px var(--hk-cyan-alpha-20);
+    --hk-shadow-xl: 0 10px 25px var(--hk-dark-alpha-20);
+    --hk-shadow-focus: 0 0 0 2px var(--hk-cyan-alpha-40);
+    --hk-shadow-glow: 0 0 10px var(--hk-cyan-alpha-10);
+    --hk-shadow-container: 0 4px 12px var(--hk-cyan-alpha-10);
+
+    --hk-input-border: rgba(255, 255, 255, 0.28);
+    --hk-input-border-hover: rgba(6, 182, 212, 0.18);
+    --hk-input-bg-top: rgba(255, 255, 255, 0.62);
+    --hk-input-bg-bottom: rgba(255, 255, 255, 0.34);
+    --hk-input-shadow-inset:
+        inset 0 2px 6px rgba(15, 23, 42, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+    --hk-input-shadow-rest: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --hk-input-shadow-focus: 0 0 0 1px var(--hk-cyan-alpha-30);
+    --hk-placeholder: rgba(71, 85, 105, 0.62);
+
+    --hk-font-sans: "Noto Sans SC", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --hk-font-display: "Plus Jakarta Sans", "Noto Sans SC", var(--hk-font-sans);
+
+    --hk-text-xs: 0.75rem;
+    --hk-text-sm: 0.875rem;
+    --hk-text-base: 1rem;
+    --hk-text-lg: 1.125rem;
+    --hk-text-xl: 1.25rem;
+    --hk-text-2xl: 1.5rem;
+    --hk-text-3xl: 1.875rem;
+    --hk-text-4xl: 2.25rem;
+
+    --hk-leading-tight: 1.25;
+    --hk-leading-normal: 1.5;
+    --hk-leading-relaxed: 1.625;
+
+    --hk-control-height: 40px;
+    --hk-control-padding-x: 0.75rem;
+}
+
+.stApp {
+    font-family: var(--hk-font-sans);
+}
+
+.stApp label,
+.stApp .stMarkdown p {
+    font-family: var(--hk-font-sans);
+    color: var(--hk-slate-700);
+}
+
+.stApp div[data-testid="stMarkdownContainer"] p {
+    font-size: var(--hk-text-sm);
+}
+
+.stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {
+    font-family: var(--hk-font-display);
+    color: var(--hk-slate-900);
+}
+
+
