@@ -40,6 +40,10 @@ class ProgressReporter:
         return self._p
 
     @property
+    def last_text(self) -> str:
+        return self._last_text
+
+    @property
     def stage_end(self) -> float:
         return self._stage_end
 

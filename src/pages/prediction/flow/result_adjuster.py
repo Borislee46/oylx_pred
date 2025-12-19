@@ -2,6 +2,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from src.pages.prediction.config.ui_messages import (
+    EXPERIENCE_BOOST_TEMPLATE,
+    EXPERIENCE_DEFAULT_MSG,
+    EXPERIENCE_ITEM_NAMES,
+)
 from src.pages.prediction.core.utils import is_new_major
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
@@ -99,19 +104,14 @@ def pipeline_adjust_results(
 
 def _get_text_boost_message(experience_details: dict[str, str]) -> str:
     items = []
-    if experience_details.get("research_details"):
-        items.append("科研经历")
-    if experience_details.get("internship_details"):
-        items.append("实习经验")
-    if experience_details.get("award_details"):
-        items.append("获奖经历")
-    if experience_details.get("paper_details"):
-        items.append("论文发表")
+    for key, display_name in EXPERIENCE_ITEM_NAMES.items():
+        if experience_details.get(key):
+            items.append(display_name)
 
     if not items:
-        return "正在分析您的背景经历"
+        return EXPERIENCE_DEFAULT_MSG
 
-    return f"正在分析您的{'、'.join(items)}对申请的加成效果"
+    return EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items))
 
 
 def batch_adjust_results(
@@ -174,8 +174,6 @@ def batch_adjust_results(
         future = executor.submit(_process)
         while not future.done():
             animator.tick()
-            if progress_reporter is not None:
-                progress_reporter.advance_ratio(0.08)
             time.sleep(0.3)
         result = future.result()
     animator.clear()

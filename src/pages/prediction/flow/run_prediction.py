@@ -33,6 +33,7 @@ def run_single_prediction(
     probability_adjuster: Any | None = None,
     gpa: float | None = None,
     language_score: float | None = None,
+    language_type: str | None = None,
     background_university: str | None = None,
     progress_reporter: ProgressReporter | None = None,
 ) -> tuple[
@@ -41,16 +42,23 @@ def run_single_prediction(
     list[dict[str, float | str]] | None,
     dict[str, Any] | None,
 ]:
-    prediction_input: PredictionInput = validate_and_clean_input(current_input_data)
+    prediction_input: PredictionInput = (
+        current_input_data
+        if "background_major" in current_input_data
+        else validate_and_clean_input(current_input_data)
+    )
+
+    if language_type is None:
+        language_type = prediction_input.get("language_type")
 
     combinations, meta = generate_prediction_combinations(
         prediction_input, all_universities_target, all_majors_target
     )
 
+    meta = meta or {}
+
     if not combinations:
         prediction_runner_logger.warning("有效组合为空：请检查候选池或筛选条件。")
-        if meta is None:
-            meta = {}
         meta["error"] = "no_valid_combinations"
         return [], [], None, meta
 
@@ -58,12 +66,8 @@ def run_single_prediction(
         current_input_data, expected_features
     )
     if missing_inputs or prediction_model is None:
-        if meta is None:
-            meta = {}
-        if prediction_model is None:
-            meta["error"] = "model_unavailable"
-        else:
-            meta["error"] = "missing_features"
+        meta["error"] = "model_unavailable" if prediction_model is None else "missing_features"
+        if missing_inputs:
             meta["missing_features"] = missing_inputs
         return [], [], None, meta
 
@@ -71,19 +75,10 @@ def run_single_prediction(
     all_prediction_outputs = executor.execute_parallel(
         prediction_model, combinations, model_input_features, expected_features
     )
+
     if not all_prediction_outputs:
-        if meta is None:
-            meta = {}
         meta["error"] = "execution_failed"
         return [], [], None, meta
-
-    all_prediction_outputs.sort(
-        key=lambda x: (
-            -float(x.get("probability", 0.0) or 0.0),
-            str(x.get("university", "")),
-            str(x.get("major", "")),
-        )
-    )
 
     user_specified_combinations = get_user_specified_combinations(
         current_input_data, all_universities_target
@@ -118,6 +113,7 @@ def run_single_prediction(
         probability_adjuster=probability_adjuster,
         gpa=gpa,
         language_score=language_score,
+        language_type=language_type,
         background_university=background_university,
         progress_reporter=progress_reporter,
     )

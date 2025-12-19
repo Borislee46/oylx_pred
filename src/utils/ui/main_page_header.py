@@ -19,15 +19,17 @@ HEADER_STYLES = """
 [data-testid="stAppViewContainer"]::before {
     content: '';
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: -50px;
+    left: -50px;
+    right: -50px;
+    bottom: -50px;
     background-image: 
         radial-gradient(rgba(0, 106, 96, 0.03) 1px, transparent 1px);
     background-size: 32px 32px;
+    background-position: var(--bg-pos-x, 0px) var(--bg-pos-y, 0px);
     pointer-events: none;
     z-index: 0;
+    transition: background-position 0.2s ease-out;
 }
 
 [data-testid="stAppViewContainer"] > div:first-child {
@@ -76,7 +78,7 @@ def render_header(user_nickname: str) -> None:
     st.markdown(
         """
         <div style='text-align: center; padding: 10px 0 20px 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;'>
-            <h1 style='background: linear-gradient(135deg, #004d47 0%, #00695F 50%, #00897b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; font-size: 2.2rem; margin: 0 0 12px 0; letter-spacing: -0.5px;'>欧亚数据科学平台</h1>
+            <h1 style='background: linear-gradient(135deg, #004d47 0%, #00695F 50%, #00897b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600; font-size: 2.2rem; margin: 0 0 12px 0; letter-spacing: -0.5px; text-shadow: 0 4px 12px rgba(0, 77, 71, 0.1);'>欧亚数据科学平台</h1>
             <div style='display: inline-flex; align-items: center; justify-content: center; gap: 10px;'>
                 <span class="header-line-left"></span>
                 <p style='color: #64748b; font-size: 14px; margin: 0; letter-spacing: 1.5px; font-weight: 500;'>AI驱动的智能决策与个性化数据服务</p>
@@ -90,16 +92,46 @@ def render_header(user_nickname: str) -> None:
     components.html(
         """
         <script>
-            setTimeout(() => {
+            (function() {
                 try {
-                    const anchor = window.parent.document.getElementById('main-page-header-anchor');
-                    if (anchor) {
-                        anchor.scrollIntoView({behavior: 'smooth', block: 'start'});
-                    }
+                    const root = window.parent.document.documentElement;
+                    let ticking = false;
+                    let mouseX = 0;
+                    let mouseY = 0;
+
+                    const updateParallax = () => {
+                        const x = (mouseX / window.parent.innerWidth - 0.5) * 25;
+                        const y = (mouseY / window.parent.innerHeight - 0.5) * 25;
+                        root.style.setProperty('--bg-pos-x', `${x}px`);
+                        root.style.setProperty('--bg-pos-y', `${y}px`);
+                        ticking = false;
+                    };
+
+                    window.parent.addEventListener('mousemove', (e) => {
+                        mouseX = e.clientX;
+                        mouseY = e.clientY;
+
+                        if (!ticking) {
+                            window.parent.requestAnimationFrame(updateParallax);
+                            ticking = true;
+                        }
+                    }, { passive: true });
                 } catch (e) {
-                    console.warn('Auto-scroll failed:', e);
+                    console.warn('Parallax effect initialization failed:', e);
                 }
-            }, 50);
+
+                // Auto-scroll logic
+                setTimeout(() => {
+                    try {
+                        const anchor = window.parent.document.getElementById('main-page-header-anchor');
+                        if (anchor) {
+                            anchor.scrollIntoView({behavior: 'smooth', block: 'start'});
+                        }
+                    } catch (e) {
+                        console.warn('Auto-scroll failed:', e);
+                    }
+                }, 50);
+            })();
         </script>
         """,
         height=0,

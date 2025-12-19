@@ -218,9 +218,9 @@ export default function(component) {
       }
       hover = true;
       if (!tiltEnabled) return;
+      if (window.innerWidth < 768) return;
 
       const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      // Keep rect reasonably fresh even if Streamlit rerenders without a scroll/resize event.
       if (!baseRect || (nowMs - lastRectUpdate) > 250) {
         updateBaseRect();
         lastRectUpdate = nowMs;
@@ -262,13 +262,12 @@ export default function(component) {
         lastClientT = now;
       } catch (err) {}
 
-      targetTiltY = nx * (MAX_TILT_DEG * speedFactor);
-      targetTiltX = -ny * (MAX_TILT_DEG * speedFactor);
+      const finalTiltMax = isInteractive ? MAX_TILT_DEG * 0.3 : MAX_TILT_DEG;
+      targetTiltY = nx * (finalTiltMax * speedFactor);
+      targetTiltX = -ny * (finalTiltMax * speedFactor);
       targetGlareX = px * 100;
       targetGlareY = py * 100;
 
-      // UX: When hovering interactive controls (inputs/buttons/etc), keep tilt-follow but disable glare
-      // to reduce distraction and avoid fighting focus/selection visuals.
       el.style.setProperty('--hk-glare-opacity', String(isInteractive ? 0 : (MAX_GLARE_OPACITY * speedFactor)));
       el.classList.add('hk-tilt-active');
       ensureTicking();
@@ -356,7 +355,6 @@ export default function(component) {
       observer.observe(document.body, { childList: true, subtree: true });
     } catch (e) {}
 
-    // Safety: avoid observing forever if the marker/target never appears.
     observerTimeout = setTimeout(() => {
       if (observer) {
         try { observer.disconnect(); } catch (e) {}

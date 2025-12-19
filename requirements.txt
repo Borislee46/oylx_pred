@@ -9,7 +9,7 @@ xgboost-cpu==3.0.2 # 3.1.0 re-coding目前有严重bug，目前不确定原因�
 # imblearn 线下用
 
 # 可视化
-plotly==6.3.0
+plotly==6.3.0 # 后续可能会废除
 
 # UI组件
 streamlit==1.52.0

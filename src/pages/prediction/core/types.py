@@ -8,6 +8,7 @@ class PredictionInput(TypedDict, total=False):
     target_majors: list[str]
     gpa: float
     language_score: float
+    language_type: str
     internship_count: int
     research_count: int
     award_count: int

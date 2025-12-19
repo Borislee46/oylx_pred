@@ -73,7 +73,8 @@ def render_gpa_section(session_manager, form_state_manager, logger):
         placeholder="",
         key="gpa_raw_input_widget",
     )
-    session_manager.set(gpa_raw_input=gpa_raw)
+    if gpa_raw != session_manager.get("gpa_raw_input"):
+        session_manager.set(gpa_raw_input=gpa_raw)
 
     if session_manager.get("gpa_raw_input") is not None:
         _check_and_show_gpa_warning(session_manager)

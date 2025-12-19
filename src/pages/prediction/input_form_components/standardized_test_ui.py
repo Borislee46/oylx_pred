@@ -17,18 +17,9 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
         st.session_state["standardized_test_type_widget"] = current_test_type
 
     def on_test_type_change():
-        prev_type = session_manager.get("standardized_test_type") or "GRE"
-        if prev_type not in STANDARDIZED_TEST_TYPES:
-            prev_type = "GRE"
-
         new_type = session_manager.get_widget_value("standardized_test_type_widget")
-        if new_type not in STANDARDIZED_TEST_TYPES:
-            session_manager.set(standardized_test_type=prev_type)
-            st.session_state["standardized_test_type_widget"] = prev_type
-            return
-
-        session_manager.set(standardized_test_type=new_type)
-        form_state_manager.on_form_change(session_manager, change_type="select")
+        if new_type and new_type in STANDARDIZED_TEST_TYPES:
+            session_manager.set(standardized_test_type=new_type)
 
     exam_type = st.segmented_control(
         "标化成绩 (选填)",
@@ -37,6 +28,9 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
         key="standardized_test_type_widget",
         on_change=on_test_type_change,
     )
+
+    if not exam_type:
+        exam_type = current_test_type
 
     score_key = f"standardized_test_score_text_{exam_type}"
 
@@ -68,6 +62,7 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
             st.toast(error_msg)
             exam_score = None
 
-    session_manager.set(current_exam_score=exam_score)
+    if exam_score != session_manager.get("current_exam_score"):
+        session_manager.set(current_exam_score=exam_score)
 
     return exam_type, exam_score

@@ -46,6 +46,7 @@ class _CalibratedPredictor:
         if method == "sigmoid":
             a = float(params.get("a"))
             b = float(params.get("b"))
+            # 数组用np.exp
             calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
         else:
             return base_proba

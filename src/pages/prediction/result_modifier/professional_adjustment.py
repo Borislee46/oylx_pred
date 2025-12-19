@@ -5,7 +5,7 @@ from src.pages.prediction.result_modifier.config import (
     PROFESSIONAL_REDUCTION_FACTOR,
     PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
-from src.pages.prediction.result_modifier.utils import clip_probability
+from src.pages.prediction.result_modifier.utils import clip_basic
 
 
 def adjust_for_professional_majors(
@@ -48,7 +48,7 @@ def adjust_for_professional_majors(
             if is_user_specified
             else PROFESSIONAL_REDUCTION_FACTOR
         )
-        p = clip_probability(p * factor)
+        p = clip_basic(p * factor)
         result_copy["probability"] = p
         adjusted_results.append(result_copy)
 

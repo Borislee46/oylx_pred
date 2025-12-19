@@ -9,11 +9,9 @@ from src.pages.prediction.input_form_components import (
     FormValidator,
     GPAConverter,
 )
-from src.pages.prediction.input_form_components.language_score_processor import (
-    apply_overseas_language_boost,
-)
 from src.pages.prediction.prediction_preparation.form_normalizer import (
-    calculate_gpa_bonus,
+    calculate_processed_gpa,
+    calculate_processed_language_score,
     get_background_university_for_model,
     normalize_form_data_for_prediction,
 )
@@ -229,37 +227,23 @@ def _get_current_form_state(
     exam_type=None,
     exam_score=None,
 ):
-    current_display_lang_score = raw_language_score_value
-
     school_service = get_school_level_service()
     is_overseas = (
         school_service.is_overseas_school(background_university) if background_university else False
     )
 
-    if (current_display_lang_score is None or current_display_lang_score == 0) and is_overseas:
-        current_display_lang_score = apply_overseas_language_boost(
-            background_university, language_type
-        )
+    _, current_normalized_score = calculate_processed_language_score(
+        raw_language_score_value, language_type, background_university, is_overseas
+    )
 
-    current_normalized_score = None
-    if current_display_lang_score is not None:
-        current_normalized_score = FormValidator.normalize_language_score(
-            current_display_lang_score, language_type
-        )
-
-    current_normalized_gpa = None
-    current_raw_gpa_val = session_manager.get("gpa_raw_input")
-    if current_raw_gpa_val is not None:
-        current_normalized_gpa = FormValidator.normalize_gpa(
-            current_raw_gpa_val,
-            session_manager.get("gpa_scale"),
-            background_university,
-            gpa_converter,
-        )
-
-        bonus_gpa = calculate_gpa_bonus(exam_type, exam_score)
-        if bonus_gpa > 0:
-            current_normalized_gpa += bonus_gpa
+    current_normalized_gpa = calculate_processed_gpa(
+        session_manager.get("gpa_raw_input"),
+        session_manager.get("gpa_scale"),
+        background_university,
+        gpa_converter,
+        exam_type,
+        exam_score,
+    )
 
     background_uni_for_model = get_background_university_for_model(
         background_university,

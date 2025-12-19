@@ -87,9 +87,12 @@ def _render_overseas_language_input(
     if error_msg:
         st.toast(error_msg)
 
-    session_manager.set(
-        language_score_input=final_language_score, language_score_input_error=has_input_error
-    )
+    if final_language_score != session_manager.get(
+        "language_score_input"
+    ) or has_input_error != session_manager.get("language_score_input_error"):
+        session_manager.set(
+            language_score_input=final_language_score, language_score_input_error=has_input_error
+        )
 
 
 def _render_domestic_language_input(
@@ -137,7 +140,11 @@ def _render_domestic_language_input(
         placeholder=placeholder_text,
         key=widget_key,
     )
-    session_manager.set(language_score_input=language_score, language_score_input_error=False)
+    if (
+        language_score != session_manager.get("language_score_input")
+        or session_manager.get("language_score_input_error") is not False
+    ):
+        session_manager.set(language_score_input=language_score, language_score_input_error=False)
 
 
 def render_language_section(session_manager, form_state_manager, logger):
@@ -158,7 +165,8 @@ def render_language_section(session_manager, form_state_manager, logger):
     language_type = session_manager.get("language_type")
     if language_type not in LANGUAGE_TYPES:
         language_type = LANGUAGE_TYPES[0]
-        session_manager.set(language_type=language_type)
+        if session_manager.get("language_type") != language_type:
+            session_manager.set(language_type=language_type)
 
     if (
         "language_type_widget_key" not in st.session_state

@@ -13,7 +13,7 @@ from src.pages.prediction.result_modifier.config import (
     TOP_N_RECOMMENDATIONS,
     UNIVERSITY_COUNT_THRESHOLD,
 )
-from src.pages.prediction.result_modifier.utils import clip_probability
+from src.pages.prediction.result_modifier.utils import clip_basic
 
 
 def get_similar_major_recommendations(
@@ -63,7 +63,7 @@ def get_similar_major_recommendations(
 
     for c in top_candidates:
         if isinstance(c, dict) and "probability" in c:
-            c["probability"] = clip_probability(c.get("probability", 0.0))
+            c["probability"] = clip_basic(c.get("probability", 0.0))
 
     top_candidates.sort(key=lambda x: x.get("probability", 0.0), reverse=True)
     return top_candidates
@@ -95,8 +95,11 @@ def get_cross_major_recommendations(
     ]
 
     if admitted_results:
-        admitted_results.sort(key=lambda x: x.get("similarity", 0.0))
-        top_least_similar = admitted_results[:TOP_N_RECOMMENDATIONS]
+        import heapq
+
+        top_least_similar = heapq.nsmallest(
+            TOP_N_RECOMMENDATIONS, admitted_results, key=lambda x: x.get("similarity", 0.0)
+        )
         top_least_similar.sort(key=lambda x: x.get("probability", 0), reverse=True)
         return top_least_similar
     return []
@@ -118,10 +121,10 @@ def _create_faculty_filter(background_faculty: str | None):
 
 
 def _check_faculty(res, allowed_faculties, bg_faculty_clean):
-    faculty = res.get("faculty", "").strip()
+    faculty = res.get("faculty", "")
     return not faculty or (faculty in allowed_faculties and faculty != bg_faculty_clean)
 
 
 def _check_faculty_simple(res, bg_faculty_clean):
-    faculty = res.get("faculty", "").strip()
+    faculty = res.get("faculty", "")
     return not faculty or faculty != bg_faculty_clean

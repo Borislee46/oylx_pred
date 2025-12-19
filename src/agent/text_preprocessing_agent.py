@@ -26,16 +26,19 @@ class TextPreprocessingAgent(BaseAgent):
         if content_response is None:
             return False
 
-        s = str(content_response).strip()
+        s = str(content_response).strip().lower()
         if not s:
             return False
-        first = s[0]
-        if first == "是":
+
+        is_yes = "是" in s or "yes" in s or "true" in s
+        is_no = "否" in s or "no" in s or "false" in s
+
+        if is_yes and not is_no:
             is_valid = True
-        elif first == "否":
+        elif is_no and not is_yes:
             is_valid = False
         else:
-            is_valid = s.startswith("是")
+            is_valid = s.startswith("是") or s.startswith("yes")
 
         self.logger.info(
             f"[{self.agent_name}] 字段验证完成 - 字段类型: {field_type}, 验证结果: {is_valid}"

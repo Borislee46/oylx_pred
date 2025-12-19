@@ -61,120 +61,107 @@ class BoundaryCaseAgent(BaseAgent):
         boundary_cases: list[dict[str, Any]],
         mode: str,
         use_persistent_cache: bool = True,
+        chunk_size: int = 15,
     ) -> dict[str, Any]:
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
             return {"decisions": [], "needs_adjustment": False}
 
-        decisions = [False] * len(boundary_cases)
-        pending_cases: list[dict[str, Any]] = []
-        pending_indices: list[int] = []
-        new_cache_entries = 0
+        final_decisions = [False] * len(boundary_cases)
 
+        pending_indices = []
         for i, case in enumerate(boundary_cases):
             if not isinstance(case, dict):
                 continue
-            university = str(case.get("university", "")).strip()
-            major = str(case.get("major", "")).strip()
-            if not university or not major:
-                continue
 
-            if not use_persistent_cache:
-                pending_cases.append(case)
-                pending_indices.append(i)
-                continue
+            if use_persistent_cache:
+                cache_key = self._case_cache_key(background_major, case, mode)
+                cached = self._persistent_cache.get(cache_key)
+                if isinstance(cached, bool):
+                    final_decisions[i] = cached
+                    continue
+                if isinstance(cached, dict) and isinstance(cached.get("decision"), bool):
+                    final_decisions[i] = bool(cached["decision"])
+                    continue
 
-            cache_key = self._case_cache_key(background_major, case, mode)
-            cached = self._persistent_cache.get(cache_key)
-            if isinstance(cached, bool):
-                decisions[i] = cached
-                continue
-            if isinstance(cached, dict) and isinstance(cached.get("decision"), bool):
-                decisions[i] = bool(cached["decision"])
-                continue
-
-            pending_cases.append(case)
             pending_indices.append(i)
 
-        if pending_cases:
-            self.logger.info(
-                f"[{self.agent_name}] 开始评估 - 模式: {mode}, 背景专业: {background_major}, "
-                f"待评估: {len(pending_cases)}, 缓存命中: {len(boundary_cases) - len(pending_cases)}"
-            )
-            prompt = build_boundary_evaluation_prompt(background_major, pending_cases, mode)
+        if not pending_indices:
+            return {"decisions": final_decisions, "needs_adjustment": any(final_decisions)}
+
+        self.logger.info(
+            f"[{self.agent_name}] 开始评估 - 模式: {mode}, 背景专业: {background_major}, "
+            f"总数: {len(boundary_cases)}, 待评估: {len(pending_indices)}, 缓存命中: {len(boundary_cases) - len(pending_indices)}"
+        )
+
+        new_cache_entries = 0
+        for start_idx in range(0, len(pending_indices), chunk_size):
+            current_batch_indices = pending_indices[start_idx : start_idx + chunk_size]
+            current_batch_cases = [boundary_cases[idx] for idx in current_batch_indices]
+
             self.logger.debug(
-                f"[{self.agent_name}] 发送请求到 {self.api_url}, 模型: {self.model}, prompt长度: {len(prompt)}"
+                f"[{self.agent_name}] 正在处理分块: {start_idx // chunk_size + 1}, 大小: {len(current_batch_cases)}"
             )
 
+            prompt = build_boundary_evaluation_prompt(background_major, current_batch_cases, mode)
             content = self._call_api(prompt)
+
             if content is None:
-                return {"decisions": decisions, "needs_adjustment": any(decisions)}
+                continue
 
             content = self._clean_json_content(content)
             try:
                 result = json.loads(content)
-            except json.JSONDecodeError as e:
-                self.logger.error(
-                    f"[{self.agent_name}] JSON解析失败 - 错误: {e}, 响应内容长度: {len(content)}"
-                )
-                self.logger.debug(f"[{self.agent_name}] 响应内容预览: {content[:200]}")
+            except json.JSONDecodeError:
                 repaired = self._repair_json_once(
                     content,
-                    schema_hint='{"decisions":[bool,...],"needs_adjustment":bool}',
+                    schema_hint='{"reasoning": "string", "decisions": [bool, ...], "needs_adjustment": bool}',
                     cache_prefix="boundary_json_repair",
                 )
                 if not repaired:
-                    return {"decisions": decisions, "needs_adjustment": any(decisions)}
+                    continue
                 try:
                     result = json.loads(repaired)
                 except json.JSONDecodeError:
-                    return {"decisions": decisions, "needs_adjustment": any(decisions)}
+                    continue
 
             if not isinstance(result, dict):
-                self.logger.warning(
-                    f"[{self.agent_name}] 返回JSON不是对象: {type(result).__name__}"
-                )
-                return {"decisions": decisions, "needs_adjustment": any(decisions)}
+                continue
 
             agent_decisions = result.get("decisions", [])
-            if len(agent_decisions) != len(pending_cases):
-                self.logger.warning(
-                    f"[{self.agent_name}] decisions 长度 ({len(agent_decisions)}) 与 boundary_cases 长度 "
-                    f"({len(pending_cases)}) 不匹配"
-                )
+            if len(agent_decisions) != len(current_batch_cases):
                 repaired = self._repair_json_once(
                     json.dumps(result, ensure_ascii=False),
-                    schema_hint=f'{{"decisions":[bool,...(len={len(pending_cases)})...],"needs_adjustment":bool}}',
+                    schema_hint=f'{{"reasoning": "string", "decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
                     cache_prefix="boundary_json_repair_len",
                 )
                 if repaired:
                     try:
                         fixed = json.loads(repaired)
                         if isinstance(fixed, dict) and isinstance(fixed.get("decisions"), list):
-                            result = fixed
                             agent_decisions = fixed.get("decisions", [])
                     except json.JSONDecodeError:
                         pass
-                if len(agent_decisions) != len(pending_cases):
-                    agent_decisions = [False] * len(pending_cases)
 
-            for j, idx in enumerate(pending_indices):
-                d = parse_bool(agent_decisions[j])
-                decisions[idx] = d
+            for j, idx in enumerate(current_batch_indices):
+                d = False
+                if j < len(agent_decisions):
+                    d = parse_bool(agent_decisions[j])
+
+                final_decisions[idx] = d
                 if use_persistent_cache:
                     cache_key = self._case_cache_key(background_major, boundary_cases[idx], mode)
                     self._persistent_cache[cache_key] = d
                     new_cache_entries += 1
 
-            if use_persistent_cache and new_cache_entries:
-                try:
-                    self._flush_persistent_cache()
-                except OSError as e:
-                    self.logger.error(f"[{self.agent_name}] 保存持久化缓存失败: {e}")
+        if use_persistent_cache and new_cache_entries > 0:
+            try:
+                self._flush_persistent_cache()
+            except OSError as e:
+                self.logger.error(f"[{self.agent_name}] 保存持久化缓存失败: {e}")
 
-        needs_adjustment = any(decisions)
+        needs_adjustment = any(final_decisions)
         self.logger.info(
-            f"[{self.agent_name}] 评估完成 - 需要调整: {needs_adjustment}, "
-            f"决策数: {len(decisions)}, 通过数: {sum(decisions) if decisions else 0}"
+            f"[{self.agent_name}] 评估完成 - 需要调整: {needs_adjustment}, 通过数: {sum(final_decisions)}"
         )
-        return {"decisions": decisions, "needs_adjustment": needs_adjustment}
+        return {"decisions": final_decisions, "needs_adjustment": needs_adjustment}

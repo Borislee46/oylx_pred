@@ -74,7 +74,7 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
     available_buttons = []
 
     if accessible_modules.get("hk", False):
-        available_buttons.append(("EasyApply 选校预测系统", "pages/hk.py", False))
+        available_buttons.append(("EasyApply 留学择校系统", "pages/hk.py", False))
         available_buttons.append(
             (
                 "Power BI 完整版案例库",
@@ -82,7 +82,8 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
                 True,
             )
         )
-        available_buttons.append(("测试页面", "pages/test.py", False))
+
+    available_buttons.append(("平台使用指南", "pages/guide.py", False))
 
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", False))

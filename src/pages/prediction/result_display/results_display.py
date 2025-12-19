@@ -29,12 +29,12 @@ class ResultsDisplay:
         self.result_types = {
             "similarity": {
                 "results": self.top_similarity_results,
-                "title": "相似专业 Top N",
+                "title": "相似专业",
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
             "cross_major": {
                 "results": self.top_cross_major_results,
-                "title": "跨专业 Top N",
+                "title": "潜力跨专业",
                 "config": TOP_CROSS_RESULT_UI_CONFIG,
             },
             "user_specified": {
@@ -59,7 +59,7 @@ class ResultsDisplay:
             if title == "指定专业":
                 label_map["推荐专业"] = title
             else:
-                label_map["推荐专业"] = f"{title} 推荐"
+                label_map["推荐专业"] = f"{title}推荐"
 
         styled_df = self.dataframe_styler.create_styled_dataframe(df)
         column_config = self.dataframe_styler.get_column_config(

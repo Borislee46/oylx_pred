@@ -134,8 +134,17 @@ class LogitUpliftProvider(TextBoostProvider):
         sig = self._text_processor.make_signature(experience_details)
         try:
             delta_logit, sims, reasons = self._delta_calculator.cached_delta_logit(sig)
-        except Exception as e:
-            logger.error(f"LogitUpliftProvider 计算 delta_logit 失败: {str(e)}")
+        except (
+            FileNotFoundError,
+            OSError,
+            EOFError,
+            ValueError,
+            TypeError,
+            RuntimeError,
+            ImportError,
+            AttributeError,
+        ) as e:
+            logger.error(f"LogitUpliftProvider 计算 delta_logit 失败: {str(e)}", exc_info=True)
             return probabilities, ""
 
         if delta_logit <= 0:

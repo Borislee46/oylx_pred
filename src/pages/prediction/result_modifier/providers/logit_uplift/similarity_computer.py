@@ -13,6 +13,7 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.signal_scorer i
 from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor import (
     TextProcessor,
 )
+from src.pages.prediction.result_modifier.utils import clip_basic
 
 
 class SimilarityComputer:
@@ -32,9 +33,10 @@ class SimilarityComputer:
 
     @staticmethod
     def _bounded_fuse(base: float, bonus: float) -> float:
-        base = float(np.clip(base, 0.0, 1.0))
-        bonus = float(np.clip(bonus, 0.0, 1.0))
-        return float(1.0 - (1.0 - base) * (1.0 - bonus))
+        # 比np.clip快
+        base = clip_basic(base)
+        bonus = clip_basic(bonus)
+        return 1.0 - (1.0 - base) * (1.0 - bonus)
 
     def _compute_novelty_bonus(self, text: str, row: Any) -> float:
         if self._novelty_weight <= 0:
@@ -44,8 +46,8 @@ class SimilarityComputer:
         if row is None or getattr(row, "data", None) is None or row.data.size == 0:
             return 0.0
         max_val = float(np.max(row.data))
-        raw = float(np.clip((max_val - 0.18) / 0.35, 0.0, 1.0))
-        return float(np.clip(raw * self._novelty_weight, 0.0, 1.0))
+        raw = clip_basic((max_val - 0.18) / 0.35)
+        return clip_basic(raw * self._novelty_weight)
 
     def compute_similarities(
         self, details: dict[str, Any]
@@ -80,7 +82,7 @@ class SimilarityComputer:
                 continue
             dot_val = row.dot(centroid)
             dot_scalar = float(np.asarray(dot_val).flat[0])
-            s0 = float(np.clip(dot_scalar, 0.0, 1.0))
+            s0 = clip_basic(dot_scalar)
             bonus = float(lex_bonuses.get(k, 0.0)) + self._compute_novelty_bonus(texts[idx], row)
             sims[k] = self._bounded_fuse(s0, bonus)
         return sims, reasons

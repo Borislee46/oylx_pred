@@ -4,9 +4,12 @@ import pandas as pd
 
 from src.agent.utils import truncate_text
 
-DEFAULT_SYSTEM_PROMPT = (
-    """你是一位资深的留学顾问。请根据以下信息，用亲切、专业的口吻回答用户的问题。"""
-)
+DEFAULT_SYSTEM_PROMPT = """你是一位资深的留学顾问。
+你的回答要求：
+1. **数据驱动**：请务必结合[系统预测结果摘要]中的具体数据（如相似度、录取概率）来回答。
+2. **专业口吻**：口吻亲切、专业。
+3. **Markdown 格式**：使用加粗、列表等 Markdown 语法提高可读性。
+4. **诚实原则**：如果预测结果中没有相关数据，请根据你的经验给出建议，并说明这是基于经验而非系统数据。"""
 
 
 def format_user_profile(profile: dict[str, Any]) -> str:

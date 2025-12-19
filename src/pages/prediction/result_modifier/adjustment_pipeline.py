@@ -10,7 +10,10 @@ from src.pages.prediction.result_modifier.config import (
 from src.pages.prediction.result_modifier.faculty_filters import apply_out_of_scope_faculty_penalty
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
-from src.pages.prediction.result_modifier.utils import clip_probability, cross_major_penalty_factor
+from src.pages.prediction.result_modifier.utils import (
+    apply_cross_major_penalty_if_needed,
+    clip_basic,
+)
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -57,19 +60,19 @@ class ProbabilityAdjustmentPipeline:
 
         if self.enable_cross_major_penalty and ctx.background_major:
             current_prob = self._apply_cross_major_penalty(
-                result_copy, current_prob, ctx.background_major, ctx.admitted_combinations
+                result_copy, current_prob, ctx.admitted_combinations
             )
 
         if ctx.background_faculty:
             temp = result_copy.copy()
-            temp["probability"] = clip_probability(current_prob)
+            temp["probability"] = clip_basic(current_prob)
             adjusted = apply_out_of_scope_faculty_penalty(
                 [temp], ctx.background_faculty, FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR
             )
             if adjusted:
                 current_prob = float(adjusted[0].get("probability", current_prob) or current_prob)
 
-        result_copy["probability"] = clip_probability(current_prob)
+        result_copy["probability"] = clip_basic(current_prob)
         return result_copy
 
     def adjust_batch(
@@ -108,30 +111,27 @@ class ProbabilityAdjustmentPipeline:
             return self.probability_adjuster.adjust_probability(
                 probability, gpa, language_score, background_university_name=background_university
             )
-        except Exception as e:
+        except (TypeError, ValueError, OverflowError) as e:
             logger.warning(f"GPA/语言成绩调整失败: {e}")
+            return probability
+        except (AttributeError, KeyError, RuntimeError) as e:
+            logger.error(f"GPA/语言成绩调整发生未知错误: {e}", exc_info=True)
             return probability
 
     def _apply_cross_major_penalty(
         self,
         result: dict,
         probability: float,
-        background_major: str,
         admitted_combinations: set[tuple[str, str]],
     ) -> float:
-        similarity = result.get("similarity", 1.0)
-        is_cross_major = similarity < MIN_SIMILARITY_THRESHOLD
-
-        if not is_cross_major:
+        if result.get("similarity", 1.0) >= MIN_SIMILARITY_THRESHOLD:
             return probability
-
-        key = (result.get("university"), result.get("major"))
-        has_admitted_case = bool(result.get("admitted") == 1 or key in admitted_combinations)
-
-        if has_admitted_case:
-            return probability
-
-        return probability * cross_major_penalty_factor(similarity)
+        return apply_cross_major_penalty_if_needed(
+            result=result,
+            probability=probability,
+            admitted_combinations=admitted_combinations,
+            check_admitted_field=True,
+        )
 
     def _apply_text_boost(
         self,
@@ -151,8 +151,10 @@ class ProbabilityAdjustmentPipeline:
                     logger.debug(f"文本增强应用成功: {boost_info}")
                 for i, prob in enumerate(boosted_probs):
                     if i < len(results):
-                        results[i]["probability"] = clip_probability(prob)
-        except Exception as e:
+                        results[i]["probability"] = clip_basic(prob)
+        except (TypeError, ValueError) as e:
             logger.warning(f"文本增强失败: {e}")
+        except (AttributeError, KeyError, RuntimeError) as e:
+            logger.error(f"文本增强发生未知错误: {e}", exc_info=True)
 
         return results

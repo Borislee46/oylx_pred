@@ -19,6 +19,7 @@ def build_background_faculty_prompt(
         f'- 只输出 JSON object，格式固定：{{"extra_faculties": [..]}}。\n'
         f"- extra_faculties 只包含“在 base_faculty 之外可能还相关”的学院；最多 {max_extra} 个。\n"
         "- 只有在“明显跨学科/联合/双学位/多方向”或“专业与 base_faculty 明显不匹配/高度不确定”时，才输出 extra_faculties；否则必须输出空数组。\n"
+        "- **严谨性**：如果无法判断或关联度极弱，请返回空数组。宁可少报，不可错报。\n"
         "- 只能从给定的 valid_faculties 里选，不要输出其它词。\n"
         "- 如果你认为不存在额外学院，输出空数组。\n"
         "- 不要解释，不要输出多余字段。\n\n"

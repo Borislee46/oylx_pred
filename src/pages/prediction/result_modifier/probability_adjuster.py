@@ -10,6 +10,7 @@ from src.pages.prediction.result_modifier.admission_cache import (
 )
 from src.pages.prediction.result_modifier.config import (
     COMPREHENSIVE_SCORE_BOOST_THRESHOLD,
+    DEFAULT_UNIVERSITY_DIFFICULTY_ORDER,
     GPA_MINIMUM,
     GPA_PENALTY_MAX_COEFFICIENT,
     GPA_PENALTY_QUADRATIC_COEFFICIENT,
@@ -22,21 +23,21 @@ from src.pages.prediction.result_modifier.config import (
     LANGUAGE_PENALTY_LEVEL_3_THRESHOLD,
     LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER,
     LANGUAGE_PENALTY_SEVERE_THRESHOLD,
-    MIN_SIMILARITY_THRESHOLD,
     PROBABILITY_ADJUSTMENT_THRESHOLD,
     PROBABILITY_EXTREME_STD_MULTIPLIER,
     PROBABILITY_MIN_VALUE,
     SELECTION_SCORE_BOOST_FACTOR,
-    get_university_difficulty_order,
+    UNIVERSITY_DIFFICULTY_CONFIG_PATH,
 )
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import (
-    clip_probability,
+    apply_cross_major_penalty_if_needed,
+    clip_basic,
     compute_dataframe_hash,
-    cross_major_penalty_factor,
 )
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
+from src.utils.university_difficulty_service import get_university_difficulty_order
 
 logger = setup_logger("page3", "prediction")
 
@@ -100,7 +101,7 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
         )
         stats["language_pass_line"] = max(LANGUAGE_MINIMUM, float(pass_line))
 
-    except Exception as e:
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError) as e:
         logger.warning(f"计算统计信息失败: {e}")
 
     return stats
@@ -120,7 +121,10 @@ class ProbabilityAdjuster:
         self.gpa_minimum = GPA_MINIMUM
         self.language_minimum = LANGUAGE_MINIMUM
 
-        self.difficulty_order = get_university_difficulty_order()
+        self.difficulty_order = get_university_difficulty_order(
+            UNIVERSITY_DIFFICULTY_CONFIG_PATH,
+            DEFAULT_UNIVERSITY_DIFFICULTY_ORDER,
+        )
         self.difficulty_map = {uni: i for i, uni in enumerate(self.difficulty_order)}
         self.max_difficulty_index = len(self.difficulty_order)
 
@@ -252,19 +256,15 @@ def penalize_cross_major_without_cases(
     for result in user_specified_results:
         result_copy = result.copy()
 
-        is_cross_major = result.get("similarity", 1.0) < MIN_SIMILARITY_THRESHOLD
-        has_admitted_case = (
-            result.get("university"),
-            result.get("major"),
-        ) in admitted_combinations
-
-        if is_cross_major and not has_admitted_case:
-            original_prob = result_copy.get("probability", 0.0)
-            if original_prob is not None:
-                adjusted_prob = clip_probability(original_prob) * cross_major_penalty_factor(
-                    result.get("similarity", 0.0)
-                )
-                result_copy["probability"] = clip_probability(adjusted_prob)
+        original_prob = result_copy.get("probability", 0.0)
+        if original_prob is not None:
+            adjusted_prob = apply_cross_major_penalty_if_needed(
+                result=result,
+                probability=clip_basic(original_prob),
+                admitted_combinations=admitted_combinations,
+                check_admitted_field=False,
+            )
+            result_copy["probability"] = clip_basic(adjusted_prob)
 
         adjusted_results.append(result_copy)
 

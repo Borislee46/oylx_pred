@@ -142,16 +142,22 @@ class PredictionModel:
         if not combinations:
             return pd.DataFrame()
 
-        universities, majors = zip(*combinations, strict=True)
         n = len(combinations)
-
-        data_dict = {}
+        universities, majors = zip(*combinations, strict=True)
         allowed_features = set(features_to_use)
+        data_dict = {}
+
         for feat, value in preprocessed_base.items():
-            if feat in CATEGORICAL_COLUMNS:
-                self._add_categorical_feature(data_dict, feat, [value] * n, allowed_features)
+            if feat not in allowed_features:
+                continue
+
+            if feat in CATEGORICAL_COLUMNS and self._enable_categorical:
+                data_dict[feat] = pd.Categorical(
+                    [value] * n, categories=self.global_categories.get(feat, []), ordered=False
+                )
             else:
-                data_dict[feat] = np.full(n, value, dtype=np.float32)
+                dtype = np.int32 if feat in CATEGORICAL_COLUMNS else np.float32
+                data_dict[feat] = np.full(n, value, dtype=dtype)
 
         self._add_categorical_feature(
             data_dict, "target_university", list(universities), allowed_features
@@ -172,7 +178,6 @@ class PredictionModel:
             )
         else:
             index_map = self.global_category_index.get(feature_name, {})
-
             codes = (
                 pd.Series(values, dtype=object)
                 .astype(str)
@@ -180,7 +185,6 @@ class PredictionModel:
                 .fillna(-1)
                 .astype(np.int32)
             )
-
             data_dict[feature_name] = codes.values
 
     def predict_batch(

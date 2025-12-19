@@ -46,7 +46,7 @@ class DataFrameStyler:
 
             if col_name == "推荐专业详情":
                 column_config[col_name] = st.column_config.TextColumn(
-                    label=label, width=width, help="推荐学校和专业的详细信息", max_chars=None
+                    label=label, width=width, max_chars=None
                 )
             elif col_name == "录取概率":
                 column_config[col_name] = st.column_config.ProgressColumn(
@@ -56,7 +56,6 @@ class DataFrameStyler:
                     max_value=1,
                     format=" ",
                     pinned=True,
-                    help="基于用户输入和历史数据，计算出的录取概率",
                     color="#06b6d4",
                 )
             else:

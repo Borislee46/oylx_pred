@@ -10,26 +10,16 @@ import requests
 from src.agent.text_preprocessing_prompts import build_field_validation_prompt
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
-from src.pages.prediction.result_modifier.utils import generate_content_hash, is_effectively_empty
+from src.pages.prediction.result_modifier.utils import (
+    EXPERIENCE_ANALYSIS_MESSAGES,
+    FIELD_NAME_MAP,
+    generate_content_hash,
+    is_effectively_empty,
+)
 from src.utils.env_config_loader import load_app_config
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
-
-FIELD_NAME_MAP = {
-    "research_details": "研究",
-    "award_details": "奖项",
-    "internship_details": "实习",
-    "paper_details": "论文",
-}
-
-EXPERIENCE_ANALYSIS_MESSAGES = [
-    "正在智能分析您的背景经历",
-    "深度解析{field}经历中",
-    "正在评估您的{field}背景",
-    "智能识别{field}相关信息",
-    "分析{field}内容与专业匹配度",
-]
 
 
 def _get_streamlit():
@@ -100,7 +90,7 @@ def _validate_field_with_llm_cached(field_type: str, content_hash: str, content:
         )
         return True
 
-    except Exception as e:
+    except (requests.exceptions.RequestException, ValueError, TypeError, KeyError) as e:
         elapsed_time = time.time() - start_time
         logger.warning(
             f"LLM验证失败: {field_name}, 异常={str(e)}, 耗时={elapsed_time:.2f}秒, 使用默认通过"
@@ -117,11 +107,27 @@ def _validate_field_with_llm(field_type: str, content: str) -> bool:
 
 
 def _get_analysis_message(field_names: list[str]) -> str:
+    if not field_names:
+        return "正在核验软背景信息有效性"
     if len(field_names) == 1:
         msg = random.choice(EXPERIENCE_ANALYSIS_MESSAGES)
         return msg.format(field=field_names[0]) if "{field}" in msg else msg
     fields_text = "、".join(field_names)
-    return f"正在智能分析您的{fields_text}等背景经历"
+    return f"正在核验软背景：{fields_text}（信息抽取与有效性检查）"
+
+
+def _build_validation_status_message(
+    *,
+    field_name: str,
+    idx: int,
+    total: int,
+    content_len: int,
+    llm_enabled: bool,
+) -> str:
+    llm_text = "LLM校验" if llm_enabled else "本地规则"
+    safe_total = max(1, int(total))
+    safe_idx = max(1, min(int(idx), safe_total))
+    return f"软背景校验 {safe_idx}/{safe_total}：{field_name}（{content_len} 字｜{llm_text}）"
 
 
 def has_meaningful_experience_text(
@@ -143,6 +149,9 @@ def has_meaningful_experience_text(
     if not fields_to_validate:
         return False
 
+    app_config = load_app_config()
+    llm_enabled = bool(app_config.get("OPEN_AI_BASE_URL") and app_config.get("OPEN_AI_API_KEY"))
+
     animator = None
     if progress_reporter is not None:
         from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
@@ -160,16 +169,23 @@ def has_meaningful_experience_text(
             animator.show(_get_analysis_message(field_names), force=True)
 
     validated_keys: list[str] = []
-    for k, content in fields_to_validate:
+    total = len(fields_to_validate)
+    for idx0, (k, content) in enumerate(fields_to_validate):
+        field_name = FIELD_NAME_MAP.get(k, k)
+        msg = _build_validation_status_message(
+            field_name=field_name,
+            idx=idx0 + 1,
+            total=total,
+            content_len=len(content),
+            llm_enabled=llm_enabled,
+        )
         if animator is not None:
-            animator.show(_get_analysis_message([FIELD_NAME_MAP.get(k, k)]), force=True)
+            animator.show(msg, force=True)
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(_validate_field_with_llm, k, content)
             while animator is not None and not future.done():
                 animator.tick()
-                if progress_reporter is not None:
-                    progress_reporter.advance_ratio(0.08)
                 time.sleep(0.3)
             is_valid = future.result()
 

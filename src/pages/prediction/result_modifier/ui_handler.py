@@ -1,8 +1,9 @@
-import random
+import hashlib
 import time
 
 import streamlit as st
 
+from src.pages.prediction.config.ui_messages import RANKER_MESSAGES
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 
 
@@ -32,11 +33,10 @@ class LoadingMessageAnimator:
         self._last_update_time = 0.0
 
     def _render(self, message: str):
-        dots = [".", "..", "..."][self._cycle_count % 3]
         if self.progress_reporter is not None:
-            self.progress_reporter.emit(f"{message}{dots}", force=True)
-            self.progress_reporter.advance_ratio(0.08)
+            self.progress_reporter.emit(message, force=True)
         elif self.placeholder is not None:
+            dots = [".", "..", "..."][self._cycle_count % 3]
             self.placeholder.markdown(
                 f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{message}{dots}</div>',
                 unsafe_allow_html=True,
@@ -56,8 +56,12 @@ class LoadingMessageAnimator:
         self._render(message)
 
     def tick(self):
-        if self._current_message:
-            self._render(self._current_message)
+        if not self._current_message:
+            return
+        now = time.time()
+        if now - self._last_update_time < self.min_interval:
+            return
+        self._render(self._current_message)
 
     def clear(self):
         if self.placeholder is not None:
@@ -66,49 +70,12 @@ class LoadingMessageAnimator:
 
 
 class RankerUIHandler:
-    BASIC_MESSAGES = [
-        "分析 {majors} 是否为交叉学科",
-        "发现潜在匹配：{majors}",
-        "评估专业 {majors} 跨领域相关性",
-        "分析专业适配度：{majors}",
-        "匹配候选专业：{majors}",
-        "{majors} 是否属于交叉学科",
-        "分析 {majors} 与背景专业关联度",
-        "评估 {majors} 跨学科潜力",
-        "检验 {majors} 学科边界归属",
-    ]
-
-    WITH_BG_MAJOR_MESSAGES = [
-        "分析 {majors} 与 {bg_major} 关联",
-        "{bg_major} 背景申请 {majors}",
-        "从 {bg_major} 到 {majors} 是否算作跨申",
-        "{majors} 对 {bg_major} 背景接受度",
-    ]
-
-    WITH_FACULTY_MESSAGES = [
-        "{faculty} 是否包含 {majors}",
-        "从 {faculty} 背景出发，评估 {majors}",
-        "在 {faculty} 背景范围内，{majors} 是否符合 {faculty} 偏好",
-    ]
-
-    RELAX_MODE_MESSAGES = [
-        "发掘跨学科机会：{majors}",
-        "扩展推荐边界：{majors}",
-        "挖掘跨领域选项：{majors}",
-    ]
-
-    TIGHTEN_MODE_MESSAGES = [
-        "精准筛选：{majors}",
-        "严格评估专业 {majors} 的匹配度",
-        "把更多合适的专业如 {majors} 纳入推荐范围",
-    ]
-
-    FALLBACK_MESSAGES = [
-        "评估潜在推荐专业",
-        "分析专业匹配程度",
-        "智能筛选候选专业",
-        "扩大探索范围",
-    ]
+    BASIC_MESSAGES = RANKER_MESSAGES["basic"]
+    WITH_BG_MAJOR_MESSAGES = RANKER_MESSAGES["cross_major"]
+    WITH_FACULTY_MESSAGES = RANKER_MESSAGES["faculty"]
+    RELAX_MODE_MESSAGES = RANKER_MESSAGES["relax"]
+    TIGHTEN_MODE_MESSAGES = RANKER_MESSAGES["tighten"]
+    FALLBACK_MESSAGES = RANKER_MESSAGES["fallback"]
 
     MIN_DISPLAY_INTERVAL = 1.2
 
@@ -138,6 +105,20 @@ class RankerUIHandler:
         self._round_count = 0
         self._last_update_time = 0.0
         self._message_pools = self._build_message_pools()
+        self._tone = "探索模式" if self.mode == "relax" else "精准模式"
+        self._tone_seed = self._build_tone_seed()
+
+    def _build_tone_seed(self) -> str:
+        bg_major = (self.background_major or "").strip()
+        faculty = (self.background_faculty or "").strip()
+        mode = (self.mode or "").strip()
+        return f"{mode}|{bg_major}|{faculty}"
+
+    def _stable_index(self, key: str, n: int) -> int:
+        if n <= 1:
+            return 0
+        digest = hashlib.md5(key.encode("utf-8")).hexdigest()
+        return int(digest[:8], 16) % n
 
     def _build_message_pools(self) -> list[list[str]]:
         pools = [self.BASIC_MESSAGES]
@@ -152,7 +133,9 @@ class RankerUIHandler:
         return pools
 
     def __enter__(self):
-        self._render("智能筛选合适的专业推荐")
+        bg_text = self.background_major.strip() if self.background_major else "未提供"
+        faculty_text = self.background_faculty.strip() if self.background_faculty else "未提供"
+        self._render(f"{self._tone}｜正在筛选专业推荐｜本科 {bg_text}｜领域 {faculty_text}")
         self.is_active = True
         return self
 
@@ -177,7 +160,9 @@ class RankerUIHandler:
         if not available:
             self._message_history.clear()
             available = pool
-        msg = random.choice(available)
+        majors = str(kwargs.get("majors", ""))
+        seed = f"{self._tone_seed}|{self._round_count}|{majors}|{len(available)}"
+        msg = available[self._stable_index(seed, len(available))]
         self._message_history.add(msg)
         return msg.format(**kwargs) if kwargs else msg
 
@@ -190,20 +175,22 @@ class RankerUIHandler:
         self._last_update_time = now
 
         if major_names:
-            text = random.choice(major_names)
-
-            pool = random.choice(self._message_pools)
+            text = major_names[
+                self._stable_index(f"{self._tone_seed}|m|{self._round_count}", len(major_names))
+            ]
+            pool = self._message_pools[self._round_count % len(self._message_pools)]
             msg = self._pick_fresh_message(
                 pool,
                 majors=text,
                 bg_major=self.background_major or "当前背景",
                 faculty=self.background_faculty or "目标领域",
+                tone=self._tone,
             )
             self._render(msg)
             if self.progress_reporter is not None:
                 self.progress_reporter.advance_ratio(0.04, text=msg)
         else:
-            msg = self._pick_fresh_message(self.FALLBACK_MESSAGES)
+            msg = self._pick_fresh_message(self.FALLBACK_MESSAGES, tone=self._tone)
             self._render(msg)
             if self.progress_reporter is not None:
                 self.progress_reporter.advance_ratio(0.02, text=msg)

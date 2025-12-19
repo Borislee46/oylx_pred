@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from src.pages.prediction.config.ui_messages import PIPELINE_MESSAGES
 from src.pages.prediction.flow.pipeline import run_prediction_pipeline_with_progress
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.handler_config import (
@@ -66,8 +67,11 @@ def run_prediction_with_guard(
     )
 
     experience_details = current_input_data.get("experience_details", {})
+    exp_text_len = sum(len(str(v)) for v in experience_details.values() if v)
     pre_reporter = ProgressReporter(progress_cb)
-    pre_reporter.set_stage(0.07, 0.08, "校验背景经历...")
+    pre_reporter.set_stage(
+        0.07, 0.08, PIPELINE_MESSAGES["analyze_text"].format(length=exp_text_len)
+    )
     has_valid_experience = has_meaningful_experience_text(
         experience_details, progress_reporter=pre_reporter
     )
@@ -123,7 +127,7 @@ def handle_form_submission(
     input_data_from_form = ctx.input_data_from_form
     session_keys = ctx.session_keys
 
-    _update_progress(progress_cb, 0.02, "校验输入...")
+    _update_progress(progress_cb, 0.02, PIPELINE_MESSAGES["verify_data"])
     session_manager.set(**{session_keys.form_data_changed: False})
 
     if not all(
@@ -142,7 +146,7 @@ def handle_form_submission(
     user_selected_majors = session_manager.get("selected_target_majors", []) or []
 
     if background_major and (user_selected_categories or user_selected_majors):
-        _update_progress(progress_cb, 0.04, "检查跨大类申请风险...")
+        _update_progress(progress_cb, 0.04, PIPELINE_MESSAGES["cross_check"])
         is_cross_faculty, bg_faculty, target_faculties, agent_approved = quick_cross_faculty_check(
             background_major,
             user_selected_categories,
@@ -154,7 +158,7 @@ def handle_form_submission(
             if agent_approved:
                 session_manager.set(cross_faculty_confirmed=True)
             elif not session_manager.get("cross_faculty_confirmed", False):
-                _update_progress(progress_cb, 0.05, "需要确认：检测到跨大类申请")
+                _update_progress(progress_cb, 0.05, "检测到跨学科申请跨度较大，需进一步评估风险...")
                 session_manager.set(
                     hk_ui_phase="awaiting_confirm",
                     pending_prediction_data={
@@ -169,7 +173,7 @@ def handle_form_submission(
 
     session_manager.set(**{session_keys.predict_lock: True})
     session_manager.set(hk_ui_phase="running", hk_last_error=None)
-    _update_progress(progress_cb, 0.06, "整理输入特征...")
+    _update_progress(progress_cb, 0.06, PIPELINE_MESSAGES["build_features"].format(dim="核心"))
     current_input_data = prepare_input_data(input_data_from_form)
     persist_input_state(session_manager, current_input_data, session_keys)
     log_first_submission_if_needed(
@@ -178,7 +182,14 @@ def handle_form_submission(
         input_data_from_form,
         session_keys.last_submission_logged,
     )
-    _update_progress(progress_cb, 0.07, "启动预测流程...")
+    uni_count = len(ctx.all_universities_target)
+    major_count = len(ctx.all_majors_target)
+    _update_progress(
+        progress_cb,
+        0.07,
+        PIPELINE_MESSAGES["running_calc"].format(total=f"{uni_count}校 {major_count}项目"),
+    )
+
     run_prediction_with_guard(
         session_manager,
         page_state,

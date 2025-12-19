@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import json
-
-import numpy as np
+import math
 
 from src.pages.prediction.result_modifier.providers.logit_uplift.model_loader import (
     ModelLoader,
@@ -45,7 +44,7 @@ class DeltaCalculator:
 
         try:
             details = json.loads(sig)
-        except Exception:
+        except (json.JSONDecodeError, TypeError, ValueError):
             details = {}
 
         sims, reasons = self._similarity_computer.compute_similarities(details)
@@ -57,10 +56,8 @@ class DeltaCalculator:
         if ssum < self._sim_gate_sum_min or smax < self._sim_gate_max_min:
             return 0.0, sims, reasons
 
-        counts = np.array([safe_float(details.get(k, 0)) for k in count_keys], dtype=np.float64)
-        log_counts = np.log1p(counts)
-
-        s_arr = np.array(s_values, dtype=np.float64)
+        # 对于极小规模特征（4个），原生 math.log1p 和循环比 numpy 快得多
+        log_counts = [math.log1p(safe_float(details.get(k, 0))) for k in count_keys]
 
         bias_idx = 0
         text_weights_start = bias_idx + 1
@@ -73,12 +70,12 @@ class DeltaCalculator:
             return 0.0, sims, reasons
 
         delta = weights_array[bias_idx]
-        delta += np.dot(weights_array[text_weights_start:text_weights_end], s_arr)
+        for i in range(num_text_features):
+            delta += weights_array[text_weights_start + i] * s_values[i]
 
         if num_count_features == num_text_features:
-            delta += np.dot(
-                weights_array[interact_weights_start:interact_weights_end], s_arr * log_counts
-            )
+            for i in range(num_text_features):
+                delta += weights_array[interact_weights_start + i] * s_values[i] * log_counts[i]
 
         delta = max(0.0, float(delta))
 

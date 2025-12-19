@@ -17,31 +17,6 @@ logger = setup_logger("page3", "prediction")
 
 class FormValidator:
     @staticmethod
-    def normalize_language_score(score, language_type):
-        try:
-            score = float(score)
-            if language_type == "托福":
-                return score / 120
-            else:
-                return score / 9
-        except Exception:
-            return score
-
-    @staticmethod
-    def denormalize_language_score(normalized_score, language_type, round_to_half=False):
-        try:
-            normalized_score = float(normalized_score)
-            if language_type == "托福":
-                return normalized_score * 120
-            else:
-                score = normalized_score * 9
-                if round_to_half:
-                    return round(score * 2) / 2
-                return score
-        except Exception:
-            return normalized_score
-
-    @staticmethod
     def validate_standardized_test_score(exam_type, score):
         if not score:
             return True, None, None

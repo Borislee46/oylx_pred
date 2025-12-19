@@ -76,41 +76,6 @@ def _get_major_to_faculty_map() -> dict[str, str]:
     return result
 
 
-def _check_majors_with_agent(
-    background_major: str, majors: list[str], cases_df: pd.DataFrame
-) -> bool:
-    if not majors:
-        return False
-    try:
-        from src.agent.boundary_case_agent import BoundaryCaseAgent
-
-        cases = []
-        for m in majors:
-            cases.append(
-                {
-                    "university": "Target University",
-                    "major": m,
-                    "similarity": 0.85,
-                }
-            )
-
-        agent = BoundaryCaseAgent(cases_df=cases_df)
-        result = agent.evaluate_boundary_cases(
-            background_major, cases, mode="relax", use_persistent_cache=False
-        )
-        decisions = result.get("decisions", [])
-
-        if any(decisions):
-            guard_logger.info(
-                f"Agent验证通过跨学院专业: {[m for m, d in zip(majors, decisions, strict=False) if d]}"
-            )
-            return True
-        return False
-    except Exception as e:
-        guard_logger.error(f"Agent跨学院验证失败: {e}")
-        return False
-
-
 def quick_cross_faculty_check(
     background_major: str | None,
     selected_categories: list[str] | None,
@@ -147,8 +112,5 @@ def quick_cross_faculty_check(
 
     has_cross = any(f and f != background_faculty for f in target_faculties)
     agent_approved = False
-
-    if has_cross and cross_majors and cases_df is not None:
-        agent_approved = _check_majors_with_agent(background_major, cross_majors, cases_df)
 
     return has_cross, background_faculty, target_faculties, agent_approved

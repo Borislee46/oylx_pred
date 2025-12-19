@@ -26,8 +26,8 @@ def get_admitted_combinations_for_major(
     except (IndexError, TypeError, ValueError) as e:
         logger.warning(f"解析录取组合失败: {str(e)}")
         return set()
-    except Exception as e:
-        logger.error(f"获取录取组合时发生未知错误: {str(e)}", exc_info=True)
+    except (AttributeError, KeyError, RuntimeError) as e:
+        logger.error(f"获取录取组合失败: {str(e)}", exc_info=True)
         return set()
 
 
@@ -51,6 +51,6 @@ def get_admitted_combinations_from_dataframe(
         df_hash = compute_dataframe_hash(cases_df[required_cols])
         cases_df_tuple = tuple(cases_df[required_cols].itertuples(index=False, name=None))
         return get_admitted_combinations_for_major(df_hash, cases_df_tuple, background_major)
-    except Exception as e:
+    except (KeyError, TypeError, ValueError, AttributeError) as e:
         logger.error(f"从DataFrame获取录取组合失败: {str(e)}", exc_info=True)
         return set()

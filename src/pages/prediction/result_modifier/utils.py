@@ -16,10 +16,19 @@ def compute_dataframe_hash(df: pd.DataFrame) -> str:
         return "empty_df"
     try:
         meta_str = f"{df.shape}-{tuple(map(str, df.columns))}-{tuple(map(str, df.dtypes))}"
-        sample = pd.concat([df.head(1), df.tail(1)])
-        sample_digest = hashlib.md5(sample.to_numpy().tobytes()).hexdigest()
+        n = len(df)
+        if n <= 8:
+            idxs = list(range(n))
+        else:
+            idxs = [0, n - 1, n // 2, n // 4, (3 * n) // 4, n // 3, (2 * n) // 3, 1]
+            idxs = [i for i in idxs if 0 <= i < n]
+            idxs = list(dict.fromkeys(idxs))[:8]
+
+        sample = df.iloc[idxs]
+        values_hash = pd.util.hash_pandas_object(sample, index=True).to_numpy().tobytes()
+        sample_digest = hashlib.md5(values_hash).hexdigest()
         return hashlib.md5(f"{meta_str}-{sample_digest}".encode()).hexdigest()
-    except Exception:
+    except (IndexError, KeyError, TypeError, ValueError, AttributeError):
         return "fallback_hash"
 
 
@@ -31,11 +40,11 @@ FIELD_NAME_MAP = {
 }
 
 EXPERIENCE_ANALYSIS_MESSAGES = [
-    "正在智能分析您的背景经历",
-    "深度解析{field}经历中",
-    "正在评估您的{field}背景",
-    "智能识别{field}相关信息",
-    "分析{field}内容与专业匹配度",
+    "正在核验您的背景信息有效性",
+    "正在解析{field}内容并提取关键信息",
+    "正在评估{field}经历对申请竞争力的影响",
+    "正在识别{field}中可量化的亮点信息",
+    "正在对{field}内容进行结构化处理",
 ]
 
 INVALID_TOKENS = {
@@ -71,7 +80,8 @@ def is_effectively_empty(text: str | None) -> bool:
     return len(stripped) == 0
 
 
-def clip_probability(value: Any) -> float:
+# 目前测试来看，当前需要裁剪的场景体量比较小，用原生逻辑比np.clip快
+def clip_basic(value: Any) -> float:
     return max(0.0, min(1.0, float(value)))
 
 
@@ -92,6 +102,32 @@ def cross_major_penalty_factor(similarity: Any) -> float:
 
     t = (s - CROSS_MAJOR_SIMILARITY_MIN) / span
     return CROSS_MAJOR_PENALTY_FACTOR + (1.0 - CROSS_MAJOR_PENALTY_FACTOR) * t
+
+
+def apply_cross_major_penalty_if_needed(
+    result: dict[str, Any],
+    probability: float,
+    admitted_combinations: set[tuple[Any, Any]] | None = None,
+    check_admitted_field: bool = True,
+) -> float:
+    similarity = result.get("similarity", 1.0)
+    try:
+        sim = float(similarity)
+    except (TypeError, ValueError):
+        sim = 1.0
+
+    if sim >= MIN_SIMILARITY_THRESHOLD:
+        return probability
+
+    key = (result.get("university"), result.get("major"))
+    has_admitted_case = bool(admitted_combinations and key in admitted_combinations)
+    if check_admitted_field and result.get("admitted") == 1:
+        has_admitted_case = True
+
+    if has_admitted_case:
+        return probability
+
+    return probability * cross_major_penalty_factor(sim)
 
 
 def generate_content_hash(content: str) -> str:
