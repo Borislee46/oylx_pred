@@ -104,6 +104,22 @@ export default function(component) {
       '[data-baseweb="popover"]',
     ].join(',');
 
+    const POPOVER_SELECTOR = [
+      '[data-baseweb="popover"]',
+      '[role="listbox"]',
+      '.stSelectbox-popover',
+      '.stMultiSelect-popover'
+    ].join(',');
+
+    function isInteracting(e) {
+      try {
+        if (e && e.target && e.target.closest(INTERACTIVE_SELECTOR)) return true;
+        if (document.activeElement && document.activeElement.closest(INTERACTIVE_SELECTOR)) return true;
+        if (document.querySelector(POPOVER_SELECTOR)) return true;
+      } catch (err) {}
+      return false;
+    }
+
     let raf = 0;
     let rectRaf = 0;
     let hover = false;
@@ -220,6 +236,10 @@ export default function(component) {
       if (!tiltEnabled) return;
       if (window.innerWidth < 768) return;
 
+      if (isInteracting(e)) {
+        return;
+      }
+
       const nowMs = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
       if (!baseRect || (nowMs - lastRectUpdate) > 250) {
         updateBaseRect();
@@ -237,12 +257,6 @@ export default function(component) {
       }
       lastPx = px;
       lastPy = py;
-
-      let isInteractive = false;
-      try {
-        const t = e.target;
-        isInteractive = !!(t && t.closest && t.closest(INTERACTIVE_SELECTOR));
-      } catch (err) { isInteractive = false; }
 
       const nx = Math.tanh(((px - 0.5) * 2) * 1.25);
       const ny = Math.tanh(((py - 0.5) * 2) * 1.25);
@@ -262,13 +276,13 @@ export default function(component) {
         lastClientT = now;
       } catch (err) {}
 
-      const finalTiltMax = isInteractive ? MAX_TILT_DEG * 0.3 : MAX_TILT_DEG;
+      const finalTiltMax = MAX_TILT_DEG;
       targetTiltY = nx * (finalTiltMax * speedFactor);
       targetTiltX = -ny * (finalTiltMax * speedFactor);
       targetGlareX = px * 100;
       targetGlareY = py * 100;
 
-      el.style.setProperty('--hk-glare-opacity', String(isInteractive ? 0 : (MAX_GLARE_OPACITY * speedFactor)));
+      el.style.setProperty('--hk-glare-opacity', String(MAX_GLARE_OPACITY * speedFactor));
       el.classList.add('hk-tilt-active');
       ensureTicking();
     }
@@ -280,6 +294,9 @@ export default function(component) {
         leaveTimer = 0;
       }
       leaveTimer = setTimeout(() => {
+        if (isInteracting()) {
+          return;
+        }
         leaveTimer = 0;
         tiltEnabled = false;
         targetTiltX = 0;
