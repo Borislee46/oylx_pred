@@ -7,25 +7,19 @@ from src.utils.app_data_loader import load_school_base_data
 from src.utils.school_constants import (
     LANGUAGE_BOOST_MULTIPLIERS,
     OVERSEAS_SCHOOL_LEVELS,
+    SCHOOL_LEVEL_ALIASES,
+    SCHOOL_LEVEL_PRIORITY,
+    SCHOOL_LEVEL_SCORES,
 )
 
-SCHOOL_LEVEL_PRIORITY = {
-    "985": 1,
-    "1-50": 2,
-    "51-100": 3,
-    "211": 4,
-    "101-200": 5,
-    "201-300": 6,
-    "301-500": 6,
-    "500之后": 7,
-    "500+": 7,
-    "普通本科": 7,
-    "专接本": 8,
-    "三本/民办本科": 9,
-    "专科": 10,
-    "未知": 11,
-    None: 11,
-}
+
+def _normalize_school_level(level: Any) -> str:
+    if level is None:
+        return "未知"
+    cleaned = str(level).strip()
+    if not cleaned or cleaned.lower() in {"nan", "none"}:
+        return "未知"
+    return SCHOOL_LEVEL_ALIASES.get(cleaned, cleaned)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -37,12 +31,7 @@ def _get_school_level_mapping() -> dict[str, dict[str, Any]]:
         df_local = df[["学校名称", "school_level"]].copy()
 
         df_local["学校名称"] = df_local["学校名称"].astype(str).str.strip()
-        df_local["school_level"] = df_local["school_level"].astype(str).str.strip()
-        mask_unknown = (
-            df_local["school_level"].str.lower().isin(["nan", "none", ""])
-            | df_local["school_level"].isna()
-        )
-        df_local.loc[mask_unknown, "school_level"] = "未知"
+        df_local["school_level"] = df_local["school_level"].apply(_normalize_school_level)
 
         names = df_local["学校名称"].tolist()
         levels = df_local["school_level"].tolist()
@@ -68,7 +57,12 @@ class SchoolLevelService:
         cleaned_name = str(school_name).strip()
 
         if cleaned_name in mapping:
-            return mapping[cleaned_name]
+            info = mapping[cleaned_name]
+            level = _normalize_school_level(info.get("school_level"))
+            return {
+                "school_level": level,
+                "priority": SCHOOL_LEVEL_PRIORITY.get(level, SCHOOL_LEVEL_PRIORITY["未知"]),
+            }
 
         if "985" in cleaned_name or "211" in cleaned_name:
             inferred_level = "985" if "985" in cleaned_name else "211"
@@ -100,12 +94,18 @@ class SchoolLevelService:
             return 0
 
     def is_overseas_school(self, school_name: str) -> bool:
-        school_level = self.get_school_level(school_name)
+        school_level = _normalize_school_level(self.get_school_level(school_name))
         return school_level in OVERSEAS_SCHOOL_LEVELS
 
     def get_language_boost_multiplier(self, school_name: str) -> float:
-        school_level = self.get_school_level(school_name)
+        school_level = _normalize_school_level(self.get_school_level(school_name))
         return LANGUAGE_BOOST_MULTIPLIERS.get(school_level, 1.0)
+
+    def get_school_score(self, school_name: str | None) -> float:
+        if not school_name:
+            return SCHOOL_LEVEL_SCORES["未知"]
+        level = _normalize_school_level(self.get_school_level(school_name))
+        return float(SCHOOL_LEVEL_SCORES.get(level, SCHOOL_LEVEL_SCORES["未知"]))
 
 
 _school_level_service = None

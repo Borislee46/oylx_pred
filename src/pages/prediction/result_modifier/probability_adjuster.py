@@ -10,6 +10,7 @@ from src.pages.prediction.result_modifier.admission_cache import (
 )
 from src.pages.prediction.result_modifier.config import (
     COMPREHENSIVE_SCORE_BOOST_THRESHOLD,
+    DEFAULT_UNIVERSITY_DIFFICULTY_ORDER,
     GPA_MINIMUM,
     GPA_PENALTY_MAX_COEFFICIENT,
     GPA_PENALTY_QUADRATIC_COEFFICIENT,
@@ -22,21 +23,21 @@ from src.pages.prediction.result_modifier.config import (
     LANGUAGE_PENALTY_LEVEL_3_THRESHOLD,
     LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER,
     LANGUAGE_PENALTY_SEVERE_THRESHOLD,
-    MIN_SIMILARITY_THRESHOLD,
     PROBABILITY_ADJUSTMENT_THRESHOLD,
     PROBABILITY_EXTREME_STD_MULTIPLIER,
     PROBABILITY_MIN_VALUE,
     SELECTION_SCORE_BOOST_FACTOR,
-    get_university_difficulty_order,
+    UNIVERSITY_DIFFICULTY_CONFIG_PATH,
 )
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import (
-    clip_probability,
+    apply_cross_major_penalty_if_needed,
+    clip_basic,
     compute_dataframe_hash,
-    cross_major_penalty_factor,
 )
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
+from src.utils.university_difficulty_service import get_university_difficulty_order
 
 logger = setup_logger("page3", "prediction")
 
@@ -68,50 +69,39 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
         norm_scores = None
 
         if has_toefl or has_ielts:
-            scores_list = []
+            temp_df = pd.DataFrame(index=_cases_df.index)
+
             if has_toefl:
-                valid_toefl = _cases_df["toefl"].dropna()
-                if not valid_toefl.empty:
-                    norm_toefl = valid_toefl.apply(lambda x: normalize_language_score(x, "托福"))
-                    scores_list.append(norm_toefl)
+                temp_df["toefl_norm"] = _cases_df["toefl"].apply(
+                    lambda x: normalize_language_score(x, "托福")
+                )
+            else:
+                temp_df["toefl_norm"] = np.nan
 
             if has_ielts:
-                valid_ielts = _cases_df["ielts"].dropna()
-                if not valid_ielts.empty:
-                    norm_ielts = valid_ielts.apply(lambda x: normalize_language_score(x, "雅思"))
-                    scores_list.append(norm_ielts)
+                temp_df["ielts_norm"] = _cases_df["ielts"].apply(
+                    lambda x: normalize_language_score(x, "雅思")
+                )
+            else:
+                temp_df["ielts_norm"] = np.nan
 
-            if scores_list:
-                temp_df = pd.DataFrame(index=_cases_df.index)
-                if has_toefl:
-                    temp_df["toefl_norm"] = _cases_df["toefl"].apply(
-                        lambda x: normalize_language_score(x, "托福")
-                    )
-                else:
-                    temp_df["toefl_norm"] = np.nan
-
-                if has_ielts:
-                    temp_df["ielts_norm"] = _cases_df["ielts"].apply(
-                        lambda x: normalize_language_score(x, "雅思")
-                    )
-                else:
-                    temp_df["ielts_norm"] = np.nan
-
-                final_scores = temp_df["toefl_norm"].fillna(temp_df["ielts_norm"]).fillna(0.0)
-                norm_scores = final_scores
+            norm_scores = temp_df["toefl_norm"].combine_first(temp_df["ielts_norm"])
 
         if norm_scores is not None:
-            stats["language_mean"] = float(np.nan_to_num(norm_scores.mean(), nan=0.0))
-            stats["language_std"] = float(np.nan_to_num(norm_scores.std(), nan=0.0))
+            valid_scores = pd.to_numeric(norm_scores, errors="coerce").dropna()
+            if not valid_scores.empty:
+                stats["language_mean"] = float(np.nan_to_num(valid_scores.mean(), nan=0.0))
+                stats["language_std"] = float(np.nan_to_num(valid_scores.std(), nan=0.0))
 
         if stats["language_std"] == 0:
             stats["language_std"] = 1e-6
 
-        stats["language_pass_line"] = (
+        pass_line = (
             stats["language_mean"] - LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER * stats["language_std"]
         )
+        stats["language_pass_line"] = max(LANGUAGE_MINIMUM, float(pass_line))
 
-    except Exception as e:
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError) as e:
         logger.warning(f"计算统计信息失败: {e}")
 
     return stats
@@ -131,7 +121,10 @@ class ProbabilityAdjuster:
         self.gpa_minimum = GPA_MINIMUM
         self.language_minimum = LANGUAGE_MINIMUM
 
-        self.difficulty_order = get_university_difficulty_order()
+        self.difficulty_order = get_university_difficulty_order(
+            UNIVERSITY_DIFFICULTY_CONFIG_PATH,
+            DEFAULT_UNIVERSITY_DIFFICULTY_ORDER,
+        )
         self.difficulty_map = {uni: i for i, uni in enumerate(self.difficulty_order)}
         self.max_difficulty_index = len(self.difficulty_order)
 
@@ -168,11 +161,8 @@ class ProbabilityAdjuster:
         gpa_score = self._gpa_to_score(gpa)
         lang_score = self._language_to_score(language_score)
 
-        school_score = 0.5
-        if background_university:
-            service = get_school_level_service()
-            priority = service.get_school_priority(background_university)
-            school_score = max(0.0, min(1.0, 1.0 - (priority - 1) / 10.0))
+        service = get_school_level_service()
+        school_score = service.get_school_score(background_university)
 
         total_score = 0.4 * gpa_score + 0.3 * lang_score + 0.3 * school_score
         return total_score
@@ -266,19 +256,15 @@ def penalize_cross_major_without_cases(
     for result in user_specified_results:
         result_copy = result.copy()
 
-        is_cross_major = result.get("similarity", 1.0) < MIN_SIMILARITY_THRESHOLD
-        has_admitted_case = (
-            result.get("university"),
-            result.get("major"),
-        ) in admitted_combinations
-
-        if is_cross_major and not has_admitted_case:
-            original_prob = result_copy.get("probability", 0.0)
-            if original_prob is not None:
-                adjusted_prob = clip_probability(original_prob) * cross_major_penalty_factor(
-                    result.get("similarity", 0.0)
-                )
-                result_copy["probability"] = clip_probability(adjusted_prob)
+        original_prob = result_copy.get("probability", 0.0)
+        if original_prob is not None:
+            adjusted_prob = apply_cross_major_penalty_if_needed(
+                result=result,
+                probability=clip_basic(original_prob),
+                admitted_combinations=admitted_combinations,
+                check_admitted_field=False,
+            )
+            result_copy["probability"] = clip_basic(adjusted_prob)
 
         adjusted_results.append(result_copy)
 

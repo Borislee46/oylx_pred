@@ -1,0 +1,517 @@
+[data-testid="stSidebarNav"] { display: none !important; }
+section[data-testid="stSidebar"] { display: none !important; }
+[data-testid="collapsedControl"] { display: none !important; }
+[data-testid="stElementToolbar"] { display: none; }
+
+.stApp label[data-baseweb="radio"] > div:first-child {
+    width: 1rem !important;
+    height: 1rem !important;
+    transition: all var(--hk-transition-smooth) !important;
+    border: 2px solid var(--hk-slate-400) !important;
+    border-color: var(--hk-slate-400) !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.stApp label[data-baseweb="radio"] > div:first-child[style*="red"],
+.stApp label[data-baseweb="radio"] > div:first-child[style*="rgb(255"],
+.stApp label[data-baseweb="radio"] > div:first-child[style*="#ff"],
+.stApp label[data-baseweb="radio"] > div:first-child[style*="#FF"] {
+    border-color: var(--hk-slate-400) !important;
+    border: 2px solid var(--hk-slate-400) !important;
+}
+
+.stApp label[data-baseweb="radio"] > div:first-child > div {
+    width: 0.5rem !important;
+    height: 0.5rem !important;
+    border-radius: 50% !important;
+    border: none !important;
+    transition: all var(--hk-transition-smooth) !important;
+    opacity: 0 !important;
+    background-color: transparent !important;
+}
+
+.stApp label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+    border-color: var(--hk-cyan) !important;
+    border: 2px solid var(--hk-cyan) !important;
+}
+
+.stApp label[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
+    opacity: 1 !important;
+    background-color: var(--hk-cyan) !important;
+}
+
+.stApp label[data-baseweb="radio"]:has(input:focus) > div:first-child,
+.stApp label[data-baseweb="radio"]:has(input:focus-visible) > div:first-child {
+    border-color: var(--hk-cyan) !important;
+    border: 2px solid var(--hk-cyan) !important;
+}
+
+.stApp label[data-baseweb="radio"] p {
+    font-family: var(--hk-font-sans) !important;
+    color: var(--hk-slate-700) !important;
+    font-weight: 500 !important;
+    font-size: var(--hk-text-sm) !important;
+    line-height: 1.5 !important;
+}
+
+.stApp .stCheckbox label > div:first-child {
+    border-radius: var(--hk-radius-xs) !important;
+    transition: all var(--hk-transition-fast) !important;
+}
+
+.stApp .stCheckbox label > div:first-child[aria-checked="true"] {
+    background-color: var(--hk-cyan) !important;
+    border-color: var(--hk-cyan) !important;
+}
+
+.stApp .stCheckbox label:has(input:focus) > div:first-child,
+.stApp .stCheckbox label:has(input:focus-visible) > div:first-child {
+    border-color: var(--hk-cyan) !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] {
+    font-family: var(--hk-font-sans);
+    outline: none !important;
+    box-shadow: none !important;
+    border: 1px solid var(--hk-slate-200) !important;
+    background-color: var(--hk-surface-bg) !important;
+    border-radius: var(--hk-radius-sm) !important;
+    padding: 0.2rem 0.55rem !important;
+    gap: var(--hk-space-sm) !important;
+    align-items: center !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] [data-testid$="Icon"],
+.stApp div[data-testid="stStatusWidget"] svg {
+    color: var(--hk-slate-600) !important;
+    fill: var(--hk-slate-600) !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] button[data-testid="stBaseButton-header"] {
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--hk-slate-700) !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0.25rem 0.75rem !important;
+    transition:
+        color var(--hk-transition-fast),
+        border-color var(--hk-transition-fast),
+        box-shadow var(--hk-transition-fast),
+        background-color var(--hk-transition-fast) !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] button[data-testid="stBaseButton-header"]:hover {
+    color: var(--hk-slate-900) !important;
+    border-color: var(--hk-slate-200) !important;
+    background-color: var(--hk-surface-hover) !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] button[data-testid="stBaseButton-header"]:focus,
+.stApp div[data-testid="stStatusWidget"] button[data-testid="stBaseButton-header"]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--hk-dark-alpha-10) !important;
+    border-color: var(--hk-slate-300) !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] button[data-testid="stBaseButton-header"]:active {
+    box-shadow: none !important;
+    border-color: var(--hk-slate-400) !important;
+}
+
+.stApp .stAlert {
+    border-radius: var(--hk-radius) !important;
+    font-family: var(--hk-font-sans);
+}
+
+div[data-baseweb="popover"] {
+    border-radius: var(--hk-radius) !important;
+    box-shadow: var(--hk-shadow-xl) !important;
+    border: 1px solid var(--hk-slate-200) !important;
+    overflow: hidden !important;
+}
+
+ul[data-baseweb="menu"],
+div[data-baseweb="menu"] {
+    background-color: var(--hk-surface-bg) !important;
+    padding: var(--hk-space-xs) !important;
+    border-radius: var(--hk-radius) !important;
+}
+
+li[data-baseweb="menu-option"],
+div[role="option"] {
+    font-family: var(--hk-font-sans) !important;
+    font-size: var(--hk-text-sm) !important;
+    color: var(--hk-slate-700) !important;
+    padding: var(--hk-space-sm) var(--hk-space-md) !important;
+    border-radius: var(--hk-radius-sm) !important;
+    margin: 2px 0 !important;
+    transition: all var(--hk-transition-fast) !important;
+    background-color: transparent !important;
+}
+
+li[data-baseweb="menu-option"]:hover,
+div[role="option"]:hover,
+li[data-baseweb="menu-option"][aria-selected="true"],
+div[role="option"][aria-selected="true"] {
+    background-color: var(--hk-cyan-alpha-10) !important;
+    color: var(--hk-cyan-dark) !important;
+}
+
+li[data-baseweb="menu-option"][data-highlighted="true"],
+li[data-baseweb="menu-option"]:focus {
+    background-color: var(--hk-cyan-alpha-15) !important;
+    color: var(--hk-cyan-dark) !important;
+    outline: none !important;
+}
+
+div[data-baseweb="menu"] > div:only-child {
+    font-family: var(--hk-font-sans) !important;
+    color: var(--hk-slate-500) !important;
+    padding: var(--hk-space-md) !important;
+}
+
+.stApp .stMultiSelect [data-baseweb="tag"] {
+    position: relative !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(6, 182, 212, 0.55) !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18)),
+        radial-gradient(180px circle at 30% 25%, rgba(33, 255, 244, 0.18), rgba(33, 255, 244, 0) 60%),
+        linear-gradient(120deg, rgba(6, 182, 212, 0.16), rgba(6, 182, 212, 0.06)) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.72),
+        inset 0 -1px 0 rgba(15, 23, 42, 0.08),
+        0 2px 6px rgba(15, 23, 42, 0.10) !important;
+    transition:
+        transform var(--hk-transition-fast),
+        box-shadow var(--hk-transition-fast),
+        background var(--hk-transition-fast),
+        border-color var(--hk-transition-fast) !important;
+    transform: translateZ(0) !important;
+}
+
+.stApp .stMultiSelect [data-baseweb="tag"] span {
+    color: var(--hk-cyan-dark) !important;
+    font-weight: 600 !important;
+    font-size: var(--hk-text-sm) !important;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+.stApp .stMultiSelect [data-baseweb="tag"]:hover {
+    border-color: rgba(6, 182, 212, 0.78) !important;
+    transform: translateY(-1px) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.78),
+        inset 0 -1px 0 rgba(15, 23, 42, 0.06),
+        0 5px 12px rgba(15, 23, 42, 0.14) !important;
+}
+
+.stApp div[data-baseweb="select"] [data-testid="stMarkdownContainer"] + div svg,
+.stApp .stMultiSelect [data-baseweb="tag"] svg {
+    fill: var(--hk-cyan-dark) !important;
+    opacity: 0.9 !important;
+    transition: fill var(--hk-transition-fast), opacity var(--hk-transition-fast) !important;
+}
+
+.stApp .stMultiSelect [data-baseweb="tag"]:hover svg {
+    fill: var(--hk-cyan-dark) !important;
+    opacity: 1 !important;
+}
+
+.stApp div[data-baseweb="select"] [data-baseweb="input"] input::placeholder {
+    color: var(--hk-placeholder) !important;
+    opacity: 1 !important;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.75),
+        0 -1px 0 rgba(15, 23, 42, 0.06);
+}
+
+.stApp div[data-baseweb="select"] .st-dr {
+    border-bottom-color: var(--hk-cyan-alpha-10);
+}
+.stApp div[data-baseweb="select"] .st-dq {
+    border-top-color: var(--hk-cyan-alpha-10);
+}
+.stApp div[data-baseweb="select"] .st-dp {
+    border-right-color: var(--hk-cyan-alpha-10);
+}
+.stApp div[data-baseweb="select"] .st-do {
+    border-left-color: var(--hk-cyan-alpha-10);
+}
+
+.stApp .stButtonGroup div[data-baseweb="button-group"] {
+    gap: 0 !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"] {
+    position: relative !important;
+    overflow: hidden !important;
+    background:
+        linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)) !important;
+    color: var(--hk-slate-600) !important;
+    border: 1px solid var(--hk-input-border) !important;
+    box-shadow: var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+    transform: translateY(0) translateZ(0) !important;
+    transition:
+        transform var(--hk-transition-fast),
+        box-shadow var(--hk-transition-fast),
+        border-color var(--hk-transition-fast),
+        color var(--hk-transition-fast) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.75);
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:first-child {
+    margin-left: 0 !important;
+    border-top-left-radius: var(--hk-radius-sm) !important;
+    border-bottom-left-radius: var(--hk-radius-sm) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:last-child {
+    border-top-right-radius: var(--hk-radius-sm) !important;
+    border-bottom-right-radius: var(--hk-radius-sm) !important;
+    z-index: 0 !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"] p {
+    color: var(--hk-slate-600) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:hover {
+    background:
+        linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
+        radial-gradient(160px circle at 30% 20%, rgba(33, 255, 244, 0.10), rgba(33, 255, 244, 0) 62%) !important;
+    border-color: var(--hk-input-border-hover) !important;
+    color: var(--hk-cyan-dark) !important;
+    transform: translateY(-1px) translateZ(0) !important;
+    box-shadow:
+        var(--hk-input-shadow-inset),
+        0 6px 14px rgba(15, 23, 42, 0.10),
+        0 8px 16px rgba(6, 182, 212, 0.06) !important;
+    z-index: 1 !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:hover p {
+    color: var(--hk-cyan-dark) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:active {
+    transform: translateY(0) translateZ(0) !important;
+    box-shadow:
+        var(--hk-input-shadow-focus),
+        inset 0 14px 20px rgba(15, 23, 42, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.52) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_control"]:focus-visible {
+    outline: none !important;
+    box-shadow: var(--hk-shadow-focus), 0 8px 18px rgba(15, 23, 42, 0.14) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"] {
+    position: relative !important;
+    overflow: hidden !important;
+    background:
+        linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
+        radial-gradient(160px circle at 30% 20%, rgba(33, 255, 244, 0.14), rgba(33, 255, 244, 0) 62%),
+        linear-gradient(120deg, rgba(6, 182, 212, 0.14), rgba(6, 182, 212, 0.06)) !important;
+    color: var(--hk-cyan-dark) !important;
+    border: 1px solid rgba(6, 182, 212, 0.50) !important;
+    box-shadow:
+        var(--hk-input-shadow-focus),
+        inset 0 14px 20px rgba(15, 23, 42, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.56) !important;
+    transform: translateY(0) translateZ(0) !important;
+    z-index: 1 !important;
+}   
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.78);
+    opacity: 0.85;
+    pointer-events: none;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"]:last-child {
+    border-right: 1px solid var(--hk-cyan) !important;
+    z-index: 1 !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"] p {
+    color: var(--hk-cyan-dark) !important;
+    font-weight: 600 !important;
+    font-size: var(--hk-text-sm) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"]:hover {
+    transform: translateY(-1px) translateZ(0) !important;
+    box-shadow:
+        var(--hk-input-shadow-focus),
+        0 6px 14px rgba(15, 23, 42, 0.10),
+        0 8px 16px rgba(6, 182, 212, 0.07),
+        inset 0 14px 20px rgba(15, 23, 42, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+}
+
+.stApp button[data-testid="stBaseButton-segmented_controlActive"]:active {
+    transform: translateY(0) translateZ(0) !important;
+    box-shadow:
+        var(--hk-input-shadow-focus),
+        inset 0 18px 24px rgba(15, 23, 42, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.48) !important;
+}
+
+.stApp div[data-testid="stExpander"] details,
+.stApp div[data-testid="stExpander"] details > summary {
+    background-color: transparent !important;
+}
+
+.stApp div[data-testid="stExpanderDetails"] {
+    border-top: none !important;
+}
+
+.stApp i[data-testid="stExpanderIconSpinner"] {
+    width: 1.1rem !important;
+    height: 1.1rem !important;
+    border-top-color: var(--hk-cyan) !important;
+    border-right-color: var(--hk-cyan) !important;
+    border-bottom-color: transparent !important;
+    border-left-color: transparent !important;
+    color: var(--hk-cyan) !important;
+}
+
+.stApp [data-testid="stExpanderIconCheck"],
+.stApp svg[data-testid="stExpanderIconCheck"] path {
+    color: var(--hk-cyan) !important;
+    fill: var(--hk-cyan) !important;
+    stroke: var(--hk-cyan) !important;
+}
+
+.stApp [data-testid="stIconMaterial"]:hover {
+    color: var(--hk-cyan) !important;
+    outline: none;
+}
+
+.stProgress > div > div > div {
+    border-radius: 999px !important;
+    height: 7px !important;
+    overflow: hidden !important;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18)) !important;
+    border: 1px solid rgba(15, 23, 42, 0.10) !important;
+    box-shadow:
+        inset 0 1px 2px rgba(15, 23, 42, 0.08),
+        0 2px 6px rgba(15, 23, 42, 0.08) !important;
+}
+
+.stProgress .st-bo {
+    background:
+        linear-gradient(90deg, var(--hk-cyan-dark), var(--hk-cyan), rgba(33, 255, 244, 0.85)) !important;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.16) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stApp .stMultiSelect [data-baseweb="tag"] {
+        transition: none !important;
+        transform: none !important;
+    }
+}
+
+[data-testid="stModalContainer"] > div:first-child {
+    background-color: rgba(15, 23, 42, 0.25) !important;
+    backdrop-filter: blur(8px) saturate(180%) !important;
+}
+
+div[role="dialog"] {
+    background: 
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E"),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2)),
+        rgba(255, 255, 255, 0.5) !important;
+    
+    box-shadow: 
+        0 30px 60px -12px rgba(15, 23, 42, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 0 30px rgba(255, 255, 255, 0.1) !important;
+}
+
+div[role="dialog"]::before {
+    content: "";
+    position: absolute;
+    top: -20%;
+    left: -20%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+div[role="dialog"] button[data-testid="stBaseButton-primary"] {
+    position: relative !important;
+    border-radius: 14px !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    background: 
+        linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08)),
+        linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
+    box-shadow: 
+        0 10px 0 rgba(15, 23, 42, 0.20),
+        0 18px 36px rgba(15, 23, 42, 0.18),
+        0 8px 18px rgba(6, 182, 212, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+    transform: translateY(-1px) translateZ(0) !important;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+div[role="dialog"] button[data-testid="stBaseButton-primary"] p {
+    color: white !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+div[role="dialog"] button[data-testid="stBaseButton-primary"]:hover {
+    transform: translateY(-3px) translateZ(0) !important;
+    box-shadow: 
+        0 12px 0 rgba(15, 23, 42, 0.20),
+        0 24px 44px rgba(15, 23, 42, 0.20),
+        0 12px 22px rgba(6, 182, 212, 0.14),
+        inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+}
+
+div[role="dialog"] button[data-testid="stBaseButton-primary"]:active {
+    transform: translateY(2px) translateZ(0) !important;
+    box-shadow: 
+        0 5px 0 rgba(15, 23, 42, 0.18),
+        0 10px 18px rgba(15, 23, 42, 0.16),
+        inset 0 10px 18px rgba(15, 23, 42, 0.18) !important;
+}
+
+div[role="dialog"] [data-testid="stMarkdownContainer"] p {
+    color: var(--hk-slate-700) !important;
+    font-weight: 500 !important;
+    z-index: 1;
+    position: relative;
+}
+
+div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
+    color: var(--hk-cyan-dark) !important;
+    background: rgba(6, 182, 212, 0.08);
+    padding: 0 4px;
+    border-radius: 4px;
+    font-weight: 700;
+}

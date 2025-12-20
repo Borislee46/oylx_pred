@@ -82,6 +82,9 @@ def initialize_session_states(session_manager: SessionManager):
         "cross_faculty_cancelled": False,
         "pending_cross_faculty_prediction": False,
         "pending_prediction_data": None,
+        "hk_ui_phase": "idle",
+        "hk_run_id": None,
+        "hk_last_error": None,
         "app_initialized": True,
     }
 

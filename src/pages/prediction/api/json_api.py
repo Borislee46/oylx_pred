@@ -1,3 +1,7 @@
+"""
+非生产模块，后续待从streamlit框架把后端解耦出来用
+"""
+
 from __future__ import annotations
 
 import logging
@@ -6,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.pages.prediction.core.utils import get_background_faculty, get_valid_school_major_set
+from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.run_prediction import run_single_prediction
 from src.pages.prediction.input_form_components import FormValidator, GPAConverter
 from src.pages.prediction.input_form_components.cross_faculty_guard import (
@@ -263,19 +267,12 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         all_majors = _list_str(payload.get("all_majors_target"))
 
         if not all_unis or not all_majors:
-            valid_set = get_valid_school_major_set()
-            uni_set = set()
-            major_set = set()
-            for item in valid_set:
-                parts = item.split("|")
-                if len(parts) == 2:
-                    uni_set.add(parts[0])
-                    major_set.add(parts[1])
+            from src.pages.prediction.core.utils import _data_manager
 
             if not all_unis:
-                all_unis = sorted(uni_set)
+                all_unis = sorted(_data_manager.valid_universities)
             if not all_majors:
-                all_majors = sorted(major_set)
+                all_majors = sorted(_data_manager.valid_majors)
 
         input_data = prepare_input_data(normalized_input)
         cleaned_input = validate_and_clean_input(input_data)
@@ -354,7 +351,6 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         adjuster_pipeline = ProbabilityAdjustmentPipeline(
             probability_adjuster=probability_adjuster,
             text_boost_provider=text_provider,
-            enable_professional_adjustment=False,
             enable_cross_major_penalty=True,
         )
 
@@ -383,7 +379,7 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         }
 
     except Exception as e:
-        logger.error(f"Prediction failed: {e}", exc_info=True)
+        logger.error(f"预测失败: {e}", exc_info=True)
         return {
             "ok": False,
             "errors": [{"field": "_", "message": f"Server Error: {str(e)}", "severity": "error"}],

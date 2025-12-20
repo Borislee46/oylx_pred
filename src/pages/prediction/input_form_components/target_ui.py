@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.input_form_components.target_options_service import (
-    build_target_base_df_cached,
+    build_target_base_df,
     compute_options,
     compute_selection_cache_key,
     expand_aggregated_majors_for_prediction,
@@ -24,7 +24,7 @@ def _build_target_cache(session_manager, cases_df) -> pd.DataFrame:
             if cols:
                 unique_targets_df = cases_df[cols].drop_duplicates()
 
-        base_df, university_country_map = build_target_base_df_cached(unique_targets_df, details_df)
+        base_df, university_country_map = build_target_base_df(unique_targets_df, details_df)
         session_manager.set(
             target_section_cache={
                 "base_df": base_df,

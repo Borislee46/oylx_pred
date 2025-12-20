@@ -8,6 +8,7 @@ import streamlit as st
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_GPA_SCALE,
     GPA_SCALES,
+    LANGUAGE_TYPES,
     TARGET_COUNTRY_UNIVERSITY_MAP,
 )
 from src.pages.prediction.input_form_components.language_score_converter import (
@@ -161,40 +162,89 @@ class FormStateManager:
         widget_key: str,
         log_message_template: str,
     ) -> None:
-        old_values = session_manager.get(session_state_key, [])
-        new_values = session_manager.get_widget_value(widget_key, [])
-
-        if old_values != new_values:
-            form_state_logger.info(log_message_template.format(old=old_values, new=new_values))
-
-        session_manager.set(**{session_state_key: new_values})
+        new_values = FormStateManager._sync_widget_list_to_state(
+            session_manager, session_state_key, widget_key, log_message_template
+        )
+        if new_values is None:
+            return
 
         if session_state_key == "selected_target_countries":
-            current_selected_unis = session_manager.get("selected_target_universities", [])
-            if new_values:
-                country_uni_map = TARGET_COUNTRY_UNIVERSITY_MAP
-                unis_in_selected_countries = [
-                    uni for country in new_values for uni in country_uni_map.get(country, [])
-                ]
-                filtered_unis = [
-                    uni for uni in current_selected_unis if uni in unis_in_selected_countries
-                ]
-
-                if current_selected_unis != filtered_unis:
-                    form_state_logger.info(
-                        f"由于国家变更，目标院校自动筛选 - 从 {current_selected_unis} 筛选为 {filtered_unis}"
-                    )
-                session_manager.set(selected_target_universities=filtered_unis)
-                if "target_universities_multiselect" in st.session_state:
-                    widget_val = st.session_state.get("target_universities_multiselect")
-                    widget_list = (
-                        list(widget_val) if isinstance(widget_val, (list, tuple, set)) else []
-                    )
-                    if widget_list != filtered_unis:
-                        st.session_state["target_universities_multiselect"] = filtered_unis
+            FormStateManager._handle_target_cascade_filter(session_manager, new_values)
 
         session_manager.set(target_options_cache={})
         FormStateManager.on_form_change(session_manager)
+
+    @staticmethod
+    def _normalize_list_value(value: Any) -> list:
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return value
+        if isinstance(value, (tuple, set)):
+            return list(value)
+        return [value]
+
+    @staticmethod
+    def _set_widget_list_if_changed(
+        session_manager: SessionManager, widget_key: str, value: Any
+    ) -> None:
+        if widget_key not in st.session_state:
+            return
+        new_list = FormStateManager._normalize_list_value(value)
+        cur_list = FormStateManager._normalize_list_value(
+            session_manager.get_widget_value(widget_key, [])
+        )
+        if cur_list != new_list:
+            st.session_state[widget_key] = new_list
+
+    @staticmethod
+    def _sync_widget_list_to_state(
+        session_manager: SessionManager,
+        session_state_key: str,
+        widget_key: str,
+        log_message_template: str,
+    ) -> list | None:
+        new_values = FormStateManager._normalize_list_value(
+            session_manager.get_widget_value(widget_key, [])
+        )
+        old_values = FormStateManager._normalize_list_value(
+            session_manager.get(session_state_key, [])
+        )
+
+        if old_values == new_values:
+            return None
+
+        form_state_logger.info(log_message_template.format(old=old_values, new=new_values))
+        session_manager.set(**{session_state_key: new_values})
+        return new_values
+
+    @staticmethod
+    def _handle_target_cascade_filter(
+        session_manager: SessionManager, selected_countries: list[str]
+    ) -> None:
+        if not selected_countries:
+            return
+
+        current_unis = FormStateManager._normalize_list_value(
+            session_manager.get("selected_target_universities", [])
+        )
+        allowed_unis = {
+            uni
+            for country in selected_countries
+            for uni in TARGET_COUNTRY_UNIVERSITY_MAP.get(country, [])
+        }
+        filtered_unis = [uni for uni in current_unis if uni in allowed_unis]
+
+        if current_unis == filtered_unis:
+            return
+
+        form_state_logger.info(
+            f"由于国家变更，目标院校自动筛选 - 从 {current_unis} 筛选为 {filtered_unis}"
+        )
+        session_manager.set(selected_target_universities=filtered_unis)
+        FormStateManager._set_widget_list_if_changed(
+            session_manager, "target_universities_multiselect", filtered_unis
+        )
 
     @staticmethod
     def on_target_country_change(session_manager: SessionManager) -> None:
@@ -250,6 +300,12 @@ class FormStateManager:
         old_lang_type = session_manager.get("language_type")
         new_lang_type = session_manager.get_widget_value("language_type_widget_key")
 
+        if new_lang_type not in LANGUAGE_TYPES:
+            fallback = old_lang_type if old_lang_type in LANGUAGE_TYPES else LANGUAGE_TYPES[0]
+            session_manager.set(language_type=fallback)
+            st.session_state["language_type_widget_key"] = fallback
+            return
+
         if old_lang_type == new_lang_type:
             return
 
@@ -303,6 +359,11 @@ class FormStateManager:
         new_scale_key = session_manager.get_widget_value("gpa_scale_widget_key")
 
         if old_scale_key == new_scale_key:
+            return
+
+        if new_scale_key not in GPA_SCALES:
+            session_manager.set(gpa_scale=old_scale_key)
+            st.session_state["gpa_scale_widget_key"] = old_scale_key
             return
 
         form_state_logger.info(f"用户更改GPA分制 - 从 {old_scale_key} 变更为 {new_scale_key}")

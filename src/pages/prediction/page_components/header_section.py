@@ -24,11 +24,10 @@ def render_header(logo_base64: str) -> None:
     if logo_base64:
         html_block = f"""
             <div class="hk-header">
-                <label class="hk-logo-container">
-                    <input type="checkbox" class="hk-logo-trigger">
+                <div class="hk-logo-container">
                     <img class="hk-header-logo" src="data:image/png;base64,{logo_base64}" alt="logo">
                     <span class="hk-logo-shine"></span>
-                </label>
+                </div>
                 <div>
                     <p class="hk-header-title">EasyApply</p>
                     <p class="hk-header-subtitle">留学择校系统</p>

@@ -1,15 +1,13 @@
 import math
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import Any
 
 import pandas as pd
 
 from src.pages.prediction.core.types import PredictionInput
 from src.pages.prediction.core.utils import (
+    denormalize_language_score,
     get_cached_major_similarities_batch,
-    get_school_major_details,
-    get_valid_school_major_set,
     has_school_major_details,
 )
 from src.pages.prediction.result_modifier.config import (
@@ -20,13 +18,12 @@ from src.pages.prediction.result_modifier.config import (
     UNIVERSITY_COUNT_THRESHOLD,
     USER_SPECIFIED_LARGE_RANGE_TOP_N,
     USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD,
-    USER_SPECIFIED_MEDIUM_RANGE_TOP_N,
-    USER_SPECIFIED_SMALL_RANGE_THRESHOLD,
 )
 from src.pages.prediction.result_modifier.filters import (
     get_cross_major_recommendations,
     get_similar_major_recommendations,
 )
+from src.pages.prediction.result_modifier.language_penalty import LanguageRequirementPenalty
 from src.pages.prediction.result_modifier.ranker import adjust_similarity_results_with_agent
 from src.pages.prediction.result_modifier.similarity_adjuster import (
     adjust_similarity_score,
@@ -48,6 +45,7 @@ class ProcessingContext:
     probability_adjuster: Any | None = None
     gpa: float | None = None
     language_score: float | None = None
+    language_type: str | None = None
     background_university: str | None = None
 
 
@@ -56,27 +54,6 @@ class ProcessingResult:
     similarity_results: list[dict[str, Any]]
     cross_major_results: list[dict[str, Any]]
     user_specified_results: list[dict[str, Any]]
-
-
-@lru_cache(maxsize=1)
-def _get_cached_details_df():
-    return get_school_major_details(None, None, return_df=True)
-
-
-@lru_cache(maxsize=1)
-def _get_faculty_mapping() -> dict[tuple[str, str], str]:
-    df = _get_cached_details_df()
-    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
-        return {}
-
-    valid_df = df[["学校", "专业英文名称", "专业大类"]].dropna(subset=["学校", "专业英文名称"])
-
-    return {
-        (str(school), str(major)): str(faculty) if pd.notna(faculty) else ""
-        for school, major, faculty in zip(
-            valid_df["学校"], valid_df["专业英文名称"], valid_df["专业大类"], strict=True
-        )
-    }
 
 
 def generate_prediction_combinations(
@@ -118,17 +95,14 @@ def _generate_combinations_small_scale(
 def _generate_combinations_large_scale(
     universities: list[str], majors: list[str]
 ) -> list[tuple[str, str]]:
-    valid_set = get_valid_school_major_set()
+    from src.pages.prediction.core.utils import _data_manager
+
+    valid_universities = _data_manager.valid_universities
+    valid_majors = _data_manager.valid_majors
+    valid_set = _data_manager.valid_combinations
+
     if not valid_set:
         return []
-
-    valid_universities = set()
-    valid_majors = set()
-    for key in valid_set:
-        parts = key.split("|", 1)
-        if len(parts) == 2:
-            valid_universities.add(parts[0])
-            valid_majors.add(parts[1])
 
     universities_filtered = [u for u in universities if u in valid_universities]
     majors_filtered = [m for m in majors if m in valid_majors]
@@ -140,7 +114,7 @@ def _generate_combinations_large_scale(
         (univ, major)
         for univ in universities_filtered
         for major in majors_filtered
-        if f"{univ}|{major}" in valid_set
+        if (univ, major) in valid_set
     ]
 
 
@@ -148,29 +122,52 @@ def _filter_part_time_majors(results: list) -> list:
     if not results:
         return results
 
-    return [
-        result
-        for result in results
-        if not (
-            "part" in result.get("major", "").lower() and "time" in result.get("major", "").lower()
-        )
-    ]
+    from src.pages.prediction.core.utils import _data_manager
+
+    details_df = _data_manager.details_df
+    study_mode_col = None
+    if details_df is not None:
+        study_mode_cols = [c for c in details_df.columns if "学习模式" in c or "ѧϰ" in c]
+        if study_mode_cols:
+            study_mode_col = study_mode_cols[0]
+
+    filtered = []
+    for res in results:
+        major_name = str(res.get("major", "")).lower()
+        if "part" in major_name and "time" in major_name:
+            continue
+
+        if study_mode_col:
+            univ = str(res.get("university", ""))
+            major = str(res.get("major", ""))
+            row = _data_manager.get_row(univ, major)
+            if row is not None:
+                mode_val = str(row.get(study_mode_col, "")).lower()
+                is_pt = any(kw in mode_val for kw in ["part-time", "兼读", "pt", "part time"])
+                is_ft = any(kw in mode_val for kw in ["full-time", "全日", "ft", "full time"])
+                if is_pt and not is_ft:
+                    continue
+
+        filtered.append(res)
+
+    return filtered
 
 
 def _attach_faculty_batch(results: list) -> list:
     if not results:
         return results
 
-    faculty_map = _get_faculty_mapping()
-
-    if not faculty_map:
-        for res in results:
-            res["faculty"] = ""
-        return results
+    from src.pages.prediction.core.utils import _data_manager
 
     for res in results:
-        key = (str(res.get("university", "")), str(res.get("major", "")))
-        res["faculty"] = faculty_map.get(key, "")
+        univ = str(res.get("university", ""))
+        major = str(res.get("major", ""))
+        row = _data_manager.get_row(univ, major)
+        res["faculty"] = (
+            str(row.get("专业大类", ""))
+            if row is not None and pd.notna(row.get("专业大类"))
+            else ""
+        )
 
     return results
 
@@ -198,6 +195,11 @@ def _calculate_and_attach_similarities(
             valid_indices.append(i)
 
     if similarity_pairs:
+        if bg_target_similarity_cache is None:
+            boundary_processor_logger.warning(
+                "bg_target_similarity_cache 为空，将导致相似度计算失效"
+            )
+
         batch_similarities = get_cached_major_similarities_batch(
             similarity_pairs, cache=bg_target_similarity_cache
         )
@@ -238,21 +240,12 @@ def _get_user_specified_results(
 
     combination_count = len(user_specified_combinations)
 
-    if combination_count <= USER_SPECIFIED_SMALL_RANGE_THRESHOLD:
-        return specified_results
+    specified_results.sort(key=lambda x: x.get("probability", 0), reverse=True)
 
     if combination_count <= USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD:
-        specified_results.sort(key=lambda x: x.get("probability", 0), reverse=True)
-        return specified_results[:USER_SPECIFIED_MEDIUM_RANGE_TOP_N]
+        return specified_results
 
-    filtered = [
-        res for res in specified_results if res.get("similarity", 0.0) >= MIN_SIMILARITY_THRESHOLD
-    ]
-    if not filtered and allow_degraded:
-        specified_results.sort(key=lambda x: x.get("probability", 0), reverse=True)
-        return specified_results[:USER_SPECIFIED_LARGE_RANGE_TOP_N]
-    filtered.sort(key=lambda x: x.get("probability", 0), reverse=True)
-    return filtered[:USER_SPECIFIED_LARGE_RANGE_TOP_N]
+    return specified_results[:USER_SPECIFIED_LARGE_RANGE_TOP_N]
 
 
 def _apply_faculty_filter(results: list, background_faculty: str | None) -> list:
@@ -277,6 +270,7 @@ def _apply_agent_balance_adjustment(
     top_cross_major_results: list,
     results_with_similarity: list,
     ctx: ProcessingContext,
+    progress_reporter: Any | None = None,
 ) -> tuple[list, list]:
     balance_diff = len(top_cross_major_results) - len(top_similarity_results)
 
@@ -304,6 +298,7 @@ def _apply_agent_balance_adjustment(
         current_threshold,
         agent,
         ctx.background_faculty,
+        progress_reporter=progress_reporter,
     )
 
     sim_set = {(r.get("university"), r.get("major")) for r in top_similarity_results}
@@ -318,6 +313,13 @@ def _preprocess_results(results: list, ctx: ProcessingContext) -> list:
     filtered_results = _filter_part_time_majors(results)
     if not filtered_results:
         return []
+
+    if ctx.language_score is not None:
+        lang_type = ctx.language_type or "雅思"
+        raw_lang_score = denormalize_language_score(ctx.language_score, lang_type)
+        filtered_results = LanguageRequirementPenalty.apply_penalty_to_results(
+            filtered_results, raw_lang_score, lang_type
+        )
 
     results_with_similarity = _calculate_and_attach_similarities(
         filtered_results, ctx.background_major, ctx.bg_target_similarity_cache
@@ -365,7 +367,9 @@ def process_prediction_results(
     probability_adjuster: Any | None = None,
     gpa: float | None = None,
     language_score: float | None = None,
+    language_type: str | None = None,
     background_university: str | None = None,
+    progress_reporter: Any | None = None,
 ) -> tuple[list, list, list]:
     if not results:
         return [], [], []
@@ -381,6 +385,7 @@ def process_prediction_results(
         probability_adjuster=probability_adjuster,
         gpa=gpa,
         language_score=language_score,
+        language_type=language_type,
         background_university=background_university,
     )
 
@@ -401,6 +406,7 @@ def process_prediction_results(
         top_cross_major_results,
         results_with_similarity,
         ctx,
+        progress_reporter,
     )
 
     return top_similarity_results, top_cross_major_results, final_user_specified_results

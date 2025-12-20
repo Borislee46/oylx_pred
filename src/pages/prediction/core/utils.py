@@ -2,13 +2,35 @@ from functools import lru_cache
 
 import pandas as pd
 
-from src.pages.prediction.input_form_components.form_validator import FormValidator
 from src.pages.prediction.school_details_config import school_details_key_fields
 from src.utils.app_data_loader import load_school_major_details_df
 from src.utils.logger import setup_logger
 
-normalize_language_score = FormValidator.normalize_language_score
-denormalize_language_score = FormValidator.denormalize_language_score
+
+def normalize_language_score(score, language_type):
+    try:
+        score = float(score)
+        if language_type == "托福":
+            return score / 120
+        else:
+            return score / 9
+    except Exception:
+        return score
+
+
+def denormalize_language_score(normalized_score, language_type, round_to_half=False):
+    try:
+        normalized_score = float(normalized_score)
+        if language_type == "托福":
+            return normalized_score * 120
+        else:
+            score = normalized_score * 9
+            if round_to_half:
+                return round(score * 2) / 2
+            return score
+    except Exception:
+        return normalized_score
+
 
 _utils_logger = setup_logger("page3", "prediction")
 
@@ -17,13 +39,49 @@ class SchoolMajorDataManager:
     def __init__(self):
         self._details_df = None
         self._valid_combinations = None
+        self._valid_universities = None
+        self._valid_majors = None
         self._details_version = None
+        self._details_index = None
 
     @property
     def details_df(self):
         if self._details_df is None:
             self._details_df = load_school_major_details_df()
+            self._build_indexes()
         return self._details_df
+
+    def _build_indexes(self):
+        df = self._details_df
+        if df is None or df.empty:
+            self._details_index = {}
+            self._valid_combinations = set()
+            self._valid_universities = set()
+            self._valid_majors = set()
+            return
+
+        temp_df = df.copy()
+        temp_df["学校"] = temp_df["学校"].astype(str)
+        temp_df["专业英文名称"] = temp_df["专业英文名称"].astype(str)
+
+        self._details_index = {
+            (row["学校"], row["专业英文名称"]): row for _, row in temp_df.iterrows()
+        }
+        self._valid_combinations = set(self._details_index.keys())
+        self._valid_universities = set(temp_df["学校"].unique())
+        self._valid_majors = set(temp_df["专业英文名称"].unique())
+
+    @property
+    def valid_universities(self) -> set[str]:
+        if self._details_df is None:
+            _ = self.details_df
+        return self._valid_universities
+
+    @property
+    def valid_majors(self) -> set[str]:
+        if self._details_df is None:
+            _ = self.details_df
+        return self._valid_majors
 
     @property
     def details_version(self) -> int:
@@ -35,50 +93,44 @@ class SchoolMajorDataManager:
         df = self.details_df
         if df is None or df.empty:
             return 0
-        try:
-            from pandas.util import hash_pandas_object
+        from pandas.util import hash_pandas_object
 
-            return int(hash_pandas_object(df[["学校", "专业英文名称"]]).sum())
-        except Exception:
-            return len(df)
+        return int(hash_pandas_object(df[["学校", "专业英文名称"]]).sum())
 
     @property
-    def valid_combinations(self) -> set[str]:
-        if self._valid_combinations is None:
-            self._valid_combinations = self._load_valid_combinations()
+    def valid_combinations(self) -> set[tuple[str, str]]:
+        if self._details_df is None:
+            _ = self.details_df
         return self._valid_combinations
 
-    def _load_valid_combinations(self) -> set[str]:
-        df = self.details_df
-        if df is None:
-            return set()
+    def get_row(self, university: str, major: str):
+        if self._details_df is None:
+            _ = self.details_df
+        return self._details_index.get((str(university), str(major)))
 
-        try:
-            if "学校" not in df.columns or "专业英文名称" not in df.columns:
-                return set()
-
-            valid_df = df[["学校", "专业英文名称"]].dropna().astype(str)
-            combination_keys = valid_df["学校"] + "|" + valid_df["专业英文名称"]
-            return set(combination_keys)
-        except Exception:
-            return set()
+    def warm_up(self):
+        _ = self.details_df
 
 
 _data_manager = SchoolMajorDataManager()
 
 
+@lru_cache(maxsize=1)
+def _get_faculty_map(df_hash: int, df_id: int):
+    from src.utils.app_data_loader import load_raw_cases_data
+
+    df = load_raw_cases_data()
+    if df.empty or "background_major" not in df.columns:
+        return {}
+    return df.groupby("background_major")["faculty"].first().to_dict()
+
+
 def get_background_faculty(background_major: str, cases_df: pd.DataFrame | None) -> str | None:
-    if not background_major or cases_df is None or cases_df.empty:
+    if not background_major or cases_df is None:
         return None
-    try:
-        major_match = cases_df[cases_df["background_major"] == background_major]
-        if not major_match.empty and "faculty" in major_match.columns:
-            faculty = major_match["faculty"].iloc[0]
-            if pd.notna(faculty) and str(faculty).strip():
-                return faculty
-    except Exception as e:
-        _utils_logger.warning(f"查询背景学院失败: {e}")
-    return None
+
+    faculty_map = _get_faculty_map(len(cases_df), id(cases_df))
+    return faculty_map.get(background_major)
 
 
 def format_list_field(field_list: list[str]) -> str:
@@ -171,23 +223,19 @@ def get_school_major_details(
     return _get_school_major_details_cached(university, major, _data_manager.details_version)
 
 
-@lru_cache(maxsize=500)
 def _get_school_major_details_cached(university: str, major: str, version: int) -> str:
-    df = _data_manager.details_df
-    match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
-    if not match.empty:
-        return format_school_major_details_from_row(match.iloc[0])
+    row = _data_manager.get_row(university, major)
+    if row is not None:
+        return format_school_major_details_from_row(row)
     return "无详细信息"
 
 
-def get_valid_school_major_set() -> set[str]:
+def get_valid_school_major_set() -> set[tuple[str, str]]:
     return _data_manager.valid_combinations
 
 
-@lru_cache(maxsize=1000)
 def has_school_major_details(university: str, major: str) -> bool:
-    cache_key = f"{university}|{major}"
-    return cache_key in _data_manager.valid_combinations
+    return (str(university), str(major)) in _data_manager.valid_combinations
 
 
 @lru_cache(maxsize=1000)
@@ -196,11 +244,10 @@ def is_new_major(university: str, major: str) -> bool:
 
 
 def _is_new_major_cached(university: str, major: str, version: int) -> bool:
-    df = _data_manager.details_df
-    match = df[(df["学校"] == university) & (df["专业英文名称"] == major)]
-    if not match.empty:
-        is_new = match.iloc[0].get("新增专业")
-        return pd.notna(is_new) and (is_new == "25fall新增" or is_new == "26fall新增")
+    row = _data_manager.get_row(university, major)
+    if row is not None:
+        is_new = row.get("新增专业")
+        return pd.notna(is_new) and str(is_new) in {"25fall新增", "26fall新增"}
     return False
 
 

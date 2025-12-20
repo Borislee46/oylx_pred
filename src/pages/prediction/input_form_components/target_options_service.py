@@ -1,19 +1,9 @@
-import hashlib
-
 import pandas as pd
-import streamlit as st
 
 from src.pages.prediction.input_form_components.form_config import (
     TARGET_COUNTRY_UNIVERSITY_MAP,
     UNIVERSITY_SORT_ORDER,
 )
-
-
-@st.cache_data(show_spinner=False)
-def build_target_base_df_cached(
-    unique_targets_df: pd.DataFrame | None, details_df: pd.DataFrame | None
-) -> tuple[pd.DataFrame, dict[str, str]]:
-    return build_target_base_df(unique_targets_df, details_df)
 
 
 def build_target_base_df(
@@ -62,15 +52,14 @@ def compute_selection_cache_key(
     selected_universities: set[str],
     selected_categories: set[str],
     selected_majors: set[str],
-) -> str:
+) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
     key_parts = (
         tuple(sorted(selected_countries)),
         tuple(sorted(selected_universities)),
         tuple(sorted(selected_categories)),
         tuple(sorted(selected_majors)),
     )
-    key_string = str(key_parts).encode("utf-8")
-    return hashlib.sha256(key_string).hexdigest()
+    return key_parts
 
 
 def _get_options(df: pd.DataFrame, column: str, selections: set[str]) -> set[str]:

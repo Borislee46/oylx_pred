@@ -70,8 +70,8 @@ def _load_similarity_rules_cached() -> list[dict[str, Any]]:
     except (FileNotFoundError, PermissionError) as e:
         logger.error(f"读取相似度调整规则文件失败: {str(e)}")
         return []
-    except Exception as e:
-        logger.error(f"加载相似度调整规则时发生未知错误: {str(e)}", exc_info=True)
+    except (OSError, TypeError, ValueError, KeyError, AttributeError) as e:
+        logger.error(f"加载相似度调整规则失败: {str(e)}", exc_info=True)
         return []
 
 

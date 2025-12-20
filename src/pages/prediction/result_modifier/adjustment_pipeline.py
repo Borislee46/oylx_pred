@@ -6,14 +6,14 @@ import pandas as pd
 from src.pages.prediction.result_modifier.config import (
     FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR,
     MIN_SIMILARITY_THRESHOLD,
-    PROFESSIONAL_MAJORS_LOWER,
-    PROFESSIONAL_REDUCTION_FACTOR,
-    PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
 from src.pages.prediction.result_modifier.faculty_filters import apply_out_of_scope_faculty_penalty
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
-from src.pages.prediction.result_modifier.utils import clip_probability, cross_major_penalty_factor
+from src.pages.prediction.result_modifier.utils import (
+    apply_cross_major_penalty_if_needed,
+    clip_basic,
+)
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -33,27 +33,15 @@ class AdjustmentContext:
     admitted_combinations: set[tuple[str, str]] = field(default_factory=set)
 
 
-@dataclass
-class AdjustmentResult:
-    original_probability: float
-    final_probability: float
-    adjustments: dict[str, float] = field(default_factory=dict)
-
-    def add_adjustment(self, stage: str, before: float, after: float):
-        self.adjustments[stage] = after - before
-
-
 class ProbabilityAdjustmentPipeline:
     def __init__(
         self,
         probability_adjuster: ProbabilityAdjuster | None = None,
         text_boost_provider: TextBoostProvider | None = None,
-        enable_professional_adjustment: bool = True,
         enable_cross_major_penalty: bool = True,
     ):
         self.probability_adjuster = probability_adjuster
         self.text_boost_provider = text_boost_provider
-        self.enable_professional_adjustment = enable_professional_adjustment
         self.enable_cross_major_penalty = enable_cross_major_penalty
 
     def adjust_single(
@@ -65,11 +53,6 @@ class ProbabilityAdjustmentPipeline:
         original_prob = self._get_probability(result_copy)
         current_prob = original_prob
 
-        if self.enable_professional_adjustment:
-            current_prob = self._apply_professional_adjustment(
-                result_copy, current_prob, ctx.internship_count, ctx.user_specified_majors
-            )
-
         if self.probability_adjuster and ctx.gpa is not None and ctx.language_score is not None:
             current_prob = self._apply_gpa_language_adjustment(
                 current_prob, ctx.gpa, ctx.language_score, ctx.background_university
@@ -77,19 +60,19 @@ class ProbabilityAdjustmentPipeline:
 
         if self.enable_cross_major_penalty and ctx.background_major:
             current_prob = self._apply_cross_major_penalty(
-                result_copy, current_prob, ctx.background_major, ctx.admitted_combinations
+                result_copy, current_prob, ctx.admitted_combinations
             )
 
         if ctx.background_faculty:
             temp = result_copy.copy()
-            temp["probability"] = clip_probability(current_prob)
+            temp["probability"] = clip_basic(current_prob)
             adjusted = apply_out_of_scope_faculty_penalty(
                 [temp], ctx.background_faculty, FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR
             )
             if adjusted:
                 current_prob = float(adjusted[0].get("probability", current_prob) or current_prob)
 
-        result_copy["probability"] = clip_probability(current_prob)
+        result_copy["probability"] = clip_basic(current_prob)
         return result_copy
 
     def adjust_batch(
@@ -115,42 +98,6 @@ class ProbabilityAdjustmentPipeline:
         except (ValueError, TypeError):
             return 0.0
 
-    def _apply_professional_adjustment(
-        self,
-        result: dict,
-        probability: float,
-        internship_count: int,
-        user_specified_majors: list[str],
-    ) -> float:
-        if internship_count > 0:
-            return probability
-
-        target_major = result.get("major", "")
-        if not target_major:
-            return probability
-
-        target_major_lower = target_major.lower()
-        is_professional = any(
-            prof_major in target_major_lower for prof_major in PROFESSIONAL_MAJORS_LOWER
-        )
-
-        if not is_professional:
-            return probability
-
-        user_majors_lower = (
-            [m.lower() for m in user_specified_majors] if user_specified_majors else []
-        )
-        is_user_specified = any(
-            spec_major in target_major_lower for spec_major in user_majors_lower
-        )
-
-        factor = (
-            PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR
-            if is_user_specified
-            else PROFESSIONAL_REDUCTION_FACTOR
-        )
-        return probability * factor
-
     def _apply_gpa_language_adjustment(
         self,
         probability: float,
@@ -164,30 +111,27 @@ class ProbabilityAdjustmentPipeline:
             return self.probability_adjuster.adjust_probability(
                 probability, gpa, language_score, background_university_name=background_university
             )
-        except Exception as e:
+        except (TypeError, ValueError, OverflowError) as e:
             logger.warning(f"GPA/语言成绩调整失败: {e}")
+            return probability
+        except (AttributeError, KeyError, RuntimeError) as e:
+            logger.error(f"GPA/语言成绩调整发生未知错误: {e}", exc_info=True)
             return probability
 
     def _apply_cross_major_penalty(
         self,
         result: dict,
         probability: float,
-        background_major: str,
         admitted_combinations: set[tuple[str, str]],
     ) -> float:
-        similarity = result.get("similarity", 1.0)
-        is_cross_major = similarity < MIN_SIMILARITY_THRESHOLD
-
-        if not is_cross_major:
+        if result.get("similarity", 1.0) >= MIN_SIMILARITY_THRESHOLD:
             return probability
-
-        key = (result.get("university"), result.get("major"))
-        has_admitted_case = bool(result.get("admitted") == 1 or key in admitted_combinations)
-
-        if has_admitted_case:
-            return probability
-
-        return probability * cross_major_penalty_factor(similarity)
+        return apply_cross_major_penalty_if_needed(
+            result=result,
+            probability=probability,
+            admitted_combinations=admitted_combinations,
+            check_admitted_field=True,
+        )
 
     def _apply_text_boost(
         self,
@@ -207,42 +151,10 @@ class ProbabilityAdjustmentPipeline:
                     logger.debug(f"文本增强应用成功: {boost_info}")
                 for i, prob in enumerate(boosted_probs):
                     if i < len(results):
-                        results[i]["probability"] = clip_probability(prob)
-        except Exception as e:
+                        results[i]["probability"] = clip_basic(prob)
+        except (TypeError, ValueError) as e:
             logger.warning(f"文本增强失败: {e}")
+        except (AttributeError, KeyError, RuntimeError) as e:
+            logger.error(f"文本增强发生未知错误: {e}", exc_info=True)
 
         return results
-
-
-def create_adjustment_pipeline(
-    cases_df: pd.DataFrame | None = None,
-    text_boost_provider: TextBoostProvider | None = None,
-) -> ProbabilityAdjustmentPipeline:
-    probability_adjuster = None
-    if cases_df is not None and not cases_df.empty:
-        probability_adjuster = ProbabilityAdjuster(cases_df)
-
-    return ProbabilityAdjustmentPipeline(
-        probability_adjuster=probability_adjuster,
-        text_boost_provider=text_boost_provider,
-    )
-
-
-def create_adjustment_context(
-    cleaned_input: dict,
-    cases_df: pd.DataFrame | None = None,
-    admitted_combinations: set[tuple[str, str]] | None = None,
-    background_faculty: str | None = None,
-) -> AdjustmentContext:
-    return AdjustmentContext(
-        gpa=cleaned_input.get("gpa"),
-        language_score=cleaned_input.get("language_score"),
-        background_university=cleaned_input.get("background_university"),
-        background_major=cleaned_input.get("background_major"),
-        background_faculty=background_faculty,
-        internship_count=cleaned_input.get("internship_count", 0),
-        user_specified_majors=cleaned_input.get("target_majors", []),
-        experience_details=cleaned_input.get("experience_details", {}),
-        cases_df=cases_df,
-        admitted_combinations=admitted_combinations or set(),
-    )

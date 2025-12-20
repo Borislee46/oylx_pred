@@ -54,13 +54,16 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
     if (lang := _safe_float(input_data.get("language_score"))) is not None:
         cleaned["language_score"] = lang
 
+    if lang_type := input_data.get("language_type"):
+        cleaned["language_type"] = _safe_str(lang_type)
+
     cleaned["internship_count"] = _safe_int(input_data.get("internship_count"))
     cleaned["research_count"] = _safe_int(input_data.get("research_count"))
     cleaned["award_count"] = _safe_int(input_data.get("award_count"))
     cleaned["paper_count"] = _safe_int(input_data.get("paper_count"))
 
     if "school_level" in input_data:
-        cleaned["school_level"] = _safe_int(input_data["school_level"])
+        cleaned["school_level"] = _safe_str(input_data["school_level"])
 
     exp_details = _safe_dict_str(input_data.get("experience_details"))
 

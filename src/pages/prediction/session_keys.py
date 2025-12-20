@@ -1,7 +1,0 @@
-SESSION_KEY_LAST_SUBMISSION_LOGGED = "last_submission_logged"
-SESSION_KEY_FORM_DATA_CHANGED = "form_data_changed"
-SESSION_KEY_INPUT_DATA = "input_data"
-SESSION_KEY_HAS_PREDICTED = "has_predicted"
-SESSION_KEY_PREDICT_LOCK = "prediction_submit_lock"
-SESSION_KEY_IS_SCHOOL_SELECTION_SUBMIT = "is_school_selection_submit"
-SESSION_KEY_SESSION_ID = "session_id"

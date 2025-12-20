@@ -22,9 +22,18 @@ def _check_and_show_language_warning(session_manager):
         and language_score_input > 0
         and language_score_input < LANGUAGE_WARNING_THRESHOLDS[language_type]
     ):
-        warning_key = f"lang_warning_{language_score_input:.1f}_{language_type}"
+        threshold = LANGUAGE_WARNING_THRESHOLDS[language_type]
+        score_display = (
+            f"{int(language_score_input)}"
+            if language_type == "托福"
+            else f"{language_score_input:.1f}"
+        )
+        threshold_display = f"{int(threshold)}" if language_type == "托福" else f"{threshold:.1f}"
+        warning_key = f"lang_warning_{score_display}_{language_type}"
         if session_manager.get("last_lang_warning_key") != warning_key:
-            st.toast(f"注意！当前{language_type}成绩 {language_score_input:.1f} 远低于入学标准")
+            st.toast(
+                f"注意：当前{language_type}成绩 {score_display} 低于提示线 {threshold_display}，预测结果可能会明显下调"
+            )
             session_manager.set(last_lang_warning_key=warning_key)
 
 
@@ -78,9 +87,12 @@ def _render_overseas_language_input(
     if error_msg:
         st.toast(error_msg)
 
-    session_manager.set(
-        language_score_input=final_language_score, language_score_input_error=has_input_error
-    )
+    if final_language_score != session_manager.get(
+        "language_score_input"
+    ) or has_input_error != session_manager.get("language_score_input_error"):
+        session_manager.set(
+            language_score_input=final_language_score, language_score_input_error=has_input_error
+        )
 
 
 def _render_domestic_language_input(
@@ -128,7 +140,11 @@ def _render_domestic_language_input(
         placeholder=placeholder_text,
         key=widget_key,
     )
-    session_manager.set(language_score_input=language_score, language_score_input_error=False)
+    if (
+        language_score != session_manager.get("language_score_input")
+        or session_manager.get("language_score_input_error") is not False
+    ):
+        session_manager.set(language_score_input=language_score, language_score_input_error=False)
 
 
 def render_language_section(session_manager, form_state_manager, logger):
@@ -147,11 +163,21 @@ def render_language_section(session_manager, form_state_manager, logger):
         )
 
     language_type = session_manager.get("language_type")
+    if language_type not in LANGUAGE_TYPES:
+        language_type = LANGUAGE_TYPES[0]
+        if session_manager.get("language_type") != language_type:
+            session_manager.set(language_type=language_type)
+
+    if (
+        "language_type_widget_key" not in st.session_state
+        or st.session_state.get("language_type_widget_key") not in LANGUAGE_TYPES
+    ):
+        st.session_state["language_type_widget_key"] = language_type
+
     st.segmented_control(
         "语言成绩类型",
         LANGUAGE_TYPES,
         selection_mode="single",
-        default=language_type,
         on_change=partial(form_state_manager.on_language_type_change, session_manager),
         key="language_type_widget_key",
     )

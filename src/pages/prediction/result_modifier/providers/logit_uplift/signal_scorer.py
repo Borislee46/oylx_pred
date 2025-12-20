@@ -28,13 +28,24 @@ class SignalScorer:
         self._per_field_cap = float(per_field_cap)
         self._max_reasons = int(max_reasons)
         self._lexicon_weight = float(lexicon_weight)
-        self._rules = self._load_rules(lexicon_path)
+        self._rules_by_field: dict[str, list[_Rule]] = {}
+        self._global_rules: list[_Rule] = []
+
+        all_rules = self._load_rules(lexicon_path)
+        for r in all_rules:
+            if r.fields is None:
+                self._global_rules.append(r)
+            else:
+                for f in r.fields:
+                    if f not in self._rules_by_field:
+                        self._rules_by_field[f] = []
+                    self._rules_by_field[f].append(r)
 
     @staticmethod
     def _safe_float(x: Any, default: float = 0.0) -> float:
         try:
             return float(x)
-        except Exception:
+        except (TypeError, ValueError):
             return default
 
     def _load_rules(self, lexicon_path: str | None) -> tuple[_Rule, ...]:
@@ -46,7 +57,7 @@ class SignalScorer:
         try:
             with open(path, encoding="utf-8") as f:
                 obj = json.load(f) or {}
-        except Exception:
+        except (FileNotFoundError, OSError, json.JSONDecodeError, TypeError, ValueError):
             return ()
 
         rules_raw = obj.get("rules")
@@ -79,7 +90,7 @@ class SignalScorer:
         return tuple(out)
 
     def score(self, texts_by_field: dict[str, str]) -> tuple[dict[str, float], tuple[str, ...]]:
-        if not texts_by_field or not self._rules or self._lexicon_weight <= 0:
+        if not texts_by_field or self._lexicon_weight <= 0:
             return {}, ()
 
         enabled = set(self._enabled_fields) if self._enabled_fields else None
@@ -92,16 +103,21 @@ class SignalScorer:
                 continue
             if not isinstance(text, str) or not text.strip():
                 continue
+
             t = text.lower()
             best = 0.0
-            for rule in self._rules:
-                if rule.fields is not None and field not in rule.fields:
-                    continue
+
+            target_rules = self._rules_by_field.get(field, []) + self._global_rules
+            if not target_rules:
+                continue
+
+            for rule in target_rules:
                 if rule.pattern in t:
                     w = rule.score
                     if w > best:
                         best = w
                     reasons.append((w, rule.tag))
+
             if best > 0:
                 bonuses[field] = min(self._per_field_cap, best * self._lexicon_weight)
 

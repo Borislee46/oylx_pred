@@ -1,6 +1,8 @@
-import json
-from functools import lru_cache
 from pathlib import Path
+
+from src.utils.path_resolver import get_project_root
+
+PROJECT_ROOT: Path = get_project_root()
 
 DEFAULT_TEXT_BOOST_CONFIG: dict = {
     "enabled": True,
@@ -12,7 +14,7 @@ DEFAULT_TEXT_BOOST_CONFIG: dict = {
     "cap_quality_gamma": 1.2,
     "high_signal": {
         "enabled": True,
-        "lexicon_path": "config/text_high_signal_terms.json",
+        "lexicon_path": str(PROJECT_ROOT / "config" / "text_high_signal_terms.json"),
         "lexicon_weight": 1.0,
         "novelty_weight": 0.12,
         "novelty_min_chars": 12,
@@ -20,9 +22,27 @@ DEFAULT_TEXT_BOOST_CONFIG: dict = {
         "max_reasons": 3,
     },
     "model_paths": {
-        "tfidf_vectorizer": "src/machine_learning_models/pre-trained_models/tfidf_vectorizer.joblib",
-        "tfidf_centroids": "src/machine_learning_models/pre-trained_models/tfidf_centroids.npz",
-        "text_uplift_weights": "src/machine_learning_models/pre-trained_models/text_uplift_weights.json",
+        "tfidf_vectorizer": str(
+            PROJECT_ROOT
+            / "src"
+            / "machine_learning_models"
+            / "pre-trained_models"
+            / "tfidf_vectorizer.joblib"
+        ),
+        "tfidf_centroids": str(
+            PROJECT_ROOT
+            / "src"
+            / "machine_learning_models"
+            / "pre-trained_models"
+            / "tfidf_centroids.npz"
+        ),
+        "text_uplift_weights": str(
+            PROJECT_ROOT
+            / "src"
+            / "machine_learning_models"
+            / "pre-trained_models"
+            / "text_uplift_weights.json"
+        ),
     },
 }
 
@@ -64,7 +84,9 @@ USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD: int = 100
 USER_SPECIFIED_MEDIUM_RANGE_TOP_N: int = 50
 USER_SPECIFIED_LARGE_RANGE_TOP_N: int = 100
 PROBABILITY_ADJUSTER_CACHE_SIZE: int = 50
-SIMILARITY_ADJUSTMENT_RULES_PATH: Path = Path("config/similarity_adjustment_rules.json")
+SIMILARITY_ADJUSTMENT_RULES_PATH: Path = (
+    PROJECT_ROOT / "config" / "similarity_adjustment_rules.json"
+)
 QUALITY_SCORE_MAX_WEIGHT: float = 0.7
 QUALITY_SCORE_MEAN_WEIGHT: float = 0.3
 QUALITY_SCORE_THRESHOLD: float = 0.15
@@ -72,51 +94,32 @@ PROBABILITY_BOOST_MIN: float = 0.1
 PROBABILITY_BOOST_MAX: float = 0.9
 PROBABILITY_SCALE_CENTER: float = 0.5
 PROBABILITY_SCALE_FACTOR: float = 2.0
-UNIVERSITY_DIFFICULTY_CONFIG_PATH: Path = Path("config/university_difficulty.json")
-
-
-@lru_cache(maxsize=1)
-def _load_university_difficulty_order() -> list[str]:
-    default_order = [
-        "新加坡国立大学",
-        "新加坡南洋理工大学",
-        "香港大学",
-        "香港中文大学",
-        "香港科技大学",
-        "新加坡管理大学",
-        "马来亚大学",
-        "香港理工大学",
-        "香港城市大学",
-        "马来西亚理科大学",
-        "马来西亚博特拉大学",
-        "香港浸会大学",
-        "马来西亚国立大学",
-        "澳门大学",
-        "香港中文大学 (深圳校区)",
-        "澳门科技大学",
-        "澳门城市大学",
-        "澳门理工大学",
-        "香港教育大学",
-        "香港岭南大学",
-        "香港都会大学",
-        "香港恒生大学",
-        "香港珠海学院",
-    ]
-    if not UNIVERSITY_DIFFICULTY_CONFIG_PATH.exists():
-        return default_order
-    try:
-        with open(UNIVERSITY_DIFFICULTY_CONFIG_PATH, encoding="utf-8") as f:
-            config = json.load(f)
-            return config.get("difficulty_order", default_order)
-    except (OSError, json.JSONDecodeError):
-        return default_order
-
-
-def get_university_difficulty_order() -> list[str]:
-    return _load_university_difficulty_order()
-
-
-UNIVERSITY_DIFFICULTY_ORDER = get_university_difficulty_order()
+UNIVERSITY_DIFFICULTY_CONFIG_PATH: Path = PROJECT_ROOT / "config" / "university_difficulty.json"
+DEFAULT_UNIVERSITY_DIFFICULTY_ORDER: tuple[str, ...] = (
+    "新加坡国立大学",
+    "新加坡南洋理工大学",
+    "香港大学",
+    "香港中文大学",
+    "香港科技大学",
+    "新加坡管理大学",
+    "马来亚大学",
+    "香港理工大学",
+    "香港城市大学",
+    "马来西亚理科大学",
+    "马来西亚博特拉大学",
+    "香港浸会大学",
+    "马来西亚国立大学",
+    "澳门大学",
+    "香港中文大学 (深圳校区)",
+    "澳门科技大学",
+    "澳门城市大学",
+    "澳门理工大学",
+    "香港教育大学",
+    "香港岭南大学",
+    "香港都会大学",
+    "香港恒生大学",
+    "香港珠海学院",
+)
 AGENT_MIN_SAFE_RELAX_THRESHOLD: float = 0.87
 AGENT_BOUNDARY_SIMILARITY_RANGE: float = 0.03
 AGENT_MAX_BOUNDARY_CASES: int = 20
@@ -126,3 +129,5 @@ AGENT_MIN_BALANCE_DIFF_RATIO: float = 0.15
 AGENT_NO_CHANGE_THRESHOLD: int = 3
 AGENT_EXPLORATION_MAX_ROUNDS: int = 3
 AGENT_EARLY_STOP_THRESHOLD: int = 2
+LANGUAGE_REQUIREMENT_PENALTY_STEEPNESS: float = 7.0
+LANGUAGE_REQUIREMENT_PENALTY_MIDPOINT: float = 0.5

@@ -16,32 +16,52 @@ def _check_and_show_gpa_warning(session_manager):
         and gpa_raw_input > 0
         and gpa_raw_input < GPA_WARNING_THRESHOLDS[gpa_scale]
     ):
+        threshold = GPA_WARNING_THRESHOLDS[gpa_scale]
         warning_key = f"gpa_warning_{gpa_raw_input:.2f}_{gpa_scale}"
         if session_manager.get("last_gpa_warning_key") != warning_key:
-            st.toast(f"注意！当前GPA {gpa_raw_input:.2f} 远低于入学标准")
+            st.toast(
+                f"注意：当前GPA {gpa_raw_input:.2f}（{gpa_scale}制）低于提示线 {threshold:g}，预测结果可能会明显下调"
+            )
             session_manager.set(last_gpa_warning_key=warning_key)
 
 
 def render_gpa_section(session_manager, form_state_manager, logger):
+    current_scale = session_manager.get("gpa_scale")
+    if current_scale not in GPA_SCALES:
+        current_scale = list(GPA_SCALES.keys())[0]
+        session_manager.set(gpa_scale=current_scale)
+
+    if (
+        "gpa_scale_widget_key" not in st.session_state
+        or st.session_state.get("gpa_scale_widget_key") not in GPA_SCALES
+    ):
+        st.session_state["gpa_scale_widget_key"] = current_scale
+
     st.segmented_control(
         "GPA 分制",
         options=list(GPA_SCALES.keys()),
         selection_mode="single",
-        default=session_manager.get("gpa_scale"),
         on_change=partial(form_state_manager.gpa_scale_changed, session_manager),
         key="gpa_scale_widget_key",
     )
 
     current_gpa_scale_details = GPA_SCALES[session_manager.get("gpa_scale")]
+    max_val = float(current_gpa_scale_details["max"])
     if "gpa_raw_input_widget" not in st.session_state:
         default_gpa_value = session_manager.get("gpa_raw_input")
         st.session_state["gpa_raw_input_widget"] = (
             default_gpa_value if default_gpa_value is not None else 3.0
         )
+    else:
+        cur_val = st.session_state.get("gpa_raw_input_widget")
+        if cur_val is None:
+            st.session_state["gpa_raw_input_widget"] = 3.0
+        elif isinstance(cur_val, (int, float)) and cur_val > max_val:
+            st.session_state["gpa_raw_input_widget"] = max_val
     gpa_raw = st.number_input(
         f"GPA (满分 {session_manager.get('gpa_scale')})",
         min_value=0.0,
-        max_value=float(current_gpa_scale_details["max"]),
+        max_value=max_val,
         step=float(current_gpa_scale_details["step"]),
         format=current_gpa_scale_details["format"],
         on_change=lambda: (
@@ -53,7 +73,8 @@ def render_gpa_section(session_manager, form_state_manager, logger):
         placeholder="",
         key="gpa_raw_input_widget",
     )
-    session_manager.set(gpa_raw_input=gpa_raw)
+    if gpa_raw != session_manager.get("gpa_raw_input"):
+        session_manager.set(gpa_raw_input=gpa_raw)
 
     if session_manager.get("gpa_raw_input") is not None:
         _check_and_show_gpa_warning(session_manager)

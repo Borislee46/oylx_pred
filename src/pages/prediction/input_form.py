@@ -1,4 +1,5 @@
 import time
+from contextlib import nullcontext
 
 import streamlit as st
 
@@ -8,11 +9,9 @@ from src.pages.prediction.input_form_components import (
     FormValidator,
     GPAConverter,
 )
-from src.pages.prediction.input_form_components.language_score_processor import (
-    apply_overseas_language_boost,
-)
 from src.pages.prediction.prediction_preparation.form_normalizer import (
-    calculate_gpa_bonus,
+    calculate_processed_gpa,
+    calculate_processed_language_score,
     get_background_university_for_model,
     normalize_form_data_for_prediction,
 )
@@ -25,8 +24,14 @@ from src.utils.session_manager import SessionManager
 form_logger = setup_logger("page3", "prediction")
 
 
-@st.fragment
-def create_input_form(session_manager: SessionManager, cases_df, disabled_status=False):
+def create_input_form(
+    session_manager: SessionManager,
+    cases_df,
+    *,
+    parent_container=None,
+    wrap_container: bool = True,
+    border: bool = True,
+):
     FormStateManager.initialize_session_state(session_manager)
 
     disabled_status = session_manager.get("prediction_submit_lock", False)
@@ -34,44 +39,61 @@ def create_input_form(session_manager: SessionManager, cases_df, disabled_status
     if session_manager.get("school_base_df") is None:
         session_manager.set(school_base_df=load_school_base_data())
 
-    gpa_converter = GPAConverter(session_manager.get("school_base_df"))
+    if session_manager.get("gpa_converter") is None:
+        session_manager.set(gpa_converter=GPAConverter(session_manager.get("school_base_df")))
+    gpa_converter = session_manager.get("gpa_converter")
+
+    if session_manager.get("_cases_background_university_set") is None:
+        if cases_df is not None and "background_university" in cases_df.columns:
+            session_manager.set(
+                _cases_background_university_set=set(
+                    cases_df["background_university"].dropna().astype(str).unique()
+                )
+            )
+        else:
+            session_manager.set(_cases_background_university_set=set())
 
     ui_components = FormUIComponents(session_manager)
 
-    with st.container(border=True):
-        col1, col2 = st.columns([1, 1], gap="small")
+    outer_ctx = parent_container if parent_container is not None else nullcontext()
+    with outer_ctx:
+        input_ctx = st.container(border=border) if wrap_container else nullcontext()
+        with input_ctx:
+            if wrap_container:
+                st.markdown('<span class="hk-input-glass-marker"></span>', unsafe_allow_html=True)
+            col1, col2 = st.columns([1, 1], gap="small")
 
-        with col1:
-            (
-                background_university,
-                selected_background_major_original,
-                background_major,
-            ) = ui_components.render_background_section(cases_df)
+            with col1:
+                (
+                    background_university,
+                    selected_background_major_original,
+                    background_major,
+                ) = ui_components.render_background_section(cases_df)
 
-            gpa_col, test_col = st.columns([2, 1], gap="medium")
-            with gpa_col:
-                ui_components.render_gpa_section()
-            with test_col:
-                exam_type, exam_score = ui_components.render_standardized_test_section()
+                gpa_col, test_col = st.columns([2, 1], gap="medium")
+                with gpa_col:
+                    ui_components.render_gpa_section()
+                with test_col:
+                    exam_type, exam_score = ui_components.render_standardized_test_section()
 
-            (
-                final_target_universities,
-                final_target_majors,
-                all_universities_target,
-                all_majors_target,
-            ) = ui_components.render_target_section(cases_df)
+                (
+                    final_target_universities,
+                    final_target_majors,
+                    all_universities_target,
+                    all_majors_target,
+                ) = ui_components.render_target_section(cases_df)
 
-        with col2:
-            language_type, raw_language_score_value = ui_components.render_language_section()
-            (
-                research_count,
-                award_count,
-                internship_count,
-                paper_count,
-                experience_details,
-            ) = ui_components.render_experience_section()
+            with col2:
+                language_type, raw_language_score_value = ui_components.render_language_section()
+                (
+                    research_count,
+                    award_count,
+                    internship_count,
+                    paper_count,
+                    experience_details,
+                ) = ui_components.render_experience_section()
 
-        submit_button = ui_components.render_submit_button(disabled_status)
+            submit_button = ui_components.render_submit_button(disabled_status)
 
     if submit_button:
         form_data = {
@@ -171,7 +193,12 @@ def _process_successful_submission(
     all_majors_target,
     gpa_converter,
 ):
-    input_data, warnings = normalize_form_data_for_prediction(form_data, cases_df, gpa_converter)
+    input_data, warnings = normalize_form_data_for_prediction(
+        form_data,
+        cases_df,
+        gpa_converter,
+        background_university_set=session_manager.get("_cases_background_university_set"),
+    )
     for w in warnings:
         if w.startswith("标化成绩加成生效"):
             st.toast(w)
@@ -200,39 +227,29 @@ def _get_current_form_state(
     exam_type=None,
     exam_score=None,
 ):
-    current_display_lang_score = raw_language_score_value
-
     school_service = get_school_level_service()
     is_overseas = (
         school_service.is_overseas_school(background_university) if background_university else False
     )
 
-    if (current_display_lang_score is None or current_display_lang_score == 0) and is_overseas:
-        current_display_lang_score = apply_overseas_language_boost(
-            background_university, language_type
-        )
+    _, current_normalized_score = calculate_processed_language_score(
+        raw_language_score_value, language_type, background_university, is_overseas
+    )
 
-    current_normalized_score = None
-    if current_display_lang_score is not None:
-        current_normalized_score = FormValidator.normalize_language_score(
-            current_display_lang_score, language_type
-        )
+    current_normalized_gpa = calculate_processed_gpa(
+        session_manager.get("gpa_raw_input"),
+        session_manager.get("gpa_scale"),
+        background_university,
+        gpa_converter,
+        exam_type,
+        exam_score,
+    )
 
-    current_normalized_gpa = None
-    current_raw_gpa_val = session_manager.get("gpa_raw_input")
-    if current_raw_gpa_val is not None:
-        current_normalized_gpa = FormValidator.normalize_gpa(
-            current_raw_gpa_val,
-            session_manager.get("gpa_scale"),
-            background_university,
-            gpa_converter,
-        )
-
-        bonus_gpa = calculate_gpa_bonus(exam_type, exam_score)
-        if bonus_gpa > 0:
-            current_normalized_gpa += bonus_gpa
-
-    background_uni_for_model = get_background_university_for_model(background_university, cases_df)
+    background_uni_for_model = get_background_university_for_model(
+        background_university,
+        cases_df,
+        session_manager.get("_cases_background_university_set"),
+    )
 
     input_data = {
         "background_university": background_uni_for_model,

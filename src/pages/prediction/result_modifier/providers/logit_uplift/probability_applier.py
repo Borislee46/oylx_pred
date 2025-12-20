@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import numpy as np
-
 from src.pages.prediction.result_modifier.config import (
     PROBABILITY_BOOST_MAX,
     PROBABILITY_BOOST_MIN,
@@ -87,7 +85,7 @@ class ProbabilityApplier:
             if s > QUALITY_SCORE_THRESHOLD:
                 parts.append(f"{name_map[k]}: {s:.2f}")
 
-        avg_boost = float(np.mean(boosts))
+        avg_boost = sum(boosts) / len(boosts) if boosts else 0.0
         detail = ", ".join(parts)
         if reasons:
             r = ", ".join(reasons)

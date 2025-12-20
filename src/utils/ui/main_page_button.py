@@ -106,8 +106,9 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
         }}
 
         .card-wrapper.pressed .card {{
-            transform: scale(0.95) !important;
+            transform: scale(1.04) !important;
             transition: transform 0.1s ease-out;
+            box-shadow: 0 20px 40px -10px rgba(0, 106, 96, 0.3) !important;
         }}
         
         .card {{
@@ -165,7 +166,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             right: 0;
             bottom: 0;
             border-radius: 16px;
-            background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.5) 45%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0.5) 55%, transparent 60%);
+            background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.3) 45%, rgba(255, 255, 255, 0.5) 50%, rgba(255, 255, 255, 0.3) 55%, transparent 60%);
             background-size: 250% 100%;
             background-position: 100% 0;
             pointer-events: none;
@@ -284,21 +285,22 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             let activeWrapper = null;
             
             function calculateFanAngles() {{
-                const maxSpread = Math.min(50, numCards * 12);
+                const maxSpread = Math.min(52, 18 + numCards * 10);
                 const angleStep = numCards > 1 ? maxSpread / (numCards - 1) : 0;
                 const startAngle = -maxSpread / 2;
-                const maxDepth = 50;
+                const maxDepth = 55;
                 const maxBlur = 1.5;
-                const horizontalSpacing = 45;
+                const horizontalSpacing = 46;
                 const centerIndex = (numCards - 1) / 2;
                 
                 cardWrappers.forEach((cw, index) => {{
                     const card = cw.querySelector('.card');
-                    const angle = numCards > 1 ? startAngle + (angleStep * index) : 0;
                     const normalizedPos = numCards > 1 ? index / (numCards - 1) : 1;
-                    const depth = maxDepth * normalizedPos;
-                    const blur = maxBlur * (1 - normalizedPos);
-                    const brightness = 0.88 + 0.12 * normalizedPos;
+                    const eased = Math.pow(normalizedPos, 1.15);
+                    const angle = numCards > 1 ? startAngle + (angleStep * index) : 0;
+                    const depth = maxDepth * eased;
+                    const blur = 0.15 + maxBlur * Math.pow(1 - eased, 1.6);
+                    const brightness = 0.86 + 0.14 * eased;
                     const zIndex = index + 1;
                     const offsetX = (index - centerIndex) * horizontalSpacing;
                     
@@ -331,8 +333,8 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                     cw.classList.add('active');
                     cw.style.zIndex = 100;
                     const angle = parseFloat(cw.dataset.baseAngle);
-                    cw.style.transform = `translateX(${{cw.dataset.baseOffsetX}}px) rotate(${{angle}}deg) translateY(-55px) translateZ(80px) scale(1.05)`;
-                    card.style.filter = 'brightness(1) blur(0px)';
+                    cw.style.transform = `translateX(${{cw.dataset.baseOffsetX}}px) rotate(${{angle}}deg) translateY(-55px) translateZ(100px) scale(1.08)`;
+                    card.style.filter = 'brightness(1.05) blur(0px)';
                 }}
             }}
             
@@ -397,27 +399,36 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
                 }}, 150 + Math.floor(centerIndex) * 50);
             }}
             
+            let tiltTicking = false;
+            
             function handleTilt(cw, e) {{
                 if (currentMode !== 'linear' || isTransitioning) return;
                 
-                const card = cw.querySelector('.card');
-                const glare = card.querySelector('.glare');
                 const rect = cw.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                
-                const rotateX = (y - centerY) / centerY * -10;
-                const rotateY = (x - centerX) / centerX * 10;
-                
-                card.style.transform = `perspective(600px) rotateX(${{rotateX}}deg) rotateY(${{rotateY}}deg) translateY(-12px) scale(1.04)`;
-                
-                if (glare) {{
-                    const glareX = (x / rect.width) * 100;
-                    const glareY = (y / rect.height) * 100;
-                    glare.style.background = `radial-gradient(circle at ${{glareX}}% ${{glareY}}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 80%)`;
-                    glare.style.opacity = '0.6';
+
+                if (!tiltTicking) {{
+                    requestAnimationFrame(() => {{
+                        const card = cw.querySelector('.card');
+                        const glare = card.querySelector('.glare');
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        
+                        const rotateX = (y - centerY) / centerY * -10;
+                        const rotateY = (x - centerX) / centerX * 10;
+                        
+                        card.style.transform = `perspective(600px) rotateX(${{rotateX}}deg) rotateY(${{rotateY}}deg) translateY(-12px) scale(1.04)`;
+                        
+                        if (glare) {{
+                            const glareX = (x / rect.width) * 100;
+                            const glareY = (y / rect.height) * 100;
+                            glare.style.background = `radial-gradient(circle at ${{glareX}}% ${{glareY}}%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 80%)`;
+                            glare.style.opacity = '0.6';
+                        }}
+                        tiltTicking = false;
+                    }});
+                    tiltTicking = true;
                 }}
             }}
             
@@ -541,6 +552,12 @@ def render_buttons_grid(available_buttons: list) -> None:
 
     component_html = _generate_component_html(available_buttons, base_url, trace_id)
 
-    height = 450 if len(available_buttons) <= 4 else 480
+    num_cards = len(available_buttons)
+    if num_cards <= 4:
+        height = 450
+    elif num_cards <= 6:
+        height = 480
+    else:
+        height = 480 + (num_cards - 6) * 12
 
     components.html(component_html, height=height, scrolling=False)

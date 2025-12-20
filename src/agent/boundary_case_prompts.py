@@ -60,8 +60,9 @@ def build_boundary_evaluation_prompt(
 1. 采用严格标准，只有在{"明确相关且合理" if mode == "relax" else "明显不匹配"}的情况下才{"包含" if mode == "relax" else "移除"}
 2. 对于{"放宽" if mode == "relax" else "收紧"}模式，应倾向于{"保守" if mode == "relax" else "保留"}，避免过度{"放宽" if mode == "relax" else "收紧"}
 3. 如果所有专业都无需调整，设置 needs_adjustment 为 false
-4. 返回 JSON 格式，严格遵循以下结构：
+4. 返回 JSON 格式，必须包含 reasoning 字段说明评估逻辑，严格遵循以下结构：
    {{
+     "reasoning": "对本次评估逻辑的简要说明",
      "decisions": [bool, bool, ...],
      "needs_adjustment": bool
    }}

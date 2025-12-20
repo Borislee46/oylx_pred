@@ -11,32 +11,29 @@ from src.pages.prediction.result_modifier.strategies import (
 )
 from src.pages.prediction.result_modifier.types import CaseKey, case_key
 from src.pages.prediction.result_modifier.ui_handler import RankerUIHandler
-from src.pages.prediction.result_modifier.utils import clip_probability
+from src.pages.prediction.result_modifier.utils import clip_basic
 
 
+# 当前场景heapq未必比sorted快, candidate多（十万级？）的话可换heapq
 def _pick_supplement_cases_by_probability(
-    results_with_similarity: list[dict[str, Any]],
-    extra_faculty: str,
+    candidates: list[dict[str, Any]],
     top_set: set[tuple[Any, Any]],
     p_min: float,
     k_high: int = 8,
     k_band: int = 8,
     band_delta: float = 0.03,
 ) -> list[dict[str, Any]]:
-    if not results_with_similarity or not extra_faculty:
-        return []
-
-    candidates = [
-        r
-        for r in results_with_similarity
-        if isinstance(r, dict) and str(r.get("faculty", "")).strip() == extra_faculty
-    ]
     if not candidates:
         return []
 
     def _p(x: dict[str, Any]) -> float:
+        val = x.get("probability", 0.0)
+        if val is None:
+            return 0.0
+        if isinstance(val, (int, float)):
+            return float(val)
         try:
-            return float(x.get("probability", 0.0) or 0.0)
+            return float(val)
         except (TypeError, ValueError):
             return 0.0
 
@@ -77,6 +74,7 @@ def adjust_similarity_results_with_agent(
     current_threshold: float,
     agent: Any,
     background_faculty: str | None = None,
+    progress_reporter: Any | None = None,
 ) -> list[dict[str, Any]]:
     if not top_similarity_results or not agent or balance_diff == 0:
         return top_similarity_results
@@ -131,11 +129,23 @@ def adjust_similarity_results_with_agent(
                 p_min = 0.0
 
         supplements: list[dict[str, Any]] = []
+
+        faculty_map: dict[str, list[dict[str, Any]]] = {}
+        for r in results_with_similarity:
+            if not isinstance(r, dict):
+                continue
+            f = str(r.get("faculty", "")).strip()
+            if f not in faculty_map:
+                faculty_map[f] = []
+            faculty_map[f].append(r)
+
         for extra in extras[:2]:
+            extra_candidates = faculty_map.get(extra, [])
+            if not extra_candidates:
+                continue
             supplements.extend(
                 _pick_supplement_cases_by_probability(
-                    results_with_similarity=results_with_similarity,
-                    extra_faculty=extra,
+                    candidates=extra_candidates,
                     top_set=top_set,
                     p_min=p_min,
                     k_high=8,
@@ -170,6 +180,7 @@ def adjust_similarity_results_with_agent(
         background_major=background_major,
         background_faculty=background_faculty,
         mode=mode,
+        progress_reporter=progress_reporter,
     ) as ui_handler:
         engine = AgentAdjustmentEngine(agent, session, ui_handler)
         final_results = engine.run(
@@ -178,7 +189,7 @@ def adjust_similarity_results_with_agent(
 
     for c in final_results:
         if isinstance(c, dict) and "probability" in c:
-            c["probability"] = clip_probability(c.get("probability", 0.0))
+            c["probability"] = clip_basic(c.get("probability", 0.0))
 
     final_results.sort(key=lambda x: x.get("probability", 0.0), reverse=True)
     return final_results

@@ -170,6 +170,35 @@ class BaseAgent:
 
         return content.strip()
 
+    def _repair_json_once(
+        self,
+        raw_text: str,
+        schema_hint: str,
+        cache_prefix: str = "json_repair",
+        thinking_type: str | None = None,
+    ) -> str | None:
+        raw_text = str(raw_text or "").strip()
+        if not raw_text:
+            return None
+
+        prompt = (
+            "你是一个 JSON 修复器。你的任务是把输入内容修复为“严格合法”的 JSON。\n"
+            "要求：\n"
+            "- 只输出 JSON，本次输出不得包含任何解释、注释、代码块标记、前后缀文字。\n"
+            "- 如果输入包含多余文字，请删除，只保留 JSON。\n"
+            "- 字段必须严格符合 schema_hint，不要新增字段。\n\n"
+            f"schema_hint:\n{schema_hint}\n\n"
+            "input:\n"
+            f"{raw_text}\n"
+        )
+        fixed = self._call_api(
+            prompt, cache_prefix=cache_prefix, use_cache=True, thinking_type=thinking_type
+        )
+        if not fixed:
+            return None
+        fixed = self._clean_json_content(fixed)
+        return fixed if fixed else None
+
     def _call_api(
         self,
         prompt: str,
@@ -178,6 +207,7 @@ class BaseAgent:
         custom_cache_key: str | None = None,
         thinking_type: str | None = None,
         max_tokens: int | None = None,
+        max_retries: int = 2,
     ) -> str | None:
         if not self.api_url or not self.api_key:
             self.logger.warning(f"[{self.agent_name}] API 未配置，无法调用")
@@ -205,78 +235,90 @@ class BaseAgent:
 
         data = self._build_request_data(prompt, thinking_type=thinking_type, max_tokens=max_tokens)
 
-        try:
-            response = self._session.post(
-                self.api_url, headers=self.headers, json=data, timeout=self.timeout
-            )
-            response.raise_for_status()
-
+        for attempt in range(max_retries + 1):
             try:
-                response_json = response.json()
-            except ValueError as e:
-                self.logger.error(
-                    f"[{self.agent_name}] JSON解析失败: {e}, 响应内容: {response.text[:200]}"
+                response = self._session.post(
+                    self.api_url, headers=self.headers, json=data, timeout=self.timeout
                 )
-                return None
+                response.raise_for_status()
 
-            choices = response_json.get("choices")
-            if choices and isinstance(choices, list) and len(choices) > 0:
-                message = choices[0].get("message", {})
-                if isinstance(message, dict):
-                    raw_content = message.get("content", "")
-                    result = self._extract_text_content(raw_content).strip()
-                    if result:
-                        output_tokens = self._estimate_tokens(result)
-                        real_usage = response_json.get("usage", {})
-                        usage_info = ""
-                        if real_usage:
-                            usage_info = (
-                                f", API返回Usage - Prompt: {real_usage.get('prompt_tokens', 0)}, "
-                                f"Completion: {real_usage.get('completion_tokens', 0)}, "
-                                f"Total: {real_usage.get('total_tokens', 0)}"
-                            )
-
-                        self.logger.info(
-                            f"[{self.agent_name}] API调用成功. "
-                            f"Token估算 - 输入: {input_tokens}, 输出: {output_tokens}, "
-                            f"总计: {round(input_tokens + output_tokens, 2)}{usage_info}"
-                        )
-
-                        if use_cache:
-                            self._save_to_cache(cache_key, result)
-                        return result
-                    else:
-                        self.logger.warning(f"[{self.agent_name}] API返回的content为空")
-                        return None
-                else:
+                try:
+                    response_json = response.json()
+                except ValueError as e:
                     self.logger.error(
-                        f"[{self.agent_name}] API返回的message格式不正确: {type(message)}"
+                        f"[{self.agent_name}] JSON解析失败: {e}, 响应内容: {response.text[:200]}"
                     )
                     return None
-            else:
-                error_info = response_json.get("error", {})
-                if error_info:
-                    error_message = (
-                        error_info.get("message", "未知错误")
-                        if isinstance(error_info, dict)
-                        else str(error_info)
-                    )
-                    self.logger.error(f"[{self.agent_name}] API返回错误: {error_message}")
-                else:
-                    self.logger.error(f"[{self.agent_name}] API响应格式异常，未找到choices字段")
-                return None
 
-        except requests.exceptions.Timeout:
-            self.logger.warning(
-                f"[{self.agent_name}] 请求超时（{self.timeout}秒），使用fallback响应"
-            )
-            return None
-        except requests.exceptions.RequestException as e:
-            self.logger.error(f"[{self.agent_name}] 网络请求失败: {e}")
-            return None
-        except Exception as e:
-            self.logger.error(
-                f"[{self.agent_name}] 未知错误 - 错误类型: {type(e).__name__}, 错误信息: {e}",
-                exc_info=True,
-            )
-            return None
+                choices = response_json.get("choices")
+                if choices and isinstance(choices, list) and len(choices) > 0:
+                    message = choices[0].get("message", {})
+                    if isinstance(message, dict):
+                        raw_content = message.get("content", "")
+                        result = self._extract_text_content(raw_content).strip()
+                        if result:
+                            output_tokens = self._estimate_tokens(result)
+                            real_usage = response_json.get("usage", {})
+                            usage_info = ""
+                            if real_usage:
+                                usage_info = (
+                                    f", API返回Usage - Prompt: {real_usage.get('prompt_tokens', 0)}, "
+                                    f"Completion: {real_usage.get('completion_tokens', 0)}, "
+                                    f"Total: {real_usage.get('total_tokens', 0)}"
+                                )
+
+                            self.logger.info(
+                                f"[{self.agent_name}] API调用成功. "
+                                f"Token估算 - 输入: {input_tokens}, 输出: {output_tokens}, "
+                                f"总计: {round(input_tokens + output_tokens, 2)}{usage_info}"
+                            )
+
+                            if use_cache:
+                                self._save_to_cache(cache_key, result)
+                            return result
+                        else:
+                            self.logger.warning(f"[{self.agent_name}] API返回的content为空")
+                            return None
+                    else:
+                        self.logger.error(
+                            f"[{self.agent_name}] API返回的message格式不正确: {type(message)}"
+                        )
+                        return None
+                else:
+                    error_info = response_json.get("error", {})
+                    if error_info:
+                        error_message = (
+                            error_info.get("message", "未知错误")
+                            if isinstance(error_info, dict)
+                            else str(error_info)
+                        )
+                        self.logger.error(f"[{self.agent_name}] API返回错误: {error_message}")
+                    else:
+                        self.logger.error(f"[{self.agent_name}] API响应格式异常，未找到choices字段")
+                    return None
+
+            except requests.exceptions.Timeout:
+                if attempt < max_retries:
+                    self.logger.warning(
+                        f"[{self.agent_name}] 请求超时，正在进行第 {attempt + 1} 次重试..."
+                    )
+                    time.sleep(1)
+                    continue
+                self.logger.warning(
+                    f"[{self.agent_name}] 请求超时（{self.timeout}秒），已达最大重试次数"
+                )
+                return None
+            except requests.exceptions.RequestException as e:
+                if attempt < max_retries:
+                    self.logger.warning(f"[{self.agent_name}] 网络请求失败: {e}，正在重试...")
+                    time.sleep(1)
+                    continue
+                self.logger.error(f"[{self.agent_name}] 网络请求失败: {e}")
+                return None
+            except Exception as e:
+                self.logger.error(
+                    f"[{self.agent_name}] 未知错误 - 错误类型: {type(e).__name__}, 错误信息: {e}",
+                    exc_info=True,
+                )
+                return None
+        return None

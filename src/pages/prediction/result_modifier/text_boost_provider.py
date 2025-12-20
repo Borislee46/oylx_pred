@@ -46,8 +46,8 @@ def get_text_boost_provider(config: dict[str, Any] | None) -> TextBoostProvider:
     except (TypeError, ValueError) as e:
         logger.warning(f"序列化配置失败，使用空提供者: {str(e)}")
         return NullTextBoostProvider()
-    except Exception as e:
-        logger.error(f"获取文本加成提供者时发生未知错误: {str(e)}", exc_info=True)
+    except (OSError, RuntimeError, ImportError, AttributeError) as e:
+        logger.error(f"获取文本加成提供者失败: {str(e)}", exc_info=True)
         return NullTextBoostProvider()
 
 
@@ -95,6 +95,6 @@ def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
     except (ImportError, AttributeError) as e:
         logger.error(f"导入或创建LogitUpliftProvider失败: {str(e)}")
         return NullTextBoostProvider()
-    except Exception as e:
-        logger.error(f"创建文本加成提供者时发生未知错误: {str(e)}", exc_info=True)
+    except (TypeError, ValueError, OSError, RuntimeError) as e:
+        logger.error(f"创建文本加成提供者失败: {str(e)}", exc_info=True)
         return NullTextBoostProvider()

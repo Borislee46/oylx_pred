@@ -3,8 +3,6 @@ from __future__ import annotations
 from src.pages.prediction.result_modifier.adjustment_pipeline import (
     AdjustmentContext,
     ProbabilityAdjustmentPipeline,
-    create_adjustment_context,
-    create_adjustment_pipeline,
 )
 from src.pages.prediction.result_modifier.config import (
     HIGHER_SIMILARITY_THRESHOLD,
@@ -23,8 +21,6 @@ __all__ = [
     "ProbabilityAdjuster",
     "ProbabilityAdjustmentPipeline",
     "AdjustmentContext",
-    "create_adjustment_pipeline",
-    "create_adjustment_context",
     "adjust_similarity_score",
     "MIN_SIMILARITY_THRESHOLD",
     "HIGHER_SIMILARITY_THRESHOLD",
