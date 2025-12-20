@@ -19,27 +19,24 @@ from src.pages.prediction.user_background_analyzer import find_substitute_univer
 from src.utils.school_level_service import get_school_level_service
 
 
-def calculate_gpa_bonus(exam_type, exam_score) -> float:
-    if not exam_type or exam_type == "无" or not exam_score:
+def calculate_gpa_bonus(exam_type: str | None, exam_score: float | None) -> float:
+    if not exam_type or exam_type == "无" or exam_score is None:
         return 0.0
 
-    if exam_type == "GRE":
-        if exam_score < GRE_BONUS_THRESHOLD:
-            return 0.0
-        bonus = GRE_MAX_BONUS / (
-            1 + math.exp(-GRE_SIGMOID_STEEPNESS * (exam_score - GRE_SIGMOID_MIDPOINT))
-        )
-        return max(0.0, float(bonus))
+    configs = {
+        "GRE": (GRE_BONUS_THRESHOLD, GRE_MAX_BONUS, GRE_SIGMOID_STEEPNESS, GRE_SIGMOID_MIDPOINT),
+        "GMAT": (GMAT_BONUS_THRESHOLD, GMAT_MAX_BONUS, GMAT_SIGMOID_STEEPNESS, GMAT_SIGMOID_MIDPOINT)
+    }
 
-    if exam_type == "GMAT":
-        if exam_score < GMAT_BONUS_THRESHOLD:
-            return 0.0
-        bonus = GMAT_MAX_BONUS / (
-            1 + math.exp(-GMAT_SIGMOID_STEEPNESS * (exam_score - GMAT_SIGMOID_MIDPOINT))
-        )
-        return max(0.0, float(bonus))
+    if exam_type not in configs:
+        return 0.0
 
-    return 0.0
+    threshold, max_bonus, steepness, midpoint = configs[exam_type]
+    if exam_score < threshold:
+        return 0.0
+
+    bonus = max_bonus / (1 + math.exp(-steepness * (exam_score - midpoint)))
+    return max(0.0, float(bonus))
 
 
 def calculate_processed_gpa(
@@ -57,16 +54,16 @@ def calculate_processed_gpa(
 
 
 def calculate_processed_language_score(
-    raw_score, language_type, background_university, is_overseas=False
+    raw_score: float | None, 
+    language_type: str | None, 
+    background_university: str | None, 
+    is_overseas: bool = False
 ) -> tuple[float | None, float | None]:
     display_score = raw_score
-    if (display_score is None or display_score == 0) and is_overseas:
+    if (not display_score) and is_overseas:
         display_score = apply_overseas_language_boost(background_university, language_type)
 
-    normalized_score = None
-    if display_score is not None:
-        normalized_score = normalize_language_score(display_score, language_type)
-
+    normalized_score = normalize_language_score(display_score, language_type) if display_score else None
     return display_score, normalized_score
 
 
@@ -95,53 +92,49 @@ def normalize_form_data_for_prediction(
     gpa_converter: GPAConverter | None,
     background_university_set: set[str] | None = None,
 ) -> tuple[dict, list[str]]:
-    warnings: list[str] = []
+    warnings = []
+
+    raw_gpa = form_data.get("gpa_raw")
+    gpa_scale = form_data.get("gpa_scale")
+    bg_uni = form_data.get("background_university")
+    exam_type = form_data.get("exam_type")
+    exam_score = form_data.get("exam_score")
 
     normalized_gpa = calculate_processed_gpa(
-        form_data.get("gpa_raw"),
-        form_data.get("gpa_scale"),
-        form_data.get("background_university"),
-        gpa_converter,
-        form_data.get("exam_type"),
-        form_data.get("exam_score"),
+        raw_gpa, gpa_scale, bg_uni, gpa_converter, exam_type, exam_score
     )
 
-    bonus_gpa = calculate_gpa_bonus(form_data.get("exam_type"), form_data.get("exam_score"))
+    bonus_gpa = calculate_gpa_bonus(exam_type, exam_score)
     if normalized_gpa is not None and bonus_gpa > 0:
         warnings.append(f"标化成绩加成生效: GPA +{bonus_gpa:.3f}")
 
+    # 语言成绩处理
     school_service = get_school_level_service()
-    background_university = form_data.get("background_university")
-    is_overseas = (
-        school_service.is_overseas_school(background_university) if background_university else False
-    )
+    is_overseas = school_service.is_overseas_school(bg_uni) if bg_uni else False
+    raw_lang = form_data.get("language_score_raw")
+    lang_type = form_data.get("language_type")
 
-    language_score_for_submission = form_data.get("language_score_raw")
-    if (
-        language_score_for_submission is None or language_score_for_submission == 0
-    ) and is_overseas:
+    if (not raw_lang) and is_overseas:
         warnings.append("海外背景触发语言成绩默认加成")
 
     _, final_normalized_lang_score = calculate_processed_language_score(
-        language_score_for_submission,
-        form_data.get("language_type"),
-        background_university,
-        is_overseas,
+        raw_lang, lang_type, bg_uni, is_overseas
     )
 
-    background_uni_for_model = get_background_university_for_model(
-        form_data.get("background_university"), cases_df, background_university_set
+    # 院校对齐
+    bg_uni_for_model = get_background_university_for_model(
+        bg_uni, cases_df, background_university_set
     )
 
     input_data = {
-        "background_university": background_uni_for_model,
+        "background_university": bg_uni_for_model,
         "background_major": form_data.get("background_major"),
         "background_major_original": form_data.get("background_major_original"),
         "target_universities": form_data.get("target_universities", []),
         "target_majors": form_data.get("target_majors", []),
         "gpa": normalized_gpa,
         "language_score": final_normalized_lang_score,
-        "language_type": form_data.get("language_type"),
+        "language_type": lang_type,
         "research_count": form_data.get("research_count"),
         "award_count": form_data.get("award_count"),
         "internship_count": form_data.get("internship_count"),

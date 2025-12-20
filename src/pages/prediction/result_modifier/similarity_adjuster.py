@@ -11,19 +11,13 @@ from src.utils.logger import setup_logger
 logger = setup_logger("page3", "prediction")
 
 
+import re
+
 def _normalize_keywords(items: list[str]) -> list[str]:
-    normalized: list[str] = []
-    for it in items or []:
-        if not isinstance(it, str):
-            continue
-        parts = []
-        for seg in it.split("\n"):
-            parts.extend(seg.split(","))
-        for p in parts:
-            s = p.strip().lower()
-            if s:
-                normalized.append(s)
-    return normalized
+    if not items:
+        return []
+    content = ",".join(str(it) for it in items if it)
+    return [s.strip().lower() for s in re.split(r"[,\n]", content) if s.strip()]
 
 
 def _get_config_path() -> Path:

@@ -18,7 +18,7 @@ class BoundaryCaseAgent(BaseAgent):
     def __init__(self, cases_df: pd.DataFrame, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="边界CaseAgent")
         self.cases_df = cases_df
-        self._persistent_cache = self._load_persistent_cache()
+        self._persistent_cache = self._load_persistent_json(CACHE_DIR, CACHE_FILE)
 
     def _case_cache_key(self, background_major: str, case: dict[str, Any], mode: str) -> str:
         university = str(case.get("university", "")).strip()
@@ -34,26 +34,8 @@ class BoundaryCaseAgent(BaseAgent):
         payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(payload.encode("utf-8")).hexdigest()
 
-    def _load_persistent_cache(self) -> dict[str, Any]:
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        if not os.path.exists(file_path):
-            return {}
-
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError) as e:
-            self.logger.warning(f"[{self.agent_name}] 加载持久化缓存失败: {e}")
-            return {}
-
     def _flush_persistent_cache(self) -> None:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        tmp_path = f"{file_path}.tmp"
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(self._persistent_cache, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, file_path)
+        self._save_persistent_json(CACHE_DIR, CACHE_FILE, self._persistent_cache)
 
     def evaluate_boundary_cases(
         self,

@@ -30,7 +30,7 @@ def _get_valid_faculties() -> list[str]:
 class BackgroundFacultyAgent(BaseAgent):
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="交叉背景学院Agent")
-        self._persistent_cache = self._load_persistent_cache()
+        self._persistent_cache = self._load_persistent_json(CACHE_DIR, CACHE_FILE)
 
     def _cache_key(self, background_major_original: str, base_faculty: str | None) -> str:
         key_data = {
@@ -42,24 +42,8 @@ class BackgroundFacultyAgent(BaseAgent):
         payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(payload.encode("utf-8")).hexdigest()
 
-    def _load_persistent_cache(self) -> dict[str, Any]:
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        if not os.path.exists(file_path):
-            return {}
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError):
-            return {}
-
     def _flush_persistent_cache(self) -> None:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        tmp_path = f"{file_path}.tmp"
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(self._persistent_cache, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, file_path)
+        self._save_persistent_json(CACHE_DIR, CACHE_FILE, self._persistent_cache)
 
     def resolve_background_faculties(
         self,

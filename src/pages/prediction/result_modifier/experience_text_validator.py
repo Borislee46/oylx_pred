@@ -14,6 +14,7 @@ from src.pages.prediction.result_modifier.utils import (
     EXPERIENCE_ANALYSIS_MESSAGES,
     FIELD_NAME_MAP,
     generate_content_hash,
+    has_streamlit_runtime,
     is_effectively_empty,
 )
 from src.utils.env_config_loader import load_app_config
@@ -25,16 +26,9 @@ logger = setup_logger("page3", "prediction")
 def _get_streamlit():
     try:
         import streamlit as st
-
         return st
     except ImportError:
         return None
-
-
-def _has_streamlit_runtime(st) -> bool:
-    runtime = getattr(st, "runtime", None)
-    exists = getattr(runtime, "exists", None)
-    return bool(callable(exists) and exists())
 
 
 @cache_data(ttl=3600, show_spinner=False)
@@ -161,7 +155,7 @@ def has_meaningful_experience_text(
         animator.show(_get_analysis_message(field_names), force=True)
     else:
         st = _get_streamlit()
-        if st is not None and _has_streamlit_runtime(st):
+        if st is not None and has_streamlit_runtime():
             from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
 
             animator = LoadingMessageAnimator()
@@ -191,7 +185,7 @@ def has_meaningful_experience_text(
 
         if not is_valid:
             st = _get_streamlit()
-            if st is not None and _has_streamlit_runtime(st):
+            if st is not None and has_streamlit_runtime():
                 st.toast(f"{FIELD_NAME_MAP.get(k, k)}填写的内容无效")
             continue
         validated_keys.append(k)

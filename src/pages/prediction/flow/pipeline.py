@@ -5,21 +5,24 @@ import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.config.ui_messages import PIPELINE_MESSAGES
-from src.pages.prediction.core.utils import get_background_faculty
+from src.pages.prediction.core.utils import get_background_faculty, is_new_major
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
-from src.pages.prediction.flow.result_adjuster import batch_adjust_results
 from src.pages.prediction.flow.run_prediction import run_single_prediction
 from src.pages.prediction.page_data_loader import cached_get_prediction_model
-from src.pages.prediction.prediction_preparation.fingerprint import compute_df_fingerprint
-from src.pages.prediction.prediction_preparation.input_validator import validate_and_clean_input
+from src.pages.prediction.prediction_preparation import (
+    compute_df_fingerprint,
+    validate_and_clean_input,
+)
+from src.pages.prediction.result_modifier import (
+    AdjustmentContext,
+    ProbabilityAdjustmentPipeline,
+)
+from src.pages.prediction.result_modifier.admission_cache import (
+    get_admitted_combinations_from_dataframe,
+)
 from src.pages.prediction.result_modifier.config import DEFAULT_TEXT_BOOST_CONFIG
-from src.pages.prediction.result_modifier.faculty_filters import apply_out_of_scope_faculty_penalty
 from src.pages.prediction.result_modifier.probability_adjuster import (
     ProbabilityAdjuster,
-    penalize_cross_major_without_cases,
-)
-from src.pages.prediction.result_modifier.professional_adjustment import (
-    adjust_for_professional_majors,
 )
 from src.pages.prediction.result_modifier.text_boost_provider import (
     get_text_boost_provider,
@@ -169,92 +172,45 @@ def _execute_prediction_pipeline(
         prediction_handler_logger.info(f"预测未生成有效结果: {meta.get('error')}")
         return PredictionResultModel(meta=meta)
 
-    initial_count = (
-        len(sim_results)
-        + len(cross_results)
-        + (len(user_specified_results) if isinstance(user_specified_results, list) else 0)
-    )
-
-    reporter.set_stage(
-        0.62,
-        0.72,
-        PIPELINE_MESSAGES["initial_filter"].format(count=initial_count),
-    )
-    internship_count = cleaned_input.get("internship_count", 0)
-    user_specified_majors = cleaned_input.get("target_majors", [])
-
-    results_to_adjust = [
-        ("sim_results", sim_results),
-        ("cross_results", cross_results),
-        (
-            "user_specified_results",
-            user_specified_results if isinstance(user_specified_results, list) else [],
-        ),
-    ]
-
-    adjusted_results = {}
-    for result_name, result_list in results_to_adjust:
-        adjusted_results[result_name] = adjust_for_professional_majors(
-            result_list, internship_count, user_specified_majors
-        )
-        reporter.advance_ratio(0.25)
-
-    sim_results = adjusted_results["sim_results"]
-    cross_results = adjusted_results["cross_results"]
-    user_specified_results = adjusted_results["user_specified_results"]
+    initial_count = len(sim_results) + len(cross_results) + len(user_specified_results or [])
+    reporter.set_stage(0.62, 0.72, PIPELINE_MESSAGES["initial_filter"].format(count=initial_count))
 
     experience_details = cleaned_input.get("experience_details", {})
-    exp_text_len = (
-        sum(len(str(v)) for v in experience_details.values() if v)
-        if isinstance(experience_details, dict)
-        else 0
-    )
-    reporter.set_stage(
-        0.72,
-        0.80,
-        PIPELINE_MESSAGES["analyze_text"].format(length=exp_text_len),
-    )
-    has_valid_experience = input_data.get("_has_valid_experience", False)
+    exp_text_len = sum(len(str(v)) for v in experience_details.values() if v)
+    reporter.set_stage(0.72, 0.80, PIPELINE_MESSAGES["analyze_text"].format(length=exp_text_len))
 
-    if has_valid_experience:
-        text_provider = get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
-    else:
-        text_provider = None
+    admitted_combos = get_admitted_combinations_from_dataframe(cases_df, background_major)
+    
+    all_res = sim_results + cross_results + (user_specified_results or [])
+    new_major_cache = {}
+    for r in all_res:
+        u, m = r.get("university"), r.get("major")
+        if u and m and (u, m) not in new_major_cache:
+            new_major_cache[(u, m)] = is_new_major(u, m)
 
-    sim_results, cross_results, user_specified_results = batch_adjust_results(
-        [sim_results, cross_results, user_specified_results],
-        probability_adjuster,
-        text_provider,
-        experience_details,
-        gpa,
-        language_score,
-        background_university,
-        progress_reporter=reporter,
+    adj_ctx = AdjustmentContext(
+        gpa=gpa,
+        language_score=language_score,
+        background_university=background_university,
+        background_major=background_major,
+        background_faculty=get_background_faculty(background_major, cases_df),
+        internship_count=cleaned_input.get("internship_count", 0),
+        user_specified_majors=cleaned_input.get("target_majors", []),
+        experience_details=experience_details,
+        cases_df=cases_df,
+        admitted_combinations=admitted_combos,
+        is_new_major_cache=new_major_cache,
     )
 
-    msg_penalty_check = PIPELINE_MESSAGES["cross_check"]
-    reporter.set_stage(
-        0.80,
-        0.88,
-        msg_penalty_check,
+    pipeline = ProbabilityAdjustmentPipeline(
+        probability_adjuster=probability_adjuster,
+        text_boost_provider=get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if input_data.get("_has_valid_experience") else None,
     )
 
-    # 这一步如果是纯内存计算可能很快，但如果cases_df很大可能会有延迟，稳妥起见包裹一下
-    with BackgroundAnimator(reporter, msg_penalty_check):
-        user_specified_results = penalize_cross_major_without_cases(
-            user_specified_results=user_specified_results,
-            background_major=background_major,
-            cases_df=cases_df,
-        )
-    reporter.advance_ratio(0.30)
-
-    bg_faculty_for_penalty = get_background_faculty(background_major, cases_df)
-    sim_results = apply_out_of_scope_faculty_penalty(sim_results, bg_faculty_for_penalty)
-    cross_results = apply_out_of_scope_faculty_penalty(cross_results, bg_faculty_for_penalty)
-    user_specified_results = apply_out_of_scope_faculty_penalty(
-        user_specified_results, bg_faculty_for_penalty
-    )
-    reporter.advance_ratio(0.30)
+    sim_results = pipeline.adjust_batch(sim_results, adj_ctx, progress_reporter=reporter)
+    cross_results = pipeline.adjust_batch(cross_results, adj_ctx, progress_reporter=reporter)
+    if user_specified_results:
+        user_specified_results = pipeline.adjust_batch(user_specified_results, adj_ctx, progress_reporter=reporter)
 
     msg_merging = PIPELINE_MESSAGES["merging"]
     reporter.set_stage(0.88, 1.0, msg_merging)

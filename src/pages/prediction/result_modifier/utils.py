@@ -11,6 +11,15 @@ from src.pages.prediction.result_modifier.config import (
 )
 
 
+import streamlit as st
+
+
+def has_streamlit_runtime() -> bool:
+    runtime = getattr(st, "runtime", None)
+    exists = getattr(runtime, "exists", None)
+    return bool(exists and exists())
+
+
 def compute_dataframe_hash(df: pd.DataFrame) -> str:
     if df is None or df.empty:
         return "empty_df"
@@ -80,9 +89,20 @@ def is_effectively_empty(text: str | None) -> bool:
     return len(stripped) == 0
 
 
-# 目前测试来看，当前需要裁剪的场景体量比较小，用原生逻辑比np.clip快
-def clip_basic(value: Any) -> float:
-    return max(0.0, min(1.0, float(value)))
+def get_probability(case: dict[str, Any], default: float = 0.0) -> float:
+    v = case.get("probability", default)
+    try:
+        val = float(v) if v is not None else default
+        return max(0.0, min(1.0, val))
+    except (ValueError, TypeError):
+        return default
+
+
+def clip_probability(value: Any) -> float:
+    try:
+        return max(0.0, min(1.0, float(value)))
+    except (ValueError, TypeError):
+        return 0.0
 
 
 def cross_major_penalty_factor(similarity: Any) -> float:
@@ -134,11 +154,21 @@ def generate_content_hash(content: str) -> str:
     return hashlib.md5(content.encode("utf-8")).hexdigest()
 
 
-def has_valid_experience_details(experience_details: dict[str, str] | None) -> bool:
+def deduplicate_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """根据 (university, major) 对结果进行去重，保持原有顺序"""
+    from src.pages.prediction.result_modifier.types import case_key
+    seen = set()
+    deduped = []
+    for r in results:
+        k = case_key(r)
+        if k and k not in seen:
+            seen.add(k)
+            deduped.append(r)
+    return deduped
+
+
+def has_any_experience(experience_details: dict[str, str] | None) -> bool:
     if not experience_details:
         return False
     keys = ("research_details", "award_details", "internship_details", "paper_details")
-    for k in keys:
-        if not is_effectively_empty(experience_details.get(k, "")):
-            return True
-    return False
+    return any(not is_effectively_empty(experience_details.get(k, "")) for k in keys)

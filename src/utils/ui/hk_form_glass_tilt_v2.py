@@ -67,10 +67,10 @@ export default function(component) {
     try { el.dataset.hkTiltBound = '1'; } catch (e) {}
     el.classList.add('hk-glass-card', 'hk-tilt-card');
 
-    el.style.setProperty('--hk-tilt-x', '0deg');
-    el.style.setProperty('--hk-tilt-y', '0deg');
-    el.style.setProperty('--hk-glare-x', '50%');
-    el.style.setProperty('--hk-glare-y', '50%');
+    el.style.setProperty('--hk-tilt-x', (el.dataset.hkTiltCx || 0) + 'deg');
+    el.style.setProperty('--hk-tilt-y', (el.dataset.hkTiltCy || 0) + 'deg');
+    el.style.setProperty('--hk-glare-x', (el.dataset.hkTiltGx || 50) + '%');
+    el.style.setProperty('--hk-glare-y', (el.dataset.hkTiltGy || 50) + '%');
 
     if (prefersReducedMotion) return;
 
@@ -111,13 +111,33 @@ export default function(component) {
       '.stMultiSelect-popover'
     ].join(',');
 
+    let interactionLock = 0;
     function isInteracting(e) {
       try {
         if (e && e.target && e.target.closest(INTERACTIVE_SELECTOR)) return true;
-        if (document.activeElement && document.activeElement.closest(INTERACTIVE_SELECTOR)) return true;
+        const active = document.activeElement;
+        if (active && active.closest(INTERACTIVE_SELECTOR)) return true;
         if (document.querySelector(POPOVER_SELECTOR)) return true;
       } catch (err) {}
       return false;
+    }
+
+    function checkInteraction(e) {
+      if (isInteracting(e)) {
+        interactionLock = Date.now() + 200;
+        return true;
+      }
+      return Date.now() < interactionLock;
+    }
+
+    function onPointerDown(e) {
+      if (isInteracting(e)) {
+        targetTiltX = 0;
+        targetTiltY = 0;
+        targetGlareX = 50;
+        targetGlareY = 50;
+        ensureTicking();
+      }
     }
 
     let raf = 0;
@@ -127,17 +147,17 @@ export default function(component) {
     let enterTimer = 0;
     let tiltEnabled = false;
 
-    let targetTiltX = 0;
-    let targetTiltY = 0;
-    let currentTiltX = 0;
-    let currentTiltY = 0;
-    let velTiltX = 0;
-    let velTiltY = 0;
+    let targetTiltX = parseFloat(el.dataset.hkTiltTx || 0);
+    let targetTiltY = parseFloat(el.dataset.hkTiltTy || 0);
+    let currentTiltX = parseFloat(el.dataset.hkTiltCx || 0);
+    let currentTiltY = parseFloat(el.dataset.hkTiltCy || 0);
+    let velTiltX = parseFloat(el.dataset.hkTiltVx || 0);
+    let velTiltY = parseFloat(el.dataset.hkTiltVy || 0);
 
     let targetGlareX = 50;
     let targetGlareY = 50;
-    let currentGlareX = 50;
-    let currentGlareY = 50;
+    let currentGlareX = parseFloat(el.dataset.hkTiltGx || 50);
+    let currentGlareY = parseFloat(el.dataset.hkTiltGy || 50);
     let lastPx = 0.5;
     let lastPy = 0.5;
     let baseRect = null;
@@ -190,6 +210,17 @@ export default function(component) {
       el.style.setProperty('--hk-glare-x', currentGlareX.toFixed(1) + '%');
       el.style.setProperty('--hk-glare-y', currentGlareY.toFixed(1) + '%');
 
+      try {
+        el.dataset.hkTiltTx = targetTiltX.toFixed(4);
+        el.dataset.hkTiltTy = targetTiltY.toFixed(4);
+        el.dataset.hkTiltCx = currentTiltX.toFixed(4);
+        el.dataset.hkTiltCy = currentTiltY.toFixed(4);
+        el.dataset.hkTiltGx = currentGlareX.toFixed(2);
+        el.dataset.hkTiltGy = currentGlareY.toFixed(2);
+        el.dataset.hkTiltVx = velTiltX.toFixed(4);
+        el.dataset.hkTiltVy = velTiltY.toFixed(4);
+      } catch (e) {}
+
       const dTilt =
         Math.abs(currentTiltX - targetTiltX) + Math.abs(currentTiltY - targetTiltY);
       const dGlare =
@@ -236,7 +267,12 @@ export default function(component) {
       if (!tiltEnabled) return;
       if (window.innerWidth < 768) return;
 
-      if (isInteracting(e)) {
+      if (checkInteraction(e)) {
+        targetTiltX = 0;
+        targetTiltY = 0;
+        targetGlareX = 50;
+        targetGlareY = 50;
+        ensureTicking();
         return;
       }
 
@@ -294,7 +330,7 @@ export default function(component) {
         leaveTimer = 0;
       }
       leaveTimer = setTimeout(() => {
-        if (isInteracting()) {
+        if (checkInteraction()) {
           return;
         }
         leaveTimer = 0;
@@ -315,6 +351,7 @@ export default function(component) {
     el.addEventListener('pointerenter', onPointerEnter, { passive: true });
     el.addEventListener('pointermove', onPointerMove, { passive: true });
     el.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    el.addEventListener('pointerdown', onPointerDown, { passive: true });
     window.addEventListener('resize', onWindowResize, { passive: true });
     window.addEventListener('scroll', onWindowScroll, { passive: true });
 
@@ -338,6 +375,7 @@ export default function(component) {
       try { el.removeEventListener('pointermove', onPointerMove); } catch (e) {}
       try { el.removeEventListener('pointerenter', onPointerEnter); } catch (e) {}
       try { el.removeEventListener('pointerleave', onPointerLeave); } catch (e) {}
+      try { el.removeEventListener('pointerdown', onPointerDown); } catch (e) {}
       try { window.removeEventListener('resize', onWindowResize); } catch (e) {}
       try { window.removeEventListener('scroll', onWindowScroll); } catch (e) {}
       try {

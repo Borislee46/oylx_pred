@@ -11,21 +11,18 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
+from src.pages.prediction.result_modifier.utils import has_streamlit_runtime
+
+
 def _noop_decorator[P: ParamSpec, R](func: Callable[P, R]) -> Callable[P, R]:
     return func
-
-
-def _has_streamlit_runtime(st: Any) -> bool:
-    runtime = getattr(st, "runtime", None)
-    exists = getattr(runtime, "exists", None)
-    return bool(callable(exists) and exists())
 
 
 def cache_data(*args: Any, **kwargs: Any):
     try:
         import streamlit as st
 
-        if _has_streamlit_runtime(st):
+        if has_streamlit_runtime():
             return st.cache_data(*args, **kwargs)
     except ImportError:
         pass
@@ -43,7 +40,7 @@ def cache_resource(*args: Any, **kwargs: Any):
     try:
         import streamlit as st
 
-        if _has_streamlit_runtime(st):
+        if has_streamlit_runtime():
             return st.cache_resource(*args, **kwargs)
     except ImportError:
         pass

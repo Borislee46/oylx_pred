@@ -1,4 +1,6 @@
 import hashlib
+import json
+import os
 import time
 from typing import Any
 
@@ -9,8 +11,6 @@ from src.utils.logger import setup_logger
 
 
 class BaseAgent:
-    _memory_cache: dict[str, dict[str, Any]] = {}
-
     def __init__(
         self,
         config: dict[str, Any] | None = None,
@@ -35,6 +35,7 @@ class BaseAgent:
         self.cache_ttl = cache_ttl
         self.logger = setup_logger("page3", "prediction")
         self._session = requests.Session()
+        self._memory_cache: dict[str, dict[str, Any]] = {}
 
         if not self.api_url or not self.api_key:
             self.logger.error(f"[{self.agent_name}] API URL 或 API Key 未在配置中找到。")
@@ -43,6 +44,29 @@ class BaseAgent:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
+
+    def _load_persistent_json(self, cache_dir: str, cache_file: str) -> dict[str, Any]:
+        file_path = os.path.join(cache_dir, cache_file)
+        if not os.path.exists(file_path):
+            return {}
+        try:
+            with open(file_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except (OSError, json.JSONDecodeError) as e:
+            self.logger.warning(f"[{self.agent_name}] 加载持久化缓存失败: {e}")
+            return {}
+
+    def _save_persistent_json(self, cache_dir: str, cache_file: str, data: dict[str, Any]) -> None:
+        try:
+            os.makedirs(cache_dir, exist_ok=True)
+            file_path = os.path.join(cache_dir, cache_file)
+            tmp_path = f"{file_path}.tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, file_path)
+        except OSError as e:
+            self.logger.error(f"[{self.agent_name}] 保存持久化缓存失败: {e}")
 
     def _build_request_data(
         self,

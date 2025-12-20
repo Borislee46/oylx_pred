@@ -4,7 +4,7 @@ import json
 from functools import lru_cache
 from typing import Any
 
-from src.pages.prediction.result_modifier.utils import has_valid_experience_details
+from src.pages.prediction.result_modifier.utils import has_any_experience
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -31,7 +31,7 @@ class GatedTextBoostProvider(TextBoostProvider):
     def apply(
         self, probabilities: list[float], experience_details: dict[str, str]
     ) -> tuple[list[float], str]:
-        if not has_valid_experience_details(experience_details):
+        if not has_any_experience(experience_details):
             return probabilities, ""
         return self._inner.apply(probabilities, experience_details)
 

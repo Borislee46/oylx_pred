@@ -10,32 +10,21 @@ from src.utils.session_manager import SessionManager
 PROBABILITY_PRECISION = 6
 
 
-def _extract_key_fields(results: list[dict[str, Any]] | None) -> list[tuple[str, str, float]]:
-    if not results:
-        return []
-    return [
-        (
-            str(r.get("university") or ""),
-            str(r.get("major") or ""),
-            round(float(r.get("probability", 0.0) or 0.0), PROBABILITY_PRECISION),
-        )
-        for r in results
-        if isinstance(r, dict) and r.get("university") and r.get("major")
-    ]
-
-
 def _compute_results_hash(
     sim_results: list[dict[str, Any]] | None,
     cross_results: list[dict[str, Any]] | None,
     user_specified_results: list[dict[str, Any]] | None,
 ) -> str:
+    def _extract(res):
+        return [(str(r.get("university")), str(r.get("major")), round(float(r.get("probability", 0)), 4)) 
+                for r in (res or []) if isinstance(r, dict) and r.get("university")]
+
     combined = {
-        "sim": _extract_key_fields(sim_results),
-        "cross": _extract_key_fields(cross_results),
-        "user": _extract_key_fields(user_specified_results),
+        "s": _extract(sim_results),
+        "c": _extract(cross_results),
+        "u": _extract(user_specified_results),
     }
-    content = json.dumps(combined, sort_keys=True, ensure_ascii=False)
-    return hashlib.md5(content.encode()).hexdigest()
+    return hashlib.md5(json.dumps(combined, sort_keys=True).encode()).hexdigest()
 
 
 def display_results_section(

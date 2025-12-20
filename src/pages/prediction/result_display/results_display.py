@@ -1,18 +1,49 @@
 import streamlit as st
+import pandas as pd
 
-from src.pages.prediction.data_sort_config.top_result_ui_config import (
+from src.pages.prediction.data_sort_config import (
     TOP_CROSS_RESULT_UI_CONFIG,
     TOP_SIM_RESULT_UI_CONFIG,
+    UNIVERSITY_ORDER_MAP,
+    UNIVERSITY_SORT_ORDER,
 )
+from src.pages.prediction.core.utils import get_school_major_details
 from src.pages.prediction.result_modifier.config import TOP_N_RECOMMENDATIONS
+from src.pages.prediction.result_modifier.utils import get_probability
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
 
-from .dataframe_builder import DataFrameBuilder
-from .dataframe_styler import DataFrameStyler
-from .layout_manager import LayoutManager
-
 logger = setup_logger("page3", "prediction")
+
+
+def _get_column_config(df: pd.DataFrame, column_widths: dict | None = None, label_map: dict | None = None):
+    column_widths = column_widths or {}
+    label_map = label_map or {}
+
+    if "推荐专业详情" in df.columns and "推荐专业详情" not in column_widths:
+        column_widths["推荐专业详情"] = "large"
+
+    column_config = {}
+    for col_name in df.columns:
+        width = column_widths.get(col_name, "small")
+        label = label_map.get(col_name)
+
+        if col_name == "推荐专业详情":
+            column_config[col_name] = st.column_config.TextColumn(label=label, width=width)
+        elif col_name == "录取概率":
+            column_config[col_name] = st.column_config.ProgressColumn(
+                label=label,
+                width=width,
+                min_value=0,
+                max_value=1,
+                format=" ",
+                pinned=True,
+                color="#06b6d4",
+            )
+        else:
+            column_config[col_name] = st.column_config.TextColumn(label=label, width=width)
+
+    return column_config
 
 
 class ResultsDisplay:
@@ -44,74 +75,87 @@ class ResultsDisplay:
             },
         }
 
-        self.dataframe_builder = DataFrameBuilder()
-        self.dataframe_styler = DataFrameStyler()
-        self.layout_manager = LayoutManager(self)
-
-    def _display_dataframe(self, df, column_widths=None, result_type=None):
+    def _display_dataframe(self, df: pd.DataFrame, column_widths: dict | None = None, result_type: str | None = None):
         if df.empty:
             st.info("暂无可展示内容")
             return
 
         label_map = {}
-        if result_type and result_type in self.result_types and "推荐专业" in df.columns:
+        if result_type in self.result_types:
             title = self.result_types[result_type]["title"]
-            if title == "指定专业":
-                label_map["推荐专业"] = title
-            else:
-                label_map["推荐专业"] = f"{title}推荐"
+            label_map["推荐专业"] = title if title == "指定专业" else f"{title}推荐"
 
-        styled_df = self.dataframe_styler.create_styled_dataframe(df)
-        column_config = self.dataframe_styler.get_column_config(
-            df, column_widths, label_map=label_map
-        )
+        styled_df = df
+        major_col = next((c for c in df.columns if c.startswith("推荐专业")), None)
+        if major_col and df[major_col].str.contains("(new!)", regex=False).any():
+            styled_df = df.style.map(
+                lambda v: "color: #06b6d4;" if isinstance(v, str) and "(new!)" in v else "",
+                subset=[major_col]
+            )
+
         st.data_editor(
             styled_df,
             hide_index=True,
-            column_config=column_config,
+            column_config=_get_column_config(df, column_widths, label_map=label_map),
             disabled=True,
             key=f"prediction_result_editor_{result_type or 'default'}",
         )
 
-    def _get_result_dataframe(self, result_type, max_items=None):
-        config = self.result_types[result_type]
-        return self.dataframe_builder.create_results_dataframe(
-            results=config["results"],
-            max_items=max_items,
+    def _get_result_dataframe(self, result_type: str, max_items: int | None = None) -> pd.DataFrame:
+        results = self.result_types[result_type]["results"]
+        if not results:
+            return pd.DataFrame(columns=["推荐院校", "推荐专业", "录取概率", "推荐专业详情"])
+
+        sorted_results = sorted(
+            results,
+            key=lambda x: (
+                UNIVERSITY_ORDER_MAP.get(x.get("university"), len(UNIVERSITY_SORT_ORDER)),
+                -get_probability(x)
+            )
         )
 
-    def _display_result_type(self, result_type):
-        config = self.result_types[result_type]
+        if max_items:
+            sorted_results = sorted_results[:max_items]
 
-        max_items = None if result_type == "user_specified" else TOP_N_RECOMMENDATIONS
-
-        df = self._get_result_dataframe(
-            result_type,
-            max_items=max_items,
-        )
-        self._display_dataframe(df, config["config"], result_type=result_type)
+        data = {
+            "推荐院校": [r["university"] for r in sorted_results],
+            "推荐专业": [
+                f"{r['major']}(new!)" if r.get("is_new_major") else r["major"]
+                for r in sorted_results
+            ],
+            "录取概率": [get_probability(r) for r in sorted_results],
+            "推荐专业详情": [
+                get_school_major_details(r.get("university"), r.get("major")) or ""
+                for r in sorted_results
+            ],
+        }
+        return pd.DataFrame(data)
 
     def display(self):
         session_manager = SessionManager()
-        has_results = any(
-            [
-                self.top_similarity_results,
-                self.top_cross_major_results,
-                self.user_specified_results,
-            ]
-        )
-
-        if not has_results:
-            combination_count = session_manager.get("combination_count", 0)
-            st.info("无推荐结果。")
-            return
-
         combination_count = session_manager.get("combination_count", 0)
         pool_is_large = isinstance(combination_count, int) and combination_count > 10
+        
         has_user_specified = (not pool_is_large) and bool(self.user_specified_results)
         has_similarity = bool(self.top_similarity_results)
         has_cross_major = bool(self.top_cross_major_results)
 
-        self.layout_manager.display_results_layout(
-            has_user_specified, has_similarity, has_cross_major, pool_is_large
-        )
+        if not (has_user_specified or has_similarity or has_cross_major):
+            st.info("无推荐结果。")
+            return
+
+        if has_user_specified:
+            self._display_type("user_specified")
+        elif has_similarity and has_cross_major:
+            col1, col2 = st.columns(2)
+            with col1: self._display_type("similarity")
+            with col2: self._display_type("cross_major")
+        elif has_similarity:
+            self._display_type("similarity")
+        elif has_cross_major:
+            self._display_type("cross_major")
+
+    def _display_type(self, result_type: str):
+        max_items = None if result_type == "user_specified" else TOP_N_RECOMMENDATIONS
+        df = self._get_result_dataframe(result_type, max_items=max_items)
+        self._display_dataframe(df, self.result_types[result_type]["config"], result_type=result_type)

@@ -21,32 +21,35 @@ def _snippet(val: Any, max_len: int = DEFAULT_SNIPPET_MAX_LEN) -> str:
 def build_user_form_log(
     session_manager: SessionManager, log_data_source: dict[str, Any]
 ) -> dict[str, Any]:
-    language_type = log_data_source.get("language_type", "未知")
-    exp_details = (
-        log_data_source.get("experience_details") or {} if isinstance(log_data_source, dict) else {}
-    )
+    exp = log_data_source.get("experience_details", {})
+    
+    mapping = {
+        "background_university": "background_university",
+        "background_major": "background_major_original",
+        "gpa_scale": "gpa_scale",
+        "exam_type": "exam_type",
+        "exam_score": "exam_score",
+        "language_type": "language_type",
+        "research_count": "research_count",
+        "award_count": "award_count",
+        "internship_count": "internship_count",
+        "paper_count": "paper_count",
+    }
 
-    return {
-        "background_university": format_field(log_data_source.get("background_university")),
-        "background_major": format_field(log_data_source.get("background_major_original")),
-        "gpa_scale": format_field(log_data_source.get("gpa_scale")),
+    res = {k: format_field(log_data_source.get(v)) for k, v in mapping.items()}
+    
+    res.update({
         "gpa_score": format_float(log_data_source.get("gpa_raw"), 2),
-        "exam_type": format_field(log_data_source.get("exam_type")),
-        "exam_score": format_field(log_data_source.get("exam_score")),
+        "language_score": format_float(log_data_source.get("language_score_raw"), 2),
         "target_universities": format_list_field(log_data_source.get("target_universities", [])),
         "major_categories": format_list_field(session_manager.get("selected_major_categories", [])),
         "target_majors": format_list_field(log_data_source.get("target_majors", [])),
-        "language_type": format_field(language_type),
-        "language_score": format_float(log_data_source.get("language_score_raw"), 2),
-        "research_count": format_field(log_data_source.get("research_count")),
-        "award_count": format_field(log_data_source.get("award_count")),
-        "internship_count": format_field(log_data_source.get("internship_count")),
-        "paper_count": format_field(log_data_source.get("paper_count")),
-        "research_details": _snippet(exp_details.get("research_details")),
-        "award_details": _snippet(exp_details.get("award_details")),
-        "internship_details": _snippet(exp_details.get("internship_details")),
-        "paper_details": _snippet(exp_details.get("paper_details")),
-    }
+    })
+
+    for field in ("research_details", "award_details", "internship_details", "paper_details"):
+        res[field] = _snippet(exp.get(field))
+
+    return res
 
 
 def log_first_submission_if_needed(

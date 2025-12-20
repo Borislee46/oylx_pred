@@ -13,7 +13,7 @@ from src.pages.prediction.result_modifier.config import (
     TOP_N_RECOMMENDATIONS,
     UNIVERSITY_COUNT_THRESHOLD,
 )
-from src.pages.prediction.result_modifier.utils import clip_basic
+from src.pages.prediction.result_modifier.utils import clip_probability
 
 
 def get_similar_major_recommendations(
@@ -63,7 +63,7 @@ def get_similar_major_recommendations(
 
     for c in top_candidates:
         if isinstance(c, dict) and "probability" in c:
-            c["probability"] = clip_basic(c.get("probability", 0.0))
+            c["probability"] = clip_probability(c.get("probability", 0.0))
 
     top_candidates.sort(key=lambda x: x.get("probability", 0.0), reverse=True)
     return top_candidates
