@@ -36,8 +36,8 @@ def parse_bool(x: Any, default: bool = False) -> bool:
         return bool(x)
     if isinstance(x, str):
         s = x.strip().lower()
-        if s in {"true", "1", "yes", "y"}:
+        if any(word in s for word in {"true", "1", "yes", "y", "是", "对", "正确"}):
             return True
-        if s in {"false", "0", "no", "n", ""}:
+        if any(word in s for word in {"false", "0", "no", "n", "否", "错", "错误", ""}):
             return False
     return bool(default)

@@ -1,6 +1,7 @@
 import math
 import re
 from typing import Any
+from functools import lru_cache
 
 import pandas as pd
 
@@ -22,42 +23,40 @@ class LanguageRequirementPenalty:
     TOEFL_PATTERN = re.compile(r"TOEFL\s*[:：\s]*(\d{2,3})", re.IGNORECASE)
 
     @staticmethod
+    @lru_cache(maxsize=1024)
+    def _extract_from_text(text: str) -> dict[str, float]:
+        if not text:
+            return {}
+        res = {}
+        i_m = LanguageRequirementPenalty.IELTS_PATTERN.search(text)
+        if i_m:
+            res["IELTS"] = float(i_m.group(1))
+        t_m = LanguageRequirementPenalty.TOEFL_PATTERN.search(text)
+        if t_m:
+            res["TOEFL"] = float(t_m.group(1))
+        return res
+
+    @staticmethod
     def extract_requirement(row: pd.Series) -> dict[str, float]:
         requirements = {}
 
-        ielts_val = row.get("IELTS")
-        if pd.notna(ielts_val):
-            match = LanguageRequirementPenalty.IELTS_PATTERN.search(str(ielts_val))
-            if match:
-                requirements["IELTS"] = float(match.group(1))
-            else:
+        for key in ["IELTS", "TOEFL"]:
+            val = row.get(key)
+            if pd.notna(val):
                 try:
-                    requirements["IELTS"] = float(ielts_val)
+                    requirements[key] = float(val)
                 except (ValueError, TypeError):
-                    pass
+                    text_res = LanguageRequirementPenalty._extract_from_text(str(val))
+                    if key in text_res:
+                        requirements[key] = text_res[key]
 
-        toefl_val = row.get("TOEFL")
-        if pd.notna(toefl_val):
-            match = LanguageRequirementPenalty.TOEFL_PATTERN.search(str(toefl_val))
-            if match:
-                requirements["TOEFL"] = float(match.group(1))
-            else:
-                try:
-                    requirements["TOEFL"] = float(toefl_val)
-                except (ValueError, TypeError):
-                    pass
-
-        if not requirements.get("IELTS") or not requirements.get("TOEFL"):
+        if "IELTS" not in requirements or "TOEFL" not in requirements:
             admission_req = row.get("录取要求", "")
-            if pd.notna(admission_req) and isinstance(admission_req, str):
-                if not requirements.get("IELTS"):
-                    match = LanguageRequirementPenalty.IELTS_PATTERN.search(admission_req)
-                    if match:
-                        requirements["IELTS"] = float(match.group(1))
-                if not requirements.get("TOEFL"):
-                    match = LanguageRequirementPenalty.TOEFL_PATTERN.search(admission_req)
-                    if match:
-                        requirements["TOEFL"] = float(match.group(1))
+            if isinstance(admission_req, str) and admission_req:
+                text_res = LanguageRequirementPenalty._extract_from_text(admission_req)
+                for key in ["IELTS", "TOEFL"]:
+                    if key not in requirements and key in text_res:
+                        requirements[key] = text_res[key]
 
         return requirements
 
@@ -117,22 +116,29 @@ class LanguageRequirementPenalty:
         if not results or user_lang_score is None:
             return results
 
+        processed = []
         for res in results:
             univ = res.get("university")
             major = res.get("major")
             if not univ or not major:
+                processed.append(res)
                 continue
 
             row = _data_manager.get_row(univ, major)
             if row is None:
+                processed.append(res)
                 continue
 
             reqs = cls.extract_requirement(row)
             penalty = cls.calculate_penalty(user_lang_score, user_lang_type, reqs)
 
             if penalty < 1.0:
-                original_prob = res.get("probability", 0.0)
-                res["probability"] = original_prob * penalty
-                res["language_penalty_applied"] = True
+                res_copy = res.copy()
+                original_prob = res_copy.get("probability", 0.0)
+                res_copy["probability"] = original_prob * penalty
+                res_copy["language_penalty_applied"] = True
+                processed.append(res_copy)
+            else:
+                processed.append(res)
 
-        return results
+        return processed

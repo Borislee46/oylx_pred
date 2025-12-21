@@ -174,22 +174,15 @@ div[data-baseweb="menu"] > div:only-child {
 
 .stApp .stMultiSelect [data-baseweb="tag"] {
     position: relative !important;
-    border-radius: 999px !important;
-    border: 1px solid rgba(6, 182, 212, 0.55) !important;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.18)),
-        radial-gradient(180px circle at 30% 25%, rgba(33, 255, 244, 0.18), rgba(33, 255, 244, 0) 60%),
-        linear-gradient(120deg, rgba(6, 182, 212, 0.16), rgba(6, 182, 212, 0.06)) !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(6, 182, 212, 0.4) !important;
+    background: rgba(6, 182, 212, 0.08) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.72),
-        inset 0 -1px 0 rgba(15, 23, 42, 0.08),
-        0 2px 6px rgba(15, 23, 42, 0.10) !important;
-    transition:
-        transform var(--hk-transition-fast),
-        box-shadow var(--hk-transition-fast),
-        background var(--hk-transition-fast),
-        border-color var(--hk-transition-fast) !important;
-    transform: translateZ(0) !important;
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        0 2px 4px rgba(15, 23, 42, 0.05) !important;
+    transition: all 0.2s ease !important;
 }
 
 .stApp .stMultiSelect [data-baseweb="tag"] span {
@@ -200,12 +193,12 @@ div[data-baseweb="menu"] > div:only-child {
 }
 
 .stApp .stMultiSelect [data-baseweb="tag"]:hover {
-    border-color: rgba(6, 182, 212, 0.78) !important;
+    background: rgba(6, 182, 212, 0.12) !important;
+    border-color: var(--hk-cyan) !important;
     transform: translateY(-1px) !important;
     box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.78),
-        inset 0 -1px 0 rgba(15, 23, 42, 0.06),
-        0 5px 12px rgba(15, 23, 42, 0.14) !important;
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        0 4px 8px rgba(6, 182, 212, 0.1) !important;
 }
 
 .stApp div[data-baseweb="select"] [data-testid="stMarkdownContainer"] + div svg,
@@ -514,4 +507,35 @@ div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
     padding: 0 4px;
     border-radius: 4px;
     font-weight: 700;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.02);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(6, 182, 212, 0.2);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(6, 182, 212, 0.4);
+    border: 1px solid transparent;
+    background-clip: content-box;
+}
+
+/* Selection */
+::selection {
+    background: var(--hk-cyan-alpha-30);
+    color: var(--hk-cyan-dark);
 }

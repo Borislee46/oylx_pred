@@ -8,10 +8,10 @@ from src.pages.prediction.handler_config import (
     FormSubmissionContext,
     SessionKeys,
 )
-from src.pages.prediction.prediction_preparation.data_preparer import prepare_input_data
-from src.pages.prediction.prediction_preparation.fingerprint import (
+from src.pages.prediction.prediction_preparation import (
     compute_df_fingerprint,
     compute_list_fingerprint,
+    prepare_input_data,
 )
 from src.pages.prediction.result_modifier.experience_text_validator import (
     has_meaningful_experience_text,

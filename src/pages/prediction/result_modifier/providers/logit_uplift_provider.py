@@ -22,7 +22,7 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.signal_scorer i
     SignalScorer,
 )
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
-from src.pages.prediction.result_modifier.utils import has_valid_experience_details
+from src.pages.prediction.result_modifier.utils import has_any_experience
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
@@ -128,7 +128,7 @@ class LogitUpliftProvider(TextBoostProvider):
     ) -> tuple[list[float], str]:
         if not probabilities:
             return probabilities, ""
-        if not has_valid_experience_details(experience_details):
+        if not has_any_experience(experience_details):
             return probabilities, ""
 
         sig = self._text_processor.make_signature(experience_details)

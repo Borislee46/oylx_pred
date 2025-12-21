@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 from typing import Any
 
 import pandas as pd
@@ -18,7 +17,7 @@ class BoundaryCaseAgent(BaseAgent):
     def __init__(self, cases_df: pd.DataFrame, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="边界CaseAgent")
         self.cases_df = cases_df
-        self._persistent_cache = self._load_persistent_cache()
+        self._persistent_cache = self._load_persistent_json(CACHE_DIR, CACHE_FILE)
 
     def _case_cache_key(self, background_major: str, case: dict[str, Any], mode: str) -> str:
         university = str(case.get("university", "")).strip()
@@ -34,26 +33,8 @@ class BoundaryCaseAgent(BaseAgent):
         payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(payload.encode("utf-8")).hexdigest()
 
-    def _load_persistent_cache(self) -> dict[str, Any]:
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        if not os.path.exists(file_path):
-            return {}
-
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError) as e:
-            self.logger.warning(f"[{self.agent_name}] 加载持久化缓存失败: {e}")
-            return {}
-
     def _flush_persistent_cache(self) -> None:
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        tmp_path = f"{file_path}.tmp"
-        with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(self._persistent_cache, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, file_path)
+        self._save_persistent_json(CACHE_DIR, CACHE_FILE, self._persistent_cache)
 
     def evaluate_boundary_cases(
         self,
@@ -61,7 +42,7 @@ class BoundaryCaseAgent(BaseAgent):
         boundary_cases: list[dict[str, Any]],
         mode: str,
         use_persistent_cache: bool = True,
-        chunk_size: int = 15,
+        chunk_size: int = 40,
     ) -> dict[str, Any]:
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
@@ -104,7 +85,7 @@ class BoundaryCaseAgent(BaseAgent):
             )
 
             prompt = build_boundary_evaluation_prompt(background_major, current_batch_cases, mode)
-            content = self._call_api(prompt)
+            content = self._call_api(prompt, max_tokens=256)
 
             if content is None:
                 continue
@@ -115,7 +96,7 @@ class BoundaryCaseAgent(BaseAgent):
             except json.JSONDecodeError:
                 repaired = self._repair_json_once(
                     content,
-                    schema_hint='{"reasoning": "string", "decisions": [bool, ...], "needs_adjustment": bool}',
+                    schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
                     cache_prefix="boundary_json_repair",
                 )
                 if not repaired:
@@ -132,7 +113,7 @@ class BoundaryCaseAgent(BaseAgent):
             if len(agent_decisions) != len(current_batch_cases):
                 repaired = self._repair_json_once(
                     json.dumps(result, ensure_ascii=False),
-                    schema_hint=f'{{"reasoning": "string", "decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
+                    schema_hint=f'{{"decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
                     cache_prefix="boundary_json_repair_len",
                 )
                 if repaired:

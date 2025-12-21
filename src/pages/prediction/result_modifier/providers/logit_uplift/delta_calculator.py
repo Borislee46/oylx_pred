@@ -15,6 +15,8 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor 
 from src.pages.prediction.result_modifier.providers.logit_uplift.utils import safe_float
 
 
+from functools import lru_cache
+
 class DeltaCalculator:
     def __init__(
         self,
@@ -29,19 +31,15 @@ class DeltaCalculator:
         self._text_processor = text_processor
         self._sim_gate_sum_min = sim_gate_sum_min
         self._sim_gate_max_min = sim_gate_max_min
-        self._delta_cache: dict[
-            str, tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]
-        ] = {}
-        self._cache_maxsize = 512
+        self._get_delta_logit_cached = lru_cache(maxsize=512)(self._compute_delta_logit_raw)
 
-    def _compute_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
+    def _compute_delta_logit_raw(self, sig: str) -> tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]:
         weights_array = self._model_loader.weights_array
         text_keys = self._text_processor.text_keys
         count_keys = self._text_processor.count_keys
 
         num_text_features = len(text_keys)
-        num_count_features = len(count_keys)
-
+        
         try:
             details = json.loads(sig)
         except (json.JSONDecodeError, TypeError, ValueError):
@@ -54,47 +52,25 @@ class DeltaCalculator:
         smax = max(s_values) if s_values else 0.0
 
         if ssum < self._sim_gate_sum_min or smax < self._sim_gate_max_min:
-            return 0.0, sims, reasons
+            return 0.0, tuple(sims.items()), reasons
 
-        # 对于极小规模特征（4个），原生 math.log1p 和循环比 numpy 快得多
         log_counts = [math.log1p(safe_float(details.get(k, 0))) for k in count_keys]
 
         bias_idx = 0
         text_weights_start = bias_idx + 1
         text_weights_end = text_weights_start + num_text_features
-
         interact_weights_start = text_weights_end
-        interact_weights_end = interact_weights_start + num_text_features
-
-        if len(weights_array) < interact_weights_end:
-            return 0.0, sims, reasons
 
         delta = weights_array[bias_idx]
         for i in range(num_text_features):
             delta += weights_array[text_weights_start + i] * s_values[i]
 
-        if num_count_features == num_text_features:
+        if len(count_keys) == num_text_features and len(weights_array) >= interact_weights_start + num_text_features:
             for i in range(num_text_features):
                 delta += weights_array[interact_weights_start + i] * s_values[i] * log_counts[i]
 
-        delta = max(0.0, float(delta))
-
-        return delta, sims, reasons
-
-    def _cached_delta_logit_internal(
-        self, sig: str
-    ) -> tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]:
-        if sig in self._delta_cache:
-            return self._delta_cache[sig]
-
-        delta, sims, reasons = self._compute_delta_logit(sig)
-        result = delta, tuple(sims.items()), reasons
-
-        if len(self._delta_cache) >= self._cache_maxsize:
-            self._delta_cache.clear()
-        self._delta_cache[sig] = result
-        return result
+        return max(0.0, float(delta)), tuple(sims.items()), reasons
 
     def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
-        delta, sims_tuple, reasons = self._cached_delta_logit_internal(sig)
+        delta, sims_tuple, reasons = self._get_delta_logit_cached(sig)
         return delta, dict(sims_tuple), reasons

@@ -10,7 +10,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.pages.prediction.core.utils import get_background_faculty
+from src.pages.prediction.core.utils import get_background_faculty, is_new_major
 from src.pages.prediction.flow.run_prediction import run_single_prediction
 from src.pages.prediction.input_form_components import FormValidator, GPAConverter
 from src.pages.prediction.input_form_components.cross_faculty_guard import (
@@ -23,11 +23,13 @@ from src.pages.prediction.input_form_components.form_config import (
 )
 from src.pages.prediction.input_form_components.validation_errors import ValidationError
 from src.pages.prediction.page_data_loader import cached_get_prediction_model
-from src.pages.prediction.prediction_preparation.data_preparer import prepare_input_data
+from src.pages.prediction.prediction_preparation import (
+    prepare_input_data,
+    validate_and_clean_input,
+)
 from src.pages.prediction.prediction_preparation.form_normalizer import (
     normalize_form_data_for_prediction,
 )
-from src.pages.prediction.prediction_preparation.input_validator import validate_and_clean_input
 from src.pages.prediction.result_modifier import AdjustmentContext, ProbabilityAdjustmentPipeline
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
@@ -37,9 +39,6 @@ from src.pages.prediction.result_modifier.experience_text_validator import (
     has_meaningful_experience_text,
 )
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
-from src.pages.prediction.result_modifier.professional_adjustment import (
-    adjust_for_professional_majors,
-)
 from src.pages.prediction.result_modifier.text_boost_provider import get_text_boost_provider
 from src.pages.prediction.results_handler import combine_and_deduplicate_results
 from src.utils.app_data_loader import (
@@ -52,33 +51,25 @@ logger = logging.getLogger(__name__)
 
 
 def _list_str(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(v) for v in value if v is not None and str(v).strip()]
+    return [str(v).strip() for v in value if v and str(v).strip()] if isinstance(value, list) else []
 
 
 def _dict_str(value: Any) -> dict[str, str]:
-    if not isinstance(value, dict):
-        return {}
-    return {str(k): str(v) for k, v in value.items() if k is not None}
-
-
-def _safe_int(value: Any, default: int = 0) -> int:
-    if value is None or value == "":
-        return default
-    try:
-        return int(float(value))
-    except (ValueError, TypeError):
-        return default
+    return {str(k): str(v) for k, v in value.items() if k is not None} if isinstance(value, dict) else {}
 
 
 def _safe_float(value: Any) -> float | None:
-    if value is None or value == "":
-        return None
     try:
-        return float(value)
+        return float(value) if value is not None and value != "" else None
     except (ValueError, TypeError):
         return None
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(float(value)) if value is not None and value != "" else default
+    except (ValueError, TypeError):
+        return default
 
 
 def _parse_gpa_raw(value: Any) -> float | None:
@@ -312,41 +303,34 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         internship_count = cleaned_input.get("internship_count", 0)
         user_specified_majors = cleaned_input.get("target_majors", [])
 
-        sim_results = adjust_for_professional_majors(
-            sim_results, internship_count, user_specified_majors
-        )
-        cross_results = adjust_for_professional_majors(
-            cross_results, internship_count, user_specified_majors
-        )
-        user_specified_results = adjust_for_professional_majors(
-            user_specified_results if isinstance(user_specified_results, list) else [],
-            internship_count,
-            user_specified_majors,
-        )
+        # 准备录取组合缓存
+        admitted_combos = get_admitted_combinations_from_dataframe(cases_df, cleaned_input.get("background_major", ""))
+        bg_faculty = get_background_faculty(cleaned_input.get("background_major", ""), cases_df)
+        
+        # 批量查询新专业状态缓存
+        all_res_raw = sim_results + cross_results + (user_specified_results or [])
+        new_major_cache = {}
+        for r in all_res_raw:
+            u, m = r.get("university"), r.get("major")
+            if u and m and (u, m) not in new_major_cache:
+                new_major_cache[(u, m)] = is_new_major(u, m)
 
-        admitted_combinations = get_admitted_combinations_from_dataframe(
-            cases_df, cleaned_input.get("background_major", "")
-        )
-        background_faculty = get_background_faculty(
-            cleaned_input.get("background_major", ""), cases_df
-        )
         adj_ctx = AdjustmentContext(
             gpa=gpa,
             language_score=language_score,
             background_university=background_university,
             background_major=cleaned_input.get("background_major"),
-            background_faculty=background_faculty,
+            background_faculty=bg_faculty,
             internship_count=internship_count,
             user_specified_majors=user_specified_majors,
             experience_details=cleaned_input.get("experience_details", {}),
             cases_df=cases_df,
-            admitted_combinations=admitted_combinations,
+            admitted_combinations=admitted_combos,
+            is_new_major_cache=new_major_cache,
         )
 
-        has_valid_experience = has_meaningful_experience_text(adj_ctx.experience_details)
-        text_provider = (
-            get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_experience else None
-        )
+        has_valid_exp = has_meaningful_experience_text(adj_ctx.experience_details)
+        text_provider = get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_exp else None
 
         adjuster_pipeline = ProbabilityAdjustmentPipeline(
             probability_adjuster=probability_adjuster,
@@ -356,7 +340,8 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
 
         sim_results = adjuster_pipeline.adjust_batch(sim_results, adj_ctx)
         cross_results = adjuster_pipeline.adjust_batch(cross_results, adj_ctx)
-        user_specified_results = adjuster_pipeline.adjust_batch(user_specified_results, adj_ctx)
+        if user_specified_results:
+            user_specified_results = adjuster_pipeline.adjust_batch(user_specified_results, adj_ctx)
 
         unified_results = combine_and_deduplicate_results(
             sim_results, cross_results, user_specified_results

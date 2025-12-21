@@ -1,7 +1,7 @@
 from typing import Any
 
 from src.pages.prediction.result_modifier.config import FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR
-from src.pages.prediction.result_modifier.utils import clip_basic
+from src.pages.prediction.result_modifier.utils import clip_probability
 
 CROSS_FACULTY_RULES: dict[str, set[str]] = {
     "文学院": {"文学院", "社会科学院", "教育学院", "商学院", "艺术学院"},
@@ -111,8 +111,8 @@ def apply_out_of_scope_faculty_penalty(
         faculty = str(s.get("faculty", "")).strip()
         if faculty and faculty not in allowed_faculties:
             prob = s.get("probability", 0.0)
-            adjusted_prob = clip_basic(prob) * factor
+            adjusted_prob = clip_probability(prob) * factor
             s = s.copy()
-            s["probability"] = clip_basic(adjusted_prob)
+            s["probability"] = clip_probability(adjusted_prob)
         adjusted.append(s)
     return adjusted

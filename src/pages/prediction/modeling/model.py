@@ -1,4 +1,6 @@
-from typing import Any
+import streamlit as st
+from functools import lru_cache
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -14,8 +16,23 @@ from src.utils.school_level_service import get_school_level_service
 page_logger = setup_logger("page3", "prediction")
 
 
+def validate_model_and_features(prediction_model: Optional["PredictionModel"]) -> Optional[List[str]]:
+    if prediction_model is None:
+        st.error("关键配置错误：无法加载预测模型。")
+        page_logger.critical("prediction_model 为 None")
+        return None
+
+    features = getattr(prediction_model, "feature_names", None)
+    if features:
+        return features
+    
+    page_logger.error("模型特征列表为空")
+    st.error("模型配置错误：特征列表为空。")
+    return None
+
+
 class PredictionModel:
-    def __init__(self, model_type: str, global_categories_df: pd.DataFrame | None = None):
+    def __init__(self, model_type: str, global_categories_df: Optional[pd.DataFrame] = None):
         self.model_type = model_type
         self.model, self.feature_names, self.level_fallback_mapping = load_model(model_type)
 
@@ -24,36 +41,29 @@ class PredictionModel:
 
         if not isinstance(self.feature_names, list):
             self.feature_names = None
-            page_logger.warning(
-                f"模型 '{model_type}' 未提供 feature_names，将依赖传入的 expected_features"
-            )
+            page_logger.warning(f"模型 '{model_type}' 未提供 feature_names")
 
         self.school_level_service = get_school_level_service()
-
-        if self.level_fallback_mapping is None:
-            self.level_fallback_mapping = {}
-            page_logger.warning("未找到 level_fallback_mapping，未知学校将使用默认编码 -1")
-
+        self.level_fallback_mapping = self.level_fallback_mapping or {}
+        
         self._setup_global_categories(global_categories_df)
         self._enable_categorical = self._check_categorical_support()
-        self._preprocessed_cache: dict[tuple, dict[str, Any]] = {}
-        self._cache_maxsize = 128
+        
+        self._get_base_features_cached = lru_cache(maxsize=128)(self._preprocess_base_features_raw)
 
-    def _setup_global_categories(self, global_categories_df: pd.DataFrame | None):
+    def _setup_global_categories(self, global_categories_df: Optional[pd.DataFrame]):
         self.global_categories = {}
         self.global_category_index = {}
 
         if global_categories_df is None:
-            page_logger.error("未提供 global_categories_df，无法为分类特征建立全局类别映射")
+            page_logger.error("未提供 global_categories_df")
             return
 
         for col in CATEGORICAL_COLUMNS:
             if col not in global_categories_df.columns:
-                page_logger.warning(f"分类列 '{col}' 未在提供的 global_categories_df 中找到")
                 continue
 
             if not pd.api.types.is_categorical_dtype(global_categories_df[col]):
-                page_logger.warning(f"列 '{col}' 不是 category 类型")
                 continue
 
             categories = global_categories_df[col].cat.categories.tolist()
@@ -61,182 +71,115 @@ class PredictionModel:
             self.global_category_index[col] = {str(cat): idx for idx, cat in enumerate(categories)}
 
     def _check_categorical_support(self) -> bool:
-        booster = None
-        if hasattr(self.model, "get_booster"):
-            booster = self.model.get_booster()
-        if booster is not None:
-            feature_types = getattr(booster, "feature_types", None)
-            if feature_types and any(t == "c" for t in feature_types):
-                return True
-
-        if hasattr(self.model, "get_xgb_params"):
-            return bool(self.model.get_xgb_params().get("enable_categorical", False))
+        try:
+            if hasattr(self.model, "get_booster"):
+                booster = self.model.get_booster()
+                if booster and getattr(booster, "feature_types", None):
+                    return any(t == "c" for t in booster.feature_types)
+            
+            if hasattr(self.model, "get_xgb_params"):
+                return bool(self.model.get_xgb_params().get("enable_categorical", False))
+        except Exception:
+            pass
         return False
 
-    def _log_transform_value(self, value: Any) -> float:
-        numeric_val = pd.to_numeric(value, errors="coerce")
-        return float(np.log1p(max(0, numeric_val if not pd.isna(numeric_val) else 0)))
-
-    def _get_category_code(self, col: str, value: Any) -> int:
-        index_map = self.global_category_index.get(col)
-        if index_map is None:
-            return 0
-
-        str_val = str(value)
-        code = index_map.get(str_val, -1)
-
-        if code == -1 and col == "background_university" and self.level_fallback_mapping:
-            school_level = self.school_level_service.get_school_level(str_val)
-            fallback_school = self.level_fallback_mapping.get(school_level)
-
-            if fallback_school:
-                fallback_code = index_map.get(str(fallback_school), -1)
-                if fallback_code != -1:
-                    return fallback_code
-
-        return code
-
-    def _preprocess_single_value(self, col: str, value: Any) -> float:
+    def _preprocess_single_value(self, col: str, value: Any) -> Any:
+        """单值预处理逻辑"""
         if col in COUNT_COLUMNS_FOR_LOG_TRANSFORM:
-            return self._log_transform_value(value)
-        elif col in CATEGORICAL_COLUMNS:
+            num = pd.to_numeric(value, errors="coerce")
+            return float(np.log1p(max(0, num if not pd.isna(num) else 0)))
+        
+        if col in CATEGORICAL_COLUMNS:
             if self._enable_categorical:
-                if value is None or (isinstance(value, float) and np.isnan(value)):
-                    return ""
-                return str(value)
-            return float(self._get_category_code(col, value))
-        else:
-            try:
-                return float(value)
-            except (ValueError, TypeError):
-                return 0.0
+                return str(value) if value is not None and not (isinstance(value, float) and np.isnan(value)) else ""
+            
+            # 非原生分类支持时，使用编码
+            idx_map = self.global_category_index.get(col, {})
+            str_val = str(value)
+            code = idx_map.get(str_val, -1)
+            
+            # 学校等级回退逻辑
+            if code == -1 and col == "background_university" and self.level_fallback_mapping:
+                level = self.school_level_service.get_school_level(str_val)
+                fallback = self.level_fallback_mapping.get(level)
+                if fallback:
+                    code = idx_map.get(str(fallback), -1)
+            return float(code)
 
-    def _get_preprocessed_base_features(
-        self, input_data_tuple: tuple, features_to_use: list[str]
-    ) -> dict[str, Any]:
-        cache_key = (input_data_tuple, tuple(features_to_use))
-        if cache_key in self._preprocessed_cache:
-            return self._preprocessed_cache[cache_key]
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.0
 
-        input_data = dict(input_data_tuple)
-        base_features = [
-            f for f in features_to_use if f not in ["target_university", "target_major"]
-        ]
-
-        result = {
-            feat: self._preprocess_single_value(feat, input_data.get(feat, np.nan))
-            for feat in base_features
+    def _preprocess_base_features_raw(self, input_tuple: tuple, features_to_use: tuple) -> Dict[str, Any]:
+        """原始预处理逻辑（供 lru_cache 包装）"""
+        input_data = dict(input_tuple)
+        exclude = {"target_university", "target_major"}
+        return {
+            f: self._preprocess_single_value(f, input_data.get(f, np.nan))
+            for f in features_to_use if f not in exclude
         }
-
-        if len(self._preprocessed_cache) >= self._cache_maxsize:
-            self._preprocessed_cache.clear()
-        self._preprocessed_cache[cache_key] = result
-        return result
 
     def _create_prediction_dataframe(
         self,
-        combinations: list[tuple[str, str]],
-        preprocessed_base: dict[str, Any],
-        features_to_use: list[str],
+        combinations: List[Tuple[str, str]],
+        base_features: Dict[str, Any],
+        features_to_use: List[str],
     ) -> pd.DataFrame:
-        if not combinations:
-            return pd.DataFrame()
-
         n = len(combinations)
-        universities, majors = zip(*combinations, strict=True)
-        allowed_features = set(features_to_use)
-        data_dict = {}
+        unis, majors = zip(*combinations)
+        data = {}
 
-        for feat, value in preprocessed_base.items():
-            if feat not in allowed_features:
+        for feat in features_to_use:
+            if feat == "target_university":
+                vals = list(unis)
+            elif feat == "target_major":
+                vals = list(majors)
+            elif feat in base_features:
+                vals = [base_features[feat]] * n
+            else:
                 continue
 
-            if feat in CATEGORICAL_COLUMNS and self._enable_categorical:
-                data_dict[feat] = pd.Categorical(
-                    [value] * n, categories=self.global_categories.get(feat, []), ordered=False
-                )
+            if self._enable_categorical and feat in self.global_categories:
+                data[feat] = pd.Categorical(vals, categories=self.global_categories[feat], ordered=False)
+            elif feat in CATEGORICAL_COLUMNS:
+                idx_map = self.global_category_index.get(feat, {})
+                data[feat] = pd.Series(vals).astype(str).map(idx_map).fillna(-1).astype(np.int32).values
             else:
-                dtype = np.int32 if feat in CATEGORICAL_COLUMNS else np.float32
-                data_dict[feat] = np.full(n, value, dtype=dtype)
+                data[feat] = np.array(vals, dtype=np.float32)
 
-        self._add_categorical_feature(
-            data_dict, "target_university", list(universities), allowed_features
-        )
-        self._add_categorical_feature(data_dict, "target_major", list(majors), allowed_features)
-
-        return pd.DataFrame(data_dict, columns=features_to_use)
-
-    def _add_categorical_feature(
-        self, data_dict: dict, feature_name: str, values: list, allowed_features: set[str]
-    ):
-        if feature_name not in allowed_features:
-            return
-
-        if self._enable_categorical and feature_name in self.global_categories:
-            data_dict[feature_name] = pd.Categorical(
-                values, categories=self.global_categories[feature_name], ordered=False
-            )
-        else:
-            index_map = self.global_category_index.get(feature_name, {})
-            codes = (
-                pd.Series(values, dtype=object)
-                .astype(str)
-                .map(index_map)
-                .fillna(-1)
-                .astype(np.int32)
-            )
-            data_dict[feature_name] = codes.values
+        return pd.DataFrame(data, columns=features_to_use)
 
     def predict_batch(
         self,
-        input_data: dict[str, Any],
-        combinations: list[tuple[str, str]],
-        expected_features: list[str],
-    ) -> list[dict[str, Any]]:
-        if not combinations:
-            page_logger.warning("预测组合列表为空")
+        input_data: Dict[str, Any],
+        combinations: List[Tuple[str, str]],
+        expected_features: List[str],
+    ) -> List[Dict[str, Any]]:
+        if not combinations or not self.model:
             return []
 
-        if not self.model:
-            page_logger.error("预测模型未初始化")
-            raise ValueError("预测模型未初始化")
-
-        features_to_use = (
-            self.feature_names
-            if isinstance(self.feature_names, list) and self.feature_names
-            else expected_features
-        )
-        if not features_to_use:
-            page_logger.warning("预测特征列表为空")
+        features = self.feature_names or expected_features
+        if not features:
             return []
 
-        input_data_tuple = tuple(sorted(input_data.items()))
-        preprocessed_base = self._get_preprocessed_base_features(input_data_tuple, features_to_use)
+        # 缓存基础特征预处理结果
+        input_tuple = tuple(sorted(input_data.items()))
+        base_preprocessed = self._get_base_features_cached(input_tuple, tuple(features))
 
-        prediction_df = self._create_prediction_dataframe(
-            combinations, preprocessed_base, features_to_use
-        )
-
-        if prediction_df.empty:
-            page_logger.warning("预测DataFrame为空")
+        df = self._create_prediction_dataframe(combinations, base_preprocessed, features)
+        if df.empty:
             return []
 
         try:
-            probas = self.model.predict_proba(prediction_df)
+            probas = self.model.predict_proba(df)
             if probas.ndim == 2 and probas.shape[1] > 1:
                 probas = probas[:, 1]
 
             return [
-                {"university": univ, "major": major, "probability": float(proba)}
-                for (univ, major), proba in zip(combinations, probas, strict=True)
+                {"university": u, "major": m, "probability": float(p)}
+                for (u, m), p in zip(combinations, probas, strict=True)
             ]
         except Exception as e:
             page_logger.error(f"模型预测失败: {e}", exc_info=True)
             raise
-
-    def predict_probability(self, input_df: pd.DataFrame) -> float | None:
-        if self.model is None:
-            return None
-
-        proba = self.model.predict_proba(input_df)[0, 1]
-        return float(proba)

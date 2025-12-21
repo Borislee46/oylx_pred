@@ -11,7 +11,7 @@ from src.pages.prediction.result_modifier.strategies import (
 )
 from src.pages.prediction.result_modifier.types import CaseKey, case_key
 from src.pages.prediction.result_modifier.ui_handler import RankerUIHandler
-from src.pages.prediction.result_modifier.utils import clip_basic
+from src.pages.prediction.result_modifier.utils import clip_probability, get_probability, deduplicate_results
 
 
 # 当前场景heapq未必比sorted快, candidate多（十万级？）的话可换heapq
@@ -26,43 +26,41 @@ def _pick_supplement_cases_by_probability(
     if not candidates:
         return []
 
-    def _p(x: dict[str, Any]) -> float:
-        val = x.get("probability", 0.0)
-        if val is None:
-            return 0.0
-        if isinstance(val, (int, float)):
-            return float(val)
-        try:
-            return float(val)
-        except (TypeError, ValueError):
-            return 0.0
-
-    seen: set[tuple[Any, Any]] = set()
-    picked: list[dict[str, Any]] = []
-
-    for r in sorted(candidates, key=_p, reverse=True):
+    with_prob = []
+    for r in candidates:
         k = case_key(r)
-        if not k or k in top_set or k in seen:
-            continue
-        seen.add(k)
-        picked.append(r)
-        if len(picked) >= k_high:
-            break
+        if k and k not in top_set:
+            with_prob.append((r, get_probability(r), k))
+    
+    if not with_prob:
+        return []
 
-    low = max(0.0, p_min - band_delta)
-    high = min(1.0, p_min + band_delta)
-    band = [r for r in candidates if low <= _p(r) <= high]
-    band.sort(key=lambda r: abs(_p(r) - p_min))
-
-    for r in band:
+    with_prob.sort(key=lambda x: x[1], reverse=True)
+    
+    picked = []
+    seen = set()
+    
+    for r, p, k in with_prob:
+        if k not in seen:
+            seen.add(k)
+            picked.append(r)
+            if len(picked) >= k_high:
+                break
+    
+    low = p_min - band_delta
+    high = p_min + band_delta
+    
+    band_candidates = [
+        (r, p, k) for r, p, k in with_prob 
+        if k not in seen and low <= p <= high
+    ]
+    band_candidates.sort(key=lambda x: abs(x[1] - p_min))
+    
+    for r, p, k in band_candidates:
         if len(picked) >= (k_high + k_band):
             break
-        k = case_key(r)
-        if not k or k in top_set or k in seen:
-            continue
-        seen.add(k)
         picked.append(r)
-
+        
     return picked
 
 
@@ -155,18 +153,7 @@ def adjust_similarity_results_with_agent(
             )
 
         if supplements:
-            merged = results_for_agent + supplements
-            deduped: list[dict[str, Any]] = []
-            seen_keys: set[tuple[Any, Any]] = set()
-            for r in merged:
-                if not isinstance(r, dict):
-                    continue
-                k = case_key(r)
-                if not k or k in seen_keys:
-                    continue
-                seen_keys.add(k)
-                deduped.append(r)
-            results_for_agent = deduped
+            results_for_agent = deduplicate_results(results_for_agent + supplements)
 
     boundary_candidates, pool_for_exploration = strategy.get_initial_candidates(
         top_similarity_results, results_for_agent, top_set
@@ -189,7 +176,7 @@ def adjust_similarity_results_with_agent(
 
     for c in final_results:
         if isinstance(c, dict) and "probability" in c:
-            c["probability"] = clip_basic(c.get("probability", 0.0))
+            c["probability"] = clip_probability(c.get("probability", 0.0))
 
-    final_results.sort(key=lambda x: x.get("probability", 0.0), reverse=True)
+    final_results.sort(key=lambda x: get_probability(x), reverse=True)
     return final_results

@@ -106,15 +106,3 @@ class ConfigLoadError(ConfigError):
     def __init__(self, config_path: str, reason: str = ""):
         message = f"配置加载失败: {config_path}"
         super().__init__(message, {"config_path": config_path, "reason": reason})
-
-
-def wrap_exception(
-    original: Exception, wrapper_class: type[PredictionError], context: str = ""
-) -> PredictionError:
-    message = f"{context}: {str(original)}" if context else str(original)
-    return wrapper_class(message, {"original_type": type(original).__name__})
-
-
-def is_recoverable(error: PredictionError) -> bool:
-    recoverable_types = (CacheError, DataValidationError)
-    return isinstance(error, recoverable_types)

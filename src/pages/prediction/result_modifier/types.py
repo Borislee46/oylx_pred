@@ -39,10 +39,3 @@ def get_similarity(case: dict[str, Any]) -> float:
     if isinstance(v, (int, float)):
         return float(v)
     return 0.0
-
-
-def get_probability(case: dict[str, Any]) -> float:
-    v = case.get("probability", 0.0)
-    if isinstance(v, (int, float)):
-        return float(v)
-    return 0.0

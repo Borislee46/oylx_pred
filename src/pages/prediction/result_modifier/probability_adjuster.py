@@ -1,10 +1,8 @@
 import math
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
-from src.pages.prediction.core.utils import normalize_language_score
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
@@ -32,7 +30,7 @@ from src.pages.prediction.result_modifier.config import (
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import (
     apply_cross_major_penalty_if_needed,
-    clip_basic,
+    clip_probability,
     compute_dataframe_hash,
 )
 from src.utils.logger import setup_logger
@@ -57,51 +55,32 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
 
     try:
         if "gpa" in _cases_df.columns:
-            gpa_series = pd.to_numeric(_cases_df["gpa"], errors="coerce")
-            stats["gpa_mean"] = float(np.nan_to_num(gpa_series.mean(), nan=0.0))
-            stats["gpa_std"] = float(np.nan_to_num(gpa_series.std(), nan=0.0))
-            if stats["gpa_std"] == 0:
-                stats["gpa_std"] = 1e-6
+            gpa_series = pd.to_numeric(_cases_df["gpa"], errors="coerce").dropna()
+            if not gpa_series.empty:
+                stats["gpa_mean"] = float(gpa_series.mean())
+                stats["gpa_std"] = max(1e-6, float(gpa_series.std()))
 
-        has_toefl = "toefl" in _cases_df.columns
-        has_ielts = "ielts" in _cases_df.columns
-
-        norm_scores = None
-
-        if has_toefl or has_ielts:
-            temp_df = pd.DataFrame(index=_cases_df.index)
-
-            if has_toefl:
-                temp_df["toefl_norm"] = _cases_df["toefl"].apply(
-                    lambda x: normalize_language_score(x, "托福")
-                )
-            else:
-                temp_df["toefl_norm"] = np.nan
-
-            if has_ielts:
-                temp_df["ielts_norm"] = _cases_df["ielts"].apply(
-                    lambda x: normalize_language_score(x, "雅思")
-                )
-            else:
-                temp_df["ielts_norm"] = np.nan
-
-            norm_scores = temp_df["toefl_norm"].combine_first(temp_df["ielts_norm"])
-
-        if norm_scores is not None:
-            valid_scores = pd.to_numeric(norm_scores, errors="coerce").dropna()
-            if not valid_scores.empty:
-                stats["language_mean"] = float(np.nan_to_num(valid_scores.mean(), nan=0.0))
-                stats["language_std"] = float(np.nan_to_num(valid_scores.std(), nan=0.0))
-
-        if stats["language_std"] == 0:
-            stats["language_std"] = 1e-6
-
+        lang_cols = [c for c in ["toefl", "ielts"] if c in _cases_df.columns]
+        if lang_cols:
+            temp_df = _cases_df[lang_cols].apply(pd.to_numeric, errors="coerce")
+            
+            if "toefl" in temp_df.columns:
+                temp_df["toefl"] = temp_df["toefl"] / 120.0
+            if "ielts" in temp_df.columns:
+                temp_df["ielts"] = temp_df["ielts"] / 9.0
+            
+            norm_scores = temp_df.max(axis=1).dropna()
+            
+            if not norm_scores.empty:
+                stats["language_mean"] = float(norm_scores.mean())
+                stats["language_std"] = max(1e-6, float(norm_scores.std()))
+                
         pass_line = (
             stats["language_mean"] - LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER * stats["language_std"]
         )
         stats["language_pass_line"] = max(LANGUAGE_MINIMUM, float(pass_line))
 
-    except (AttributeError, KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError) as e:
+    except Exception as e:
         logger.warning(f"计算统计信息失败: {e}")
 
     return stats
@@ -260,11 +239,11 @@ def penalize_cross_major_without_cases(
         if original_prob is not None:
             adjusted_prob = apply_cross_major_penalty_if_needed(
                 result=result,
-                probability=clip_basic(original_prob),
+                probability=clip_probability(original_prob),
                 admitted_combinations=admitted_combinations,
                 check_admitted_field=False,
             )
-            result_copy["probability"] = clip_basic(adjusted_prob)
+            result_copy["probability"] = clip_probability(adjusted_prob)
 
         adjusted_results.append(result_copy)
 

@@ -1,5 +1,7 @@
 .stApp .stButton > button {
-    background: linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
+    background: 
+        radial-gradient(circle at var(--hk-glare-x, 50%) var(--hk-glare-y, 50%), rgba(255, 255, 255, 0.15) 0%, transparent 60%),
+        linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
     color: var(--hk-surface-bg) !important;
     border: none !important;
     padding: 0.6rem 1.5rem !important;
@@ -7,7 +9,7 @@
     font-weight: 600 !important;
     font-size: var(--hk-text-sm) !important;
     letter-spacing: 0.5px !important;
-    transition: all var(--hk-transition-smooth) !important;
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s !important;
     box-shadow: var(--hk-shadow-md) !important;
     outline: none !important;
 }
@@ -60,21 +62,46 @@
     overflow: visible !important;
 }
 
+@keyframes button-scan-glow {
+    0% { left: -100%; }
+    100% { left: 200%; }
+}
+
 .stApp .st-key-submit_button_key .stButton > button {
     position: relative !important;
     border-radius: 14px !important;
-    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08)),
+        radial-gradient(circle at var(--hk-glare-x, 50%) var(--hk-glare-y, 50%), rgba(255, 255, 255, 0.25) 0%, transparent 60%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1)),
         linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
     box-shadow:
-        0 10px 0 rgba(15, 23, 42, 0.20),
-        0 18px 36px rgba(15, 23, 42, 0.18),
-        0 8px 18px rgba(6, 182, 212, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
-    transform: translateY(-1px) translateZ(0) !important;
+        0 8px 0 rgba(15, 23, 42, 0.25),
+        0 15px 30px rgba(15, 23, 42, 0.2),
+        0 5px 15px rgba(6, 182, 212, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-2px) translateZ(0) !important;
     transform-style: preserve-3d !important;
-    transition: transform var(--hk-transition-smooth), box-shadow var(--hk-transition-smooth), filter var(--hk-transition-smooth) !important;
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.3s !important;
+    overflow: hidden !important;
+}
+
+.stApp .st-key-submit_button_key .stButton > button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transform: skewX(-25deg);
+    animation: button-scan-glow 3s infinite;
+    pointer-events: none;
 }
 
 .stApp .st-key-submit_button_key .stButton > button::after {
@@ -99,12 +126,14 @@
 }
 
 .stApp .st-key-submit_button_key .stButton > button:hover:not(:disabled):not([disabled]) {
-    transform: translateY(-3px) translateZ(0) !important;
+    transform: translateY(-4px) translateZ(0) !important;
     box-shadow:
-        0 12px 0 rgba(15, 23, 42, 0.20),
-        0 24px 44px rgba(15, 23, 42, 0.20),
-        0 12px 22px rgba(6, 182, 212, 0.14),
-        inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+        0 10px 0 rgba(15, 23, 42, 0.22),
+        0 20px 40px rgba(15, 23, 42, 0.22),
+        0 10px 20px rgba(6, 182, 212, 0.18),
+        0 0 15px var(--hk-glow-strong),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    filter: brightness(1.05) saturate(1.1) !important;
 }
 
 .stApp .st-key-submit_button_key .stButton > button:hover:not(:disabled):not([disabled])::after {
@@ -189,12 +218,15 @@
 .stApp div[data-testid="stNumberInputContainer"]:hover,
 .stApp div[data-baseweb="select"]:hover > div:first-child {
     border-color: var(--hk-input-border-hover) !important;
+    box-shadow: 
+        var(--hk-input-shadow-inset),
+        0 0 8px var(--hk-cyan-alpha-10) !important;
 }
 
 .stApp div[data-baseweb="input"]:focus-within,
 .stApp div[data-testid="stNumberInputContainer"]:focus-within,
 .stApp div[data-baseweb="select"]:focus-within {
-    border-color: var(--hk-cyan) !important;
+    border-color: var(--hk-input-border-hover) !important;
     outline: none !important;
 }
 

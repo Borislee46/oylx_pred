@@ -13,8 +13,8 @@ from src.pages.prediction.prediction_execution import PredictionExecutor
 from src.pages.prediction.prediction_preparation import (
     get_user_specified_combinations,
     prepare_model_inputs,
+    validate_and_clean_input,
 )
-from src.pages.prediction.prediction_preparation.input_validator import validate_and_clean_input
 from src.utils.logger import setup_logger
 
 prediction_runner_logger = setup_logger("page3", "prediction")
@@ -106,7 +106,7 @@ def run_single_prediction(
         background_major_original=background_major_original,
         bg_target_similarity_cache=bg_target_similarity_cache,
         num_target_universities=num_target_universities,
-        cases_df=cases_df if cases_df is not None else pd.DataFrame(),
+        cases_df=cases_df,
         user_specified_combinations=user_specified_combinations,
         background_faculty=background_faculty,
         allow_degraded_user_specified=cross_faculty_confirmed,

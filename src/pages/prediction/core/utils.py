@@ -249,39 +249,3 @@ def _is_new_major_cached(university: str, major: str, version: int) -> bool:
         is_new = row.get("新增专业")
         return pd.notna(is_new) and str(is_new) in {"25fall新增", "26fall新增"}
     return False
-
-
-class AnimatedProgress:
-    def __init__(self, placeholder, message: str, interval: float = 0.3):
-        self.placeholder = placeholder
-        self._message = message
-        self.interval = interval
-        self._cycle_count = 0
-        import time
-
-        self._time = time
-
-    @property
-    def message(self):
-        return self._message
-
-    @message.setter
-    def message(self, value):
-        self._message = value
-
-    def update(self):
-        dots_sequence = [".", "..", "...", "."]
-        dots = dots_sequence[self._cycle_count % len(dots_sequence)]
-        self.placeholder.markdown(
-            f'<span style="color: #888888; font-size: 0.85em;">{self._message}{dots}</span>',
-            unsafe_allow_html=True,
-        )
-        self._cycle_count += 1
-
-    def __enter__(self):
-        self.update()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.placeholder.empty()
-        return False

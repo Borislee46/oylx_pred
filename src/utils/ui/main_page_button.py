@@ -319,7 +319,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             }}
             
             function setActiveWrapper(cw) {{
-                if (activeWrapper === cw) return;
+                if (activeWrapper === cw || (isTransitioning && cw !== null)) return;
                 if (activeWrapper) {{
                     const prevCard = activeWrapper.querySelector('.card');
                     activeWrapper.classList.remove('active');
@@ -341,6 +341,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             function switchToFan() {{
                 if (currentMode === 'fan' || isTransitioning) return;
                 isTransitioning = true;
+                if (hoverTimeout) clearTimeout(hoverTimeout);
                 
                 cardWrappers.forEach((cw, index) => {{
                     cw.style.transition = `all 0.5s cubic-bezier(0.23, 1, 0.32, 1) ${{index * 40}}ms`;
@@ -370,6 +371,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             function switchToLinear() {{
                 if (currentMode === 'linear' || isTransitioning) return;
                 isTransitioning = true;
+                if (hoverTimeout) clearTimeout(hoverTimeout);
                 setActiveWrapper(null);
                 
                 const centerIndex = (numCards - 1) / 2;
@@ -480,6 +482,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             
             cardWrappers.forEach((cw) => {{
             cw.addEventListener('mouseenter', function() {{
+                if (isTransitioning) return;
                 if (currentMode === 'fan') {{
                     if (hoverTimeout) clearTimeout(hoverTimeout);
                     const delay = activeWrapper ? 25 : 80;
@@ -492,12 +495,14 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
             }});
                 
                 cw.addEventListener('mousemove', function(e) {{
+                    if (isTransitioning) return;
                     if (currentMode === 'linear') {{
                         handleTilt(this, e);
                     }}
                 }});
                 
                 cw.addEventListener('mouseleave', function() {{
+                    if (isTransitioning) return;
                     if (currentMode === 'fan') {{
                         if (hoverTimeout) clearTimeout(hoverTimeout);
                     }} else if (currentMode === 'linear') {{

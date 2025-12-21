@@ -25,10 +25,10 @@
 
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .hk-glass-card.hk-tilt-card {
-        background: rgba(255, 255, 255, 0.12);
-        -webkit-backdrop-filter: blur(12px) saturate(155%);
-        backdrop-filter: blur(12px) saturate(155%);
-        border-color: rgba(255, 255, 255, 0.30);
+        background: rgba(255, 255, 255, 0.18);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        backdrop-filter: blur(16px) saturate(180%);
+        border-color: rgba(255, 255, 255, 0.35);
     }
 }
 
@@ -90,6 +90,18 @@
     .hk-glass-card.hk-tilt-card::before {
         opacity: 0 !important;
     }
+}
+
+.hk-glass-card.hk-tilt-card.is-loading {
+    pointer-events: none !important;
+    filter: grayscale(0.4) opacity(0.7);
+    cursor: wait !important;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: perspective(1350px) rotateX(0) rotateY(0) translateZ(0) !important;
+}
+
+.hk-glass-card.hk-tilt-card.is-loading::before {
+    opacity: 0 !important;
 }
 
 
