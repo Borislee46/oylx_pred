@@ -55,16 +55,17 @@ class AgentAdjustmentEngine:
         remaining = self.session.target_diff - self.session.adjusted_count
         if remaining <= 0:
             return initial_results
-        
+
         # 1. 收集候选案例（优先边界，其次池子）
         # 一次性取够足够的候选量，避免反复请求
         max_candidates = min(AGENT_MAX_BOUNDARY_CASES * 2, max(12, remaining * 3))
         candidates = []
         seen_keys = set()
-        
+
         for pool in [initial_boundary_cases, initial_pool]:
             for c in pool:
-                if not is_case_with_key(c): continue
+                if not is_case_with_key(c):
+                    continue
                 key = case_key(c)
                 if key not in seen_keys and key not in self.session.evaluated_cases:
                     candidates.append(c)
@@ -73,7 +74,7 @@ class AgentAdjustmentEngine:
                     break
             if len(candidates) >= max_candidates:
                 break
-                
+
         if not candidates:
             return initial_results
 
@@ -83,7 +84,7 @@ class AgentAdjustmentEngine:
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             decisions = self._process_decisions(executor, candidates)
-        
+
         self.session.record_evaluation(candidates)
 
         # 3. 应用结果

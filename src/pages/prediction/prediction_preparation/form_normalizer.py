@@ -25,7 +25,12 @@ def calculate_gpa_bonus(exam_type: str | None, exam_score: float | None) -> floa
 
     configs = {
         "GRE": (GRE_BONUS_THRESHOLD, GRE_MAX_BONUS, GRE_SIGMOID_STEEPNESS, GRE_SIGMOID_MIDPOINT),
-        "GMAT": (GMAT_BONUS_THRESHOLD, GMAT_MAX_BONUS, GMAT_SIGMOID_STEEPNESS, GMAT_SIGMOID_MIDPOINT)
+        "GMAT": (
+            GMAT_BONUS_THRESHOLD,
+            GMAT_MAX_BONUS,
+            GMAT_SIGMOID_STEEPNESS,
+            GMAT_SIGMOID_MIDPOINT,
+        ),
     }
 
     if exam_type not in configs:
@@ -54,16 +59,18 @@ def calculate_processed_gpa(
 
 
 def calculate_processed_language_score(
-    raw_score: float | None, 
-    language_type: str | None, 
-    background_university: str | None, 
-    is_overseas: bool = False
+    raw_score: float | None,
+    language_type: str | None,
+    background_university: str | None,
+    is_overseas: bool = False,
 ) -> tuple[float | None, float | None]:
     display_score = raw_score
     if (not display_score) and is_overseas:
         display_score = apply_overseas_language_boost(background_university, language_type)
 
-    normalized_score = normalize_language_score(display_score, language_type) if display_score else None
+    normalized_score = (
+        normalize_language_score(display_score, language_type) if display_score else None
+    )
     return display_score, normalized_score
 
 

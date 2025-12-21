@@ -66,7 +66,7 @@ def get_similar_major_recommendations(
         filtered_by_similarity,
         key=get_sort_key,
     )
-    
+
     if len(top_candidates) < TOP_N_RECOMMENDATIONS:
         floor_threshold = max(AGENT_MIN_SAFE_RELAX_THRESHOLD, CROSS_MAJOR_SIMILARITY_MIN)
         expanded = [
@@ -117,6 +117,7 @@ def get_cross_major_recommendations(
     ]
 
     if admitted_results:
+
         def get_sort_key(res: dict[str, Any]) -> float:
             similarity = res.get("similarity", 0.0)
             if probability_adjuster and gpa is not None and language_score is not None:

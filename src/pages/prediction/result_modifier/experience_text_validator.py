@@ -26,6 +26,7 @@ logger = setup_logger("page3", "prediction")
 def _get_streamlit():
     try:
         import streamlit as st
+
         return st
     except ImportError:
         return None

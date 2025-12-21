@@ -3,15 +3,13 @@ import string
 from typing import Any
 
 import pandas as pd
+import streamlit as st
 
 from src.pages.prediction.result_modifier.config import (
     CROSS_MAJOR_PENALTY_FACTOR,
     CROSS_MAJOR_SIMILARITY_MIN,
     MIN_SIMILARITY_THRESHOLD,
 )
-
-
-import streamlit as st
 
 
 def has_streamlit_runtime() -> bool:
@@ -157,6 +155,7 @@ def generate_content_hash(content: str) -> str:
 def deduplicate_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """根据 (university, major) 对结果进行去重，保持原有顺序"""
     from src.pages.prediction.result_modifier.types import case_key
+
     seen = set()
     deduped = []
     for r in results:

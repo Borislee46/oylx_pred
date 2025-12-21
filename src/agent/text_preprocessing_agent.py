@@ -15,7 +15,7 @@ class TextPreprocessingAgent(BaseAgent):
 
         prompt = build_field_validation_prompt(field_type, content)
         content_response = self._call_api(prompt, cache_prefix="field_validation", use_cache=True)
-        
+
         if content_response is None:
             return False
 

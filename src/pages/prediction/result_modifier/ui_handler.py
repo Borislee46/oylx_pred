@@ -31,7 +31,7 @@ class LoadingMessageAnimator:
     def _render(self):
         if not self._current_message:
             return
-            
+
         dots = [".", "..", "..."][self._cycle_count % 3]
         msg_with_dots = f"{self._current_message}{dots}"
 

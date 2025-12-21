@@ -101,15 +101,19 @@ class RelaxStrategy(RankerStrategy):
         )
 
         candidates = [
-            r for r in results_for_agent
-            if (k := case_key(r)) and k not in top_set
+            r
+            for r in results_for_agent
+            if (k := case_key(r))
+            and k not in top_set
             and lower_bound <= get_similarity(r) < self.current_threshold
         ]
         candidates.sort(key=get_similarity, reverse=True)
 
         pool = [
-            r for r in results_for_agent
-            if (k := case_key(r)) and k not in top_set
+            r
+            for r in results_for_agent
+            if (k := case_key(r))
+            and k not in top_set
             and CROSS_MAJOR_SIMILARITY_MIN <= get_similarity(r) < self.current_threshold
         ]
         pool.sort(key=get_similarity, reverse=True)
@@ -126,16 +130,19 @@ class RelaxStrategy(RankerStrategy):
         return AdjustmentDecision.DEFER_TO_AGENT
 
     def update_results(self, adjusted_results, cases_to_evaluate, decisions, max_adjust: int):
-        return super().update_results(adjusted_results, cases_to_evaluate, decisions, max_adjust, reverse_sort=True)
+        return super().update_results(
+            adjusted_results, cases_to_evaluate, decisions, max_adjust, reverse_sort=True
+        )
 
 
 class TightenStrategy(RankerStrategy):
     def get_initial_candidates(self, top_similarity_results, results_for_agent, top_set):
         candidates_pool = sorted(
             [r for r in top_similarity_results if get_similarity(r) < HIGHER_SIMILARITY_THRESHOLD],
-            key=get_similarity
+            key=get_similarity,
         )
-        if not candidates_pool: return [], []
+        if not candidates_pool:
+            return [], []
 
         tail_count = max(1, int(len(top_similarity_results) * AGENT_TAIL_PERCENTAGE))
         return candidates_pool[:tail_count], candidates_pool
@@ -150,12 +157,13 @@ class TightenStrategy(RankerStrategy):
         return AdjustmentDecision.DEFER_TO_AGENT
 
     def update_results(self, adjusted_results, cases_to_evaluate, decisions, max_adjust: int):
-        return super().update_results(adjusted_results, cases_to_evaluate, decisions, max_adjust, reverse_sort=False)
+        return super().update_results(
+            adjusted_results, cases_to_evaluate, decisions, max_adjust, reverse_sort=False
+        )
 
     def update_boundary_cases(self, boundary_candidates, evaluated_cases, adjusted_results):
         remaining = sorted(
-            [r for r in adjusted_results if case_key(r) not in evaluated_cases],
-            key=get_similarity
+            [r for r in adjusted_results if case_key(r) not in evaluated_cases], key=get_similarity
         )
         tail_count = max(1, int(len(remaining) * AGENT_TAIL_PERCENTAGE))
         return remaining[:tail_count]

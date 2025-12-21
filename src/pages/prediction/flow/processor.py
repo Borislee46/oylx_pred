@@ -38,7 +38,7 @@ def generate_prediction_combinations(
     all_majors_target: list[str],
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
     from src.pages.prediction.core.utils import _data_manager
-    
+
     target_unis = input_data.get("target_universities") or all_universities_target
     target_majors = input_data.get("target_majors") or all_majors_target
 
@@ -52,33 +52,35 @@ def generate_prediction_combinations(
     if not (filtered_unis and filtered_majors and valid_set):
         return [], {"combination_count": 0}
 
-    res = [
-        (u, m) for u in filtered_unis for m in filtered_majors 
-        if (u, m) in valid_set
-    ]
+    res = [(u, m) for u in filtered_unis for m in filtered_majors if (u, m) in valid_set]
     return res, {"combination_count": len(res)}
 
 
 def _filter_results(results: list) -> list:
-    if not results: return []
-    
+    if not results:
+        return []
+
     from src.pages.prediction.core.utils import _data_manager
+
     df = _data_manager.details_df
-    if df is None: return results
+    if df is None:
+        return results
 
     mode_col = next((c for c in df.columns if "学习模式" in c or "ѧϰ" in c), None)
-    
+
     res = []
     for r in results:
         major = str(r.get("major", "")).lower()
-        if "part" in major and "time" in major: continue
-        
+        if "part" in major and "time" in major:
+            continue
+
         if mode_col:
             row = _data_manager.get_row(r.get("university"), r.get("major"))
             if row is not None:
                 m = str(row.get(mode_col, "")).lower()
-                if any(kw in m for kw in ["part-time", "兼读", "pt", "part time"]) and \
-                   not any(kw in m for kw in ["full-time", "全日", "ft", "full time"]):
+                if any(kw in m for kw in ["part-time", "兼读", "pt", "part time"]) and not any(
+                    kw in m for kw in ["full-time", "全日", "ft", "full time"]
+                ):
                     continue
         res.append(r)
     return res
@@ -90,12 +92,14 @@ def _attach_metadata(
     similarity_cache: dict,
     background_major_original: str | None = None,
 ) -> list:
-    if not results: return []
-    
+    if not results:
+        return []
+
     from src.pages.prediction.core.utils import _data_manager
+
     bg_major = str(background_major or "").strip()
     bg_major_orig = str(background_major_original or "").strip()
-    
+
     pairs = [(str(r.get("major", "")).strip(), bg_major) for r in results]
     sims_mapped = (
         get_cached_major_similarities_batch(pairs, cache=similarity_cache)
@@ -110,16 +114,22 @@ def _attach_metadata(
     for i, r in enumerate(results):
         u, m = r.get("university"), r.get("major")
         row = _data_manager.get_row(u, m)
-        r["faculty"] = str(row.get("专业大类", "")) if row is not None and pd.notna(row.get("专业大类")) else ""
+        r["faculty"] = (
+            str(row.get("专业大类", ""))
+            if row is not None and pd.notna(row.get("专业大类"))
+            else ""
+        )
         raw_sim = sims_mapped[i]
         if sims_orig is not None and i < len(sims_orig):
             raw_sim = max(raw_sim, sims_orig[i])
         r["similarity"] = (
-            adjust_similarity_score(background_major=bg_major_orig or bg_major, target_major=str(m), similarity=raw_sim)
+            adjust_similarity_score(
+                background_major=bg_major_orig or bg_major, target_major=str(m), similarity=raw_sim
+            )
             if (bg_major_orig or bg_major)
             else 0.0
         )
-        
+
     return results
 
 
@@ -165,31 +175,43 @@ def process_prediction_results(
     background_university: str | None = None,
     progress_reporter: Any | None = None,
 ) -> tuple[list, list, list]:
-    if not results: return [], [], []
+    if not results:
+        return [], [], []
 
     results = _filter_results(results)
-    if not results: return [], [], []
+    if not results:
+        return [], [], []
 
     if language_score is not None:
         lang_type = language_type or "雅思"
         raw_lang = denormalize_language_score(language_score, lang_type)
         results = LanguageRequirementPenalty.apply_penalty_to_results(results, raw_lang, lang_type)
 
-    results = _attach_metadata(results, background_major, bg_target_similarity_cache, background_major_original)
+    results = _attach_metadata(
+        results, background_major, bg_target_similarity_cache, background_major_original
+    )
 
-    user_results = _get_user_specified_results(results, user_specified_combinations, allow_degraded_user_specified)
+    user_results = _get_user_specified_results(
+        results, user_specified_combinations, allow_degraded_user_specified
+    )
 
     res_for_rec = results
     if background_faculty:
-        from src.pages.prediction.result_modifier.faculty_filters import filter_schools_by_faculty_rules
+        from src.pages.prediction.result_modifier.faculty_filters import (
+            filter_schools_by_faculty_rules,
+        )
+
         res_for_rec = filter_schools_by_faculty_rules(results, background_faculty)
 
     sim_rec = get_similar_major_recommendations(
-        res_for_rec, num_target_universities, 
-        probability_adjuster=probability_adjuster, gpa=gpa, 
-        language_score=language_score, background_university=background_university
+        res_for_rec,
+        num_target_universities,
+        probability_adjuster=probability_adjuster,
+        gpa=gpa,
+        language_score=language_score,
+        background_university=background_university,
     )
-    
+
     cross_rec = get_cross_major_recommendations(
         res_for_rec,
         background_major,
@@ -202,36 +224,62 @@ def process_prediction_results(
     )
 
     sim_rec, cross_rec = _apply_agent_balance_adjustment_flat(
-        sim_rec, cross_rec, results, 
-        background_major, background_major_original, background_faculty,
-        num_target_universities, cases_df, progress_reporter
+        sim_rec,
+        cross_rec,
+        results,
+        background_major,
+        background_major_original,
+        background_faculty,
+        num_target_universities,
+        cases_df,
+        progress_reporter,
     )
 
     return sim_rec, cross_rec, user_results
 
 
 def _apply_agent_balance_adjustment_flat(
-    sim_rec: list, cross_rec: list, all_results: list,
-    background_major: str, background_major_original: str | None, background_faculty: str | None,
-    num_unis: int, cases_df: pd.DataFrame | None, reporter: Any | None
+    sim_rec: list,
+    cross_rec: list,
+    all_results: list,
+    background_major: str,
+    background_major_original: str | None,
+    background_faculty: str | None,
+    num_unis: int,
+    cases_df: pd.DataFrame | None,
+    reporter: Any | None,
 ) -> tuple[list, list]:
     diff = len(cross_rec) - len(sim_rec)
     max_len = max(len(sim_rec), len(cross_rec))
-    threshold = max(AGENT_MIN_BALANCE_DIFF_MIN, int(math.ceil(AGENT_MIN_BALANCE_DIFF_RATIO * max_len)))
-    
+    threshold = max(
+        AGENT_MIN_BALANCE_DIFF_MIN, int(math.ceil(AGENT_MIN_BALANCE_DIFF_RATIO * max_len))
+    )
+
     if abs(diff) < threshold or cases_df is None or not background_major:
         return sim_rec, cross_rec
-    
+
     if diff < 0 and len(cross_rec) < AGENT_NO_CHANGE_THRESHOLD:
         return sim_rec, cross_rec
 
     from src.agent.boundary_case_agent import BoundaryCaseAgent
+
     agent = BoundaryCaseAgent(cases_df=cases_df)
-    limit = HIGHER_SIMILARITY_THRESHOLD if 0 < num_unis <= UNIVERSITY_COUNT_THRESHOLD else MIN_SIMILARITY_THRESHOLD
+    limit = (
+        HIGHER_SIMILARITY_THRESHOLD
+        if 0 < num_unis <= UNIVERSITY_COUNT_THRESHOLD
+        else MIN_SIMILARITY_THRESHOLD
+    )
     bg_major = background_major_original or background_major
 
     sim_rec = adjust_similarity_results_with_agent(
-        sim_rec, all_results, diff, bg_major, limit, agent, background_faculty, progress_reporter=reporter
+        sim_rec,
+        all_results,
+        diff,
+        bg_major,
+        limit,
+        agent,
+        background_faculty,
+        progress_reporter=reporter,
     )
 
     sim_keys = {(r.get("university"), r.get("major")) for r in sim_rec}

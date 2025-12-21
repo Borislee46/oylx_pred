@@ -1,6 +1,6 @@
 from typing import Any
 
-from src.agent.utils import to_float, to_str_singleline
+from src.agent.utils import to_str_singleline
 
 
 def build_boundary_evaluation_prompt(
@@ -10,8 +10,10 @@ def build_boundary_evaluation_prompt(
 ) -> str:
     is_relax = mode == "relax"
     mode_desc = "放宽(含)" if is_relax else "收紧(删)"
-    decision_rule = "若相关则设为 true，否则 false。" if is_relax else "若不相关则设为 true，否则 false。"
-    
+    decision_rule = (
+        "若相关则设为 true，否则 false。" if is_relax else "若不相关则设为 true，否则 false。"
+    )
+
     cases_text = []
     for i, case in enumerate(boundary_cases, 1):
         u = to_str_singleline(case.get("university"))

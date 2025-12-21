@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from src.utils.ui.hk_form_glass_tilt_js import HK_FORM_GLASS_TILT_JS
 from src.utils.ui.hk_form_glass_tilt_css import HK_FORM_GLASS_TILT_CSS
+from src.utils.ui.hk_form_glass_tilt_js import HK_FORM_GLASS_TILT_JS
+
 
 @st.cache_resource(show_spinner=False)
 def _get_hk_form_glass_tilt_component():

@@ -16,8 +16,15 @@ def _compute_results_hash(
     user_specified_results: list[dict[str, Any]] | None,
 ) -> str:
     def _extract(res):
-        return [(str(r.get("university")), str(r.get("major")), round(float(r.get("probability", 0)), 4)) 
-                for r in (res or []) if isinstance(r, dict) and r.get("university")]
+        return [
+            (
+                str(r.get("university")),
+                str(r.get("major")),
+                round(float(r.get("probability", 0)), 4),
+            )
+            for r in (res or [])
+            if isinstance(r, dict) and r.get("university")
+        ]
 
     combined = {
         "s": _extract(sim_results),

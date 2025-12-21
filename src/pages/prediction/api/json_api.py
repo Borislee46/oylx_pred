@@ -51,11 +51,17 @@ logger = logging.getLogger(__name__)
 
 
 def _list_str(value: Any) -> list[str]:
-    return [str(v).strip() for v in value if v and str(v).strip()] if isinstance(value, list) else []
+    return (
+        [str(v).strip() for v in value if v and str(v).strip()] if isinstance(value, list) else []
+    )
 
 
 def _dict_str(value: Any) -> dict[str, str]:
-    return {str(k): str(v) for k, v in value.items() if k is not None} if isinstance(value, dict) else {}
+    return (
+        {str(k): str(v) for k, v in value.items() if k is not None}
+        if isinstance(value, dict)
+        else {}
+    )
 
 
 def _safe_float(value: Any) -> float | None:
@@ -304,9 +310,11 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         user_specified_majors = cleaned_input.get("target_majors", [])
 
         # 准备录取组合缓存
-        admitted_combos = get_admitted_combinations_from_dataframe(cases_df, cleaned_input.get("background_major", ""))
+        admitted_combos = get_admitted_combinations_from_dataframe(
+            cases_df, cleaned_input.get("background_major", "")
+        )
         bg_faculty = get_background_faculty(cleaned_input.get("background_major", ""), cases_df)
-        
+
         # 批量查询新专业状态缓存
         all_res_raw = sim_results + cross_results + (user_specified_results or [])
         new_major_cache = {}
@@ -330,7 +338,9 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         )
 
         has_valid_exp = has_meaningful_experience_text(adj_ctx.experience_details)
-        text_provider = get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_exp else None
+        text_provider = (
+            get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if has_valid_exp else None
+        )
 
         adjuster_pipeline = ProbabilityAdjustmentPipeline(
             probability_adjuster=probability_adjuster,
