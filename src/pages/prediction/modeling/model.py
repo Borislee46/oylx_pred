@@ -134,7 +134,7 @@ class PredictionModel:
         features_to_use: list[str],
     ) -> pd.DataFrame:
         n = len(combinations)
-        unis, majors = zip(*combinations)
+        unis, majors = zip(*combinations, strict=True)
         data = {}
 
         for feat in features_to_use:

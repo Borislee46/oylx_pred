@@ -3,12 +3,12 @@
 **路径**: `src/pages/prediction`
 
 此模块存在两条入口：
-- **Streamlit 页面预测管线**：`src/pages/prediction/prediction_pipeline.py::run_prediction_pipeline`
-- **JSON 形态预测入口**（用于前后端解耦实验）：`src/pages/prediction/prediction_json_api.py::predict`
+- **Streamlit 页面预测管线**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
+- **JSON 形态预测入口**（用于前后端解耦实验）：`src/pages/prediction/api/json_api.py::predict`
 
 ## 1. 内部输入类型 (`PredictionInput`)
 
-代码定义：`src/pages/prediction/prediction_types.py`（由 `prediction_input_validator.validate_and_clean_input` 产出）
+代码定义：`src/pages/prediction/core/types.py`（由 `src/pages/prediction/prediction_preparation/preparer.py::validate_and_clean_input` 产出）
 
 - `background_university: str`
 - `background_major: str`
@@ -16,8 +16,9 @@
 - `target_majors: list[str]`
 - `gpa: float`（可空）
 - `language_score: float`（可空，归一化到 0~1）
+- `language_type: str`（可选）
 - `internship_count / research_count / award_count / paper_count: int`
-- `school_level: int`（可选；由 `prediction_data_preparer.prepare_input_data` 注入）
+- `school_level: str`（可选；由 `src/pages/prediction/prediction_preparation/preparer.py::prepare_input_data` 注入）
 - `experience_details: dict[str, str]`
 
 **注意**：`faculty`、`background_major_original` 等字段会存在于“运行期输入 dict”中，但不属于 `PredictionInput` 数据类。
@@ -32,7 +33,7 @@
 
 内部合并去重会使用 `_source/_priority` 元数据，但最终会剔除。
 
-## 3. JSON 入口 (`prediction_json_api.py`)
+## 3. JSON 入口 (`src/pages/prediction/api/json_api.py`)
 
 ### 3.1 校验与归一化
 
@@ -101,13 +102,12 @@
 
 ## 4. Streamlit 页面预测管线
 
-**入口**：`prediction_pipeline.py::run_prediction_pipeline`
+**入口**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
 
 页面管线负责串联资源加载、并行推理、推荐生成与后处理：
 
-1.  **组合生成**：`prediction_processor.generate_prediction_combinations`
-2.  **并行推理**：`prediction_execution.PredictionExecutor.execute_parallel`
-3.  **推荐生成**：`prediction_processor.process_prediction_results`（注入 `similarity/faculty`，并执行 Agent 平衡）
-4.  **页面后处理**：`prediction_result_adjuster.batch_adjust_results`（概率调整 + 文本加成 + `is_new_major`）
-5.  **合并去重**：`combine_and_deduplicate_results`
-6.  **输出**：`PredictionResultModel`
+1.  **准备输入**：`src/pages/prediction/prediction_preparation/preparer.py`
+2.  **并行推理**：`src/pages/prediction/flow/run_prediction.py::run_single_prediction` (内部调用 `prediction_execution.executor.PredictionExecutor`)
+3.  **结果调整**：`src/pages/prediction/result_modifier/adjustment_pipeline.py`（概率调整 + 文本加成 + `is_new_major`）
+4.  **合并去重**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`
+5.  **输出**：`PredictionResultModel` (定义在 `src/utils/session_manager.py`)

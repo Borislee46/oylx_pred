@@ -7,11 +7,13 @@
 ## 1. 结构概览
 
 - **配置**：`config.py`
-- **调整管线（新）**：`adjustment_pipeline.py`
+- **调整管线**：`adjustment_pipeline.py`
 - **概率调整**：`probability_adjuster.py`（统计 + 分段惩罚）
 - **文本加成入口**：`text_boost_provider.py`
 - **文本加成实现**：`providers/logit_uplift_provider.py`
 - **推荐筛选**：`filters.py`
+- **学院过滤器**：`faculty_filters.py` (处理跨学院惩罚)
+- **语言惩罚辅助**：`language_penalty.py`
 - **相似度规则微调**：`similarity_adjuster.py`
 - **Agent 排序调整**：`ranker.py` / `engine.py` / `strategies.py`
 - **录取组合缓存**：`admission_cache.py`
@@ -36,15 +38,17 @@
 - **职业型专业**：`PROFESSIONAL_MAJORS=["Business Administration","MBA"]`
 - **相似度阈值**：`MIN_SIMILARITY_THRESHOLD=0.89`
 
-## 3. 新版调整管线 (`adjustment_pipeline.py`)
+## 3. 调整管线 (`adjustment_pipeline.py`)
 
 **类**: `ProbabilityAdjustmentPipeline`
 
 `adjust_batch(results, ctx)` 会按顺序做：
-1.  （可选）职业型专业降权
-2.  （可选）GPA/语言惩罚
-3.  （可选）跨专业无录取惩罚
-4.  （可选）文本加成
+1.  **GPA/语言惩罚**：调用 `ProbabilityAdjuster.adjust_probability`。
+2.  **跨专业无录取惩罚**：基于 `MIN_SIMILARITY_THRESHOLD` 和历史录取数据（`admitted_combinations`）。
+3.  **跨学院惩罚**：由 `faculty_filters.apply_out_of_scope_faculty_penalty` 执行。
+4.  **职业型专业降权**：若 `internship_count <= 0`，对职业型专业（如 MBA/BA）进行降权。
+5.  **新增专业标记**：根据 `is_new_major_cache` 注入 `is_new_major` 字段。
+6.  **文本加成**：调用 `TextBoostProvider.apply`。
 
 输出会把 `probability` 夹到 [0,1]。
 
@@ -82,9 +86,3 @@
 
 - `get_cross_major_recommendations(...)`
   - 仅在“历史存在录取组合”的跨专业范围内选：`0.8 <= similarity < 0.89`。
-
-## 7. Agent 排序调整 (`ranker.py`)
-
-- `prediction_processor._apply_agent_balance_adjustment`
-- 计算跨专业与相似专业的数量差 `balance_diff`。
-- 若差异过大，触发 `BoundaryCaseAgent` 进行探索补充。

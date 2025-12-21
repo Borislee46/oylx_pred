@@ -44,7 +44,7 @@ def _pick_supplement_cases_by_probability(
     picked = []
     seen = set()
 
-    for r, p, k in with_prob:
+    for r, _p, k in with_prob:
         if k not in seen:
             seen.add(k)
             picked.append(r)
@@ -57,7 +57,7 @@ def _pick_supplement_cases_by_probability(
     band_candidates = [(r, p, k) for r, p, k in with_prob if k not in seen and low <= p <= high]
     band_candidates.sort(key=lambda x: abs(x[1] - p_min))
 
-    for r, p, k in band_candidates:
+    for r, _p, _k in band_candidates:
         if len(picked) >= (k_high + k_band):
             break
         picked.append(r)
