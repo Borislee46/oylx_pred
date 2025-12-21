@@ -22,7 +22,7 @@ def build_user_form_log(
     session_manager: SessionManager, log_data_source: dict[str, Any]
 ) -> dict[str, Any]:
     exp = log_data_source.get("experience_details", {})
-    
+
     mapping = {
         "background_university": "background_university",
         "background_major": "background_major_original",
@@ -37,14 +37,20 @@ def build_user_form_log(
     }
 
     res = {k: format_field(log_data_source.get(v)) for k, v in mapping.items()}
-    
-    res.update({
-        "gpa_score": format_float(log_data_source.get("gpa_raw"), 2),
-        "language_score": format_float(log_data_source.get("language_score_raw"), 2),
-        "target_universities": format_list_field(log_data_source.get("target_universities", [])),
-        "major_categories": format_list_field(session_manager.get("selected_major_categories", [])),
-        "target_majors": format_list_field(log_data_source.get("target_majors", [])),
-    })
+
+    res.update(
+        {
+            "gpa_score": format_float(log_data_source.get("gpa_raw"), 2),
+            "language_score": format_float(log_data_source.get("language_score_raw"), 2),
+            "target_universities": format_list_field(
+                log_data_source.get("target_universities", [])
+            ),
+            "major_categories": format_list_field(
+                session_manager.get("selected_major_categories", [])
+            ),
+            "target_majors": format_list_field(log_data_source.get("target_majors", [])),
+        }
+    )
 
     for field in ("research_details", "award_details", "internship_details", "paper_details"):
         res[field] = _snippet(exp.get(field))

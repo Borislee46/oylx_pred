@@ -31,13 +31,12 @@ class LoadingMessageAnimator:
     def _render(self):
         if not self._current_message:
             return
-            
-        dots = [".", "..", "..."][self._cycle_count % 3]
-        msg_with_dots = f"{self._current_message}{dots}"
 
         if self.progress_reporter is not None:
             self.progress_reporter.emit(self._current_message, force=True)
         elif self.placeholder is not None:
+            dots = [".", "..", "..."][self._cycle_count % 3]
+            msg_with_dots = f"{self._current_message}{dots}"
             self.placeholder.markdown(
                 f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{msg_with_dots}</div>',
                 unsafe_allow_html=True,
@@ -121,7 +120,7 @@ class RankerUIHandler:
         self._render(message)
 
     def update_loop(self):
-        pass
+        self._animator.tick()
 
     def _pick_message(self, pool: list[str], **kwargs) -> str:
         msg = random.choice(pool)

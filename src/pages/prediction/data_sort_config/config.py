@@ -39,4 +39,3 @@ TOP_CROSS_RESULT_UI_CONFIG = {
     "录取概率": "small",
     "推荐专业详情": "small",
 }
-

@@ -7,6 +7,7 @@ from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
 from src.pages.prediction.result_modifier.config import (
+    AGENT_MIN_SAFE_RELAX_THRESHOLD,
     CROSS_MAJOR_SIMILARITY_MIN,
     HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
@@ -44,7 +45,12 @@ def get_similar_major_recommendations(
         ]
 
     if not filtered_by_similarity:
-        return []
+        floor_threshold = max(AGENT_MIN_SAFE_RELAX_THRESHOLD, CROSS_MAJOR_SIMILARITY_MIN)
+        filtered_by_similarity = [
+            res for res in results_with_similarity if res.get("similarity", 0.0) >= floor_threshold
+        ]
+        if not filtered_by_similarity:
+            return []
 
     def get_sort_key(res: dict[str, Any]) -> float:
         similarity = res.get("similarity", 0.0)
@@ -61,6 +67,18 @@ def get_similar_major_recommendations(
         key=get_sort_key,
     )
 
+    if len(top_candidates) < TOP_N_RECOMMENDATIONS:
+        floor_threshold = max(AGENT_MIN_SAFE_RELAX_THRESHOLD, CROSS_MAJOR_SIMILARITY_MIN)
+        expanded = [
+            res for res in results_with_similarity if res.get("similarity", 0.0) >= floor_threshold
+        ]
+        if expanded:
+            top_candidates = heapq.nlargest(
+                TOP_N_RECOMMENDATIONS,
+                expanded,
+                key=get_sort_key,
+            )
+
     for c in top_candidates:
         if isinstance(c, dict) and "probability" in c:
             c["probability"] = clip_probability(c.get("probability", 0.0))
@@ -74,6 +92,10 @@ def get_cross_major_recommendations(
     background_major: str,
     cases_df: pd.DataFrame | None = None,
     background_faculty: str | None = None,
+    probability_adjuster: Any | None = None,
+    gpa: float | None = None,
+    language_score: float | None = None,
+    background_university: str | None = None,
 ) -> list[dict[str, Any]]:
     if not background_major or not results_with_similarity:
         return []
@@ -95,13 +117,23 @@ def get_cross_major_recommendations(
     ]
 
     if admitted_results:
-        import heapq
 
-        top_least_similar = heapq.nsmallest(
-            TOP_N_RECOMMENDATIONS, admitted_results, key=lambda x: x.get("similarity", 0.0)
+        def get_sort_key(res: dict[str, Any]) -> float:
+            similarity = res.get("similarity", 0.0)
+            if probability_adjuster and gpa is not None and language_score is not None:
+                target_uni = str(res.get("university", ""))
+                return probability_adjuster.calculate_selection_score(
+                    similarity, target_uni, gpa, language_score, background_university
+                )
+            return similarity
+
+        top_candidates = heapq.nlargest(
+            TOP_N_RECOMMENDATIONS,
+            admitted_results,
+            key=get_sort_key,
         )
-        top_least_similar.sort(key=lambda x: x.get("probability", 0), reverse=True)
-        return top_least_similar
+        top_candidates.sort(key=get_sort_key, reverse=True)
+        return top_candidates
     return []
 
 

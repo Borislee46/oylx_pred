@@ -11,7 +11,7 @@ class BackgroundAnimator:
         self,
         reporter: ProgressReporter,
         text: str,
-        interval: float = 0.3,
+        interval: float = 0.5,
     ):
         self.reporter = reporter
         self.text = text

@@ -55,18 +55,27 @@
     }
 }
 
+@keyframes logo-glow-breath {
+    0%, 100% { filter: drop-shadow(0 0 2px var(--hk-cyan-alpha-10)); }
+    50% { filter: drop-shadow(0 0 8px var(--hk-cyan-alpha-20)); }
+}
+
 .hk-header-logo {
     width: 70px;
     height: auto;
     display: block;
     transform: scale(1);
-    filter: drop-shadow(0 0 1.5px var(--hk-glow));
-    transition: transform var(--hk-transition-smooth), filter var(--hk-transition-smooth);
+    filter: drop-shadow(0 0 2px var(--hk-glow));
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: logo-glow-breath 4s ease-in-out infinite;
 }
 
 .hk-logo-container:hover .hk-header-logo {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 4.5px var(--hk-glow-strong));
+    transform: scale(1.08) rotate(2deg);
+    filter: 
+        drop-shadow(0 0 8px var(--hk-cyan-alpha-30))
+        drop-shadow(0 0 20px var(--hk-cyan-alpha-15));
+    animation-play-state: paused;
 }
 
 .hk-logo-container:active .hk-header-logo {
@@ -93,29 +102,27 @@
 .hk-header-title {
     font-family: var(--hk-font-display);
     font-size: var(--hk-text-3xl);
-    font-weight: 700;
+    font-weight: 800;
     margin: 0;
     line-height: var(--hk-leading-tight);
     background: linear-gradient(
-        120deg,
-        var(--hk-dark-slate),
-        var(--hk-cyan-dark),
-        var(--hk-cyan),
-        var(--hk-cyan-bright),
-        var(--hk-cyan),
-        var(--hk-cyan-dark),
-        var(--hk-dark-slate)
+        135deg,
+        var(--hk-dark-slate) 0%,
+        var(--hk-cyan-dark) 25%,
+        var(--hk-cyan) 50%,
+        var(--hk-cyan-bright) 75%,
+        var(--hk-cyan-dark) 100%
     );
-    background-size: 300% 300%;
+    background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: -0.5px;
-    animation: title-gradient-flow 6s ease infinite, title-glow-pulse 3s ease-in-out infinite;
+    letter-spacing: -0.02em;
+    animation: title-gradient-flow 8s linear infinite;
 }
 
 .hk-header-title:hover {
-    animation: title-gradient-flow 2s ease infinite, title-glow-pulse 1.5s ease-in-out infinite;
+    animation: title-gradient-flow 3s linear infinite;
 }
 
 .hk-header-subtitle {

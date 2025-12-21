@@ -1,13 +1,13 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
+from src.pages.prediction.core.utils import get_school_major_details
 from src.pages.prediction.data_sort_config import (
     TOP_CROSS_RESULT_UI_CONFIG,
     TOP_SIM_RESULT_UI_CONFIG,
     UNIVERSITY_ORDER_MAP,
     UNIVERSITY_SORT_ORDER,
 )
-from src.pages.prediction.core.utils import get_school_major_details
 from src.pages.prediction.result_modifier.config import TOP_N_RECOMMENDATIONS
 from src.pages.prediction.result_modifier.utils import get_probability
 from src.utils.logger import setup_logger
@@ -16,7 +16,9 @@ from src.utils.session_manager import SessionManager
 logger = setup_logger("page3", "prediction")
 
 
-def _get_column_config(df: pd.DataFrame, column_widths: dict | None = None, label_map: dict | None = None):
+def _get_column_config(
+    df: pd.DataFrame, column_widths: dict | None = None, label_map: dict | None = None
+):
     column_widths = column_widths or {}
     label_map = label_map or {}
 
@@ -75,7 +77,9 @@ class ResultsDisplay:
             },
         }
 
-    def _display_dataframe(self, df: pd.DataFrame, column_widths: dict | None = None, result_type: str | None = None):
+    def _display_dataframe(
+        self, df: pd.DataFrame, column_widths: dict | None = None, result_type: str | None = None
+    ):
         if df.empty:
             st.info("暂无可展示内容")
             return
@@ -90,7 +94,7 @@ class ResultsDisplay:
         if major_col and df[major_col].str.contains("(new!)", regex=False).any():
             styled_df = df.style.map(
                 lambda v: "color: #06b6d4;" if isinstance(v, str) and "(new!)" in v else "",
-                subset=[major_col]
+                subset=[major_col],
             )
 
         st.data_editor(
@@ -110,8 +114,8 @@ class ResultsDisplay:
             results,
             key=lambda x: (
                 UNIVERSITY_ORDER_MAP.get(x.get("university"), len(UNIVERSITY_SORT_ORDER)),
-                -get_probability(x)
-            )
+                -get_probability(x),
+            ),
         )
 
         if max_items:
@@ -135,7 +139,7 @@ class ResultsDisplay:
         session_manager = SessionManager()
         combination_count = session_manager.get("combination_count", 0)
         pool_is_large = isinstance(combination_count, int) and combination_count > 10
-        
+
         has_user_specified = (not pool_is_large) and bool(self.user_specified_results)
         has_similarity = bool(self.top_similarity_results)
         has_cross_major = bool(self.top_cross_major_results)
@@ -148,8 +152,10 @@ class ResultsDisplay:
             self._display_type("user_specified")
         elif has_similarity and has_cross_major:
             col1, col2 = st.columns(2)
-            with col1: self._display_type("similarity")
-            with col2: self._display_type("cross_major")
+            with col1:
+                self._display_type("similarity")
+            with col2:
+                self._display_type("cross_major")
         elif has_similarity:
             self._display_type("similarity")
         elif has_cross_major:
@@ -158,4 +164,6 @@ class ResultsDisplay:
     def _display_type(self, result_type: str):
         max_items = None if result_type == "user_specified" else TOP_N_RECOMMENDATIONS
         df = self._get_result_dataframe(result_type, max_items=max_items)
-        self._display_dataframe(df, self.result_types[result_type]["config"], result_type=result_type)
+        self._display_dataframe(
+            df, self.result_types[result_type]["config"], result_type=result_type
+        )

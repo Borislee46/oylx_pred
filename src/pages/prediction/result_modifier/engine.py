@@ -48,50 +48,47 @@ class AgentAdjustmentEngine:
         initial_pool: list[dict],
         initial_results: list[dict],
     ) -> list[dict]:
-        boundary_cases = initial_boundary_cases
-        pool = initial_pool
-        adjusted_results = initial_results.copy()
+        self.ui.update_loop()
+        remaining = self.session.target_diff - self.session.adjusted_count
+        if remaining <= 0:
+            return initial_results
+
+        max_candidates = min(AGENT_MAX_BOUNDARY_CASES * 2, max(12, remaining * 3))
+        candidates = []
+        seen_keys = set()
+
+        for pool in [initial_boundary_cases, initial_pool]:
+            for c in pool:
+                if not is_case_with_key(c):
+                    continue
+                key = case_key(c)
+                if key not in seen_keys and key not in self.session.evaluated_cases:
+                    candidates.append(c)
+                    seen_keys.add(key)
+                if len(candidates) >= max_candidates:
+                    break
+            if len(candidates) >= max_candidates:
+                break
+
+        if not candidates:
+            return initial_results
+
+        majors = [c.get("major", "") for c in candidates if c.get("major")]
+        self.ui.show_candidates(majors)
 
         with ThreadPoolExecutor(max_workers=1) as executor:
-            while not self.session.should_stop():
-                self.ui.update_loop()
+            decisions = self._process_decisions(executor, candidates)
 
-                remaining = self.session.target_diff - self.session.adjusted_count
-                batch_size = min(AGENT_MAX_BOUNDARY_CASES, remaining + 2)
+        self.session.record_evaluation(candidates)
 
-                candidates = self._prepare_next_batch(boundary_cases, batch_size)
-                if not candidates:
-                    candidates = self._prepare_next_batch(pool, batch_size)
+        if any(decisions):
+            count, adjusted_results = self.session.strategy.update_results(
+                initial_results, candidates, decisions, max_adjust=remaining
+            )
+            self.session.adjusted_count += count
+            return adjusted_results
 
-                if not candidates:
-                    break
-
-                majors = [c.get("major", "") for c in candidates if c.get("major")]
-                self.ui.show_candidates(majors)
-
-                decisions = self._process_decisions(executor, candidates)
-                self.session.record_evaluation(candidates)
-
-                if not any(decisions):
-                    boundary_cases = self.session.strategy.update_boundary_cases(
-                        boundary_cases, self.session.evaluated_cases, adjusted_results
-                    )
-                    if not any(case_key(c) not in self.session.evaluated_cases for c in boundary_cases):
-                        if not any(case_key(c) not in self.session.evaluated_cases for c in pool):
-                            break
-                    continue
-
-                count, new_results = self.session.strategy.update_results(
-                    adjusted_results, candidates, decisions, max_adjust=remaining
-                )
-                adjusted_results = new_results
-                self.session.adjusted_count += count
-
-                boundary_cases = self.session.strategy.update_boundary_cases(
-                    boundary_cases, self.session.evaluated_cases, adjusted_results
-                )
-
-        return adjusted_results
+        return initial_results
 
     def _process_decisions(self, executor, cases: list[dict]) -> list[bool]:
         decisions = [False] * len(cases)
@@ -114,16 +111,6 @@ class AgentAdjustmentEngine:
                     decisions[idx] = bool(agent_decisions[j])
 
         return decisions
-
-    def _prepare_next_batch(self, pool: list[dict], batch_size: int) -> list[dict]:
-        result = []
-        for c in pool:
-            if not is_case_with_key(c): continue
-            key = (c["university"], c["major"])
-            if key not in self.session.evaluated_cases:
-                result.append(c)
-                if len(result) >= batch_size: break
-        return result
 
     def _evaluate_with_agent(self, executor: ThreadPoolExecutor, cases: list[dict]):
         future = executor.submit(

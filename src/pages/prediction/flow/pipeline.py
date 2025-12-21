@@ -180,7 +180,7 @@ def _execute_prediction_pipeline(
     reporter.set_stage(0.72, 0.80, PIPELINE_MESSAGES["analyze_text"].format(length=exp_text_len))
 
     admitted_combos = get_admitted_combinations_from_dataframe(cases_df, background_major)
-    
+
     all_res = sim_results + cross_results + (user_specified_results or [])
     new_major_cache = {}
     for r in all_res:
@@ -204,13 +204,19 @@ def _execute_prediction_pipeline(
 
     pipeline = ProbabilityAdjustmentPipeline(
         probability_adjuster=probability_adjuster,
-        text_boost_provider=get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG) if input_data.get("_has_valid_experience") else None,
+        text_boost_provider=(
+            get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
+            if input_data.get("_has_valid_experience")
+            else None
+        ),
     )
 
     sim_results = pipeline.adjust_batch(sim_results, adj_ctx, progress_reporter=reporter)
     cross_results = pipeline.adjust_batch(cross_results, adj_ctx, progress_reporter=reporter)
     if user_specified_results:
-        user_specified_results = pipeline.adjust_batch(user_specified_results, adj_ctx, progress_reporter=reporter)
+        user_specified_results = pipeline.adjust_batch(
+            user_specified_results, adj_ctx, progress_reporter=reporter
+        )
 
     msg_merging = PIPELINE_MESSAGES["merging"]
     reporter.set_stage(0.88, 1.0, msg_merging)

@@ -13,6 +13,7 @@ logger = setup_logger("page3", "prediction")
 
 import re
 
+
 def _normalize_keywords(items: list[str]) -> list[str]:
     if not items:
         return []

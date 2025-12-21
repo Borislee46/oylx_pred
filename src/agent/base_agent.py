@@ -25,7 +25,7 @@ class BaseAgent:
 
         self.api_url = app_config.get("OPEN_AI_BASE_URL")
         self.api_key = app_config.get("OPEN_AI_API_KEY")
-        self.model = app_config.get("OPEN_AI_MODEL", "deepseek-v3.2")
+        self.model = app_config.get("OPEN_AI_MODEL")
         self.thinking_type = str(
             app_config.get("OPEN_AI_THINKING", "disabled") or "disabled"
         ).strip()

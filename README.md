@@ -22,7 +22,7 @@
     *   **特色**: 跨学院拦截、目标自动扩展、海外院校语言成绩处理。
 
 4.  **预测编排 (Online)**: `src/pages/prediction/`
-    *   **入口**: 页面管线 (`prediction_pipeline.py`) 与 JSON API (`prediction_json_api.py`)。
+    *   **入口**: 页面管线 (`src/pages/prediction/flow/pipeline.py`) 与 JSON API (`src/pages/prediction/api/json_api.py`)。
     *   **核心**: 组合生成 → 并行推理 → 推荐生成 → 后处理 → 合并去重。
     *   **结果**: 相似专业推荐、跨专业推荐、用户指定结果。
 
@@ -51,7 +51,7 @@
 
 *   **校验器**: `FormValidator` 提供详细的中文错误提示。
 *   **GPA 转换**: 优先按院校/国家规则 (`config/gpa_conversion_rules.json`)，否则线性缩放。
-*   **语言分数**: 托福/雅思互转与归一化；海外院校选填处理。
+*   **语言分数**: 托福/雅思互转与归一化；海外院校选填处理（参考 `src/pages/prediction/core/utils.py`）。
 *   **状态管理**: `FormStateManager` 实现自动保存（节流 + 快照 hash）。
 *   **组件服务**: 跨学院拦截、四级联动筛选 (`target_options_service.py`)。
 
@@ -62,11 +62,13 @@
 **路径**: `src/pages/prediction`
 
 *   **流程**:
-    1.  **组合生成**: 全量遍历或预过滤生成有效组合。
-    2.  **并行推理**: 自适应线程/进程池，支持超时兜底与稳定排序。
-    3.  **结果处理**: 生成相似推荐、跨专业推荐、用户指定结果。
-    4.  **合并去重**: 按优先级合并 (用户指定 > 跨专业 > 相似)。
-*   **接口**: 提供 Streamlit 页面管线和 JSON API 两种入口。
+    1.  **组合生成**: `flow/processor.py::generate_prediction_combinations`。
+    2.  **并行推理**: `prediction_execution/executor.py::PredictionExecutor.execute_parallel`。
+    3.  **结果处理**: `flow/processor.py::process_prediction_results`（生成相似推荐、跨专业推荐、用户指定结果）。
+    4.  **合并去重**: `results_handler.py::combine_and_deduplicate_results`。
+*   **接口**: 
+    *   Streamlit 页面入口: `src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
+    *   解耦 JSON 接口: `src/pages/prediction/api/json_api.py::predict`
 
 **详细文档**: [预测模块 API 文档](docs/prediction_api.md)
 
@@ -74,12 +76,13 @@
 
 **路径**: `src/pages/prediction/result_modifier`
 
+*   **调整管线**: 基于 `AdjustmentContext` 与 `ProbabilityAdjustmentPipeline` 驱动的流水线。
 *   **概率调整**: 基于 `ProbabilityAdjuster` 对低分样本施加惩罚；跨专业无案例惩罚。
 *   **行业规则**: 针对无实习经历申请商科（如 MBA）进行降权。
-*   **相似度调整**: 基于规则微调；引入 Agent (`AgentAdjustmentEngine`) 在边界处动态探索。
 *   **文本加成 (TF-IDF Logit Uplift)**:
     *   基于文本相似度与计数交互项计算 Logit 增量。
     *   包含门控、平滑、动态封顶机制，防止加成过度。
+*   **Agent 平衡**: 在 `flow/processor.py` 中调用 `BoundaryCaseAgent` 进行边界探索与平衡。
 
 **详细文档**: [结果修正模块文档](docs/result_modifier_api.md)
 
@@ -137,4 +140,4 @@
 ---
 
 > **维护人**: lijiapeng8@xdf.cn
-> **版本**: v2.9
+> **版本**: v3.0

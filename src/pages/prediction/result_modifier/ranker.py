@@ -11,7 +11,11 @@ from src.pages.prediction.result_modifier.strategies import (
 )
 from src.pages.prediction.result_modifier.types import CaseKey, case_key
 from src.pages.prediction.result_modifier.ui_handler import RankerUIHandler
-from src.pages.prediction.result_modifier.utils import clip_probability, get_probability, deduplicate_results
+from src.pages.prediction.result_modifier.utils import (
+    clip_probability,
+    deduplicate_results,
+    get_probability,
+)
 
 
 # 当前场景heapq未必比sorted快, candidate多（十万级？）的话可换heapq
@@ -31,36 +35,33 @@ def _pick_supplement_cases_by_probability(
         k = case_key(r)
         if k and k not in top_set:
             with_prob.append((r, get_probability(r), k))
-    
+
     if not with_prob:
         return []
 
     with_prob.sort(key=lambda x: x[1], reverse=True)
-    
+
     picked = []
     seen = set()
-    
-    for r, p, k in with_prob:
+
+    for r, _p, k in with_prob:
         if k not in seen:
             seen.add(k)
             picked.append(r)
             if len(picked) >= k_high:
                 break
-    
+
     low = p_min - band_delta
     high = p_min + band_delta
-    
-    band_candidates = [
-        (r, p, k) for r, p, k in with_prob 
-        if k not in seen and low <= p <= high
-    ]
+
+    band_candidates = [(r, p, k) for r, p, k in with_prob if k not in seen and low <= p <= high]
     band_candidates.sort(key=lambda x: abs(x[1] - p_min))
-    
-    for r, p, k in band_candidates:
+
+    for r, _p, _k in band_candidates:
         if len(picked) >= (k_high + k_band):
             break
         picked.append(r)
-        
+
     return picked
 
 

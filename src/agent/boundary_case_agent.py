@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 from typing import Any
 
 import pandas as pd
@@ -43,7 +42,7 @@ class BoundaryCaseAgent(BaseAgent):
         boundary_cases: list[dict[str, Any]],
         mode: str,
         use_persistent_cache: bool = True,
-        chunk_size: int = 15,
+        chunk_size: int = 40,
     ) -> dict[str, Any]:
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
@@ -86,7 +85,7 @@ class BoundaryCaseAgent(BaseAgent):
             )
 
             prompt = build_boundary_evaluation_prompt(background_major, current_batch_cases, mode)
-            content = self._call_api(prompt)
+            content = self._call_api(prompt, max_tokens=256)
 
             if content is None:
                 continue
@@ -97,7 +96,7 @@ class BoundaryCaseAgent(BaseAgent):
             except json.JSONDecodeError:
                 repaired = self._repair_json_once(
                     content,
-                    schema_hint='{"reasoning": "string", "decisions": [bool, ...], "needs_adjustment": bool}',
+                    schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
                     cache_prefix="boundary_json_repair",
                 )
                 if not repaired:
@@ -114,7 +113,7 @@ class BoundaryCaseAgent(BaseAgent):
             if len(agent_decisions) != len(current_batch_cases):
                 repaired = self._repair_json_once(
                     json.dumps(result, ensure_ascii=False),
-                    schema_hint=f'{{"reasoning": "string", "decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
+                    schema_hint=f'{{"decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
                     cache_prefix="boundary_json_repair_len",
                 )
                 if repaired:

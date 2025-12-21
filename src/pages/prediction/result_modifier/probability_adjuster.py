@@ -63,18 +63,18 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
         lang_cols = [c for c in ["toefl", "ielts"] if c in _cases_df.columns]
         if lang_cols:
             temp_df = _cases_df[lang_cols].apply(pd.to_numeric, errors="coerce")
-            
+
             if "toefl" in temp_df.columns:
                 temp_df["toefl"] = temp_df["toefl"] / 120.0
             if "ielts" in temp_df.columns:
                 temp_df["ielts"] = temp_df["ielts"] / 9.0
-            
+
             norm_scores = temp_df.max(axis=1).dropna()
-            
+
             if not norm_scores.empty:
                 stats["language_mean"] = float(norm_scores.mean())
                 stats["language_std"] = max(1e-6, float(norm_scores.std()))
-                
+
         pass_line = (
             stats["language_mean"] - LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER * stats["language_std"]
         )

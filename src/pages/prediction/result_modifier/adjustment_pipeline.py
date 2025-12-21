@@ -82,7 +82,11 @@ class ProbabilityAdjustmentPipeline:
             major = str(result_copy.get("major", "")).lower()
             if any(p in major for p in PROFESSIONAL_MAJORS_LOWER):
                 is_spec = any(s.lower() in major for s in ctx.user_specified_majors)
-                factor = PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR if is_spec else PROFESSIONAL_REDUCTION_FACTOR
+                factor = (
+                    PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR
+                    if is_spec
+                    else PROFESSIONAL_REDUCTION_FACTOR
+                )
                 current_prob *= factor
 
         univ, major = result_copy.get("university"), result_copy.get("major")
@@ -108,15 +112,25 @@ class ProbabilityAdjustmentPipeline:
             return res
 
         if progress_reporter and self.text_boost_provider and ctx.experience_details:
+            from src.pages.prediction.config.ui_messages import (
+                EXPERIENCE_BOOST_TEMPLATE,
+                EXPERIENCE_DEFAULT_MSG,
+                EXPERIENCE_ITEM_NAMES,
+            )
             from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
-            from src.pages.prediction.config.ui_messages import EXPERIENCE_BOOST_TEMPLATE, EXPERIENCE_DEFAULT_MSG, EXPERIENCE_ITEM_NAMES
 
-            items = [name for k, name in EXPERIENCE_ITEM_NAMES.items() if ctx.experience_details.get(k)]
-            msg = EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items)) if items else EXPERIENCE_DEFAULT_MSG
-            
+            items = [
+                name for k, name in EXPERIENCE_ITEM_NAMES.items() if ctx.experience_details.get(k)
+            ]
+            msg = (
+                EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items))
+                if items
+                else EXPERIENCE_DEFAULT_MSG
+            )
+
             animator = LoadingMessageAnimator(progress_reporter=progress_reporter)
             animator.show(msg, force=True)
-            
+
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(_process)
                 while not future.done():

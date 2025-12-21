@@ -247,5 +247,5 @@ def _is_new_major_cached(university: str, major: str, version: int) -> bool:
     row = _data_manager.get_row(university, major)
     if row is not None:
         is_new = row.get("新增专业")
-        return pd.notna(is_new) and str(is_new) in {"25fall新增", "26fall新增"}
+        return pd.notna(is_new) and str(is_new).strip() != ""
     return False

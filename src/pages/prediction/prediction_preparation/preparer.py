@@ -5,7 +5,7 @@ import pandas as pd
 
 from src.pages.prediction.core.exceptions import InvalidInputError, MissingInputError
 from src.pages.prediction.core.types import PredictionInput
-from src.pages.prediction.core.utils import get_background_faculty, get_background_faculty
+from src.pages.prediction.core.utils import get_background_faculty
 from src.utils.app_data_loader import load_raw_cases_data
 from src.utils.logger import setup_logger
 from src.utils.school_level_service import get_school_level_service
@@ -34,7 +34,9 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
         "background_major": str(input_data.get("background_major", "")).strip(),
         "target_universities": [str(v) for v in input_data.get("target_universities", []) if v],
         "target_majors": [str(v) for v in input_data.get("target_majors", []) if v],
-        "experience_details": {str(k): str(v) for k, v in input_data.get("experience_details", {}).items()},
+        "experience_details": {
+            str(k): str(v) for k, v in input_data.get("experience_details", {}).items()
+        },
     }
 
     if (gpa := _safe_float(input_data.get("gpa"))) is not None:
@@ -67,7 +69,7 @@ def prepare_input_data(input_data_from_form: dict) -> dict:
         raise MissingInputError(missing)
 
     res = input_data_from_form.copy()
-    
+
     # 补全学校等级和学部信息
     bg_uni = str(res["background_university"])
     res["school_level"] = get_school_level_service().get_school_level(bg_uni)
@@ -88,8 +90,8 @@ def prepare_model_inputs(
     """筛选模型所需的特征字段"""
     base_features = [f for f in expected_features if f not in ("target_university", "target_major")]
     model_input = {
-        f: current_input_data[f] 
-        for f in base_features 
+        f: current_input_data[f]
+        for f in base_features
         if f in current_input_data and isinstance(current_input_data[f], (float, int, str))
     }
     missing = [f for f in base_features if f not in model_input]
@@ -114,7 +116,8 @@ def get_user_specified_combinations(
 
 def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
     """计算列表内容的稳定指纹"""
-    if not lst: return (0, 0)
+    if not lst:
+        return (0, 0)
     try:
         content = "\n".join(sorted(str(x) for x in lst)).encode("utf-8")
         stable_hash = int.from_bytes(hashlib.sha1(content).digest()[:8], "big")
@@ -126,12 +129,17 @@ def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
 
 def compute_df_fingerprint(df: pd.DataFrame | None) -> int:
     """计算 DataFrame 的关键列指纹"""
-    if df is None or df.empty: return 0
+    if df is None or df.empty:
+        return 0
     try:
         from pandas.util import hash_pandas_object
-        keys = [c for c in ("background_university", "target_university", "target_major") if c in df.columns]
+
+        keys = [
+            c
+            for c in ("background_university", "target_university", "target_major")
+            if c in df.columns
+        ]
         return int(hash_pandas_object(df[keys]).sum()) if keys else len(df)
     except Exception as e:
         logger.warning(f"计算DF指纹失败: {e}")
         return len(df)
-

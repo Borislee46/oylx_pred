@@ -1,9 +1,12 @@
 import base64
-import streamlit as st
 from pathlib import Path
+
+import streamlit as st
+
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
+
 
 @st.cache_data(show_spinner=False)
 def get_product_logo_image_as_base64(path: str) -> str:
@@ -13,6 +16,7 @@ def get_product_logo_image_as_base64(path: str) -> str:
     except Exception as e:
         logger.error(f"读取 logo 失败 {full_path}: {e}")
         return ""
+
 
 def render_header(logo_base64: str) -> None:
     if not logo_base64:
@@ -36,16 +40,18 @@ def render_header(logo_base64: str) -> None:
     except (AttributeError, TypeError):
         st.markdown(html_block, unsafe_allow_html=True)
 
+
 def display_feedback_section(session_id: str) -> None:
     key = f"feedback_{session_id}"
     toast_key = f"{key}_toast_sent"
-    
+
     current = st.feedback("thumbs", key=key)
     if current is None:
         return
 
     val = int(current) if isinstance(current, (bool, int, str)) else None
-    if val is None: return
+    if val is None:
+        return
 
     if st.session_state.get(toast_key) != val:
         msg = "感谢您的肯定！我们会继续努力！" if val == 1 else "收到您的反馈，我们会持续改进！"
@@ -53,10 +59,10 @@ def display_feedback_section(session_id: str) -> None:
         st.session_state[toast_key] = val
         logger.info(f"用户反馈: {'满意' if val == 1 else '不满意'}, session: {session_id}")
 
+
 def display_back_to_homepage() -> None:
     st.page_link(
         "main.py",
         label="返回首页",
         query_params={"scroll_to": "main-page-header-anchor"},
     )
-

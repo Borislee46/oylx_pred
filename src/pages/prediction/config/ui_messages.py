@@ -1,27 +1,27 @@
 PIPELINE_MESSAGES = {
-    "init_engine": "正在初始化智算引擎",
-    "verify_data": "核验背景信息完整性",
-    "wake_model": "启动{model_name}模型，参数预热中",
-    "search_cases": "检索案例库，对标录取基准",
-    "check_consistency": "已检索{count}条核心案例，核验模型一致性",
-    "build_features": "生成{dim}维申请特征向量",
-    "prepare_pool": "构建院校候选池，预匹配申请路径",
-    "load_similarity": "预加载{count}条相似性信号",
-    "extract_profile": "提取学生画像：GPA {gpa}，语言{lang}，院校{uni}，校准{status}",
-    "running_calc": "测算{total}条申请路径成功率",
-    "initial_filter": "初筛完成，候选{count}项，启动多因子权重修正",
-    "analyze_text": "剖析软背景，量化科研与实习的潜力",
-    "cross_check": "执行跨学科风险对标，调整申请路径权重",
-    "merging": "聚合多源预测信号，优化最终方案",
-    "empty_results": "未找到匹配结果，建议调整背景或拓宽目标",
-    "done": "分析完成，已生成{count}条结果",
+    "init_engine": "初始化智算引擎",
+    "verify_data": "核验背景信号",
+    "wake_model": "{model_name} 模型预热",
+    "search_cases": "对标核心案例库",
+    "check_consistency": "核验 {count} 组核心信号",
+    "build_features": "生成 {dim} 维特征向量",
+    "prepare_pool": "匹配院校候选矩阵",
+    "load_similarity": "加载 {count} 条相似信号",
+    "extract_profile": "画像提取: {gpa} | {lang} | {uni} | {status}",
+    "running_calc": "拟合 {total} 条申请路径",
+    "initial_filter": "权重修正: 候选 {count} 项",
+    "analyze_text": "剖析软背景潜力",
+    "cross_check": "修正跨学科权重",
+    "merging": "优化推荐方案",
+    "empty_results": "无匹配信号，请调整目标",
+    "done": "预测完成: {count} 条结论",
 }
 
 PROGRESS_ANIMATION_FALLBACKS = [
-    (20, "初始化引擎，解析个人背景"),
-    (50, "检索历史数据库，寻找相似案例"),
-    (80, "权衡各项指标，模拟录取概率"),
-    (100, "最终校准，确保预测严谨性"),
+    (20, "解析背景画像"),
+    (50, "对标核心案例"),
+    (80, "模拟录取概率"),
+    (100, "优化推荐方案"),
 ]
 
 EXPERIENCE_ITEM_NAMES = {
@@ -31,31 +31,44 @@ EXPERIENCE_ITEM_NAMES = {
     "paper_details": "学术产出",
 }
 
-EXPERIENCE_BOOST_TEMPLATE = "分析您的{items}对录取概率的提升效果"
-EXPERIENCE_DEFAULT_MSG = "剖析您的申请亮点"
+FIELD_NAME_MAP = {
+    "research_details": "研究",
+    "award_details": "奖项",
+    "internship_details": "实习",
+    "paper_details": "论文",
+}
+
+EXPERIENCE_ANALYSIS_MESSAGES = [
+    "解析 {field} 亮点信号",
+    "拟合 {field} 经历权重",
+    "挖掘 {field} 核心增益",
+    "核验软背景信号密度",
+]
+
+EXPERIENCE_VALIDATION_TEMPLATE = "校准 [{idx}/{total}]: {field_name} ({length}字 | {method})"
 
 RANKER_MESSAGES = {
     "basic": [
-        "{tone}，专业{majors}，评估与您背景的契合度",
-        "{tone}，专业{majors}，审阅课程匹配细节",
-        "{tone}，专业{majors}，解析专业对您的偏好程度",
+        "[{tone}] 测算 {majors} 概率",
+        "[{tone}] 校验 {majors} 契合度",
+        "[{tone}] 对标 {majors} 竞争压",
     ],
     "cross_major": [
-        "{tone}，跨申{majors}，分析从{bg_major}转申的可行性",
-        "{tone}，跨申{majors}，量化经历与目标专业的相关性",
+        "[{tone}] 跨申 {majors}: 分析 {bg_major} 路径",
+        "[{tone}] 跨申 {majors}: 校准相关性信号",
     ],
     "faculty": [
-        "{tone}，{faculty}方向，结合学院偏好与行业趋势加权评估",
-        "{tone}，{faculty}方向，参考往届案例，优化策略",
+        "[{tone}] {faculty} 维度加权评估",
+        "[{tone}] {faculty} 跨学科信号增强",
     ],
     "relax": [
-        "{tone}，放宽条件发掘潜在选择",
+        "[{tone}] 放宽参数边界",
     ],
     "tighten": [
-        "{tone}，聚焦录取把握最高的目标",
+        "[{tone}] 收紧模型阈值",
     ],
     "fallback": [
-        "{tone}，综合所有参数，生成最终排序",
-        "{tone}，完成报告整合与格式优化",
+        "[{tone}] 聚合特征矩阵",
+        "[{tone}] 优化结果集格式",
     ],
 }

@@ -8,6 +8,7 @@
 
 - **表单校验器**：`form_validator.py`
 - **校验错误类型**：`validation_errors.py`
+- **核心工具**：`src/pages/prediction/core/utils.py` (含语言成绩标准化)
 - **GPA 转换**：`gpa_converter.py`
 - **语言分数换算**：`language_score_converter.py`
 - **语言分数校验**：`language_score_validator.py`
@@ -35,12 +36,6 @@
 
 ### 主要方法
 
-- `normalize_language_score(score, language_type) -> float | Any`
-  - 将分数标准化到 [0,1]（托福/雅思）。异常时原样返回。
-
-- `denormalize_language_score(normalized_score, language_type, round_to_half=False) -> float | Any`
-  - 将 [0,1] 区间分数反归一到具体考试分数。`round_to_half=True` 时雅思按 0.5 步长。
-
 - `validate_standardized_test_score(exam_type, score) -> (bool, str | None, float | None)`
   - 校验标化成绩输入（当前仅支持 `STANDARDIZED_TEST_TYPES=["GRE","GMAT"]`）。
   - **约定**：
@@ -63,7 +58,17 @@
 
 ---
 
-## 2. GPA 转换 (`gpa_converter.py`)
+## 2. 核心工具 (`src/pages/prediction/core/utils.py`)
+
+- `normalize_language_score(score, language_type) -> float | Any`
+  - 将分数标准化到 [0,1]（托福/120，雅思/9）。异常时原样返回。
+
+- `denormalize_language_score(normalized_score, language_type, round_to_half=False) -> float | Any`
+  - 将 [0,1] 区间分数反归一到具体考试分数。`round_to_half=True` 时雅思按 0.5 步长。
+
+---
+
+## 3. GPA 转换 (`gpa_converter.py`)
 
 **类**: `GPAConverter`
 

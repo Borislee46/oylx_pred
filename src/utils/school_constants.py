@@ -1,8 +1,3 @@
-SCHOOL_LEVEL_ALIASES: dict[str, str] = {
-    "500之后": "500+",
-    "500＋": "500+",
-}
-
 SCHOOL_LEVEL_PRIORITY: dict[str | None, int] = {
     "985": 1,
     "1-50": 2,
