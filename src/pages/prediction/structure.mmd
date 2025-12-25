@@ -1,0 +1,71 @@
+graph TD
+    %% 用户入口
+    User([用户输入]) -->|填写表单| UI[input_form.py]
+    
+    subgraph UI_Components [UI 组件层]
+        UI -->|状态管理| State[FormStateManager]
+        UI -->|实时校验| Validator[FormValidator]
+        UI -->|组件渲染| Comps[Input Form Components]
+    end
+    
+    Validator -->|触发提交| Handler[ui/handler.py]
+    
+    subgraph Flow_Control [流程编排与预警]
+        Handler -->|1. 风险识别| Guard[cross_faculty_guard.py]
+        Guard -->|弹窗确认| Dialog[ConfirmDialog]
+        Handler -->|2. 启动流水线| Pipeline[flow/pipeline.py]
+    end
+    
+    subgraph Preparation [数据准备与指纹校验]
+        Pipeline -->|数据指纹比对| Fingerprint[Fingerprint Check]
+        Pipeline -->|数据归一化| Norm[form_normalizer.py]
+        Pipeline -->|特征组装| Prep[preparer.py]
+    end
+    
+    subgraph Execution [核心预测与 AI 平衡]
+        Prep -->|输入特征| Runner[flow/run_prediction.py]
+        Runner -->|1. 组合生成| Processor[flow/processor.py]
+        Runner -->|2. 并行执行| Executor[prediction_execution/executor.py]
+        Executor -->|XGBoost 推理| Model[modeling/model.py]
+        Model -->|原始输出| Processor
+        Processor -->|3. 结果平衡| Agent[BoundaryCaseAgent]
+    end
+    
+    subgraph Modification [修正仲裁与 NLP 增强]
+        Agent -->|候选结果| ModPipe[adjustment_pipeline.py]
+        
+        subgraph Arbitration [概率修正仲裁]
+            ModPipe -->|1. 初始化| Arb[AdjustmentArbitrator]
+            Arb -.->|GPA/语言| Adj[ProbabilityAdjuster]
+            Arb -.->|跨专业| Cross[CrossMajorPenalty]
+            Arb -.->|学部范围| Faculty[FacultyFilters]
+            Arb -.->|职业化| Prof[ProfessionalReduction]
+            Arb -->|2. 策略合并| ArbLogic[Arbitration Logic]
+            ArbLogic -->|3. 范围约束| NormLayer[NormalizationLayer]
+        end
+
+        NormLayer -->|4. NLP 语义提升| TextBoost[TextBoostProvider]
+        TextBoost -->|Logit 提升| LogitUplift[LogitUpliftProvider]
+    end
+    
+    LogitUplift -->|交付处理| ResHandler[results_handler.py]
+    ResHandler -->|Session 持久化| Session[SessionManager]
+    Session -->|UI 渲染| ResultUI[result_display/]
+
+    %% 数据底座
+    Cases[(案例数据库)] -.->|校验与检索| Fingerprint
+    Cases -.->|相似度计算| Runner
+    Cache[(相似度缓存)] -.->|加速匹配| Runner
+    Models[(预训练模型池)] -.->|权重加载| Model
+    NLP_Res[(NLP 模型资源)] -.->|特征向量| LogitUplift
+
+    %% 样式定义
+    classDef highlight fill:#f96,stroke:#333,stroke-width:2px;
+    classDef component fill:#e1f5fe,stroke:#01579b;
+    classDef logic fill:#fff3e0,stroke:#e65100;
+    classDef storage fill:#f5f5f5,stroke:#616161;
+
+    class User highlight;
+    class UI,Handler,Pipeline,Runner,Executor,Model,Agent,ModPipe,TextBoost,ResHandler component;
+    class Arb,ArbLogic,NormLayer logic;
+    class Cases,Cache,Models,NLP_Res storage;
