@@ -111,24 +111,15 @@ def normalize_form_data_for_prediction(
         raw_gpa, gpa_scale, bg_uni, gpa_converter, exam_type, exam_score
     )
 
-    bonus_gpa = calculate_gpa_bonus(exam_type, exam_score)
-    if normalized_gpa is not None and bonus_gpa > 0:
-        warnings.append(f"标化成绩加成生效: GPA +{bonus_gpa:.3f}")
-
-    # 语言成绩处理
     school_service = get_school_level_service()
     is_overseas = school_service.is_overseas_school(bg_uni) if bg_uni else False
     raw_lang = form_data.get("language_score_raw")
     lang_type = form_data.get("language_type")
 
-    if (not raw_lang) and is_overseas:
-        warnings.append("海外背景触发语言成绩默认加成")
-
     _, final_normalized_lang_score = calculate_processed_language_score(
         raw_lang, lang_type, bg_uni, is_overseas
     )
 
-    # 院校对齐
     bg_uni_for_model = get_background_university_for_model(
         bg_uni, cases_df, background_university_set
     )

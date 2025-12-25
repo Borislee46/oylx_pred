@@ -1,9 +1,24 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypedDict, TypeGuard
+from typing import Any, TypeAlias, TypedDict, TypeGuard
 
-type CaseKey = tuple[str, str]
+CaseKey: TypeAlias = tuple[str, str]
+
+
+class AdjustmentFactorType(str, Enum):
+    PENALTY = "penalty"
+    BOOST = "boost"
+
+
+@dataclass
+class AdjustmentFactor:
+    name: str
+    value: float
+    factor_type: AdjustmentFactorType
+    description: str = ""
+    weight: float = 1.0
 
 
 class CaseWithKey(TypedDict, total=False):

@@ -44,11 +44,14 @@ def load_school_major_details_df(
     return pd.read_feather(path)
 
 
-def _load_similarity_cache(path: str) -> dict:
+def _load_similarity_cache(path: str):
+    import os
+
+    if not os.path.exists(path):
+        return {}
     df = pd.read_feather(path)
-    if {"key", "similarity"}.issubset(df.columns):
-        series = df.set_index("key")["similarity"]
-        return series.to_dict()
+    if {"bg_major", "target_major", "similarity"}.issubset(df.columns):
+        return df.set_index(["bg_major", "target_major"])["similarity"]
     return {}
 
 

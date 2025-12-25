@@ -26,8 +26,8 @@ src/machine_learning_models/data/school_base.xlsx
 src/machine_learning_models/data/school_base.csv
 src/machine_learning_models/data/~$cases.xlsx
 src/machine_learning_models/data/~$school_major_details.xlsx
-# data/cases.xlsx
-# scripts/
+data/cases.xlsx
+scripts/
 e2_secrets.py
 *.py[cod]
 __pycache__/
@@ -67,6 +67,13 @@ cookie.txt
 .mypy_cache/
 .gitattributes
 
-scripts/
+openapi.py
+
+tests/
+user_form_data/
 .cursor/
-.streamlit/
+
+.pre-commit-config.yaml
+pyproject.toml
+
+*.md

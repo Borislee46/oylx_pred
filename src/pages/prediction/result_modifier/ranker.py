@@ -18,7 +18,6 @@ from src.pages.prediction.result_modifier.utils import (
 )
 
 
-# 当前场景heapq未必比sorted快, candidate多（十万级？）的话可换heapq
 def _pick_supplement_cases_by_probability(
     candidates: list[dict[str, Any]],
     top_set: set[tuple[Any, Any]],

@@ -2,7 +2,7 @@
 
 **路径**: `src/pages/prediction/result_modifier`
 
-本模块用于在主模型输出基础概率后，做可控的后处理：GPA/语言惩罚、职业型专业降权、跨专业无录取惩罚、以及基于 TF‑IDF 的 Logit 文本加成。
+本模块用于在主模型输出基础概率后，做可控的后处理：GPA/语言惩罚、职业型专业降权、跨专业无录取惩罚、以及基于文本质量的 Logit 增量加成。
 
 ## 1. 结构概览
 
@@ -10,7 +10,7 @@
 - **调整管线**：`adjustment_pipeline.py`
 - **概率调整**：`probability_adjuster.py`（统计 + 分段惩罚）
 - **文本加成入口**：`text_boost_provider.py`
-- **文本加成实现**：`providers/logit_uplift_provider.py`
+- **文本加成实现**：详见 [文本加成 API (Text Uplift)](text_uplift_api.md)
 - **推荐筛选**：`filters.py`
 - **学院过滤器**：`faculty_filters.py` (处理跨学院惩罚)
 - **语言惩罚辅助**：`language_penalty.py`
@@ -66,17 +66,13 @@
 
 ## 5. 文本加成 (`text_boost_provider.py`)
 
-### 触发条件
-- `has_valid_experience_details(experience_details)` 为 True：至少一项经历详情不是空/无意义文本。
+该功能已解耦至独立文档，请参阅：[**文本加成 API 文档**](text_uplift_api.md)。
 
-### 计算逻辑
-1.  **相似度计算**：TF-IDF 向量与质心点积，可叠加 High Signal 加分。
-2.  **门控**：总相似度或最大相似度需超过阈值。
-3.  **Delta Logit**：`delta = max(0, b + Σ w_k*s_k + Σ u_k*(s_k*log1p(count_k)))`。
-4.  **概率应用**：
-    - 仅对概率在 [0.1, 0.9] 范围内的结果生效。
-    - 使用 Sigmoid 函数应用 Logit 增量。
-    - 应用动态封顶逻辑，防止加成过度。
+### 快速要点：
+- **核心逻辑**：基于增量建模（Uplift Modeling）计算 Logit 偏移。
+- **防作弊**：内置香农熵（Shannon Entropy）检测，自动压制重复、注水文本的加成。
+- **可解释性**：日志会自动输出加成原因（如命中的关键词标签）。
+- **性能**：极致优化的字节级计算，处理速度比调用 LLM 快数万倍。
 
 ## 6. 推荐筛选 (`filters.py`)
 

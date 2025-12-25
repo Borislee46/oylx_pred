@@ -25,7 +25,7 @@ def _run_chunk_in_worker(
     model_input: dict[str, Any], chunk: list[tuple[str, str]], features: list[str]
 ) -> list[dict[str, Any]]:
     if _WORKER_MODEL is None:
-        raise RuntimeError("Worker model not initialized")
+        raise RuntimeError("子进程模型未初始化")
     return _WORKER_MODEL.predict_batch(model_input, chunk, features)
 
 

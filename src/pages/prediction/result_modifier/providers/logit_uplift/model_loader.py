@@ -15,6 +15,33 @@ logger = setup_logger("page3", "prediction")
 
 
 class ModelLoader:
+    """
+    模型资源加载器。
+
+    该类负责加载加成模型运行所需的重型资源（TF-IDF 矩阵、聚类中心、权重系数）。
+
+    设计要点：
+    1. **延迟加载 (Lazy Loading)**: 仅在第一次需要使用模型时才从磁盘读取，缩短应用启动时间。
+    2. **线程安全**: 使用 `threading.Lock` 确保在并发环境下（如 Streamlit 多会话）资源只被初始化一次。
+    3. **性能优化**:
+       - 使用 `joblib` 加载向量器。
+       - 使用 `mmap_mode="r"` 读取大数组，节省内存。
+       - 对质心进行预归一化（L2 Normalize），加速后续相似度计算。
+       - 使用 Python 原生 `tuple` 存储小型权重数组，减少 numpy 调用的开销。
+    """
+
+    # 使用 __slots__ 严格限制实例属性，微量提升内存效率和访问速度
+    __slots__ = (
+        "_vectorizer_path",
+        "_centroids_path",
+        "_weights_path",
+        "_vectorizer",
+        "_centroids",
+        "_weights",
+        "_weights_array",
+        "_load_lock",
+    )
+
     def __init__(
         self,
         vectorizer_path: str,
@@ -32,6 +59,9 @@ class ModelLoader:
         self._load_lock = threading.Lock()
 
     def lazy_load(self) -> None:
+        """
+        线程安全地执行模型懒惰加载。
+        """
         if (
             self._vectorizer is not None
             and self._centroids is not None
@@ -40,6 +70,7 @@ class ModelLoader:
             return
 
         with self._load_lock:
+            # 双重检查锁
             if (
                 self._vectorizer is not None
                 and self._centroids is not None
@@ -49,16 +80,19 @@ class ModelLoader:
 
             try:
                 if self._vectorizer is None:
-                    self._vectorizer = joblib.load(self._vectorizer_path)
+                    # 加载 Scikit-Learn 的 TfidfVectorizer
+                    self._vectorizer = joblib.load(self._vectorizer_path, mmap_mode="r")
                     logger.debug(f"加载向量器: {self._vectorizer_path}")
 
                 if self._centroids is None:
+                    # 加载预计算的高质量案例质心
                     data = np.load(self._centroids_path, mmap_mode="r")
                     centroids = {k: data[k] for k in data.files}
                     normed: dict[str, np.ndarray] = {}
                     for k, arr in centroids.items():
                         v = np.asarray(arr, dtype=np.float32)
                         n = np.linalg.norm(v)
+                        # 预归一化，使得点积运算直接等同于余弦相似度
                         if n > 0:
                             v = v / n
                         normed[k] = v
@@ -66,9 +100,11 @@ class ModelLoader:
                     logger.debug(f"加载质心: {self._centroids_path}")
 
                 if self._weights_array is None:
+                    # 加载线性回归权重 (Logit Uplift Regression)
                     with open(self._weights_path, encoding="utf-8") as f:
                         self._weights = json.load(f) or {}
-                    # 对于极小规模的权重（9个），使用原生 tuple 比 numpy array 更快
+
+                    # 权重格式解析：b(bias), w(linear weights), u(interaction weights)
                     self._weights_array = (
                         safe_float(self._weights.get("b", 0.0)),
                         safe_float(self._weights.get("w_r", 0.0)),

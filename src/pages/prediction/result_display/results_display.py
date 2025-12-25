@@ -97,12 +97,11 @@ class ResultsDisplay:
                 subset=[major_col],
             )
 
-        st.data_editor(
+        st.dataframe(
             styled_df,
             hide_index=True,
             column_config=_get_column_config(df, column_widths, label_map=label_map),
-            disabled=True,
-            key=f"prediction_result_editor_{result_type or 'default'}",
+            key=f"prediction_result_df_{result_type or 'default'}",
         )
 
     def _get_result_dataframe(self, result_type: str, max_items: int | None = None) -> pd.DataFrame:

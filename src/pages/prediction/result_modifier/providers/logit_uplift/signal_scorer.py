@@ -1,3 +1,7 @@
+"""
+保证文本加成有足够的泛化性，添加常用的关键词词库
+"""
+
 from __future__ import annotations
 
 import json
@@ -15,22 +19,41 @@ class _Rule:
 
 
 class SignalScorer:
+    """
+    高价值信号评分器。
+
+    该类通过硬匹配关键词（词库模式）来识别文本中的"强信号"。
+    这些信号通常是统计模型（如 TF-IDF）难以捕捉到的决定性细节，例如具体的奖项名称、核心期刊等。
+
+    设计意图：
+    - **弥补泛化性**：向量相似度往往只能捕捉到语义相近，而词库可以锁定具体的成就水平（如"一等奖" vs "三等奖"）。
+    - **字段隔离**：支持针对特定维度（如仅限"科研"）的规则，也可以定义全局通用的规则。
+    """
+
     def __init__(
         self,
         lexicon_path: str | None,
         enabled_fields: tuple[str, ...] | None,
         per_field_cap: float,
-        max_reasons: int,
         lexicon_weight: float,
     ) -> None:
+        """
+        初始化评分器并加载词库。
+
+        Args:
+            lexicon_path: 关键词规则 JSON 文件路径。
+            enabled_fields: 允许进行关键词扫描的字段列表。
+            per_field_cap: 单个字段允许的最大词库加成上限。
+            lexicon_weight: 词库总权重的缩放系数。
+        """
         self._lexicon_path = lexicon_path
         self._enabled_fields = enabled_fields
         self._per_field_cap = float(per_field_cap)
-        self._max_reasons = int(max_reasons)
         self._lexicon_weight = float(lexicon_weight)
         self._rules_by_field: dict[str, list[_Rule]] = {}
         self._global_rules: list[_Rule] = []
 
+        # 预加载规则并建立索引
         all_rules = self._load_rules(lexicon_path)
         for r in all_rules:
             if r.fields is None:
@@ -49,6 +72,16 @@ class SignalScorer:
             return default
 
     def _load_rules(self, lexicon_path: str | None) -> tuple[_Rule, ...]:
+        """
+        解析 JSON 规则库。
+
+        格式示例：
+        {
+          "rules": [
+            {"pattern": "nature", "score": 0.9, "tag": "顶刊发表", "fields": ["paper_details"]}
+          ]
+        }
+        """
         if not lexicon_path:
             return ()
         path = Path(lexicon_path)
@@ -71,6 +104,7 @@ class SignalScorer:
             pattern = r.get("pattern")
             if not isinstance(pattern, str) or not pattern.strip():
                 continue
+            # 限制单条规则的分数范围在 [0, 1]
             score = self._safe_float(r.get("score"), 0.0)
             score = float(min(max(score, 0.0), 1.0))
             tag = r.get("tag")
@@ -89,14 +123,21 @@ class SignalScorer:
             )
         return tuple(out)
 
-    def score(self, texts_by_field: dict[str, str]) -> tuple[dict[str, float], tuple[str, ...]]:
+    def score(
+        self, texts_by_field: dict[str, str]
+    ) -> tuple[dict[str, float], dict[str, list[str]]]:
+        """
+        扫描各字段文本，计算词库得分并返回命中的标签。
+
+        Returns:
+            tuple: (字段 -> 加成得分, 字段 -> 命中标签列表)
+        """
         if not texts_by_field or self._lexicon_weight <= 0:
-            return {}, ()
+            return {}, {}
 
         enabled = set(self._enabled_fields) if self._enabled_fields else None
-
         bonuses: dict[str, float] = {}
-        reasons: list[tuple[float, str]] = []
+        tags_found: dict[str, list[str]] = {}
 
         for field, text in texts_by_field.items():
             if enabled is not None and field not in enabled:
@@ -106,32 +147,24 @@ class SignalScorer:
 
             t = text.lower()
             best = 0.0
+            matched_tags: list[str] = []
 
+            # 组合该字段专属规则和全局规则
             target_rules = self._rules_by_field.get(field, []) + self._global_rules
             if not target_rules:
                 continue
 
+            # 执行硬匹配扫描 (Substring check)
             for rule in target_rules:
                 if rule.pattern in t:
-                    w = rule.score
-                    if w > best:
-                        best = w
-                    reasons.append((w, rule.tag))
+                    matched_tags.append(rule.tag)
+                    # 取命中规则中的最高分（非累加）
+                    if rule.score > best:
+                        best = rule.score
 
             if best > 0:
+                # 最终得分为：max(scores) * lexicon_weight，并对单字段封顶
                 bonuses[field] = min(self._per_field_cap, best * self._lexicon_weight)
+                tags_found[field] = list(set(matched_tags))
 
-        if not reasons:
-            return bonuses, ()
-
-        reasons.sort(key=lambda x: x[0], reverse=True)
-        seen: set[str] = set()
-        picked: list[str] = []
-        for _, tag in reasons:
-            if tag in seen:
-                continue
-            seen.add(tag)
-            picked.append(tag)
-            if len(picked) >= self._max_reasons:
-                break
-        return bonuses, tuple(picked)
+        return bonuses, tags_found

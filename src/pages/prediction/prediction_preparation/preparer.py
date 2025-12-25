@@ -28,7 +28,6 @@ def _safe_int(v: Any) -> int:
 
 
 def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
-    """清洗并规范化输入数据类型"""
     cleaned: PredictionInput = {
         "background_university": str(input_data.get("background_university", "")).strip(),
         "background_major": str(input_data.get("background_major", "")).strip(),
@@ -48,7 +47,6 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
 
     for k in ("internship_count", "research_count", "award_count", "paper_count"):
         cleaned[k] = _safe_int(input_data.get(k))
-        # 同步到 experience_details 以便后续处理
         cleaned["experience_details"][k] = str(cleaned[k])
 
     if "school_level" in input_data:
@@ -58,11 +56,9 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
 
 
 def prepare_input_data(input_data_from_form: dict) -> dict:
-    """基础字段校验及背景信息补全"""
     if not isinstance(input_data_from_form, dict):
         raise InvalidInputError("_", value=type(input_data_from_form).__name__, expected="dict")
 
-    # 必需字段检查
     required = ["background_university", "background_major"]
     if missing := [f for f in required if not input_data_from_form.get(f)]:
         logger.warning(f"缺少必需字段: {', '.join(missing)}")
@@ -70,7 +66,6 @@ def prepare_input_data(input_data_from_form: dict) -> dict:
 
     res = input_data_from_form.copy()
 
-    # 补全学校等级和学部信息
     bg_uni = str(res["background_university"])
     res["school_level"] = get_school_level_service().get_school_level(bg_uni)
 
@@ -87,7 +82,6 @@ def prepare_model_inputs(
     current_input_data: dict[str, Any],
     expected_features: list[str],
 ) -> tuple[dict[str, float | int | str], list[str]]:
-    """筛选模型所需的特征字段"""
     base_features = [f for f in expected_features if f not in ("target_university", "target_major")]
     model_input = {
         f: current_input_data[f]
@@ -104,7 +98,6 @@ def get_user_specified_combinations(
     input_data: dict[str, Any],
     all_unis: list[str],
 ) -> list[tuple[str, str]] | None:
-    """获取用户指定的 (大学, 专业) 组合"""
     majors = input_data.get("target_majors")
     if not isinstance(majors, list) or not majors:
         return None
@@ -115,7 +108,6 @@ def get_user_specified_combinations(
 
 
 def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
-    """计算列表内容的稳定指纹"""
     if not lst:
         return (0, 0)
     try:
@@ -128,7 +120,6 @@ def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
 
 
 def compute_df_fingerprint(df: pd.DataFrame | None) -> int:
-    """计算 DataFrame 的关键列指纹"""
     if df is None or df.empty:
         return 0
     try:

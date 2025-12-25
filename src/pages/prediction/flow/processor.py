@@ -1,4 +1,3 @@
-import math
 from typing import Any
 
 import pandas as pd
@@ -78,9 +77,7 @@ def _filter_results(results: list) -> list:
             row = _data_manager.get_row(r.get("university"), r.get("major"))
             if row is not None:
                 m = str(row.get(mode_col, "")).lower()
-                if any(kw in m for kw in ["part-time", "兼读", "pt", "part time"]) and not any(
-                    kw in m for kw in ["full-time", "全日", "ft", "full time"]
-                ):
+                if "part" in m and "time" in m:
                     continue
         res.append(r)
     return res
@@ -251,8 +248,10 @@ def _apply_agent_balance_adjustment_flat(
 ) -> tuple[list, list]:
     diff = len(cross_rec) - len(sim_rec)
     max_len = max(len(sim_rec), len(cross_rec))
+    value = AGENT_MIN_BALANCE_DIFF_RATIO * max_len
     threshold = max(
-        AGENT_MIN_BALANCE_DIFF_MIN, int(math.ceil(AGENT_MIN_BALANCE_DIFF_RATIO * max_len))
+        AGENT_MIN_BALANCE_DIFF_MIN,
+        int(-(-value // 1)) if value >= 0 else int(value),
     )
 
     if abs(diff) < threshold or cases_df is None or not background_major:

@@ -84,7 +84,6 @@ class PredictionModel:
         return False
 
     def _preprocess_single_value(self, col: str, value: Any) -> Any:
-        """单值预处理逻辑"""
         if col in COUNT_COLUMNS_FOR_LOG_TRANSFORM:
             num = pd.to_numeric(value, errors="coerce")
             return float(np.log1p(max(0, num if not pd.isna(num) else 0)))
@@ -97,12 +96,10 @@ class PredictionModel:
                     else ""
                 )
 
-            # 非原生分类支持时，使用编码
             idx_map = self.global_category_index.get(col, {})
             str_val = str(value)
             code = idx_map.get(str_val, -1)
 
-            # 学校等级回退逻辑
             if code == -1 and col == "background_university" and self.level_fallback_mapping:
                 level = self.school_level_service.get_school_level(str_val)
                 fallback = self.level_fallback_mapping.get(level)
@@ -118,7 +115,6 @@ class PredictionModel:
     def _preprocess_base_features_raw(
         self, input_tuple: tuple, features_to_use: tuple
     ) -> dict[str, Any]:
-        """原始预处理逻辑（供 lru_cache 包装）"""
         input_data = dict(input_tuple)
         exclude = {"target_university", "target_major"}
         return {
@@ -174,7 +170,6 @@ class PredictionModel:
         if not features:
             return []
 
-        # 缓存基础特征预处理结果
         input_tuple = tuple(sorted(input_data.items()))
         base_preprocessed = self._get_base_features_cached(input_tuple, tuple(features))
 

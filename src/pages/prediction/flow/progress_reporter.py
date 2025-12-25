@@ -97,15 +97,14 @@ class ProgressReporter:
             return
         now = time.time()
         t = str(text or "").strip()
+
         if not force:
             if t == self._last_text and (now - self._last_emit_at) < self._min_interval:
                 return
-            if (now - self._last_emit_at) < self._min_interval and t:
+            if (now - self._last_emit_at) < (self._min_interval / 2) and t:
                 return
-        try:
-            self._progress_cb(float(p), t or self._last_text)
-            self._last_emit_at = now
-            if t:
-                self._last_text = t
-        except Exception:
-            return
+
+        self._progress_cb(float(p), t or self._last_text)
+        self._last_emit_at = now
+        if t:
+            self._last_text = t

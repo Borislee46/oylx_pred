@@ -187,6 +187,12 @@ class ProbabilityAdjuster:
         else:
             return LANGUAGE_PENALTY_LEVEL_3_THRESHOLD
 
+    def get_penalties(self, gpa: float, language_score: float) -> dict[str, float]:
+        return {
+            "gpa": self._calculate_gpa_penalty(gpa),
+            "language": self._calculate_language_penalty(language_score),
+        }
+
     def adjust_probability(
         self,
         probability: float,

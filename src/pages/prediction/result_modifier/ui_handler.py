@@ -1,6 +1,6 @@
-import random
 import time
 
+import numpy as np
 import streamlit as st
 
 from src.pages.prediction.config.ui_messages import RANKER_MESSAGES
@@ -32,12 +32,11 @@ class LoadingMessageAnimator:
         if not self._current_message:
             return
 
-        dots = [".", "..", "..."][self._cycle_count % 3]
-        msg_with_dots = f"{self._current_message}{dots}"
-
         if self.progress_reporter is not None:
             self.progress_reporter.emit(self._current_message, force=True)
         elif self.placeholder is not None:
+            dots = [".", "..", "..."][self._cycle_count % 3]
+            msg_with_dots = f"{self._current_message}{dots}"
             self.placeholder.markdown(
                 f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{msg_with_dots}</div>',
                 unsafe_allow_html=True,
@@ -124,7 +123,7 @@ class RankerUIHandler:
         self._animator.tick()
 
     def _pick_message(self, pool: list[str], **kwargs) -> str:
-        msg = random.choice(pool)
+        msg = np.random.Generator(np.random.SFC64()).choice(pool)
         return msg.format(**kwargs) if kwargs else msg
 
     def show_candidates(self, major_names: list[str]):
@@ -136,7 +135,7 @@ class RankerUIHandler:
         self._last_update_time = now
 
         if major_names:
-            text = random.choice(major_names)
+            text = np.random.Generator(np.random.SFC64()).choice(major_names)
             pool = self._message_pools[self._round_count % len(self._message_pools)]
             msg = self._pick_message(
                 pool,

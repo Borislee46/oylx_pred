@@ -39,21 +39,6 @@ def compute_dataframe_hash(df: pd.DataFrame) -> str:
         return "fallback_hash"
 
 
-FIELD_NAME_MAP = {
-    "research_details": "研究",
-    "award_details": "奖项",
-    "internship_details": "实习",
-    "paper_details": "论文",
-}
-
-EXPERIENCE_ANALYSIS_MESSAGES = [
-    "正在核验您的背景信息有效性",
-    "正在解析{field}内容并提取关键信息",
-    "正在评估{field}经历对申请竞争力的影响",
-    "正在识别{field}中可量化的亮点信息",
-    "正在对{field}内容进行结构化处理",
-]
-
 INVALID_TOKENS = {
     "",
     "无",

@@ -48,16 +48,11 @@ class AgentAdjustmentEngine:
         initial_pool: list[dict],
         initial_results: list[dict],
     ) -> list[dict]:
-        """
-        重构为单次大批次评估逻辑，彻底消除多轮迭代的 Token 损耗
-        """
         self.ui.update_loop()
         remaining = self.session.target_diff - self.session.adjusted_count
         if remaining <= 0:
             return initial_results
 
-        # 1. 收集候选案例（优先边界，其次池子）
-        # 一次性取够足够的候选量，避免反复请求
         max_candidates = min(AGENT_MAX_BOUNDARY_CASES * 2, max(12, remaining * 3))
         candidates = []
         seen_keys = set()
@@ -78,7 +73,6 @@ class AgentAdjustmentEngine:
         if not candidates:
             return initial_results
 
-        # 2. UI 显示和单次批处理评估
         majors = [c.get("major", "") for c in candidates if c.get("major")]
         self.ui.show_candidates(majors)
 
@@ -87,7 +81,6 @@ class AgentAdjustmentEngine:
 
         self.session.record_evaluation(candidates)
 
-        # 3. 应用结果
         if any(decisions):
             count, adjusted_results = self.session.strategy.update_results(
                 initial_results, candidates, decisions, max_adjust=remaining

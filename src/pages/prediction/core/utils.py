@@ -158,26 +158,26 @@ def format_float(value, decimals: int = 2):
         return value
 
 
-def _create_major_similarity_key(major1: str, major2: str) -> str:
-    key_pair = tuple(sorted([major1, major2]))
-    return f"{key_pair[0]}|{key_pair[1]}"
-
-
 def get_cached_major_similarity(
     target_major: str = None,
     background_major: str = None,
-    cache: dict = None,
+    cache=None,
     major1: str = None,
     major2: str = None,
 ) -> float:
-    first_major = target_major or major1
-    second_major = background_major or major2
+    bg = background_major or major2
+    target = target_major or major1
 
-    if not first_major or not second_major or cache is None:
+    if not bg or not target or cache is None:
         return 0.0
 
-    key = _create_major_similarity_key(first_major, second_major)
-    return cache.get(key, 0.0)
+    if isinstance(cache, pd.Series) and isinstance(cache.index, pd.MultiIndex):
+        try:
+            return float(cache.loc[(str(bg), str(target))])
+        except (KeyError, TypeError):
+            return 0.0
+
+    return 0.0
 
 
 def get_cached_major_similarities_batch(
@@ -247,5 +247,5 @@ def _is_new_major_cached(university: str, major: str, version: int) -> bool:
     row = _data_manager.get_row(university, major)
     if row is not None:
         is_new = row.get("新增专业")
-        return pd.notna(is_new) and str(is_new) in {"25fall新增", "26fall新增"}
+        return pd.notna(is_new) and str(is_new).strip() != ""
     return False

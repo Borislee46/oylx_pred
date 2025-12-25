@@ -92,6 +92,15 @@ def filter_schools_by_faculty_rules(
     return filter_schools_by_allowed_faculties(schools, allowed_faculties)
 
 
+def is_faculty_out_of_scope(background_faculty: str | None, target_faculty: str | None) -> bool:
+    if not background_faculty or not target_faculty:
+        return False
+    allowed = get_allowed_target_faculties(background_faculty)
+    if not allowed:
+        return False
+    return target_faculty.strip() not in allowed
+
+
 def apply_out_of_scope_faculty_penalty(
     schools: list[dict[str, Any]],
     background_faculty: str | None,

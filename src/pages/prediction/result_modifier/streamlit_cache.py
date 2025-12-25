@@ -14,7 +14,7 @@ R = TypeVar("R")
 from src.pages.prediction.result_modifier.utils import has_streamlit_runtime
 
 
-def _noop_decorator[P: ParamSpec, R](func: Callable[P, R]) -> Callable[P, R]:
+def _noop_decorator(func: Callable[P, R]) -> Callable[P, R]:
     return func
 
 

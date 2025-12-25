@@ -4,6 +4,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.utils.logger import setup_logger
+from src.utils.ui.hk_shield_v2 import mount_hk_shield_v2
 
 logger = setup_logger("page3", "prediction")
 
@@ -19,15 +20,21 @@ def get_product_logo_image_as_base64(path: str) -> str:
 
 
 def render_header(logo_base64: str) -> None:
+    mask_base64 = get_product_logo_image_as_base64("assets/shield_mask.png")
+    metal_base64 = get_product_logo_image_as_base64("assets/shield_metal.png")
+
     if not logo_base64:
         st.title("EasyApply 选校预测系统")
         return
 
+    mount_hk_shield_v2()
+
     html_block = f"""
         <div class="hk-header">
-            <div class="hk-logo-container">
+            <div class="hk-logo-container" 
+                 style="--logo-mask-url: url(data:image/png;base64,{mask_base64}); --metal-tex-url: url(data:image/png;base64,{metal_base64})">
+                <div class="hk-metal-layer"></div>
                 <img class="hk-header-logo" src="data:image/png;base64,{logo_base64}" alt="logo">
-                <span class="hk-logo-shine"></span>
             </div>
             <div>
                 <p class="hk-header-title">EasyApply</p>
