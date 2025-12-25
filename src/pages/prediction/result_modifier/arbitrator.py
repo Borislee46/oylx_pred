@@ -1,18 +1,17 @@
-from typing import List
-from src.pages.prediction.result_modifier.types import AdjustmentFactor, AdjustmentFactorType
 from src.pages.prediction.result_modifier.config import (
-    MAX_TOTAL_PENALTY_RATIO,
-    MAX_TOTAL_BOOST_RATIO,
-    PENALTY_DECAY_FACTOR,
-    BOOST_DECAY_FACTOR,
     ARBITRATION_MIN_PROBABILITY,
+    BOOST_DECAY_FACTOR,
+    MAX_TOTAL_BOOST_RATIO,
+    MAX_TOTAL_PENALTY_RATIO,
+    PENALTY_DECAY_FACTOR,
 )
+from src.pages.prediction.result_modifier.types import AdjustmentFactor, AdjustmentFactorType
 from src.pages.prediction.result_modifier.utils import clip_probability
 
 
 class AdjustmentArbitrator:
     def __init__(self):
-        self.factors: List[AdjustmentFactor] = []
+        self.factors: list[AdjustmentFactor] = []
 
     def add_factor(self, factor: AdjustmentFactor):
         self.factors.append(factor)
@@ -60,4 +59,3 @@ class NormalizationLayer:
         if prob > 0:
             prob = max(prob, ARBITRATION_MIN_PROBABILITY)
         return prob
-
