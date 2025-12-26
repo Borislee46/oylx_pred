@@ -1,6 +1,7 @@
 from typing import Any
 
 import pandas as pd
+from rapidfuzz import fuzz
 
 from src.pages.prediction.core.types import PredictionInput
 from src.pages.prediction.core.utils import (
@@ -35,11 +36,42 @@ def generate_prediction_combinations(
     input_data: PredictionInput,
     all_universities_target: list[str],
     all_majors_target: list[str],
+    bg_target_similarity_cache: dict[str, float] | None = None,
+    background_major_original: str | None = None,
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
     from src.pages.prediction.core.utils import _data_manager
 
     target_unis = input_data.get("target_universities") or all_universities_target
-    target_majors = input_data.get("target_majors") or all_majors_target
+    user_specified_majors = input_data.get("target_majors")
+
+    if not user_specified_majors:
+        bg_orig = str(background_major_original or "").strip().lower()
+        bg_mapped = str(input_data.get("background_major", "")).strip().lower()
+
+        filtered_majors_pool = []
+        SEMANTIC_THRESHOLD = 0.6
+
+        for m in all_majors_target:
+            m_lower = str(m).strip().lower()
+            f_score = fuzz.token_sort_ratio(bg_orig, m_lower)
+            if f_score > 90:
+                filtered_majors_pool.append(m)
+                continue
+
+            if bg_target_similarity_cache is not None and bg_mapped:
+                try:
+                    sim = bg_target_similarity_cache.get((bg_mapped, m_lower), 0.0)
+                    if sim >= SEMANTIC_THRESHOLD:
+                        filtered_majors_pool.append(m)
+                except Exception:
+                    pass
+
+        if len(filtered_majors_pool) < 10 and all_majors_target:
+            pass
+
+        target_majors = filtered_majors_pool if filtered_majors_pool else all_majors_target
+    else:
+        target_majors = user_specified_majors
 
     valid_unis = _data_manager.valid_universities
     valid_majors = _data_manager.valid_majors
@@ -116,12 +148,20 @@ def _attach_metadata(
             if row is not None and pd.notna(row.get("专业大类"))
             else ""
         )
+        r["major_cn"] = (
+            str(row.get("专业中文名称", ""))
+            if row is not None and pd.notna(row.get("专业中文名称"))
+            else ""
+        )
         raw_sim = sims_mapped[i]
         if sims_orig is not None and i < len(sims_orig):
             raw_sim = max(raw_sim, sims_orig[i])
         r["similarity"] = (
             adjust_similarity_score(
-                background_major=bg_major_orig or bg_major, target_major=str(m), similarity=raw_sim
+                background_major=bg_major_orig or bg_major,
+                target_major=str(m),
+                similarity=raw_sim,
+                target_major_cn=r["major_cn"],
             )
             if (bg_major_orig or bg_major)
             else 0.0
@@ -207,6 +247,7 @@ def process_prediction_results(
         gpa=gpa,
         language_score=language_score,
         background_university=background_university,
+        background_major=background_major_original or background_major,
     )
 
     cross_rec = get_cross_major_recommendations(

@@ -211,11 +211,15 @@ def _execute_prediction_pipeline(
         ),
     )
 
-    sim_results = pipeline.adjust_batch(sim_results, adj_ctx, progress_reporter=reporter)
-    cross_results = pipeline.adjust_batch(cross_results, adj_ctx, progress_reporter=reporter)
+    sim_results = pipeline.adjust_batch(
+        sim_results, adj_ctx, progress_reporter=reporter, batch_tag="相似专业"
+    )
+    cross_results = pipeline.adjust_batch(
+        cross_results, adj_ctx, progress_reporter=reporter, batch_tag="跨专业"
+    )
     if user_specified_results:
         user_specified_results = pipeline.adjust_batch(
-            user_specified_results, adj_ctx, progress_reporter=reporter
+            user_specified_results, adj_ctx, progress_reporter=reporter, batch_tag="用户指定"
         )
 
     msg_merging = PIPELINE_MESSAGES["merging"]

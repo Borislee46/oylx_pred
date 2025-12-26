@@ -266,10 +266,20 @@ def _fit_uplift_weights(
     # 极致优化：使用向量化方式计算各列的熵（有效信息丰盈度）
     def _get_richness_vec(canonical_key: str) -> np.ndarray:
         candidates = COLUMN_MAP.get(canonical_key, [])
+        all_parts = []
         for col in candidates:
             if col in df.columns:
-                return df[col].fillna("").map(_calculate_entropy_fast).to_numpy(dtype=np.float32)
-        return np.zeros(len(df), dtype=np.float32)
+                all_parts.append(df[col].fillna("").astype(str))
+
+        if not all_parts:
+            return np.zeros(len(df), dtype=np.float32)
+
+        # 合并所有文本部分
+        merged = all_parts[0]
+        for i in range(1, len(all_parts)):
+            merged = merged + " " + all_parts[i]
+
+        return merged.map(_calculate_entropy_fast).to_numpy(dtype=np.float32)
 
     r_rich = _get_richness_vec("research_details")
     a_rich = _get_richness_vec("award_details")

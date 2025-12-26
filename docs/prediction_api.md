@@ -29,7 +29,8 @@
 
 - **基本字段**：`university: str`, `major: str`, `probability: float`
 - **预处理注入**：`similarity: float`, `faculty: str`
-- **页面管线额外注入**：`is_new_major: bool`
+- **结果自动注入**：`is_new_major: bool` (所有预测路径均会通过 `adjustment_pipeline` 注入)
+- **学部标记**：`faculty: str` (由 `processor.py` 的 metadata 附加阶段注入)
 
 内部合并去重会使用 `_source/_priority` 元数据，但最终会剔除。
 
@@ -96,18 +97,34 @@
     }
     ```
 
-### 3.3 关于 `unified_results` 的重要细节
+### 3.3 关于 `unified_results` 的合并策略
 
-`unified_results` 通常只会合并相似推荐与用户指定结果。跨专业推荐生成（`result_modifier/filters.py`）产生的结果通常不会写入 `admitted` 字段，因此不会被自动合并。
+`unified_results` 会合并以下来源的结果，并根据优先级进行去重（院校+专业）：
+1.  **优先级 3**：用户指定结果 (`user_specified_results`) —— 最高优先级。
+2.  **优先级 2**：跨专业推荐 (`cross_major_results`) —— 仅当样本标记为 `admitted == 1` 时参与合并。
+3.  **优先级 1**：相似专业推荐 (`similarity_results`) —— 基础推荐。
 
-## 4. Streamlit 页面预测管线
+当同一 (院校, 专业) 组合在多个来源中出现时，高优先级来源将覆盖低优先级来源；若优先级相同，则录取概率（`probability`）更高者获胜。
+
+> **注意**：跨专业推荐生成器（`result_modifier/filters.py`）现在会自动为符合历史录取的推荐项标记 `admitted: 1`，因此它们会出现在 `unified_results` 中。
+
+## 4. Streamlit 页面预测管线 (Flow Control)
 
 **入口**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
 
 页面管线负责串联资源加载、并行推理、推荐生成与后处理：
 
-1.  **准备输入**：`src/pages/prediction/prediction_preparation/preparer.py`
-2.  **并行推理**：`src/pages/prediction/flow/run_prediction.py::run_single_prediction` (内部调用 `prediction_execution.executor.PredictionExecutor`)
-3.  **结果调整**：`src/pages/prediction/result_modifier/adjustment_pipeline.py`（概率调整 + 文本加成 + `is_new_major`）
-4.  **合并去重**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`
-5.  **输出**：`PredictionResultModel` (定义在 `src/utils/session_manager.py`)
+1.  **风险预警**: 通过 `cross_faculty_guard.py` 识别潜在的跨学院申请风险。
+2.  **准备输入 (Preparation)**：`src/pages/prediction/prediction_preparation/preparer.py`（含 `form_normalizer.py` 归一化）。
+3.  **并行推理 (Execution)**：`src/pages/prediction/flow/run_prediction.py::run_single_prediction` (内部调用 `prediction_execution.executor.PredictionExecutor`)。
+4.  **结果平衡与平准**：在 `flow/processor.py` 中利用 `BoundaryCaseAgent` 对相似推荐与跨专业推荐进行数量平衡。
+5.  **概率修正 (Modification)**：`src/pages/prediction/result_modifier/adjustment_pipeline.py`。
+6.  **结果合并**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`。
+
+### 关于 `unified_results` 的合并优先级
+合并过程基于优先级覆盖逻辑：
+- **优先级 3**：用户指定结果 (`user_specified`) —— 最高优先级。
+- **优先级 2**：跨专业推荐 (`cross_major`) —— 仅当样本标记为 `admitted == 1` 时参与合并。
+- **优先级 1**：相似专业推荐 (`similarity`) —— 基础推荐。
+
+当 (院校, 专业) 组合在多个来源中出现时，高优先级来源将覆盖低优先级来源；若优先级相同，则录取概率（`probability`）更高者获胜。

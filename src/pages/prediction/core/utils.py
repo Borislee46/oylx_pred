@@ -173,7 +173,9 @@ def get_cached_major_similarity(
 
     if isinstance(cache, pd.Series) and isinstance(cache.index, pd.MultiIndex):
         try:
-            return float(cache.loc[(str(bg), str(target))])
+            bg_key = str(bg).strip().lower()
+            target_key = str(target).strip().lower()
+            return float(cache.loc[(bg_key, target_key)])
         except (KeyError, TypeError):
             return 0.0
 

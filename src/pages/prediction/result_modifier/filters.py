@@ -2,6 +2,7 @@ import heapq
 from typing import Any
 
 import pandas as pd
+from rapidfuzz import fuzz
 
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
@@ -24,6 +25,7 @@ def get_similar_major_recommendations(
     gpa: float | None = None,
     language_score: float | None = None,
     background_university: str | None = None,
+    background_major: str | None = None,
 ) -> list[dict[str, Any]]:
     if not results_with_similarity:
         return []
@@ -61,18 +63,52 @@ def get_similar_major_recommendations(
             )
         return similarity
 
-    top_candidates = heapq.nlargest(
-        TOP_N_RECOMMENDATIONS,
-        filtered_by_similarity,
-        key=get_sort_key,
-    )
+    # 实施槽位保护
+    IDENTITY_MIN_SLOT_RATIO = 0.4
+    target_count = TOP_N_RECOMMENDATIONS
+
+    def is_strong_match(res: dict[str, Any]) -> bool:
+        if not background_major:
+            return False
+        bg = str(background_major).lower()
+        m_en = str(res.get("major", "")).lower()
+        m_cn = str(res.get("major_cn", "")).lower()
+        score = max(fuzz.token_sort_ratio(bg, m_en), fuzz.token_sort_ratio(bg, m_cn) if m_cn else 0)
+        return score > 92
+
+    # 分离强匹配和普通匹配
+    strong_matches = [r for r in filtered_by_similarity if is_strong_match(r)]
+    others = [r for r in filtered_by_similarity if not is_strong_match(r)]
+
+    # 排序
+    strong_matches.sort(key=get_sort_key, reverse=True)
+    others.sort(key=get_sort_key, reverse=True)
+
+    # 计算槽位
+    min_identity_slots = int(target_count * IDENTITY_MIN_SLOT_RATIO)
+
+    selected = []
+    # 优先填入强匹配槽位
+    identity_to_take = min(len(strong_matches), min_identity_slots)
+    selected.extend(strong_matches[:identity_to_take])
+
+    # 剩余位置竞争上岗
+    remaining_count = target_count - len(selected)
+    competing_pool = strong_matches[identity_to_take:] + others
+    competing_pool.sort(key=get_sort_key, reverse=True)
+
+    selected.extend(competing_pool[:remaining_count])
+
+    top_candidates = selected
 
     if len(top_candidates) < TOP_N_RECOMMENDATIONS:
+        # 如果还是不够，尝试从 expanded 中补充
         floor_threshold = max(AGENT_MIN_SAFE_RELAX_THRESHOLD, CROSS_MAJOR_SIMILARITY_MIN)
         expanded = [
             res for res in results_with_similarity if res.get("similarity", 0.0) >= floor_threshold
         ]
         if expanded:
+            # 这里简单处理，不再重复复杂的槽位逻辑，直接取 Top
             top_candidates = heapq.nlargest(
                 TOP_N_RECOMMENDATIONS,
                 expanded,
@@ -132,6 +168,8 @@ def get_cross_major_recommendations(
             admitted_results,
             key=get_sort_key,
         )
+        for res in top_candidates:
+            res["admitted"] = 1
         top_candidates.sort(key=get_sort_key, reverse=True)
         return top_candidates
     return []

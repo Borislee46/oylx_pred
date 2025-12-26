@@ -1,7 +1,7 @@
 graph TD
-    %% 用户入口
-    User([用户输入]) -->|填写表单| UI[input_form.py]
-    
+    User([UI 用户]) -->|填写表单| UI[input_form.py]
+    API_User([API 调用者]) -->|JSON POST| API[api/json_api.py]
+
     subgraph UI_Components [UI 组件层]
         UI -->|状态管理| State[FormStateManager]
         UI -->|实时校验| Validator[FormValidator]
@@ -9,63 +9,66 @@ graph TD
     end
     
     Validator -->|触发提交| Handler[ui/handler.py]
+    API -->|解析请求| Pipeline[flow/pipeline.py]
     
     subgraph Flow_Control [流程编排与预警]
         Handler -->|1. 风险识别| Guard[cross_faculty_guard.py]
         Guard -->|弹窗确认| Dialog[ConfirmDialog]
-        Handler -->|2. 启动流水线| Pipeline[flow/pipeline.py]
+        Dialog -->|确认后启动| Pipeline
     end
     
-    subgraph Preparation [数据准备与指纹校验]
-        Pipeline -->|数据指纹比对| Fingerprint[Fingerprint Check]
+    subgraph Preparation [数据准备与召回过滤]
         Pipeline -->|数据归一化| Norm[form_normalizer.py]
         Pipeline -->|特征组装| Prep[preparer.py]
+        Prep -->|1. 混合召回| Recall[Hybrid Recall: E5 + Fuzz]
+        Recall -->|生成候选组合| Runner[flow/run_prediction.py]
     end
     
-    subgraph Execution [核心预测与 AI 平衡]
-        Prep -->|输入特征| Runner[flow/run_prediction.py]
-        Runner -->|1. 组合生成| Processor[flow/processor.py]
-        Runner -->|2. 并行执行| Executor[prediction_execution/executor.py]
-        Executor -->|XGBoost 推理| Model[modeling/model.py]
-        Model -->|原始输出| Processor
-        Processor -->|3. 结果平衡| Agent[BoundaryCaseAgent]
-    end
-    
-    subgraph Modification [修正仲裁与 NLP 增强]
-        Agent -->|候选结果| ModPipe[adjustment_pipeline.py]
+    subgraph Execution [核心推理与分值修正]
+        Runner -->|2. 精排推理| Executor[prediction_execution/executor.py]
+        Executor -->|XGBoost| Model[modeling/model.py]
         
-        subgraph Arbitration [概率修正仲裁]
-            ModPipe -->|1. 初始化| Arb[AdjustmentArbitrator]
-            Arb -.->|GPA/语言| Adj[ProbabilityAdjuster]
-            Arb -.->|跨专业| Cross[CrossMajorPenalty]
-            Arb -.->|学部范围| Faculty[FacultyFilters]
-            Arb -.->|职业化| Prof[ProfessionalReduction]
-            Arb -->|2. 策略合并| ArbLogic[Arbitration Logic]
-            ArbLogic -->|3. 范围约束| NormLayer[NormalizationLayer]
-        end
-
-        NormLayer -->|4. NLP 语义提升| TextBoost[TextBoostProvider]
-        TextBoost -->|Logit 提升| LogitUplift[LogitUpliftProvider]
+        Model -->|3. 推荐生成与平准| Proc[flow/processor.py]
+        Proc -->|相似度偏置| SimAdj[Similarity Adjuster]
+        Proc -->|比例保障| IdentitySlot[Identity Slot Manager]
+        
+        IdentitySlot -->|4. 结果平衡评估| FuzzyBypass{Fuzzy Bypass}
+        FuzzyBypass -->|No: LLM 介入| Agent[BoundaryCaseAgent]
+        Agent -->|背景探索| BG_Agent[BackgroundFacultyAgent]
+        FuzzyBypass -->|Yes: 自动通过| Pipeline
     end
-    
-    LogitUplift -->|交付处理| ResHandler[results_handler.py]
+
+    subgraph Modification [概率修正流水线]
+        Pipeline -->|5. 批量修正| ModPipe[adjustment_pipeline.py]
+        
+        Agent -->|调整决策| ModPipe
+        
+        subgraph Arbitration [概率修正因子]
+            ModPipe -->|GPA/语言| Adj[ProbabilityAdjuster]
+            ModPipe -->|跨专业惩罚| Cross[Cross Major Penalty]
+            ModPipe -->|NLP 语义提升| TextBoost[TextBoostProvider]
+        end
+    end
+
+    ModPipe -->|交付处理| ResHandler[results_handler.py]
     ResHandler -->|Session 持久化| Session[SessionManager]
-    Session -->|UI 渲染| ResultUI[result_display/]
+    Session -->|结果渲染| ResultUI[results_display.py]
+    ResHandler -->|JSON 返回| API
 
-    %% 数据底座
-    Cases[(案例数据库)] -.->|校验与检索| Fingerprint
-    Cases -.->|相似度计算| Runner
-    Cache[(相似度缓存)] -.->|加速匹配| Runner
-    Models[(预训练模型池)] -.->|权重加载| Model
-    NLP_Res[(NLP 模型资源)] -.->|特征向量| LogitUplift
+    Cases[(案例数据库)] -.->|强匹配/相似推荐| Recall
+    Cache[(语义缓存)] -.->|向量召回加速| Recall
+    Models[(模型池)] -.->|权重加载| Model
+    Configs[(配置文件)] -.->|规则加载| Pipeline
+    Configs -.->|参数控制| ModPipe
 
-    %% 样式定义
     classDef highlight fill:#f96,stroke:#333,stroke-width:2px;
     classDef component fill:#e1f5fe,stroke:#01579b;
     classDef logic fill:#fff3e0,stroke:#e65100;
     classDef storage fill:#f5f5f5,stroke:#616161;
+    classDef fuzzy fill:#e8f5e9,stroke:#2e7d32,stroke-dasharray: 5 5;
 
     class User highlight;
-    class UI,Handler,Pipeline,Runner,Executor,Model,Agent,ModPipe,TextBoost,ResHandler component;
-    class Arb,ArbLogic,NormLayer logic;
-    class Cases,Cache,Models,NLP_Res storage;
+    class UI,Handler,Pipeline,Runner,Executor,Model,Agent,ModPipe,ResHandler,ResultUI,Proc,BG_Agent component;
+    class SimAdj,Adj,Cross,TextBoost,IdentitySlot logic;
+    class Cases,Cache,Models storage;
+    class FuzzyBypass,Recall fuzzy;

@@ -51,8 +51,20 @@ def run_single_prediction(
     if language_type is None:
         language_type = prediction_input.get("language_type")
 
+    background_major = prediction_input.get("background_major", "")
+    background_major_original_value = current_input_data.get("background_major_original", "")
+    background_major_original = (
+        str(background_major_original_value)
+        if background_major_original_value
+        else background_major
+    )
+
     combinations, meta = generate_prediction_combinations(
-        prediction_input, all_universities_target, all_majors_target
+        input_data=prediction_input,
+        all_universities_target=all_universities_target,
+        all_majors_target=all_majors_target,
+        bg_target_similarity_cache=bg_target_similarity_cache,
+        background_major_original=background_major_original,
     )
 
     meta = meta or {}
@@ -89,15 +101,6 @@ def run_single_prediction(
         None
         if cross_faculty_confirmed
         else (faculty_value if isinstance(faculty_value, str) else None)
-    )
-
-    background_major = prediction_input.get("background_major", "")
-
-    background_major_original_value = current_input_data.get("background_major_original", "")
-    background_major_original = (
-        str(background_major_original_value)
-        if background_major_original_value
-        else background_major
     )
 
     results = process_prediction_results(

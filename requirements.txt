@@ -1,26 +1,11 @@
-# 数据处理
 numpy==2.3.1
 pandas==2.3.1
 scikit-learn==1.7.2
-
-# 机器学习模型
-xgboost-cpu==3.0.2 # 3.1.0 re-coding目前有严重bug，目前不确定原因是什么
-# optuna 线下用
-# imblearn 线下用
-
-# 可视化
-plotly==6.3.0 # 后续可能会废除
-
-# UI组件
+xgboost-cpu==3.0.2
+plotly==6.3.0
 streamlit==1.52.0
-streamlit-aggrid==1.1.9 # 表格展示，hr_dashboard
-streamlit-elements==0.1.* # 自定义UI组件，hr_structure_dashboard
-
-# 需注意，不支持windows，docker可加
-# uvloop # 提高streamlit性能 https://github.com/streamlit/streamlit/pull/13047
-
-# Excel处理
+streamlit-aggrid==1.1.9
+streamlit-elements==0.1.*
+# uvloop>=0.15.1
 openpyxl==3.1.5
-
-# 测试
-# pytest
+rapidfuzz==3.14.3

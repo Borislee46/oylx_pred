@@ -22,8 +22,22 @@ def build_boundary_evaluation_prompt(
 
     cases_str = "\n".join(cases_text) if cases_text else "无"
 
+    examples = ""
+    if is_relax:
+        examples = """[判定示例 - 放宽模式]
+    - 本科[Computer Science] vs 目标[Data Science]: true (高度相关)
+    - 本科[Economics] vs 目标[Finance]: true (常规跨专业路径)
+    - 本科[Mechanical Engineering] vs 目标[History]: false (跨度过大)"""
+    else:
+        examples = """[判定示例 - 收紧模式]
+    - 本科[Computer Science] vs 目标[Software Engineering]: false (不应删除，属于同专业)
+    - 本科[Biology] vs 目标[Finance]: true (应删除，相关性极低)
+    - 本科[Mathematics] vs 目标[Statistics]: false (不应删除，数学背景申请统计是常规)"""
+
     return f"""请判断以下[待评专业]与用户本科背景专业[{background_major}]是否为相似专业。
     模式: {mode_desc}
+
+    {examples}
 
     [待评列表]
     {cases_str}

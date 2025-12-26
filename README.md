@@ -50,39 +50,44 @@
 **路径**: `src/pages/prediction/input_form_components`
 
 *   **校验器**: `FormValidator` 提供详细的中文错误提示。
-*   **GPA 转换**: 优先按院校/国家规则 (`config/gpa_conversion_rules.json`)，否则线性缩放。
-*   **语言分数**: 托福/雅思互转与归一化；海外院校选填处理（参考 `src/pages/prediction/core/utils.py`）。
 *   **状态管理**: `FormStateManager` 实现自动保存（节流 + 快照 hash）。
-*   **组件服务**: 跨学院拦截、四级联动筛选 (`target_options_service.py`)。
+*   **跨学院拦截**: `src/pages/prediction/cross_faculty_guard.py` 风险识别与弹窗确认。
+*   **GPA 转换**: 优先按院校/国家规则 (`config/gpa_conversion_rules.json`)，否则线性缩放。
+*   **语言分数**: 托福/雅思互转与归一化；海外院校选填处理。
+*   **组件服务**: 四级联动筛选 (`target_options_service.py`)。
 
 **详细文档**: [表单组件与校验 API 文档](docs/input_form_components_api.md)
 
-## 3. 预测模块
+## 3. 核心预测流程 (Online)
 
 **路径**: `src/pages/prediction`
 
-*   **流程**:
-    1.  **组合生成**: `flow/processor.py::generate_prediction_combinations`。
-    2.  **并行推理**: `prediction_execution/executor.py::PredictionExecutor.execute_parallel`。
-    3.  **结果处理**: `flow/processor.py::process_prediction_results`（生成相似推荐、跨专业推荐、用户指定结果）。
-    4.  **合并去重**: `results_handler.py::combine_and_deduplicate_results`。
-*   **接口**: 
-    *   Streamlit 页面入口: `src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
-    *   解耦 JSON 接口: `src/pages/prediction/api/json_api.py::predict`
+*   **流程编排与预警 (Flow Control)**:
+    *   入口管线: `flow/pipeline.py`
+    *   风险守卫: `cross_faculty_guard.py` (拦截异常跨学院申请)
+*   **数据准备与召回 (Preparation)**:
+    *   数据归一化: `form_normalizer.py`
+    *   混合召回: `preparer.py` 实现 E5 Embedding 向量召回与 Fuzzy 模糊匹配。
+*   **核心推理与平准 (Execution)**:
+    *   精排推理: `prediction_execution/executor.py` 驱动并行 XGBoost 推理。
+    *   结果平准: `flow/processor.py` 结合 `BoundaryCaseAgent` 进行相似推荐与边界探索。
+*   **接口方式**: 
+    *   Streamlit UI 交互: `src/pages/prediction/flow/pipeline.py`
+    *   解耦 JSON 接口: `src/pages/prediction/api/json_api.py`
 
 **详细文档**: [预测模块 API 文档](docs/prediction_api.md)
 
-## 4. 结果调整模块
+## 4. 概率修正流水线 (Modification)
 
 **路径**: `src/pages/prediction/result_modifier`
 
-*   **调整管线**: 基于 `AdjustmentContext` 与 `ProbabilityAdjustmentPipeline` 驱动的流水线。
-*   **概率调整**: 基于 `ProbabilityAdjuster` 对低分样本施加惩罚；跨专业无案例惩罚。
-*   **行业规则**: 针对无实习经历申请商科（如 MBA）进行降权。
-*   **文本加成 (TF-IDF Logit Uplift)**:
-    *   基于文本相似度与计数交互项计算 Logit 增量。
+*   **调整驱动**: 基于 `adjustment_pipeline.py` 的二级修正流水线。
+*   **概率修正因子 (Arbitration)**:
+    *   **基础修正**: `ProbabilityAdjuster` 处理 GPA/语言惩罚、院校降权。
+    *   **业务逻辑**: `CrossMajorPenalty` 处理跨专业惩罚。
+    *   **NLP 提升**: `TextBoostProvider` 实现基于 TF-IDF 的文本 Logit Uplift。
+*   **文本加成机制**:
     *   包含门控、平滑、动态封顶机制，防止加成过度。
-*   **Agent 平衡**: 在 `flow/processor.py` 中调用 `BoundaryCaseAgent` 进行边界探索与平衡。
 
 **详细文档**: [结果修正模块文档](docs/result_modifier_api.md)
 
@@ -121,6 +126,7 @@
 *   **环境变量**:
     *   `PREDICTION_USE_PROCESS_POOL=1`: 启用预测进程池。
     *   `PREDICTION_MAX_WORKERS`: 限制并发数。
+*   **测试**: `pytest tests`: 包含单元测试，压测等
 
 ## 缓存与持久化
 

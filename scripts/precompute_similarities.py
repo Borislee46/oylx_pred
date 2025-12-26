@@ -49,18 +49,27 @@ def precompute_similarities():
         if "专业英文名称" in details_df.columns:
             if "专业中文名称" in details_df.columns:
                 valid_map = details_df.dropna(subset=["专业英文名称", "专业中文名称"])
-                eng_to_chi_map = dict(
-                    zip(valid_map["专业英文名称"], valid_map["专业中文名称"], strict=True)
-                )
+                eng_to_chi_map = {
+                    str(en).strip().lower(): str(cn).strip()
+                    for en, cn in zip(
+                        valid_map["专业英文名称"], valid_map["专业中文名称"], strict=True
+                    )
+                }
 
-            raw_school_english_majors.update(details_df["专业英文名称"].dropna().astype(str))
+            raw_school_english_majors.update(
+                [str(m).strip().lower() for m in details_df["专业英文名称"].dropna()]
+            )
 
     if os.path.exists(CASES_DATA_PATH):
         cases_df = pd.read_feather(CASES_DATA_PATH)
         if "background_major" in cases_df.columns:
-            raw_case_background_majors.update(cases_df["background_major"].dropna().astype(str))
+            raw_case_background_majors.update(
+                [str(m).strip().lower() for m in cases_df["background_major"].dropna()]
+            )
         if "target_major" in cases_df.columns:
-            raw_case_target_majors.update(cases_df["target_major"].dropna().astype(str))
+            raw_case_target_majors.update(
+                [str(m).strip().lower() for m in cases_df["target_major"].dropna()]
+            )
 
     for s in [raw_case_background_majors, raw_case_target_majors, raw_school_english_majors]:
         for val in ["无", "", "nan", "None"]:

@@ -59,20 +59,26 @@ class ResultsDisplay:
         self.top_cross_major_results = top_cross_major_results or []
         self.user_specified_results = user_specified_results or []
 
+        session_manager = SessionManager()
+        is_cross_faculty = session_manager.get("cross_faculty_confirmed", False)
+
+        sim_title = "目标方向精选" if is_cross_faculty else "相似专业"
+        cross_title = "历年跨申路径" if is_cross_faculty else "潜力跨专业"
+
         self.result_types = {
             "similarity": {
                 "results": self.top_similarity_results,
-                "title": "相似专业",
+                "title": sim_title,
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
             "cross_major": {
                 "results": self.top_cross_major_results,
-                "title": "潜力跨专业",
+                "title": cross_title,
                 "config": TOP_CROSS_RESULT_UI_CONFIG,
             },
             "user_specified": {
                 "results": self.user_specified_results,
-                "title": "指定专业",
+                "title": "意向申请方案",
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
         }

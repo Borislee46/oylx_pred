@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from rapidfuzz import fuzz
+
 from src.pages.prediction.result_modifier.config import (
     AGENT_BOUNDARY_SIMILARITY_RANGE,
     AGENT_MIN_SAFE_RELAX_THRESHOLD,
@@ -34,6 +36,19 @@ class RankerStrategy(ABC):
     @abstractmethod
     def triage_decision(self, case: dict[str, Any]) -> AdjustmentDecision:
         pass
+
+    def check_fuzzy_bypass(self, case: dict[str, Any]) -> bool:
+        if not self.background_major:
+            return False
+
+        bg = str(self.background_major).lower()
+        m_en = str(case.get("major", "")).lower()
+        m_cn = str(case.get("major_cn", "")).lower()
+
+        score_en = fuzz.token_sort_ratio(bg, m_en)
+        score_cn = fuzz.token_sort_ratio(bg, m_cn) if m_cn else 0
+
+        return max(score_en, score_cn) > 92
 
     def update_results(
         self,
@@ -120,6 +135,9 @@ class RelaxStrategy(RankerStrategy):
         return candidates, pool
 
     def triage_decision(self, case: dict[str, Any]) -> AdjustmentDecision:
+        if self.check_fuzzy_bypass(case):
+            return AdjustmentDecision.ADJUST
+
         sim = get_similarity(case)
         lower = max(
             self.current_threshold - (AGENT_BOUNDARY_SIMILARITY_RANGE * 1.5),
@@ -148,6 +166,9 @@ class TightenStrategy(RankerStrategy):
         return candidates_pool[:tail_count], candidates_pool
 
     def triage_decision(self, case: dict[str, Any]) -> AdjustmentDecision:
+        if self.check_fuzzy_bypass(case):
+            return AdjustmentDecision.NO_ADJUST
+
         sim = get_similarity(case)
         if sim >= self.current_threshold:
             return AdjustmentDecision.NO_ADJUST

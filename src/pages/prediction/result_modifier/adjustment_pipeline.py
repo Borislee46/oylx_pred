@@ -137,6 +137,10 @@ class ProbabilityAdjustmentPipeline:
 
         adjusted_prob = arbitrator.arbitrate(current_prob)
 
+        # 记录追踪信息到结果中供日志使用
+        if arbitrator.trace:
+            result_copy["_adjustment_trace"] = arbitrator.trace
+
         result_copy["probability"] = NormalizationLayer.apply(adjusted_prob)
 
         univ, major = result_copy.get("university"), result_copy.get("major")
@@ -150,6 +154,7 @@ class ProbabilityAdjustmentPipeline:
         results: list[dict[str, Any]],
         ctx: AdjustmentContext,
         progress_reporter: Any | None = None,
+        batch_tag: str = "",
     ) -> list[dict[str, Any]]:
         if not results:
             return results
@@ -158,6 +163,8 @@ class ProbabilityAdjustmentPipeline:
             res = [self.adjust_single(r, ctx) for r in results]
             if self.text_boost_provider and ctx.experience_details:
                 res = self._apply_text_boost(res, ctx.experience_details)
+
+            self._log_adjustment_deltas(res, ctx, batch_tag)
             return res
 
         if progress_reporter and self.text_boost_provider and ctx.experience_details:
@@ -206,10 +213,48 @@ class ProbabilityAdjustmentPipeline:
             if boosted_probs:
                 for i, prob in enumerate(boosted_probs):
                     if i < len(results):
-                        results[i]["probability"] = clip_probability(prob)
+                        old_prob = probabilities[i]
+                        new_prob = clip_probability(prob)
+                        results[i]["probability"] = new_prob
+
+                        trace = results[i].get("_adjustment_trace", {})
+                        trace["boost_NLP_Text"] = new_prob - old_prob
+                        results[i]["_adjustment_trace"] = trace
+
         except (TypeError, ValueError) as e:
             logger.warning(f"文本增强失败: {e}")
         except (AttributeError, KeyError, RuntimeError) as e:
             logger.error(f"文本增强发生未知错误: {e}", exc_info=True)
 
         return results
+
+    def _log_adjustment_deltas(
+        self,
+        results: list[dict[str, Any]],
+        ctx: AdjustmentContext,
+        batch_tag: str = "",
+        sample_size: int = 5,
+    ):
+        if not results:
+            return
+
+        sorted_res = sorted(results, key=lambda x: x.get("probability", 0), reverse=True)
+        samples = sorted_res[:sample_size]
+
+        for i, r in enumerate(samples):
+            trace = r.get("_adjustment_trace", {})
+            if not trace:
+                continue
+
+            trace_str = ", ".join(
+                [f"{k}: {v:+.4f}" for k, v in trace.items() if k != "base" and k != "final"]
+            )
+            logger.info(
+                f"监控样本 {i + 1} | {r.get('university')} - {r.get('major')} | "
+                f"原始概率: {trace.get('base', 0):.4f} | "
+                f"修正Delta: [{trace_str}] | "
+                f"修正后概率: {r.get('probability', 0):.4f}"
+            )
+
+        for r in results:
+            r.pop("_adjustment_trace", None)
