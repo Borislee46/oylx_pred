@@ -10,4 +10,9 @@ repos:
     hooks:
       - id: black
         args: ["--line-length", "100"]
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [javascript, css, json]
 

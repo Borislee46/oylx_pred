@@ -3,41 +3,41 @@
     "北京大学": {
       "trigger_scale": "4.0",
       "ranges": [
-        {"min": 3.7, "max": 4.0, "target_min": 3.8, "target_max": 4.0},
-        {"min": 3.3, "max": 3.7, "target_min": 3.5, "target_max": 3.8},
-        {"min": 3.0, "max": 3.3, "target_min": 3.2, "target_max": 3.5},
-        {"min": 2.7, "max": 3.0, "target_min": 2.9, "target_max": 3.2},
-        {"min": 2.3, "max": 2.7, "target_min": 2.6, "target_max": 2.9},
-        {"min": 2.0, "max": 2.3, "target_min": 2.3, "target_max": 2.6},
-        {"min": 1.5, "max": 2.0, "target_min": 2.0, "target_max": 2.3},
-        {"min": 1.0, "max": 1.5, "target_min": 1.5, "target_max": 2.0},
-        {"min": 0.0, "max": 1.0, "target_min": 0.0, "target_max": 1.5}
+        { "min": 3.7, "max": 4.0, "target_min": 3.8, "target_max": 4.0 },
+        { "min": 3.3, "max": 3.7, "target_min": 3.5, "target_max": 3.8 },
+        { "min": 3.0, "max": 3.3, "target_min": 3.2, "target_max": 3.5 },
+        { "min": 2.7, "max": 3.0, "target_min": 2.9, "target_max": 3.2 },
+        { "min": 2.3, "max": 2.7, "target_min": 2.6, "target_max": 2.9 },
+        { "min": 2.0, "max": 2.3, "target_min": 2.3, "target_max": 2.6 },
+        { "min": 1.5, "max": 2.0, "target_min": 2.0, "target_max": 2.3 },
+        { "min": 1.0, "max": 1.5, "target_min": 1.5, "target_max": 2.0 },
+        { "min": 0.0, "max": 1.0, "target_min": 0.0, "target_max": 1.5 }
       ],
       "fallback_multiplier": 1.5
     },
     "中国科学技术大学": {
       "trigger_scale": "4.3",
       "ranges": [
-        {"min": 4.0, "max": 4.3, "target_min": 3.8, "target_max": 4.0},
-        {"min": 3.7, "max": 4.0, "target_min": 3.5, "target_max": 3.8},
-        {"min": 3.3, "max": 3.7, "target_min": 3.2, "target_max": 3.5},
-        {"min": 3.0, "max": 3.3, "target_min": 2.9, "target_max": 3.2},
-        {"min": 2.7, "max": 3.0, "target_min": 2.6, "target_max": 2.9},
-        {"min": 2.3, "max": 2.7, "target_min": 2.3, "target_max": 2.6},
-        {"min": 0.0, "max": 2.3, "target_min": 0.0, "target_max": 2.3}
+        { "min": 4.0, "max": 4.3, "target_min": 3.8, "target_max": 4.0 },
+        { "min": 3.7, "max": 4.0, "target_min": 3.5, "target_max": 3.8 },
+        { "min": 3.3, "max": 3.7, "target_min": 3.2, "target_max": 3.5 },
+        { "min": 3.0, "max": 3.3, "target_min": 2.9, "target_max": 3.2 },
+        { "min": 2.7, "max": 3.0, "target_min": 2.6, "target_max": 2.9 },
+        { "min": 2.3, "max": 2.7, "target_min": 2.3, "target_max": 2.6 },
+        { "min": 0.0, "max": 2.3, "target_min": 0.0, "target_max": 2.3 }
       ],
       "fallback_multiplier": 0.9302
     },
     "上海交通大学": {
       "trigger_scale": "4.3",
       "ranges": [
-        {"min": 4.0, "max": 4.3, "target_min": 3.8, "target_max": 4.0},
-        {"min": 3.7, "max": 4.0, "target_min": 3.5, "target_max": 3.8},
-        {"min": 3.3, "max": 3.7, "target_min": 3.2, "target_max": 3.5},
-        {"min": 3.0, "max": 3.3, "target_min": 2.9, "target_max": 3.2},
-        {"min": 2.7, "max": 3.0, "target_min": 2.6, "target_max": 2.9},
-        {"min": 2.3, "max": 2.7, "target_min": 2.3, "target_max": 2.6},
-        {"min": 0.0, "max": 2.3, "target_min": 0.0, "target_max": 2.3}
+        { "min": 4.0, "max": 4.3, "target_min": 3.8, "target_max": 4.0 },
+        { "min": 3.7, "max": 4.0, "target_min": 3.5, "target_max": 3.8 },
+        { "min": 3.3, "max": 3.7, "target_min": 3.2, "target_max": 3.5 },
+        { "min": 3.0, "max": 3.3, "target_min": 2.9, "target_max": 3.2 },
+        { "min": 2.7, "max": 3.0, "target_min": 2.6, "target_max": 2.9 },
+        { "min": 2.3, "max": 2.7, "target_min": 2.3, "target_max": 2.6 },
+        { "min": 0.0, "max": 2.3, "target_min": 0.0, "target_max": 2.3 }
       ],
       "fallback_multiplier": 0.9302
     }
@@ -46,13 +46,13 @@
     "加拿大": {
       "trigger_scale": "4.3",
       "ranges": [
-        {"min": 4.0, "max": 4.3, "target_min": 3.8, "target_max": 4.0},
-        {"min": 3.7, "max": 4.0, "target_min": 3.5, "target_max": 3.8},
-        {"min": 3.3, "max": 3.7, "target_min": 3.2, "target_max": 3.5},
-        {"min": 3.0, "max": 3.3, "target_min": 2.9, "target_max": 3.2},
-        {"min": 2.7, "max": 3.0, "target_min": 2.6, "target_max": 2.9},
-        {"min": 2.3, "max": 2.7, "target_min": 2.3, "target_max": 2.6},
-        {"min": 0.0, "max": 2.3, "target_min": 0.0, "target_max": 2.3}
+        { "min": 4.0, "max": 4.3, "target_min": 3.8, "target_max": 4.0 },
+        { "min": 3.7, "max": 4.0, "target_min": 3.5, "target_max": 3.8 },
+        { "min": 3.3, "max": 3.7, "target_min": 3.2, "target_max": 3.5 },
+        { "min": 3.0, "max": 3.3, "target_min": 2.9, "target_max": 3.2 },
+        { "min": 2.7, "max": 3.0, "target_min": 2.6, "target_max": 2.9 },
+        { "min": 2.3, "max": 2.7, "target_min": 2.3, "target_max": 2.6 },
+        { "min": 0.0, "max": 2.3, "target_min": 0.0, "target_max": 2.3 }
       ],
       "fallback_multiplier": 0.9302
     },
@@ -60,14 +60,14 @@
       "trigger_scale": "100",
       "is_percentage": true,
       "ranges": [
-        {"min": 80, "max": 100, "target_gpa": 4.0},
-        {"min": 70, "max": 80, "target_min": 3.7, "target_max": 4.0},
-        {"min": 60, "max": 70, "target_min": 3.3, "target_max": 3.7},
-        {"min": 50, "max": 60, "target_min": 2.7, "target_max": 3.3},
-        {"min": 40, "max": 50, "target_min": 2.0, "target_max": 2.7},
-        {"min": 0, "max": 40, "target_min": 0.0, "target_max": 2.0}
+        { "min": 80, "max": 100, "target_gpa": 4.0 },
+        { "min": 70, "max": 80, "target_min": 3.7, "target_max": 4.0 },
+        { "min": 60, "max": 70, "target_min": 3.3, "target_max": 3.7 },
+        { "min": 50, "max": 60, "target_min": 2.7, "target_max": 3.3 },
+        { "min": 40, "max": 50, "target_min": 2.0, "target_max": 2.7 },
+        { "min": 0, "max": 40, "target_min": 0.0, "target_max": 2.0 }
       ],
       "fallback_multiplier": 0.05
     }
   }
-} 
+}

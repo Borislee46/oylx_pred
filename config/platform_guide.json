@@ -18,9 +18,7 @@
   {
     "id": "hk_system",
     "title": "选校预测系统",
-    "required_module": [
-      "hk"
-    ],
+    "required_module": ["hk"],
     "sections": [
       {
         "type": "header",
@@ -36,10 +34,7 @@
   {
     "id": "hr_dashboard",
     "title": "数据看板",
-    "required_module": [
-      "hr_dashboard",
-      "hr_structure_dashboard"
-    ],
+    "required_module": ["hr_dashboard", "hr_structure_dashboard"],
     "sections": [
       {
         "type": "header",

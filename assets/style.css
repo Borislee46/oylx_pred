@@ -1,9 +1,11 @@
 [data-testid="stHeader"] {
-    display: none !important;
+  display: none !important;
 }
 
-[data-testid="stSidebarNav"] { display: none !important; }
+[data-testid="stSidebarNav"] {
+  display: none !important;
+}
 
 button[data-testid="stBaseButton-headerNoPadding"] {
-    display: none !important;
-} 
+  display: none !important;
+}
