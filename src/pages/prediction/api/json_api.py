@@ -309,13 +309,11 @@ def predict(payload: dict[str, Any], confirm_cross_faculty: bool = False) -> dic
         internship_count = cleaned_input.get("internship_count", 0)
         user_specified_majors = cleaned_input.get("target_majors", [])
 
-        # 准备录取组合缓存
         admitted_combos = get_admitted_combinations_from_dataframe(
             cases_df, cleaned_input.get("background_major", "")
         )
         bg_faculty = get_background_faculty(cleaned_input.get("background_major", ""), cases_df)
 
-        # 批量查询新专业状态缓存
         all_res_raw = sim_results + cross_results + (user_specified_results or [])
         new_major_cache = {}
         for r in all_res_raw:

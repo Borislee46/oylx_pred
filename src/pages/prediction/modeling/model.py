@@ -182,9 +182,14 @@ class PredictionModel:
             if probas.ndim == 2 and probas.shape[1] > 1:
                 probas = probas[:, 1]
 
+            if hasattr(self.model, "predict"):
+                predictions = self.model.predict(df)
+            else:
+                predictions = (probas >= 0.24).astype(int)
+
             return [
-                {"university": u, "major": m, "probability": float(p)}
-                for (u, m), p in zip(combinations, probas, strict=True)
+                {"university": u, "major": m, "probability": float(p), "prediction": int(pred)}
+                for (u, m), p, pred in zip(combinations, probas, predictions, strict=True)
             ]
         except Exception as e:
             page_logger.error(f"模型预测失败: {e}", exc_info=True)

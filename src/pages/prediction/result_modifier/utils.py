@@ -138,7 +138,6 @@ def generate_content_hash(content: str) -> str:
 
 
 def deduplicate_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """根据 (university, major) 对结果进行去重，保持原有顺序"""
     from src.pages.prediction.result_modifier.types import case_key
 
     seen = set()

@@ -1,0 +1,84 @@
+[data-testid="stAppViewContainer"] {
+  background: radial-gradient(
+      ellipse 80% 60% at 10% 20%,
+      rgba(0, 106, 96, 0.08) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 90% 80%,
+      rgba(0, 106, 96, 0.06) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 50% 10%,
+      rgba(0, 138, 108, 0.04) 0%,
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(248, 250, 252, 1) 0%,
+      rgba(255, 255, 255, 1) 100%
+    );
+  background-attachment: fixed;
+}
+
+[data-testid="stAppViewContainer"]::before {
+  content: "";
+  position: fixed;
+  top: -50px;
+  left: -50px;
+  right: -50px;
+  bottom: -50px;
+  background-image: radial-gradient(
+    rgba(0, 106, 96, 0.03) 1px,
+    transparent 1px
+  );
+  background-size: 32px 32px;
+  background-position: var(--bg-pos-x, 0px) var(--bg-pos-y, 0px);
+  pointer-events: none;
+  z-index: 0;
+  transition: background-position 0.2s ease-out;
+}
+
+[data-testid="stAppViewContainer"] > div:first-child {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes header-line-flow-left {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+@keyframes header-line-flow-right {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+.header-line-left {
+  display: inline-block;
+  height: 1px;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgb(0, 106, 96), transparent);
+  background-size: 200% 100%;
+  animation: header-line-flow-left 2s linear infinite;
+}
+.header-line-right {
+  display: inline-block;
+  height: 1px;
+  width: 40px;
+  background: linear-gradient(
+    270deg,
+    transparent,
+    rgb(0, 106, 96),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: header-line-flow-right 2s linear infinite;
+}

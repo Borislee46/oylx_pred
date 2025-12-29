@@ -101,15 +101,16 @@ def _filter_results(results: list) -> list:
 
     res = []
     for r in results:
-        major = str(r.get("major", "")).lower()
-        if "part" in major and "time" in major:
+        major_lower = str(r.get("major", "")).lower()
+
+        if "part" in major_lower and "time" in major_lower and "full" not in major_lower:
             continue
 
         if mode_col:
             row = _data_manager.get_row(r.get("university"), r.get("major"))
             if row is not None:
-                m = str(row.get(mode_col, "")).lower()
-                if "part" in m and "time" in m:
+                m_val = str(row.get(mode_col, "")).lower()
+                if "part" in m_val and "time" in m_val and "full" not in m_val:
                     continue
         res.append(r)
     return res
@@ -135,35 +136,39 @@ def _attach_metadata(
         if bg_major
         else [0.0] * len(results)
     )
+
     sims_orig = None
     if bg_major_orig and bg_major_orig != bg_major:
         pairs_orig = [(str(r.get("major", "")).strip(), bg_major_orig) for r in results]
         sims_orig = get_cached_major_similarities_batch(pairs_orig, cache=similarity_cache)
 
+    effective_bg_major = bg_major_orig or bg_major
+
     for i, r in enumerate(results):
         u, m = r.get("university"), r.get("major")
         row = _data_manager.get_row(u, m)
-        r["faculty"] = (
-            str(row.get("专业大类", ""))
-            if row is not None and pd.notna(row.get("专业大类"))
-            else ""
-        )
-        r["major_cn"] = (
-            str(row.get("专业中文名称", ""))
-            if row is not None and pd.notna(row.get("专业中文名称"))
-            else ""
-        )
+
+        if row is not None:
+            r["faculty"] = str(row.get("专业大类", "")) if pd.notna(row.get("专业大类")) else ""
+            r["major_cn"] = (
+                str(row.get("专业中文名称", "")) if pd.notna(row.get("专业中文名称")) else ""
+            )
+        else:
+            r["faculty"] = ""
+            r["major_cn"] = ""
+
         raw_sim = sims_mapped[i]
         if sims_orig is not None and i < len(sims_orig):
             raw_sim = max(raw_sim, sims_orig[i])
+
         r["similarity"] = (
             adjust_similarity_score(
-                background_major=bg_major_orig or bg_major,
+                background_major=effective_bg_major,
                 target_major=str(m),
                 similarity=raw_sim,
                 target_major_cn=r["major_cn"],
             )
-            if (bg_major_orig or bg_major)
+            if effective_bg_major
             else 0.0
         )
 

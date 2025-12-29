@@ -29,26 +29,27 @@ def load_data(data_path, sampling_method=None):
 
 
 def load_and_preprocess_data(data_path, sampling_method=None):
-    data = None
     try:
         data = pd.read_feather(data_path)
-    except Exception:
-        data = None
+    except Exception as e:
+        raise FileNotFoundError(f"加载数据文件失败 {data_path}: {e}")
 
-    level_fallback_mapping = {}
-    if data is not None and not data.empty:
-        level_fallback_mapping = build_school_level_fallback_mapping(data)
+    if data is None or data.empty:
+        raise ValueError(f"数据文件为空: {data_path}")
 
-    data = engineer_features(data)
+    level_fallback_mapping = build_school_level_fallback_mapping(data)
 
-    X = data.drop(columns=[TARGET_COLUMN], errors="ignore")
     if TARGET_COLUMN not in data.columns:
         raise ValueError(
-            f"目标列 '{TARGET_COLUMN}' 在特征工程处理后未找到，请检查数据和特征工程步骤。"
+            f"目标列 '{TARGET_COLUMN}' 未找到，请检查原始数据。"
         )
-    y = data[TARGET_COLUMN]
-    if y.isnull().any():
+
+    # 预先检查目标列缺失值
+    if data[TARGET_COLUMN].isnull().any():
         raise ValueError(f"目标列 '{TARGET_COLUMN}' 中存在 NaN 值，请检查数据。")
+
+    X = data.drop(columns=[TARGET_COLUMN], errors="ignore")
+    y = data[TARGET_COLUMN]
 
     def is_all_text_empty(row):
         empties = []
@@ -69,10 +70,12 @@ def load_and_preprocess_data(data_path, sampling_method=None):
             sample_weight.loc[recent_indices] * RECENT_SAMPLE_BOOST_WEIGHT
         )
 
+    # 1. 先划分数据集，防止数据泄露
     X_train_raw, X_test_raw, y_train, y_test, sw_train, _ = train_test_split(
         X, y, sample_weight, test_size=TEST_SIZE, random_state=42, stratify=y
     )
 
+    # 2. 在训练集上拟合特征工程，在测试集上应用
     fe = FeatureEngineer()
     X_train = fe.fit_transform(X_train_raw)
     X_test = fe.transform(X_test_raw)

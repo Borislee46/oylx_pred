@@ -4,7 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.utils.ui.hk_form_glass_tilt_css import HK_FORM_GLASS_TILT_CSS
+from src.utils.ui.ui_utils import load_component_assets
 
 
 def _load_js_module() -> str:
@@ -34,12 +34,15 @@ def _get_hk_form_glass_tilt_component():
     js_code = _load_js_module()
     return st.components.v2.component(
         "hk_form_glass_tilt_v2",
-        css=HK_FORM_GLASS_TILT_CSS,
         js=js_code,
         html='<div class="hk-tilt-mount"></div>',
     )
 
 
 def mount_hk_form_glass_tilt(key: str = "hk_form_glass_tilt_v2"):
+    assets_dir = Path(__file__).parent / "hk_tilt"
+    style_css, _, _ = load_component_assets(assets_dir)
+    st.markdown(f"<style>{style_css}</style>", unsafe_allow_html=True)
+
     comp = _get_hk_form_glass_tilt_component()
     return comp(key=key)

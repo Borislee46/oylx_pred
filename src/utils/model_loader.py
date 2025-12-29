@@ -40,17 +40,31 @@ class _CalibratedPredictor:
         base_proba = self.base_model.predict_proba(X)
         if base_proba is None or len(base_proba.shape) != 2 or base_proba.shape[1] < 2:
             return base_proba
+
         p1 = base_proba[:, 1]
         method = self.calibration.get("method")
         params = self.calibration.get("params", {})
+
         if method == "sigmoid":
-            a = float(params.get("a"))
-            b = float(params.get("b"))
+            a, b = float(params.get("a")), float(params.get("b"))
             calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
+        elif method == "isotonic":
+            x_t = np.array(params.get("x_thresholds", []))
+            y_t = np.array(params.get("y_thresholds", []))
+            if len(x_t) > 0:
+                calibrated_p1 = np.interp(p1, x_t, y_t)
+            else:
+                calibrated_p1 = p1
         else:
             return base_proba
-        p0 = 1.0 - calibrated_p1
-        return np.vstack([p0, calibrated_p1]).T
+
+        return np.vstack([1.0 - calibrated_p1, calibrated_p1]).T
+
+    def predict(self, X, threshold: float = 0.24):
+        probas = self.predict_proba(X)
+        if probas is None:
+            return None
+        return (probas[:, 1] >= threshold).astype(int)
 
 
 def _wrap_with_calibration(model: Any, calibration: dict[str, Any]) -> Any:

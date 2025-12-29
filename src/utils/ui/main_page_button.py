@@ -61,14 +61,13 @@ def _generate_card_html(available_buttons: list, base_url: str, trace_id: str) -
 def _generate_component_html(available_buttons: list, base_url: str, trace_id: str) -> str:
     from pathlib import Path
 
+    from src.utils.ui.ui_utils import load_component_assets
+
     num_cards = len(available_buttons)
     cards_html = _generate_card_html(available_buttons, base_url, trace_id)
 
     assets_dir = Path(__file__).parent / "main_page_button_assets"
-
-    style_css = (assets_dir / "style.css").read_text(encoding="utf-8")
-    template_html = (assets_dir / "template.html").read_text(encoding="utf-8")
-    script_js = (assets_dir / "script.js").read_text(encoding="utf-8")
+    style_css, script_js, template_html = load_component_assets(assets_dir)
 
     card_width = 160 if num_cards > 4 else 180
     card_height = 220 if num_cards > 4 else 240

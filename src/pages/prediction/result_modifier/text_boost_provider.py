@@ -77,7 +77,6 @@ def get_text_boost_provider(config: dict[str, Any] | None) -> TextBoostProvider:
         return NullTextBoostProvider()
 
     try:
-        # 将配置字典序列化为字符串，以便作为缓存的 key
         key = json.dumps(config or {}, ensure_ascii=False, sort_keys=True)
         return _get_text_boost_provider_cached(key)
     except (TypeError, ValueError) as e:
@@ -90,16 +89,12 @@ def get_text_boost_provider(config: dict[str, Any] | None) -> TextBoostProvider:
 
 @lru_cache(maxsize=16)
 def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
-    """
-    带有缓存的工厂方法，避免频繁解析配置和重新初始化昂贵的模型资源（如 TF-IDF 向量器）。
-    """
     try:
         config = json.loads(config_key)
         from src.pages.prediction.result_modifier.providers.logit_uplift_provider import (
             LogitUpliftProvider,
         )
 
-        # 提取模型路径，这是 LogitUpliftProvider 运行的核心
         model_paths = (config or {}).get("model_paths", {})
         vec_path = model_paths.get("tfidf_vectorizer")
         cen_path = model_paths.get("tfidf_centroids")
@@ -109,7 +104,6 @@ def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
             logger.warning("文本加成模型路径配置不完整，使用空提供者")
             return NullTextBoostProvider()
 
-        # 提取控制加成强度的数学超参数
         max_total_boost = config.get("max_total_boost", 0.05)
         sim_gate_sum_min = config.get("sim_gate_sum_min")
         sim_gate_max_min = config.get("sim_gate_max_min")
@@ -118,7 +112,6 @@ def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
         cap_quality_gamma = config.get("cap_quality_gamma")
         high_signal = config.get("high_signal")
 
-        # 实例化 Logit 提升提供者
         provider = LogitUpliftProvider(
             vectorizer_path=vec_path,
             centroids_path=cen_path,
@@ -132,8 +125,6 @@ def _get_text_boost_provider_cached(config_key: str) -> TextBoostProvider:
             high_signal=high_signal if isinstance(high_signal, dict) else None,
         )
         logger.info("成功创建LogitUpliftProvider实例")
-
-        # 使用 GatedTextBoostProvider 封装，确保只在有内容时运行
         return GatedTextBoostProvider(provider)
     except json.JSONDecodeError as e:
         logger.error(f"解析配置JSON失败: {str(e)}")

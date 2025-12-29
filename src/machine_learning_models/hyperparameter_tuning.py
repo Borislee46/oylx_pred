@@ -35,12 +35,7 @@ def tune_hyperparameters(
         }
 
         intermediate_scores = []
-        for step, (train_idx, val_idx) in enumerate[
-            tuple[
-                ndarray[_AnyShape, dtype[signedinteger[Any]]],
-                ndarray[_AnyShape, dtype[signedinteger[Any]]],
-            ]
-        ](stratified_kfold.split(X_train, y_train)):
+        for step, (train_idx, val_idx) in enumerate(stratified_kfold.split(X_train, y_train)):
             X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
             y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
 
