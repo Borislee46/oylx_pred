@@ -15,7 +15,6 @@ src/machine_learning_models/data/school_base.csv
 src/machine_learning_models/data/~$cases.xlsx
 src/machine_learning_models/data/~$school_major_details.xlsx
 data/cases.xlsx
-scripts/
 e2_secrets.py
 *.py[cod]
 __pycache__/
