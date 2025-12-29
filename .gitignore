@@ -1,25 +1,13 @@
 src/services/
 .git
-.gitignore
 __pycache__/
 .venv/
 logs/
 *.log
 mlruns/
 catboost_info/
-src/machine_learning_models/evaluation_results/
-src/machine_learning_models/evaluation/
-src/machine_learning_models/__init__.py
-src/machine_learning_models/data_loader.py
-src/machine_learning_models/hyperparameter_tuning.py
-src/machine_learning_models/feature_engineer.py
-src/machine_learning_models/model_trainer.py
-src/machine_learning_models/sampling_methods.py
-src/machine_learning_models/train.py
-src/machine_learning_models/utils.py
 src/machine_learning_models/data/cases.csv
 src/machine_learning_models/data/cases.xlsx
-src/machine_learning_models/data/cases.feather
 src/machine_learning_models/data/school_major_details.csv
 src/machine_learning_models/data/school_major_details.xlsx
 src/machine_learning_models/data/school_base.xlsx
@@ -53,9 +41,6 @@ log.txt
 request.txt
 
 ~$log.xlsx
-cache/background_target_similarity.json
-cache/background_background_similarity.json
-assets/style_test.css
 test.py
 *.xlsx
 venv312/
@@ -66,14 +51,3 @@ cookie.txt
 
 .mypy_cache/
 .gitattributes
-
-openapi.py
-
-tests/
-user_form_data/
-.cursor/
-
-.pre-commit-config.yaml
-pyproject.toml
-
-*.md
