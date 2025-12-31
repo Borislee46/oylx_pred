@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from categorical_features_processor import prepare_categorical_columns
 from data_config import (
     CATEGORICAL_COLUMNS,
     COUNT_COLUMNS_FOR_LOG_TRANSFORM,
@@ -14,7 +13,7 @@ class FeatureEngineer:
         self.numeric_medians = {}
         self.cap_values = {}
         self.existing_categorical_columns = []
-        self.categorical_levels = {}  # 记录训练集中的类别等级
+        self.categorical_levels = {}
 
     def _preprocess_data(self, df: pd.DataFrame) -> pd.DataFrame:
         data = df.copy()
@@ -40,18 +39,15 @@ class FeatureEngineer:
         return data
 
     def _handle_categorical_alignment(self, data: pd.DataFrame, is_fit: bool = False) -> pd.DataFrame:
-        """确保训练集和测试集的类别变量等级完全一致"""
         for col in self.existing_categorical_columns:
             if col not in data.columns:
                 continue
             
             if is_fit:
-                # 转换为 category 类型并记录等级
                 if not pd.api.types.is_categorical_dtype(data[col]):
                     data[col] = data[col].astype("category")
                 self.categorical_levels[col] = data[col].cat.categories
             else:
-                # 应用训练集的等级，新出现的类别会自动变为空值
                 data[col] = pd.Categorical(
                     data[col], 
                     categories=self.categorical_levels.get(col), 

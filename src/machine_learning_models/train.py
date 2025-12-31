@@ -3,7 +3,6 @@ import os
 import platform
 import sys
 
-# 将项目根目录添加到 sys.path 以支持 src.xxx 形式的导入
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from data_loader import load_data

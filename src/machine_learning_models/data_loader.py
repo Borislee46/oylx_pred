@@ -44,7 +44,6 @@ def load_and_preprocess_data(data_path, sampling_method=None):
             f"目标列 '{TARGET_COLUMN}' 未找到，请检查原始数据。"
         )
 
-    # 预先检查目标列缺失值
     if data[TARGET_COLUMN].isnull().any():
         raise ValueError(f"目标列 '{TARGET_COLUMN}' 中存在 NaN 值，请检查数据。")
 
@@ -70,12 +69,10 @@ def load_and_preprocess_data(data_path, sampling_method=None):
             sample_weight.loc[recent_indices] * RECENT_SAMPLE_BOOST_WEIGHT
         )
 
-    # 1. 先划分数据集，防止数据泄露
     X_train_raw, X_test_raw, y_train, y_test, sw_train, _ = train_test_split(
         X, y, sample_weight, test_size=TEST_SIZE, random_state=42, stratify=y
     )
 
-    # 2. 在训练集上拟合特征工程，在测试集上应用
     fe = FeatureEngineer()
     X_train = fe.fit_transform(X_train_raw)
     X_test = fe.transform(X_test_raw)
