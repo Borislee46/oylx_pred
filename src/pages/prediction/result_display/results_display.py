@@ -62,8 +62,8 @@ class ResultsDisplay:
         session_manager = SessionManager()
         is_cross_faculty = session_manager.get("cross_faculty_confirmed", False)
 
-        sim_title = "目标方向精选" if is_cross_faculty else "相似专业"
-        cross_title = "历年跨申路径" if is_cross_faculty else "潜力跨专业"
+        sim_title = "相似（相对）专业" if is_cross_faculty else "相似专业"
+        cross_title = "潜力跨（相对）专业" if is_cross_faculty else "潜力跨专业"
 
         self.result_types = {
             "similarity": {

@@ -50,6 +50,8 @@ def _execute_prediction_pipeline(
     def _fmt_value(val: Any, *, none_text: str = "未提供") -> str:
         if val is None:
             return none_text
+        if isinstance(val, float):
+            return f"{val:.2f}"
         s = str(val).strip()
         return s if s else none_text
 

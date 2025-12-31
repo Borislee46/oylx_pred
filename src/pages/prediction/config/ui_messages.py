@@ -48,7 +48,7 @@ EXPERIENCE_ANALYSIS_MESSAGES = [
     "核验软背景信号密度",
 ]
 
-EXPERIENCE_VALIDATION_TEMPLATE = "校准 [{idx}/{total}]: {field_name} ({length}字 | {method})"
+EXPERIENCE_VALIDATION_TEMPLATE = "校准 [{idx}/{total}]: {field_name} ({length}字, {method})"
 
 RANKER_MESSAGES = {
     "basic": [

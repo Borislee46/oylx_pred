@@ -27,10 +27,8 @@ class TextProcessor:
         self._count_keys = count_keys
 
     @staticmethod
+    # 只做去空格，先不用分词器
     def prep_text(s: str | None) -> str:
-        """
-        基础文本清洗：去空格。
-        """
         if not isinstance(s, str):
             return ""
         return s.strip()
@@ -42,7 +40,6 @@ class TextProcessor:
         用于 `lru_cache`。通过 `sort_keys=True` 确保即使字典顺序不同，
         相同的输入内容也会生成相同的签名。
         """
-        # 提取相关字段并标准化
         obj: dict[str, Any] = {k: self.prep_text(str(details.get(k, ""))) for k in self._text_keys}
         for k in self._count_keys:
             obj[k] = int(safe_float(details.get(k, 0), 0))

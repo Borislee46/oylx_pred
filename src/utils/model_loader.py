@@ -48,13 +48,6 @@ class _CalibratedPredictor:
         if method == "sigmoid":
             a, b = float(params.get("a")), float(params.get("b"))
             calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
-        elif method == "isotonic":
-            x_t = np.array(params.get("x_thresholds", []))
-            y_t = np.array(params.get("y_thresholds", []))
-            if len(x_t) > 0:
-                calibrated_p1 = np.interp(p1, x_t, y_t)
-            else:
-                calibrated_p1 = p1
         else:
             return base_proba
 

@@ -263,7 +263,7 @@ def _fit_uplift_weights(
             s = pd.Series(0, index=df.index)
         return s.fillna(0).astype(np.float32)
 
-    # 极致优化：使用向量化方式计算各列的熵（有效信息丰盈度）
+    # 使用向量化方式计算各列的熵（有效信息丰盈度）
     def _get_richness_vec(canonical_key: str) -> np.ndarray:
         candidates = COLUMN_MAP.get(canonical_key, [])
         all_parts = []
@@ -342,7 +342,7 @@ def _fit_uplift_weights(
     if _HAS_NNLS:
         try:
             # 使用非负最小二乘法 (NNLS)
-            # 业务约束：我们假设背景文本只会带来正面加成 (Uplift)，不应存在“扣分”权重
+            # 假设背景文本只会带来正面加成 (Uplift)，不应存在“扣分”权重
             coef, _ = nnls(X, y_vec)
             if float(np.sum(coef)) <= EPSILON:
                 logger.warning("NNLS结果接近零，回退到Ridge回归")

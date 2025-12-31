@@ -19,23 +19,35 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor 
 
 class DeltaCalculator:
     """
-    Logit 增量计算器。
+    文本质量到 Logit 增量的转换器v2.6。
 
-    该类实现了加成模型的核心数学逻辑：将多维度的文本质量指标转换为一个统一的 Logit 空间偏移量。
+    将多个维度的文本相似度指标转换为统一的 Logit 空间偏移量，
+    用于调节模型输出。主要特点：
+    1. 考虑相似度质量（S）和数量（C）的平衡
+    2. 使用内容丰富度（R）抑制低质量内容
+    3. 设置阈值确保只有实质性背景获得加成
 
     数学模型：
-    $\Delta Logit = \beta_0 + \sum_{i} w_i \cdot S'_{i} + \sum_{i} u_i \cdot S'_{i} \cdot \ln(1 + C_i \cdot R_i)$
+    ΔLogit = β₀ + Σ[wᵢ·S'ᵢ] + Σ[uᵢ·S'ᵢ·ln(1 + Cᵢ·Rᵢ)]
 
-    其中：
-    - $\beta_0$: 偏置项 (Bias)，模型的基础调节量。
-    - $w_i$: 第 $i$ 个维度的相似度权重。
-    - $S'_i$: 经过内容丰富度修正后的相似度得分 ($S_i \times R_i$)。
-    - $u_i$: 交互项权重，用于衡量"质量"与"数量"共同作用带来的额外加成。
-    - $C_i$: 经历的数量（如发表了几篇论文）。
-    - $R_i$: 文本的内容丰富度 (Entropy-based Richness)，用于抑制"充数"的经历。
+    参数说明：
+    β₀ : 基础调节量，全局偏移
+    wᵢ : 第i维度的相似度基础权重
+    uᵢ : 交互项权重，控制"质量×数量"的协同效应
+    Sᵢ : 原始相似度得分（第i维度）
+    S'ᵢ : 修正后相似度 = Sᵢ × Rᵢ
+    Rᵢ : 内容丰富度（基于熵计算），范围[0,1]
+    Cᵢ : 经历数量（如论文篇数、项目数）
 
-    门槛控制：
-    只有当总相似度 $\sum S_i$ 或最大单项相似度 $\max S_i$ 达到预设阈值时，才会计算加成。这保证了加成只赋予有实质性背景的用户。
+    门槛条件：
+    仅当满足以下任一条件时计算增量：
+    1. 总相似度 ΣSᵢ ≥ 阈值_threshold_total
+    2. 最大相似度 max(Sᵢ) ≥ 阈值_threshold_max
+
+    设计目的：
+    1. 防止"充数"：通过Rᵢ降低低质量内容的权重
+    2. 鼓励积累：ln(1+Cᵢ·Rᵢ)对高质量内容给予数量奖励
+    3. 精准匹配：高单项相似度可获得显著加成
     """
 
     def __init__(
@@ -51,7 +63,6 @@ class DeltaCalculator:
         self._text_processor = text_processor
         self._sim_gate_sum_min = sim_gate_sum_min
         self._sim_gate_max_min = sim_gate_max_min
-        # 使用 LRU 缓存避免在用户多次点击或刷新时重复进行昂贵的文本计算
         self._get_delta_logit_cached = lru_cache(maxsize=512)(self._compute_delta_logit_raw)
 
     def _compute_delta_logit_raw(
@@ -75,7 +86,7 @@ class DeltaCalculator:
             except (json.JSONDecodeError, TypeError, ValueError):
                 pass
 
-        # 1. 计算各维度的相似度融合分
+        # 相似度融合分
         sims, remarks = compute_sims(details)
         if not sims:
             return 0.0, (), ()
@@ -86,7 +97,7 @@ class DeltaCalculator:
         smax = 0.0
         sims_get = sims.get
 
-        # 2. 统计相似度指标
+        # 相似度指标
         for i in range(n_text):
             val = sims_get(text_keys[i], 0.0)
             if val:
@@ -95,17 +106,17 @@ class DeltaCalculator:
                 if val > smax:
                     smax = val
 
-        # 3. 门槛检查：避免对弱相关文本进行加成
+        # 门槛检查
         if ssum < sum_min or smax < max_min:
             return 0.0, tuple(sims.items()), tuple((k, tuple(v)) for k, v in remarks.items())
 
-        # 4. 执行线性回归预测
+        # 线性回归预测
         delta = float(weights[0])  # weights[0] 为偏置项 b
         tw_start = 1
 
         text_w = weights[tw_start : tw_start + n_text]
         n_counts = len(count_keys)
-        # 检查是否存在交互项权重
+        # 是否存在交互项权重
         has_inter = n_counts == n_text and len(weights) >= tw_start + 2 * n_text
         inter_w = weights[tw_start + n_text : tw_start + 2 * n_text] if has_inter else None
         details_get = details.get
@@ -125,7 +136,7 @@ class DeltaCalculator:
             sims_adj[text_keys[i]] = s_adj
             delta += text_w[i] * s_adj
 
-            # 5. 计算交互项：$\text{weight} \cdot \text{Quality} \cdot \ln(1 + \text{Count} \cdot \text{Richness})$
+            # 计算交互项：$\text{weight} \cdot \text{Quality} \cdot \ln(1 + \text{Count} \cdot \text{Richness})$
             if has_inter:
                 v = details_get(count_keys[i])
                 if v:
@@ -174,7 +185,7 @@ def _fast_entropy(text: str) -> float:
         return 0.0
     if len(b) < 10:
         return 0.0
-    # 使用 np.bincount 高效统计字节分布 (0-255)
+    # np.bincount 高效统计字节分布 (0-255)
     counts = np.bincount(np.frombuffer(b, dtype=np.uint8), minlength=256)
     probs = counts[counts > 0] / len(b)
     entropy = -np.sum(probs * np.log2(probs))

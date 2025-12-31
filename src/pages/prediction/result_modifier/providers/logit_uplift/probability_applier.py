@@ -21,21 +21,24 @@ if TYPE_CHECKING:
 
 class ProbabilityApplier:
     """
-    概率加成应用器。
+    概率加成计算器v2.6 - 将抽象加成量转换为概率提升
 
-    该类负责将 Logit 空间的抽象增量（$\Delta$）转化为直观的概率百分比提升，并实施安全约束（封顶）。
+    核心功能：
+    1. Logit空间平滑转换：通过sigmoid函数确保概率值始终在(0,1)范围内
+    2. 自适应封顶机制：基于文本质量和基础概率动态限制最大加成幅度
 
-    数学原理：
-    1. **Logit 转换**:
-       原始概率 $P$ 对应的 Logit 为 $L = \ln(P / (1-P))$。
-       应用加成后的新概率为 $P_{new} = \text{Sigmoid}(L + \Delta \times \text{smoothing})$。
-       这种转换保证了概率变化是平滑的，且永远不会超出 (0, 1) 范围。
+    转换流程：
+    基础概率 P → Logit空间 L = log(P/(1-P)) → 加成 L' = L + Δ·smoothing → 新概率 P' = sigmoid(L')
 
-    2. **质量敏感封顶 (Adaptive Cap)**:
-       为了防止个别案例加成过猛，我们根据文本质量 $Q$ 计算一个动态上限。
-       $Cap = P \times (1 + \text{MaxBoost} \times \text{Factor}(Q) \times \text{Scale}(P))$
-       - **Quality Factor**: 综合各项相似度，质量越高，允许的加成上限越高。
-       - **Scale Factor**: 针对概率本身进行缩放。在 50% 概率附近的学校（边缘学校）加成幅度最大，而对于稳录（99%）或几乎无望（1%）的学校加成较小，符合现实逻辑。
+    封顶逻辑：
+    最大提升倍数 = 1 + MaxBoost × QualityFactor × ScaleFactor
+    - QualityFactor: 文本质量评分（0-1），质量越高加成上限越高
+    - ScaleFactor: 概率缩放因子，中段概率(≈0.5)加成空间最大，两端趋近于0
+
+    设计约束：
+    - 绝对安全：输出概率永不越界(0,1)
+    - 平滑响应：sigmoid函数确保变化连续
+    - 合理边界：防止低质量文本获得过高加成
     """
 
     def __init__(
@@ -71,7 +74,7 @@ class ProbabilityApplier:
         """
         probs = np.array(probabilities, dtype=np.float64)
 
-        # 1. 计算质量因子 Q
+        # 计算质量因子 Q
         # Q = MaxWeight * MaxSimilarity + MeanWeight * MeanSimilarity
         s_values = np.array([sims.get(k, 0.0) for k in self._text_processor.text_keys])
         if s_values.size > 0:
@@ -85,7 +88,7 @@ class ProbabilityApplier:
         else:
             cap_factor = self._cap_min_factor
 
-        # 2. 应用平滑后的 Logit 增量
+        # 应用平滑后的 Logit 增量
         effective_delta = delta_logit * self._smoothing
 
         # 过滤掉极端概率，只对有效区间内的概率进行处理
@@ -96,16 +99,16 @@ class ProbabilityApplier:
         updated = probs.copy()
         p_masked = probs[mask]
 
-        # 3. 概率 -> Logit -> +Delta -> 概率 (Sigmoid Inverse)
+        # 概率 -> Logit -> +Delta -> 概率 (Sigmoid Inverse)
         logit_p = np.log(p_masked / (1.0 - p_masked))
         new_p = 1.0 / (1.0 + np.exp(-(logit_p + effective_delta)))
 
-        # 4. 计算自适应上限
+        # 计算自适应上限
         # Scale 逻辑：abs(p - 0.5) 越大（越接近 0 或 1），scale 越小，加成上限越紧
         scale = 1.0 - PROBABILITY_SCALE_FACTOR * np.abs(p_masked - PROBABILITY_SCALE_CENTER)
         cap = p_masked * (1.0 + self._max_total_boost * cap_factor * scale)
 
-        # 5. 取三者最小值：计算出的概率、上限、以及绝对上限 1.0
+        # 取三者最小值：计算出的概率、上限、以及绝对上限 1.0
         updated[mask] = np.minimum(np.minimum(new_p, cap), 1.0)
 
         return updated.tolist()

@@ -137,7 +137,6 @@ class ProbabilityAdjustmentPipeline:
 
         adjusted_prob = arbitrator.arbitrate(current_prob)
 
-        # 记录追踪信息到结果中供日志使用
         if arbitrator.trace:
             result_copy["_adjustment_trace"] = arbitrator.trace
 

@@ -20,7 +20,7 @@ class _Rule:
 
 class SignalScorer:
     """
-    高价值信号评分器。
+    高价值信号评分器v2.6。
 
     该类通过硬匹配关键词（词库模式）来识别文本中的"强信号"。
     这些信号通常是统计模型（如 TF-IDF）难以捕捉到的决定性细节，例如具体的奖项名称、核心期刊等。
@@ -53,7 +53,6 @@ class SignalScorer:
         self._rules_by_field: dict[str, list[_Rule]] = {}
         self._global_rules: list[_Rule] = []
 
-        # 预加载规则并建立索引
         all_rules = self._load_rules(lexicon_path)
         for r in all_rules:
             if r.fields is None:
@@ -72,16 +71,6 @@ class SignalScorer:
             return default
 
     def _load_rules(self, lexicon_path: str | None) -> tuple[_Rule, ...]:
-        """
-        解析 JSON 规则库。
-
-        格式示例：
-        {
-          "rules": [
-            {"pattern": "nature", "score": 0.9, "tag": "顶刊发表", "fields": ["paper_details"]}
-          ]
-        }
-        """
         if not lexicon_path:
             return ()
         path = Path(lexicon_path)
@@ -104,7 +93,6 @@ class SignalScorer:
             pattern = r.get("pattern")
             if not isinstance(pattern, str) or not pattern.strip():
                 continue
-            # 限制单条规则的分数范围在 [0, 1]
             score = self._safe_float(r.get("score"), 0.0)
             score = float(min(max(score, 0.0), 1.0))
             tag = r.get("tag")
@@ -126,12 +114,6 @@ class SignalScorer:
     def score(
         self, texts_by_field: dict[str, str]
     ) -> tuple[dict[str, float], dict[str, list[str]]]:
-        """
-        扫描各字段文本，计算词库得分并返回命中的标签。
-
-        Returns:
-            tuple: (字段 -> 加成得分, 字段 -> 命中标签列表)
-        """
         if not texts_by_field or self._lexicon_weight <= 0:
             return {}, {}
 
@@ -149,16 +131,13 @@ class SignalScorer:
             best = 0.0
             matched_tags: list[str] = []
 
-            # 组合该字段专属规则和全局规则
             target_rules = self._rules_by_field.get(field, []) + self._global_rules
             if not target_rules:
                 continue
 
-            # 执行硬匹配扫描 (Substring check)
             for rule in target_rules:
                 if rule.pattern in t:
                     matched_tags.append(rule.tag)
-                    # 取命中规则中的最高分（非累加）
                     if rule.score > best:
                         best = rule.score
 

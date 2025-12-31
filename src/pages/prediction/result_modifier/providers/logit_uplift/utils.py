@@ -16,7 +16,7 @@ def logit(p: float) -> float:
     return math.log(p / (1 - p))
 
 
-# 标量用math.exp比np.exp快
+# 测试标量用math.exp比np.exp快
 def sigmoid(z: float) -> float:
     try:
         return 1.0 / (1.0 + math.exp(-z))
