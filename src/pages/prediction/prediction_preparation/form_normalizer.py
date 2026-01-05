@@ -15,7 +15,6 @@ from src.pages.prediction.input_form_components.form_config import (
 from src.pages.prediction.input_form_components.language_score_processor import (
     apply_overseas_language_boost,
 )
-from src.pages.prediction.user_background_analyzer import find_substitute_university
 from src.utils.school_level_service import get_school_level_service
 
 
@@ -79,16 +78,10 @@ def get_background_university_for_model(
     cases_df,
     background_university_set: set[str] | None = None,
 ) -> str | None:
-    if not selected_background_university:
-        return None
-
     if background_university_set is None:
         background_university_set = set(
             cases_df["background_university"].dropna().astype(str).unique()
         )
-
-    if selected_background_university not in background_university_set:
-        return find_substitute_university(selected_background_university, cases_df)
 
     return selected_background_university
 
@@ -98,9 +91,7 @@ def normalize_form_data_for_prediction(
     cases_df,
     gpa_converter: GPAConverter | None,
     background_university_set: set[str] | None = None,
-) -> tuple[dict, list[str]]:
-    warnings = []
-
+) -> dict:
     raw_gpa = form_data.get("gpa_raw")
     gpa_scale = form_data.get("gpa_scale")
     bg_uni = form_data.get("background_university")
@@ -140,4 +131,4 @@ def normalize_form_data_for_prediction(
         "experience_details": form_data.get("experience_details", {}),
     }
 
-    return input_data, warnings
+    return input_data

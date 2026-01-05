@@ -110,16 +110,20 @@
 
 ## 4. Streamlit 页面预测管线 (Flow Control)
 
-**入口**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
+**入口**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline_with_progress`
 
 页面管线负责串联资源加载、并行推理、推荐生成与后处理：
 
 1.  **风险预警**: 通过 `cross_faculty_guard.py` 识别潜在的跨学院申请风险。
 2.  **准备输入 (Preparation)**：`src/pages/prediction/prediction_preparation/preparer.py`（含 `form_normalizer.py` 归一化）。
-3.  **并行推理 (Execution)**：`src/pages/prediction/flow/run_prediction.py::run_single_prediction` (内部调用 `prediction_execution.executor.PredictionExecutor`)。
-4.  **结果平衡与平准**：在 `flow/processor.py` 中利用 `BoundaryCaseAgent` 对相似推荐与跨专业推荐进行数量平衡。
-5.  **概率修正 (Modification)**：`src/pages/prediction/result_modifier/adjustment_pipeline.py`。
-6.  **结果合并**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`。
+3.  **核心推理 (Recall & Execution)**：
+    - 在 `flow/run_prediction.py::run_single_prediction` 中进行 **混合召回 (Recall)**（E5 语义 + Fuzz 字符匹配）。
+    - 之后调用 `prediction_execution.executor.PredictionExecutor` 进行 **精排推理**。
+4.  **结果平衡与初筛 (Processing)**：
+    - 在 `flow/processor.py` 中通过 `SingleResultProcessor` 完成元数据注入、**目标特定语言惩罚**、相似度偏置修正。
+    - 利用 `BoundaryCaseAgent` 对相似推荐与跨专业推荐进行数量平衡。
+5.  **批量修正 (Modification)**：通过 `src/pages/prediction/result_modifier/adjustment_pipeline.py` 进行 GPA/语言、跨专业、跨学部及文本加成的统一修正。
+6.  **结果交付**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`。
 
 ### 关于 `unified_results` 的合并优先级
 合并过程基于优先级覆盖逻辑：

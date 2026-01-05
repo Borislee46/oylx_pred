@@ -66,7 +66,7 @@ def _generate_component_html(available_buttons: list, base_url: str, trace_id: s
     num_cards = len(available_buttons)
     cards_html = _generate_card_html(available_buttons, base_url, trace_id)
 
-    assets_dir = Path(__file__).parent / "main_page_button_assets"
+    assets_dir = Path("assets/ui/main_page_button")
     style_css, script_js, template_html = load_component_assets(assets_dir)
 
     card_width = 160 if num_cards > 4 else 180

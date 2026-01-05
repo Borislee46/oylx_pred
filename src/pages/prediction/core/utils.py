@@ -8,28 +8,22 @@ from src.utils.logger import setup_logger
 
 
 def normalize_language_score(score, language_type):
-    try:
-        score = float(score)
-        if language_type == "托福":
-            return score / 120
-        else:
-            return score / 9
-    except Exception:
-        return score
+    score = float(score)
+    if language_type == "托福":
+        return score / 120
+    else:
+        return score / 9
 
 
 def denormalize_language_score(normalized_score, language_type, round_to_half=False):
-    try:
-        normalized_score = float(normalized_score)
-        if language_type == "托福":
-            return normalized_score * 120
-        else:
-            score = normalized_score * 9
-            if round_to_half:
-                return round(score * 2) / 2
-            return score
-    except Exception:
-        return normalized_score
+    normalized_score = float(normalized_score)
+    if language_type == "托福":
+        return normalized_score * 120
+    else:
+        score = normalized_score * 9
+        if round_to_half:
+            return round(score * 2) / 2
+        return score
 
 
 _utils_logger = setup_logger("page3", "prediction")
@@ -64,9 +58,15 @@ class SchoolMajorDataManager:
         temp_df["学校"] = temp_df["学校"].astype(str)
         temp_df["专业英文名称"] = temp_df["专业英文名称"].astype(str)
 
-        self._details_index = {
-            (row["学校"], row["专业英文名称"]): row for _, row in temp_df.iterrows()
-        }
+        from src.pages.prediction.result_modifier.language_penalty import (
+            LanguageRequirementPenalty,
+        )
+
+        self._details_index = {}
+        for row_dict in temp_df.to_dict("records"):
+            row_dict["_lang_reqs"] = LanguageRequirementPenalty.extract_requirement(row_dict)
+            self._details_index[(row_dict["学校"], row_dict["专业英文名称"])] = row_dict
+
         self._valid_combinations = set(self._details_index.keys())
         self._valid_universities = set(temp_df["学校"].unique())
         self._valid_majors = set(temp_df["专业英文名称"].unique())
@@ -104,9 +104,16 @@ class SchoolMajorDataManager:
         return self._valid_combinations
 
     def get_row(self, university: str, major: str):
-        if self._details_df is None:
+        if self._details_index is None:
             _ = self.details_df
-        return self._details_index.get((str(university), str(major)))
+        return self._details_index.get((university, major))
+
+    def _is_new_major_cached(self, university: str, major: str, version: int) -> bool:
+        row = self.get_row(university, major)
+        if row is not None:
+            is_new = row.get("新增专业")
+            return is_new is not None and str(is_new).strip() != ""
+        return False
 
     def warm_up(self):
         _ = self.details_df
@@ -150,12 +157,9 @@ def format_field(value) -> str:
 
 
 def format_float(value, decimals: int = 2):
-    try:
-        if value is None or value == "":
-            return ""
-        return round(float(value), decimals)
-    except Exception:
-        return value
+    if value is None or value == "":
+        return ""
+    return round(float(value), decimals)
 
 
 def get_cached_major_similarity(
@@ -168,34 +172,14 @@ def get_cached_major_similarity(
     bg = background_major or major2
     target = target_major or major1
 
-    if not bg or not target or cache is None:
-        return 0.0
+    bg_key = str(bg).strip().lower()
+    target_key = str(target).strip().lower()
 
-    if isinstance(cache, pd.Series) and isinstance(cache.index, pd.MultiIndex):
-        try:
-            bg_key = str(bg).strip().lower()
-            target_key = str(target).strip().lower()
-            return float(cache.loc[(bg_key, target_key)])
-        except (KeyError, TypeError):
-            return 0.0
-
-    return 0.0
+    return float(cache.get((bg_key, target_key), 0.0))
 
 
-def get_cached_major_similarities_batch(
-    pairs: list[tuple[str, str]], cache: dict = None
-) -> list[float]:
-    if not pairs or cache is None:
-        return [0.0] * len(pairs)
-
-    return [
-        get_cached_major_similarity(major1=target, major2=background, cache=cache)
-        for target, background in pairs
-    ]
-
-
-def format_school_major_details_from_row(row: pd.Series) -> str:
-    if row is None or row.empty:
+def format_school_major_details_from_row(row: dict) -> str:
+    if not row:
         return "无详细信息"
 
     key_fields = school_details_key_fields
@@ -242,12 +226,4 @@ def has_school_major_details(university: str, major: str) -> bool:
 
 @lru_cache(maxsize=1000)
 def is_new_major(university: str, major: str) -> bool:
-    return _is_new_major_cached(university, major, _data_manager.details_version)
-
-
-def _is_new_major_cached(university: str, major: str, version: int) -> bool:
-    row = _data_manager.get_row(university, major)
-    if row is not None:
-        is_new = row.get("新增专业")
-        return pd.notna(is_new) and str(is_new).strip() != ""
-    return False
+    return _data_manager._is_new_major_cached(university, major, _data_manager.details_version)

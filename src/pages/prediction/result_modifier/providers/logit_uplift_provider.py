@@ -1,17 +1,3 @@
-"""
-背提文本"含金量"核心算法实现, 对count类进行加成
-
-Q: "含金量"该怎么定义？
-A: 这个概念很抽象，很难具象化成一个固定的公式。单纯的关键词匹配过于单薄，比如："一区SCI论文第一作者"这种背景固然很厉害，但是实际对申请成功率的影响可能并不大。
-所以需要结合文本的丰富度、新颖度、质量等多个维度来综合评估，且要结合真正的历史数据来训练模型，而不是仅仅依赖于关键词匹配。
-
-Q: 为啥不用LLM？
-A: 因为LLM的计算速度太慢了，而且计算成本太高了，而且计算结果的准确性也不高（1是幻觉，2是本升硕并没有绝对约定熟成的背题要求不像是申请博士那样需要有特定的背题要求），所以不用LLM。
-
-Q: 为啥不塞到XGB一起训练？
-A: 树模型训文本光特征工程就够我吃一壶的了，还有当前无文本的训练权重30mb加文本恐怕压不住，且短期来看用户使用频率较低，先这么着吧。
-"""
-
 from __future__ import annotations
 
 from typing import Any
@@ -43,30 +29,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class LogitUpliftProvider(TextBoostProvider):
-    """
-    文本质量加成处理器v2.6 - 通过Logit空间转换实现概率提升
-
-    组件流水线：
-    TextProcessor → 特征提取 → 相似度计算 → 线性模型 → ProbabilityApplier
-
-    处理流程：
-    1. 文本解析: 提取背景描述特征和经历数量
-    2. 模型加载: 惰性加载TF-IDF向量器、聚类中心点、回归权重
-    3. 相似度评估: 计算与高质量案例的向量距离 + 关键词信号融合
-    4. 增量计算: 基于相似度得分，通过线性模型计算Logit空间偏移量(Δ)
-    5. 概率转换: 将Δ通过sigmoid函数映射为概率提升，并应用质量自适应封顶
-
-    关键技术：
-    - Logit空间操作: 在log-odds空间进行线性加成，避免概率值越界[0,1]
-    - 质量敏感封顶: 基于文本质量和原始概率动态限制最大提升幅度
-    - 惰性加载: 大型模型资源按需加载，降低内存开销
-
-    输出特性：
-    - 保序性: 高质量文本获得更大加成
-    - 边界安全: 输出概率严格在(0,1)区间
-    - 平滑响应: 相似度变化引起连续的概率变化
-    """
-
     def __init__(
         self,
         vectorizer_path: str,
@@ -80,21 +42,6 @@ class LogitUpliftProvider(TextBoostProvider):
         cap_quality_gamma: float | None = None,
         high_signal: dict[str, Any] | None = None,
     ) -> None:
-        """
-        初始化 LogitUpliftProvider。
-
-        Args:
-            vectorizer_path: TF-IDF 向量器文件路径 (.joblib)。
-            centroids_path: 各维度高质量聚类中心点路径 (.npz)。
-            weights_path: 线性回归权重路径 (.json)。
-            max_total_boost: 允许的最大概率提升上限（如 0.05 表示 5%）。
-            sim_gate_sum_min: 总相似度门槛，低于此值不予加成。
-            sim_gate_max_min: 单项最大相似度门槛，低于此值不予加成。
-            smoothing: Logit 空间的平滑因子，用于控制加成的灵敏度。
-            cap_min_factor: 最小封顶系数，即使文本质量极高，也会受此系数约束。
-            cap_quality_gamma: 质量敏感度指数，用于调节质量得分对封顶上限的影响。
-            high_signal: 信号增强配置（词库路径、权重等）。
-        """
         self._max_total_boost = float(max_total_boost)
         self._sim_gate_sum_min = (
             LOGIT_UPLIFT_DEFAULT_SIM_GATE_SUM_MIN
@@ -194,25 +141,14 @@ class LogitUpliftProvider(TextBoostProvider):
             ImportError,
             AttributeError,
         ) as e:
-            logger.error(f"LogitUpliftProvider 计算 delta_logit 失败: {str(e)}", exc_info=True)
+            logger.error(
+                f"[背提文本加成算法] LogitUpliftProvider 计算 delta_logit 失败: {str(e)}",
+                exc_info=True,
+            )
             return probabilities
 
         if delta_logit <= 0:
             return probabilities
-
-        if remarks:
-            flat_remarks = []
-            for field, tags in remarks.items():
-                field_cn = {
-                    "research_details": "科研",
-                    "award_details": "奖项",
-                    "internship_details": "实习",
-                    "paper_details": "论文",
-                }.get(field, field)
-                flat_remarks.append(f"{field_cn}: {', '.join(tags)}")
-
-            if flat_remarks:
-                logger.info(f"文本加成生效 [Logit+{delta_logit:.3f}]: {'; '.join(flat_remarks)}")
 
         updated = self._probability_applier.apply_probability_boost(
             probabilities=probabilities,

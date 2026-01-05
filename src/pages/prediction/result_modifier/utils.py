@@ -4,6 +4,7 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+from numba import jit
 
 from src.pages.prediction.result_modifier.config import (
     CROSS_MAJOR_PENALTY_FACTOR,
@@ -59,8 +60,8 @@ INVALID_TOKENS = {
 PUNCTUATION_CHARS = string.punctuation + "·—-_/／\\|~`'\"，。；：、"
 
 
-def is_effectively_empty(text: str | None) -> bool:
-    if text is None:
+def is_effectively_empty(text: Any) -> bool:
+    if not text:
         return True
     t = str(text).strip()
     if not t:
@@ -68,31 +69,26 @@ def is_effectively_empty(text: str | None) -> bool:
     tl = t.lower()
     if tl in INVALID_TOKENS:
         return True
-    stripped = tl.strip(PUNCTUATION_CHARS)
-    return len(stripped) == 0
+    return not tl.strip(PUNCTUATION_CHARS)
 
 
 def get_probability(case: dict[str, Any], default: float = 0.0) -> float:
     v = case.get("probability", default)
-    try:
-        val = float(v) if v is not None else default
-        return max(0.0, min(1.0, val))
-    except (ValueError, TypeError):
-        return default
+    val = float(v) if v is not None else default
+    return max(0.0, min(1.0, val))
 
 
-def clip_probability(value: Any) -> float:
-    try:
-        return max(0.0, min(1.0, float(value)))
-    except (ValueError, TypeError):
+@jit(nopython=True, cache=True)
+def clip_probability(value: float) -> float:
+    if value < 0.0:
         return 0.0
+    if value > 1.0:
+        return 1.0
+    return float(value)
 
 
 def cross_major_penalty_factor(similarity: Any) -> float:
-    try:
-        s = float(similarity)
-    except (TypeError, ValueError):
-        return CROSS_MAJOR_PENALTY_FACTOR
+    s = float(similarity)
 
     if s >= MIN_SIMILARITY_THRESHOLD:
         return 1.0
@@ -114,10 +110,7 @@ def apply_cross_major_penalty_if_needed(
     check_admitted_field: bool = True,
 ) -> float:
     similarity = result.get("similarity", 1.0)
-    try:
-        sim = float(similarity)
-    except (TypeError, ValueError):
-        sim = 1.0
+    sim = float(similarity)
 
     if sim >= MIN_SIMILARITY_THRESHOLD:
         return probability

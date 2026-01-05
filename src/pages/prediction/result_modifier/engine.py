@@ -1,5 +1,3 @@
-import time
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from src.pages.prediction.result_modifier.config import (
@@ -48,7 +46,6 @@ class AgentAdjustmentEngine:
         initial_pool: list[dict],
         initial_results: list[dict],
     ) -> list[dict]:
-        self.ui.update_loop()
         remaining = self.session.target_diff - self.session.adjusted_count
         if remaining <= 0:
             return initial_results
@@ -56,13 +53,14 @@ class AgentAdjustmentEngine:
         max_candidates = min(AGENT_MAX_BOUNDARY_CASES * 2, max(12, remaining * 3))
         candidates = []
         seen_keys = set()
+        excluded_keys = self.session.evaluated_cases
 
         for pool in [initial_boundary_cases, initial_pool]:
             for c in pool:
                 if not is_case_with_key(c):
                     continue
                 key = case_key(c)
-                if key not in seen_keys and key not in self.session.evaluated_cases:
+                if key and key not in seen_keys and key not in excluded_keys:
                     candidates.append(c)
                     seen_keys.add(key)
                 if len(candidates) >= max_candidates:
@@ -76,8 +74,7 @@ class AgentAdjustmentEngine:
         majors = [c.get("major", "") for c in candidates if c.get("major")]
         self.ui.show_candidates(majors)
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            decisions = self._process_decisions(executor, candidates)
+        decisions = self._process_decisions(candidates)
 
         self.session.record_evaluation(candidates)
 
@@ -90,36 +87,32 @@ class AgentAdjustmentEngine:
 
         return initial_results
 
-    def _process_decisions(self, executor, cases: list[dict]) -> list[bool]:
+    def _process_decisions(self, cases: list[dict]) -> list[bool]:
         decisions = [False] * len(cases)
         agent_cases = []
         agent_indices = []
 
         for i, case in enumerate(cases):
             triage = self.session.strategy.triage_decision(case)
-            if triage is AdjustmentDecision.DEFER_TO_AGENT:
+            if triage is AdjustmentDecision.ADJUST:
+                decisions[i] = True
+            elif triage is AdjustmentDecision.DEFER_TO_AGENT:
                 agent_cases.append(case)
                 agent_indices.append(i)
-            else:
-                decisions[i] = triage is AdjustmentDecision.ADJUST
 
         if agent_cases:
-            evaluation = self._evaluate_with_agent(executor, agent_cases)
-            agent_decisions = evaluation.get("decisions", []) if evaluation else []
-            for j, idx in enumerate(agent_indices):
-                if j < len(agent_decisions):
-                    decisions[idx] = bool(agent_decisions[j])
+            evaluation = self._evaluate_with_agent(agent_cases)
+            if evaluation:
+                agent_decisions = evaluation.get("decisions", [])
+                for j, idx in enumerate(agent_indices):
+                    if j < len(agent_decisions):
+                        decisions[idx] = bool(agent_decisions[j])
 
         return decisions
 
-    def _evaluate_with_agent(self, executor: ThreadPoolExecutor, cases: list[dict]):
-        future = executor.submit(
-            self.agent.evaluate_boundary_cases,
+    def _evaluate_with_agent(self, cases: list[dict]):
+        return self.agent.evaluate_boundary_cases(
             self.session.strategy.background_major,
             cases,
             self.session.mode,
         )
-        while not future.done():
-            self.ui.update_loop()
-            time.sleep(0.2)
-        return future.result()

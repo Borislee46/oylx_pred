@@ -1,8 +1,8 @@
 import streamlit as st
 
+from src.utils.data_safety.watermark import generate_watermark_css
 from src.utils.logger import setup_logger
 from src.utils.page_auth import handle_e2_login
-from src.utils.ui.watermark import generate_watermark_css
 
 page_init_logger = setup_logger("page3", "prediction")
 

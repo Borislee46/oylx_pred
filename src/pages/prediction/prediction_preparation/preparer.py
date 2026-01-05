@@ -3,7 +3,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.pages.prediction.core.exceptions import InvalidInputError, MissingInputError
+from src.pages.prediction.core.exceptions import MissingInputError
 from src.pages.prediction.core.types import PredictionInput
 from src.pages.prediction.core.utils import get_background_faculty
 from src.utils.app_data_loader import load_raw_cases_data
@@ -14,17 +14,11 @@ logger = setup_logger("page3", "prediction")
 
 
 def _safe_float(v: Any) -> float | None:
-    try:
-        return float(v) if v is not None and v != "" else None
-    except (ValueError, TypeError):
-        return None
+    return float(v) if v is not None and v != "" else None
 
 
 def _safe_int(v: Any) -> int:
-    try:
-        return int(float(v)) if v is not None and v != "" else 0
-    except (ValueError, TypeError):
-        return 0
+    return int(float(v)) if v is not None and v != "" else 0
 
 
 def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
@@ -56,9 +50,6 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
 
 
 def prepare_input_data(input_data_from_form: dict) -> dict:
-    if not isinstance(input_data_from_form, dict):
-        raise InvalidInputError("_", value=type(input_data_from_form).__name__, expected="dict")
-
     required = ["background_university", "background_major"]
     if missing := [f for f in required if not input_data_from_form.get(f)]:
         logger.warning(f"缺少必需字段: {', '.join(missing)}")
@@ -110,27 +101,17 @@ def get_user_specified_combinations(
 def compute_list_fingerprint(lst: list[str]) -> tuple[int, int]:
     if not lst:
         return (0, 0)
-    try:
-        content = "\n".join(sorted(str(x) for x in lst)).encode("utf-8")
-        stable_hash = int.from_bytes(hashlib.sha1(content).digest()[:8], "big")
-        return (len(lst), stable_hash)
-    except Exception as e:
-        logger.warning(f"计算列表指纹失败: {e}")
-        return (len(lst), 0)
+    content = "\n".join(sorted(str(x) for x in lst)).encode("utf-8")
+    stable_hash = int.from_bytes(hashlib.sha1(content).digest()[:8], "big")
+    return (len(lst), stable_hash)
 
 
 def compute_df_fingerprint(df: pd.DataFrame | None) -> int:
     if df is None or df.empty:
         return 0
-    try:
-        from pandas.util import hash_pandas_object
+    from pandas.util import hash_pandas_object
 
-        keys = [
-            c
-            for c in ("background_university", "target_university", "target_major")
-            if c in df.columns
-        ]
-        return int(hash_pandas_object(df[keys]).sum()) if keys else len(df)
-    except Exception as e:
-        logger.warning(f"计算DF指纹失败: {e}")
-        return len(df)
+    keys = [
+        c for c in ("background_university", "target_university", "target_major") if c in df.columns
+    ]
+    return int(hash_pandas_object(df[keys]).sum()) if keys else len(df)

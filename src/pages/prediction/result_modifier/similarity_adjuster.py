@@ -17,22 +17,24 @@ from rapidfuzz import fuzz
 
 
 def calculate_fuzzy_bias(
-    background_major: str, target_major: str, target_major_cn: str | None = None
+    background_major: str,
+    target_major: str,
+    target_major_cn: str | None = None,
+    fuzzy_score: float | None = None,
 ) -> float:
     if not background_major:
         return 1.0
 
-    bg = background_major.lower()
-    tgt_en = target_major.lower()
-
-    score_en = fuzz.token_sort_ratio(bg, tgt_en)
-
-    score_cn = 0.0
-    if target_major_cn:
-        tgt_cn = target_major_cn.lower()
-        score_cn = fuzz.token_sort_ratio(bg, tgt_cn)
-
-    best_score = max(score_en, score_cn)
+    best_score = fuzzy_score
+    if best_score is None:
+        bg = background_major.lower()
+        tgt_en = target_major.lower()
+        score_en = fuzz.token_sort_ratio(bg, tgt_en)
+        score_cn = 0.0
+        if target_major_cn:
+            tgt_cn = target_major_cn.lower()
+            score_cn = fuzz.token_sort_ratio(bg, tgt_cn)
+        best_score = max(score_en, score_cn)
 
     if best_score > 92:
         return 1.5
@@ -99,35 +101,46 @@ def _load_similarity_rules_cached() -> list[dict[str, Any]]:
         return []
 
 
+def get_applicable_similarity_rules(background_major: str) -> list[dict[str, Any]]:
+    if not background_major:
+        return []
+
+    rules = _load_similarity_rules_cached()
+    if not rules:
+        return []
+
+    bg_lower = background_major.lower()
+    applicable = []
+    for r in rules:
+        bks = r.get("background_keywords", [])
+        if any(k in bg_lower for k in bks):
+            applicable.append(r)
+    return applicable
+
+
 def adjust_similarity_score(
     background_major: str,
     target_major: str,
     similarity: float,
     target_major_cn: str | None = None,
+    fuzzy_score: float | None = None,
+    applicable_rules: list[dict[str, Any]] | None = None,
 ) -> float:
     if not background_major or not target_major:
         return similarity
 
-    rules = _load_similarity_rules_cached()
     adjusted = float(similarity)
+    rules = (
+        applicable_rules
+        if applicable_rules is not None
+        else get_applicable_similarity_rules(background_major)
+    )
 
     if rules:
-        bg = background_major.lower()
         tgt = target_major.lower()
-
         for rule in rules:
-            bks = rule.get("background_keywords", [])
             tks = rule.get("target_keywords", [])
             adj = float(rule.get("adjustment", 0.0))
-
-            bg_match = False
-            for k in bks:
-                if k in bg:
-                    bg_match = True
-                    break
-
-            if not bg_match:
-                continue
 
             tgt_match = False
             for k in tks:
@@ -135,11 +148,13 @@ def adjust_similarity_score(
                     tgt_match = True
                     break
 
-            if bg_match and tgt_match:
+            if tgt_match:
                 adjusted += adj
                 break
 
-    bias = calculate_fuzzy_bias(background_major, target_major, target_major_cn)
+    bias = calculate_fuzzy_bias(
+        background_major, target_major, target_major_cn, fuzzy_score=fuzzy_score
+    )
     adjusted *= bias
 
     return max(0.0, min(1.0, adjusted))

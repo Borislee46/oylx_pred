@@ -1,7 +1,6 @@
 import glob
 import json
 import os
-import warnings
 from typing import Any
 
 import numpy as np
@@ -11,8 +10,6 @@ import xgboost as xgb
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
-
-warnings.filterwarnings("ignore")
 
 
 def _load_serialized_xgb(file_path: str) -> xgb.XGBClassifier | None:

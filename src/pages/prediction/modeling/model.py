@@ -5,10 +5,6 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from src.machine_learning_models.data_config import (
-    CATEGORICAL_COLUMNS,
-    COUNT_COLUMNS_FOR_LOG_TRANSFORM,
-)
 from src.utils.logger import setup_logger
 from src.utils.model_loader import load_model
 from src.utils.school_level_service import get_school_level_service
@@ -22,13 +18,12 @@ def validate_model_and_features(prediction_model: Optional["PredictionModel"]) -
         page_logger.critical("prediction_model 为 None")
         return None
 
-    features = getattr(prediction_model, "feature_names", None)
-    if features:
-        return features
+    if not prediction_model.feature_names:
+        page_logger.error("模型特征列表为空")
+        st.error("模型配置错误：特征列表为空。")
+        return None
 
-    page_logger.error("模型特征列表为空")
-    st.error("模型配置错误：特征列表为空。")
-    return None
+    return prediction_model.feature_names
 
 
 class PredictionModel:
@@ -55,40 +50,38 @@ class PredictionModel:
         self.global_categories = {}
         self.global_category_index = {}
 
-        if global_categories_df is None:
-            page_logger.error("未提供 global_categories_df")
-            return
-
-        for col in CATEGORICAL_COLUMNS:
-            if col not in global_categories_df.columns:
-                continue
-
-            if not pd.api.types.is_categorical_dtype(global_categories_df[col]):
-                continue
-
+        for col in [
+            "target_university",
+            "target_major",
+            "background_university",
+            "background_major",
+        ]:
             categories = global_categories_df[col].cat.categories.tolist()
             self.global_categories[col] = categories
             self.global_category_index[col] = {str(cat): idx for idx, cat in enumerate(categories)}
 
     def _check_categorical_support(self) -> bool:
-        try:
-            if hasattr(self.model, "get_booster"):
-                booster = self.model.get_booster()
-                if booster and getattr(booster, "feature_types", None):
-                    return any(t == "c" for t in booster.feature_types)
+        if hasattr(self.model, "get_booster"):
+            booster = self.model.get_booster()
+            if booster and getattr(booster, "feature_types", None):
+                return any(t == "c" for t in booster.feature_types)
 
-            if hasattr(self.model, "get_xgb_params"):
-                return bool(self.model.get_xgb_params().get("enable_categorical", False))
-        except Exception:
-            pass
+        if hasattr(self.model, "get_xgb_params"):
+            return bool(self.model.get_xgb_params().get("enable_categorical", False))
+
         return False
 
     def _preprocess_single_value(self, col: str, value: Any) -> Any:
-        if col in COUNT_COLUMNS_FOR_LOG_TRANSFORM:
+        if col in ["research_count", "award_count", "internship_count", "paper_count"]:
             num = pd.to_numeric(value, errors="coerce")
             return float(np.log1p(max(0, num if not pd.isna(num) else 0)))
 
-        if col in CATEGORICAL_COLUMNS:
+        if col in [
+            "target_university",
+            "target_major",
+            "background_university",
+            "background_major",
+        ]:
             if self._enable_categorical:
                 return (
                     str(value)
@@ -107,10 +100,7 @@ class PredictionModel:
                     code = idx_map.get(str(fallback), -1)
             return float(code)
 
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return 0.0
+        return float(value)
 
     def _preprocess_base_features_raw(
         self, input_tuple: tuple, features_to_use: tuple
@@ -135,11 +125,16 @@ class PredictionModel:
 
         for feat in features_to_use:
             if feat == "target_university":
-                vals = list(unis)
+                vals = unis
             elif feat == "target_major":
-                vals = list(majors)
+                vals = majors
             elif feat in base_features:
-                vals = [base_features[feat]] * n
+                val = base_features[feat]
+                if self._enable_categorical and feat in self.global_categories:
+                    vals = [val] * n
+                else:
+                    data[feat] = np.full(n, val, dtype=np.float32)
+                    continue
             else:
                 continue
 
@@ -147,11 +142,14 @@ class PredictionModel:
                 data[feat] = pd.Categorical(
                     vals, categories=self.global_categories[feat], ordered=False
                 )
-            elif feat in CATEGORICAL_COLUMNS:
+            elif feat in [
+                "target_university",
+                "target_major",
+                "background_university",
+                "background_major",
+            ]:
                 idx_map = self.global_category_index.get(feat, {})
-                data[feat] = (
-                    pd.Series(vals).astype(str).map(idx_map).fillna(-1).astype(np.int32).values
-                )
+                data[feat] = np.array([idx_map.get(str(v), -1) for v in vals], dtype=np.int32)
             else:
                 data[feat] = np.array(vals, dtype=np.float32)
 
@@ -174,23 +172,17 @@ class PredictionModel:
         base_preprocessed = self._get_base_features_cached(input_tuple, tuple(features))
 
         df = self._create_prediction_dataframe(combinations, base_preprocessed, features)
-        if df.empty:
-            return []
 
-        try:
-            probas = self.model.predict_proba(df)
-            if probas.ndim == 2 and probas.shape[1] > 1:
-                probas = probas[:, 1]
+        probas = self.model.predict_proba(df)
+        if probas.ndim == 2 and probas.shape[1] > 1:
+            probas = probas[:, 1]
 
-            if hasattr(self.model, "predict"):
-                predictions = self.model.predict(df)
-            else:
-                predictions = (probas >= 0.24).astype(int)
+        if hasattr(self.model, "predict"):
+            predictions = self.model.predict(df)
+        else:
+            predictions = (probas >= 0.24).astype(int)
 
-            return [
-                {"university": u, "major": m, "probability": float(p), "prediction": int(pred)}
-                for (u, m), p, pred in zip(combinations, probas, predictions, strict=True)
-            ]
-        except Exception as e:
-            page_logger.error(f"模型预测失败: {e}", exc_info=True)
-            raise
+        return [
+            {"university": u, "major": m, "probability": float(p), "prediction": int(pred)}
+            for (u, m), p, pred in zip(combinations, probas, predictions, strict=True)
+        ]

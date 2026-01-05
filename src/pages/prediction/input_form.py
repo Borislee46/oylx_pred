@@ -43,24 +43,13 @@ def create_input_form(
         session_manager.set(gpa_converter=GPAConverter(session_manager.get("school_base_df")))
     gpa_converter = session_manager.get("gpa_converter")
 
-    if session_manager.get("_cases_background_university_set") is None:
-        if cases_df is not None and "background_university" in cases_df.columns:
-            session_manager.set(
-                _cases_background_university_set=set(
-                    cases_df["background_university"].dropna().astype(str).unique()
-                )
-            )
-        else:
-            session_manager.set(_cases_background_university_set=set())
-
     ui_components = FormUIComponents(session_manager)
 
     outer_ctx = parent_container if parent_container is not None else nullcontext()
+
     with outer_ctx:
         input_ctx = st.container(border=border) if wrap_container else nullcontext()
         with input_ctx:
-            if wrap_container:
-                st.markdown('<span class="hk-input-glass-marker"></span>', unsafe_allow_html=True)
             col1, col2 = st.columns([1, 1], gap="small")
 
             with col1:
@@ -193,15 +182,16 @@ def _process_successful_submission(
     all_majors_target,
     gpa_converter,
 ):
-    input_data, warnings = normalize_form_data_for_prediction(
+    from src.pages.prediction.page_data_loader import machine_learning_model
+
+    page_state = machine_learning_model.resource_loader()
+
+    input_data = normalize_form_data_for_prediction(
         form_data,
         cases_df,
         gpa_converter,
-        background_university_set=session_manager.get("_cases_background_university_set"),
+        background_university_set=page_state.background_universities,
     )
-    for w in warnings:
-        if w.startswith("标化成绩加成生效"):
-            st.toast(w)
 
     session_manager.set(submitted=True, form_data_changed=False)
     return True, input_data, all_universities_target, all_majors_target, form_data
@@ -227,6 +217,10 @@ def _get_current_form_state(
     exam_type=None,
     exam_score=None,
 ):
+    from src.pages.prediction.page_data_loader import machine_learning_model
+
+    page_state = machine_learning_model.resource_loader()
+
     school_service = get_school_level_service()
     is_overseas = (
         school_service.is_overseas_school(background_university) if background_university else False
@@ -248,7 +242,7 @@ def _get_current_form_state(
     background_uni_for_model = get_background_university_for_model(
         background_university,
         cases_df,
-        session_manager.get("_cases_background_university_set"),
+        page_state.background_universities,
     )
 
     input_data = {

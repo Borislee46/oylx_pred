@@ -2,6 +2,7 @@ from typing import Any
 
 import streamlit as st
 
+from src.pages.prediction.handler_config import DEFAULT_SESSION_KEYS
 from src.pages.prediction.page_components.result_section import display_results_section
 from src.pages.prediction.results_handler import reset_prediction_results
 from src.utils.logger import setup_logger
@@ -14,10 +15,10 @@ def display_content(
     session_manager: SessionManager,
     page_state: Any,
     submitted: bool,
-    session_key_has_predicted: str,
-    session_key_input_data: str,
-    session_key_predict_lock: str,
-    session_key_form_data_changed: str,
+    session_key_has_predicted: str = DEFAULT_SESSION_KEYS.has_predicted,
+    session_key_input_data: str = DEFAULT_SESSION_KEYS.input_data,
+    session_key_predict_lock: str = DEFAULT_SESSION_KEYS.predict_lock,
+    session_key_form_data_changed: str = DEFAULT_SESSION_KEYS.form_data_changed,
 ) -> None:
     if not session_manager.get(session_key_has_predicted, False):
         return
@@ -28,17 +29,12 @@ def display_content(
         reset_prediction_results(session_manager)
         session_manager.set(**{session_key_has_predicted: False, session_key_predict_lock: False})
         st.rerun()
-        return
-
-    res_model = session_manager.get("prediction_results")
-    if res_model is None:
-        st.error("预测结果模型加载失败。")
-        return
 
     form_changed = session_manager.get(session_key_form_data_changed, False)
     if not submitted and form_changed:
         st.warning("您的输入已更改，当前显示的是先前输入的预测结果。请点击预测按钮获取最新结果。")
 
+    res_model = session_manager.get("prediction_results")
     display_results_section(
         current_input_data,
         res_model.similarity_results,

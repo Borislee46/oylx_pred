@@ -10,7 +10,7 @@ LOGO_PATH = "assets/company_logo.png"
 
 
 def render_header(user_nickname: str) -> None:
-    assets_dir = Path(__file__).parent / "main_page_header_assets"
+    assets_dir = Path("assets/ui/main_page_header")
     style_css, script_js, template_html = load_component_assets(assets_dir)
 
     st.markdown('<div id="main-page-header-anchor"></div>', unsafe_allow_html=True)

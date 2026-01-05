@@ -11,55 +11,53 @@ graph TD
     Validator -->|触发提交| Handler[ui/handler.py]
     API -->|解析请求| Pipeline[flow/pipeline.py]
     
-    subgraph Flow_Control [流程编排与预警]
-        Handler -->|1. 风险识别| Guard[cross_faculty_guard.py]
+    subgraph Flow_Control [流程编排与风险控制]
+        Handler -->|"1. 风险识别 (Guard)"| Guard[cross_faculty_guard.py]
         Guard -->|弹窗确认| Dialog[ConfirmDialog]
         Dialog -->|确认后启动| Pipeline
+        Pipeline -.->|实时反馈| Status([st.status / progress_cb])
     end
     
-    subgraph Preparation [数据准备与召回过滤]
-        Pipeline -->|数据归一化| Norm[form_normalizer.py]
-        Pipeline -->|特征组装| Prep[preparer.py]
-        Prep -->|1. 混合召回| Recall[Hybrid Recall: E5 + Fuzz]
-        Recall -->|生成候选组合| Runner[flow/run_prediction.py]
-    end
-    
-    subgraph Execution [核心推理与分值修正]
-        Runner -->|2. 精排推理| Executor[prediction_execution/executor.py]
-        Executor -->|XGBoost| Model[modeling/model.py]
+    subgraph Execution_Core [核心预测引擎]
+        Pipeline -->|"2. 启动单次预测"| Runner[flow/run_prediction.py]
         
-        Model -->|3. 推荐生成与平准| Proc[flow/processor.py]
-        Proc -->|相似度偏置| SimAdj[Similarity Adjuster]
-        Proc -->|比例保障| IdentitySlot[Identity Slot Manager]
-        
-        IdentitySlot -->|4. 结果平衡评估| FuzzyBypass{Fuzzy Bypass}
-        FuzzyBypass -->|No: LLM 介入| Agent[BoundaryCaseAgent]
-        Agent -->|背景探索| BG_Agent[BackgroundFacultyAgent]
-        FuzzyBypass -->|Yes: 自动通过| Pipeline
-    end
+        subgraph Recall_Inference [召回与精排]
+            Runner -->|混合召回| Recall[Recall: E5 Semantic + Fuzz]
+            Recall -->|特征组装| Executor[prediction_execution/executor.py]
+            Executor -->|XGBoost 推理| Model[modeling/model.py]
+        end
 
-    subgraph Modification [概率修正流水线]
-        Pipeline -->|5. 批量修正| ModPipe[adjustment_pipeline.py]
-        
-        Agent -->|调整决策| ModPipe
-        
-        subgraph Arbitration [概率修正因子]
-            ModPipe -->|GPA/语言| Adj[ProbabilityAdjuster]
-            ModPipe -->|跨专业惩罚| Cross[Cross Major Penalty]
-            ModPipe -->|NLP 语义提升| TextBoost[TextBoostProvider]
+        Runner -->|"3. 结果初筛 (Proc)"| Proc[flow/processor.py]
+        subgraph Processing_Logic [单项处理与平衡]
+            Proc -->|元数据 & 语言惩罚| ResProc[flow/result_processor.py]
+            Proc -->|相似度偏置修正| SimAdj[similarity_adjuster.py]
+            Proc -->|推荐策略筛选| RecStrategies[filters.py]
+            Proc -->|"4. 案例平衡 (Agent)"| Agent[BoundaryCaseAgent]
+            Agent -->|领域探索| BG_Agent[BackgroundFacultyAgent]
         end
     end
 
-    ModPipe -->|交付处理| ResHandler[results_handler.py]
+    subgraph Modification_Pipeline [精细修正流水线]
+        Pipeline -->|"5. 批量修正 (ModPipe)"| ModPipe[adjustment_pipeline.py]
+        
+        subgraph Factors [修正因子与仲裁]
+            ModPipe -->|GPA/语言惩罚| Adj[ProbabilityAdjuster]
+            ModPipe -->|NLP 经验提升| TextBoost[TextBoostProvider]
+            ModPipe -->|动态惩罚| DynamicPenalty[Cross Major / Faculty / Professional]
+            ModPipe -->|最终仲裁| Arbitrator[AdjustmentArbitrator]
+            Arbitrator -->|归一化| NormLayer[NormalizationLayer]
+        end
+    end
+
+    ModPipe -->|6. 交付处理| ResHandler[results_handler.py]
     ResHandler -->|Session 持久化| Session[SessionManager]
     Session -->|结果渲染| ResultUI[results_display.py]
     ResHandler -->|JSON 返回| API
 
-    Cases[(案例数据库)] -.->|强匹配/相似推荐| Recall
-    Cache[(语义缓存)] -.->|向量召回加速| Recall
-    Models[(模型池)] -.->|权重加载| Model
-    Configs[(配置文件)] -.->|规则加载| Pipeline
-    Configs -.->|参数控制| ModPipe
+    Cases[(案例数据库)] -.->|数据源| Recall
+    Cache[(语义缓存)] -.->|加速| Recall
+    Models[(模型池)] -.->|权重| Model
+    Configs[(规则配置)] -.->|逻辑参数| Pipeline
 
     classDef highlight fill:#f96,stroke:#333,stroke-width:2px;
     classDef component fill:#e1f5fe,stroke:#01579b;
@@ -67,8 +65,8 @@ graph TD
     classDef storage fill:#f5f5f5,stroke:#616161;
     classDef fuzzy fill:#e8f5e9,stroke:#2e7d32,stroke-dasharray: 5 5;
 
-    class User highlight;
-    class UI,Handler,Pipeline,Runner,Executor,Model,Agent,ModPipe,ResHandler,ResultUI,Proc,BG_Agent component;
-    class SimAdj,Adj,Cross,TextBoost,IdentitySlot logic;
+    class User,Status highlight;
+    class UI,Handler,Pipeline,Runner,Executor,Model,Agent,ModPipe,ResHandler,ResultUI,Proc,BG_Agent,Arbitrator component;
+    class SimAdj,Adj,TextBoost,Metadata,LangPenalty,DynamicPenalty,NormLayer,RecStrategies logic;
     class Cases,Cache,Models storage;
-    class FuzzyBypass,Recall fuzzy;
+    class Recall fuzzy;

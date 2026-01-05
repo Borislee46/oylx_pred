@@ -115,22 +115,23 @@ class RelaxStrategy(RankerStrategy):
             CROSS_MAJOR_SIMILARITY_MIN,
         )
 
-        candidates = [
-            r
-            for r in results_for_agent
-            if (k := case_key(r))
-            and k not in top_set
-            and lower_bound <= get_similarity(r) < self.current_threshold
-        ]
-        candidates.sort(key=get_similarity, reverse=True)
+        candidates = []
+        pool = []
 
-        pool = [
-            r
-            for r in results_for_agent
-            if (k := case_key(r))
-            and k not in top_set
-            and CROSS_MAJOR_SIMILARITY_MIN <= get_similarity(r) < self.current_threshold
-        ]
+        for r in results_for_agent:
+            k = case_key(r)
+            if not k or k in top_set:
+                continue
+
+            sim = get_similarity(r)
+            if sim < CROSS_MAJOR_SIMILARITY_MIN or sim >= self.current_threshold:
+                continue
+
+            pool.append(r)
+            if sim >= lower_bound:
+                candidates.append(r)
+
+        candidates.sort(key=get_similarity, reverse=True)
         pool.sort(key=get_similarity, reverse=True)
         return candidates, pool
 

@@ -268,7 +268,8 @@ div[data-baseweb="menu"] > div:only-child {
   ) !important;
   color: var(--hk-slate-600) !important;
   border: 1px solid var(--hk-input-border) !important;
-  box-shadow: var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
   transform: translateY(0) translateZ(0) !important;
   transition:
     transform var(--hk-transition-fast),
@@ -306,11 +307,8 @@ div[data-baseweb="menu"] > div:only-child {
 }
 
 .stApp button[data-testid="stBaseButton-segmented_control"]:hover {
-  background: linear-gradient(
-      180deg,
-      var(--hk-input-bg-top),
-      var(--hk-input-bg-bottom)
-    ),
+  background:
+    linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
     radial-gradient(
       160px circle at 30% 20%,
       rgba(33, 255, 244, 0.1),
@@ -348,11 +346,8 @@ div[data-baseweb="menu"] > div:only-child {
 .stApp button[data-testid="stBaseButton-segmented_controlActive"] {
   position: relative !important;
   overflow: hidden !important;
-  background: linear-gradient(
-      180deg,
-      var(--hk-input-bg-top),
-      var(--hk-input-bg-bottom)
-    ),
+  background:
+    linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
     radial-gradient(
       160px circle at 30% 20%,
       rgba(33, 255, 244, 0.14),
@@ -479,7 +474,8 @@ div[data-baseweb="menu"] > div:only-child {
 }
 
 div[role="dialog"] {
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E"),
+  background:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E"),
     linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2)),
     rgba(255, 255, 255, 0.6) !important;
 
@@ -509,7 +505,8 @@ div[role="dialog"] button[data-testid="stBaseButton-primary"] {
   position: relative !important;
   border-radius: 14px !important;
   border: 1px solid rgba(255, 255, 255, 0.28) !important;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.22),
       rgba(255, 255, 255, 0.08)

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
+import random
 import re
-import time
-from concurrent.futures import ThreadPoolExecutor
-
-import numpy as np
 
 from src.agent import TextPreprocessingAgent
 from src.pages.prediction.config.ui_messages import (
@@ -26,12 +23,9 @@ logger = setup_logger("page3", "prediction")
 
 
 def _get_streamlit():
-    try:
-        import streamlit as st
+    import streamlit as st
 
-        return st
-    except ImportError:
-        return None
+    return st
 
 
 @cache_resource
@@ -60,7 +54,7 @@ def _get_analysis_message(field_names: list[str]) -> str:
     if not field_names:
         return "正在核验软背景信息有效性"
     if len(field_names) == 1:
-        msg = np.random.Generator(np.random.SFC64()).choice(EXPERIENCE_ANALYSIS_MESSAGES)
+        msg = random.choice(EXPERIENCE_ANALYSIS_MESSAGES)
         return msg.format(field=field_names[0]) if "{field}" in msg else msg
     fields_text = "、".join(field_names)
     return f"正在核验软背景：{fields_text}（信息抽取与有效性检查）"
@@ -132,12 +126,7 @@ def has_meaningful_experience_text(
         if animator is not None:
             animator.show(msg, force=True)
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_validate_field_with_llm, k, content)
-            while animator is not None and not future.done():
-                animator.tick()
-                time.sleep(0.3)
-            is_valid = future.result()
+        is_valid = _validate_field_with_llm(k, content)
 
         if not is_valid:
             st = _get_streamlit()

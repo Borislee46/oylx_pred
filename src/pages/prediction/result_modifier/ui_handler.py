@@ -1,6 +1,5 @@
-import time
+import random
 
-import numpy as np
 import streamlit as st
 
 from src.pages.prediction.config.ui_messages import RANKER_MESSAGES
@@ -22,7 +21,6 @@ class LoadingMessageAnimator:
             else (st.empty() if has_streamlit_runtime() and progress_reporter is None else None)
         )
         self._current_message = ""
-        self._cycle_count = 0
 
     def show(self, message: str, force: bool = False):
         self._current_message = message
@@ -35,22 +33,15 @@ class LoadingMessageAnimator:
         if self.progress_reporter is not None:
             self.progress_reporter.emit(self._current_message, force=True)
         elif self.placeholder is not None:
-            dots = [".", "..", "..."][self._cycle_count % 3]
-            msg_with_dots = f"{self._current_message}{dots}"
             self.placeholder.markdown(
-                f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{msg_with_dots}</div>',
+                f'<div style="color:#888;font-size:0.85em;margin-top:-15px;margin-bottom:0;line-height:1.2;">{self._current_message}</div>',
                 unsafe_allow_html=True,
             )
-
-    def tick(self):
-        self._cycle_count += 1
-        self._render()
 
     def clear(self):
         if self.placeholder is not None:
             self.placeholder.empty()
         self._current_message = ""
-        self._cycle_count = 0
 
 
 class RankerUIHandler:
@@ -85,7 +76,6 @@ class RankerUIHandler:
         )
         self.is_active = False
         self._round_count = 0
-        self._last_update_time = 0.0
         self._message_pools = self._build_message_pools()
         self._tone = "探索模式" if self.mode == "relax" else "精准模式"
 
@@ -119,23 +109,15 @@ class RankerUIHandler:
     def update_message(self, message: str):
         self._render(message)
 
-    def update_loop(self):
-        self._animator.tick()
-
     def _pick_message(self, pool: list[str], **kwargs) -> str:
-        msg = np.random.Generator(np.random.SFC64()).choice(pool)
+        msg = random.choice(pool)
         return msg.format(**kwargs) if kwargs else msg
 
     def show_candidates(self, major_names: list[str]):
-        now = time.time()
-        if now - self._last_update_time < self.MIN_DISPLAY_INTERVAL:
-            return
-
         self._round_count += 1
-        self._last_update_time = now
 
         if major_names:
-            text = np.random.Generator(np.random.SFC64()).choice(major_names)
+            text = random.choice(major_names)
             pool = self._message_pools[self._round_count % len(self._message_pools)]
             msg = self._pick_message(
                 pool,
@@ -145,10 +127,6 @@ class RankerUIHandler:
                 tone=self._tone,
             )
             self._render(msg)
-            if self.progress_reporter is not None:
-                self.progress_reporter.advance_ratio(0.04, text=msg)
         else:
             msg = self._pick_message(self.FALLBACK_MESSAGES, tone=self._tone)
             self._render(msg)
-            if self.progress_reporter is not None:
-                self.progress_reporter.advance_ratio(0.02, text=msg)

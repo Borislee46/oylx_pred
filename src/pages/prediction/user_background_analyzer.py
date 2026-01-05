@@ -28,12 +28,3 @@ def _get_substitution_map(cases_df: pd.DataFrame):
             level_best[level] = (uni, int(cnt))
 
     return {level: uni for level, (uni, _) in level_best.items()}, fallback_uni
-
-
-def find_substitute_university(selected_uni: str, cases_df: pd.DataFrame) -> str | None:
-    level_to_substitute, fallback_uni = _get_substitution_map(cases_df)
-
-    service = get_school_level_service()
-    selected_uni_level = service.get_school_level(selected_uni)
-
-    return level_to_substitute.get(selected_uni_level, fallback_uni)

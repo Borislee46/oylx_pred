@@ -44,37 +44,32 @@
 
 整个调整分为两个阶段：
 
-### 第一阶段：平准与平衡 (`flow/processor.py`)
+### 第一阶段：单项处理与筛选 (`flow/processor.py` & `filters.py`)
 在生成推荐列表时，系统会执行以下逻辑：
-1.  **相似度偏置**：调用 `SimilarityAdjuster` 根据背景专业微调原始相似度。
-    - **模糊偏移 (Fuzzy Bias)**：基于 `fuzz.token_sort_ratio` 计算背景与目标专业的字符重合度，若得分超过 92/82/72，分别施加 1.5/1.2/1.1 倍的乘法增益。
-    - **人工规则**：从 `similarity_adjustment_rules.json` 加载关键词匹配规则，对满足条件的组合进行加法/减法修正。
-2.  **槽位保障 (Identity Slot)**：在 `get_similar_major_recommendations` 中，保留至少 40% (`IDENTITY_MIN_SLOT_RATIO`) 的名额给强匹配专业（Token Sort Ratio > 92）。
-3.  **推荐分值计算 (Selection Score)**：推荐列表的排序并非纯相似度，而是综合了 `similarity * (1 + boost)`。
-    - **Boost 条件**：当用户的综合背景分（Comprehensive Score） > 0.6 且目标院校难度已知时触发。
-    - **综合背景分**：由 40% GPA 得分 + 30% 语言得分 + 30% 背景院校得分构成。
-4.  **Agent 平衡**：若相似推荐与跨专业推荐数量差异过大（超过 `AGENT_MIN_BALANCE_DIFF_RATIO`），调用 `BoundaryCaseAgent` 进行边界探索，动态增加或减少推荐项。
+1.  **单项处理 (SingleResultProcessor)**：
+    - **目标特定语言要求惩罚**：从专业详情中提取 IELTS/TOEFL 录取门槛，若用户分数低于门槛，应用惩罚。
+    - **元数据注入**：附加学部 (`faculty`)、专业中文名等。
+2.  **相似度偏置修正**：调用 `SimilarityAdjuster` 根据背景专业微调原始相似度。
+    - **模糊偏移 (Fuzzy Bias)**：基于字符重合度施加乘法增益。
+    - **规则修正**：基于 `similarity_adjustment_rules.json` 进行微调。
+3.  **槽位保障 (Identity Slot)**：在推荐相似专业时，保留至少 40% (`IDENTITY_MIN_SLOT_RATIO`) 的名额给强匹配专业。
+4.  **推荐分值计算 (Selection Score)**：推荐列表的排序并非纯相似度，而是综合了 `similarity * (1 + boost)`。
+    - **Boost 条件**：当用户的综合背景分 (GPA+语言+背景院校) > 0.6 且目标院校难度已知时触发。
+5.  **Agent 平衡**：调用 `BoundaryCaseAgent` 进行边界探索，动态平衡推荐项数量。
 
-### 第二阶段：修正管线 (`adjustment_pipeline.py`)
+### 第二阶段：批量修正流水线 (`adjustment_pipeline.py`)
 **类**: `src/pages/prediction/result_modifier/adjustment_pipeline.py::ProbabilityAdjustmentPipeline`
 
 `adjust_batch(results, ctx)` 会对每个结果按顺序执行：
-1.  **目标特定语言要求惩罚**：
-    - 从专业详情中提取 IELTS/TOEFL 录取门槛。
-    - 若用户分数低于门槛，应用基于 Sigmoid 函数的惩罚。
-2.  **通用 GPA/语言惩罚**：
-    - **GPA 惩罚**：若 GPA < `GPA_MINIMUM` (2.0)，截断概率；否则根据其与历史录取均值的偏差施加**二次项惩罚**（Quadratic Penalty）。
-    - **语言惩罚**：若语言分低于门槛或均值偏差过大，按分段步长施加惩罚。
-3.  **仲裁器处理 (Arbitrator)**：所有修正因子通过 `AdjustmentArbitrator` 进行融合。
-    - **衰减机制**：修正因子按强度排序，随后的因子会乘以衰减系数（惩罚项 0.85，加成项 0.8）。
-    - **安全约束**：系统强制执行 `MAX_TOTAL_PENALTY_RATIO` (0.7) 和 `MAX_TOTAL_BOOST_RATIO` (0.3) 的总偏移约束。
-4.  **跨专业惩罚 (`CrossMajorPenalty`)**: 若相似度 < `MIN_SIMILARITY_THRESHOLD` (0.89) 且无历史录取记录，施加惩罚。
-5.  **跨学院惩罚**：
-    - 基于内置的 `CROSS_FACULTY_RULES` 学部兼容矩阵判定。
-    - 若目标专业不在背景专业允许的学部范围内，乘以 `FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR` (0.3)。
-6.  **职业型专业降权**：若 `internship_count <= 0` 且目标为职业型专业（如 MBA/BA），乘以降权因子。
-7.  **文本加成 (`TextBoostProvider`)**：调用 Logit Uplift 模型计算概率增量。
-8.  **归一化层**：最终概率保证 $\ge$ `ARBITRATION_MIN_PROBABILITY` (0.005) 且 $\le 1.0$。
+1.  **通用 GPA/语言惩罚**：根据用户 GPA 和语言分与历史录取的偏差施加惩罚（含二次项惩罚）。
+2.  **动态惩罚项**：
+    - **跨专业惩罚 (`CrossMajorPenalty`)**: 若相似度低且无历史录取，施加惩罚。
+    - **跨学部惩罚**：若目标专业不在背景学部的兼容矩阵范围内，施加惩罚。
+    - **职业型专业降权**：若缺乏实习背景且目标为职业型专业，乘以降权因子。
+3.  **文本加成 (`TextBoostProvider`)**：基于 Logit Uplift 模型计算 NLP 经验带来的概率增量。
+4.  **仲裁与归一化**：
+    - 所有因子通过 `AdjustmentArbitrator` 融合，并执行**因子衰减**和**总偏移约束**。
+    - 最终通过 `NormalizationLayer` 保证概率在 `[0.005, 1.0]` 区间。
 
 ## 4. 核心配置项 (`config.py`)
 

@@ -1,7 +1,3 @@
-"""
-惰性加载，测试用
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable

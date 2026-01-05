@@ -15,21 +15,6 @@ logger = setup_logger("page3", "prediction")
 
 
 class ModelLoader:
-    """
-    模型资源加载器v2.6。
-
-    该类负责加载加成模型运行所需的重型资源（TF-IDF 矩阵.joblib、质心.npz、XGB拟合权重系数.json）。
-
-    设计要点：
-    1. **惰性加载**: 仅在第一次需要使用模型时才从磁盘读取，缩短应用启动时间。
-    2. **线程安全**: 使用 `threading.Lock` 确保在并发环境下资源只被初始化一次。
-    3. **性能优化**:
-       - 使用 `joblib` 加载向量器，安全性也比pkl好。
-       - 使用 `mmap_mode="r"` 读取大数组，节省内存。
-       - 对质心进行 L2 Normalize，加速后续相似度计算。
-    """
-
-    # 使用 __slots__ 严格限制实例属性，微量提升内存效率和访问速度
     __slots__ = (
         "_vectorizer_path",
         "_centroids_path",
@@ -58,9 +43,6 @@ class ModelLoader:
         self._load_lock = threading.Lock()
 
     def lazy_load(self) -> None:
-        """
-        线程安全地执行模型懒惰加载。
-        """
         if (
             self._vectorizer is not None
             and self._centroids is not None
@@ -69,7 +51,6 @@ class ModelLoader:
             return
 
         with self._load_lock:
-            # 双重检查锁
             if (
                 self._vectorizer is not None
                 and self._centroids is not None
@@ -79,31 +60,25 @@ class ModelLoader:
 
             try:
                 if self._vectorizer is None:
-                    # 加载 Scikit-Learn 的 TfidfVectorizer
-                    self._vectorizer = joblib.load(self._vectorizer_path, mmap_mode="r")
-                    logger.debug(f"加载向量器: {self._vectorizer_path}")
+                    self._vectorizer = joblib.load(self._vectorizer_path)
+                    logger.debug(f"[背提文本加成算法] 加载向量器: {self._vectorizer_path}")
 
                 if self._centroids is None:
-                    # 加载预计算的高质量案例质心
-                    data = np.load(self._centroids_path, mmap_mode="r")
+                    data = np.load(self._centroids_path)
                     centroids = {k: data[k] for k in data.files}
                     normed: dict[str, np.ndarray] = {}
                     for k, arr in centroids.items():
                         v = np.asarray(arr, dtype=np.float32)
                         n = np.linalg.norm(v)
-                        # 预归一化，使得点积运算直接等同于余弦相似度
                         if n > 0:
                             v = v / n
                         normed[k] = v
                     self._centroids = normed
-                    logger.debug(f"加载质心: {self._centroids_path}")
+                    logger.debug(f"[背提文本加成算法] 加载质心: {self._centroids_path}")
 
                 if self._weights_array is None:
-                    # 加载线性回归权重 (Logit Uplift Regression)
                     with open(self._weights_path, encoding="utf-8") as f:
                         self._weights = json.load(f) or {}
-
-                    # 权重格式解析：b(bias), w(linear weights), u(interaction weights)
                     self._weights_array = (
                         safe_float(self._weights.get("b", 0.0)),
                         safe_float(self._weights.get("w_r", 0.0)),
@@ -115,7 +90,7 @@ class ModelLoader:
                         safe_float(self._weights.get("u_i", 0.0)),
                         safe_float(self._weights.get("u_p", 0.0)),
                     )
-                    logger.debug(f"加载权重: {self._weights_path}")
+                    logger.debug(f"[背提文本加成算法] 加载权重: {self._weights_path}")
             except (
                 FileNotFoundError,
                 OSError,
@@ -126,7 +101,7 @@ class ModelLoader:
                 AttributeError,
                 json.JSONDecodeError,
             ) as e:
-                logger.error(f"延迟加载模型文件失败: {str(e)}", exc_info=True)
+                logger.error(f"[背提文本加成算法] 延迟加载模型文件失败: {str(e)}", exc_info=True)
                 raise
 
     @property

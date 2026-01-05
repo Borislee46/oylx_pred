@@ -12,13 +12,9 @@ _WORKER_MODEL: PredictionModel | None = None
 
 def _init_worker_process(model_type: str) -> None:
     global _WORKER_MODEL
-    try:
-        from src.pages.prediction.page_data_loader import cached_get_prediction_model
+    from src.pages.prediction.page_data_loader import cached_get_prediction_model
 
-        _WORKER_MODEL = cached_get_prediction_model(model_type)
-    except Exception as e:
-        logger.error(f"子进程初始化失败: {e}")
-        _WORKER_MODEL = None
+    _WORKER_MODEL = cached_get_prediction_model(model_type)
 
 
 def _run_chunk_in_worker(
@@ -82,31 +78,25 @@ class PredictionExecutor:
         results = []
         is_process = pool_class == ProcessPoolExecutor
 
-        try:
-            pool_kwargs = {"max_workers": num_workers}
+        pool_kwargs = {"max_workers": num_workers}
+        if is_process:
+            pool_kwargs.update(
+                {"initializer": _init_worker_process, "initargs": (model.model_type,)}
+            )
+
+        with pool_class(**pool_kwargs) as executor:
             if is_process:
-                pool_kwargs.update(
-                    {"initializer": _init_worker_process, "initargs": (model.model_type,)}
-                )
+                futures = [
+                    executor.submit(_run_chunk_in_worker, model_input, c, features) for c in chunks
+                ]
+            else:
+                futures = [
+                    executor.submit(model.predict_batch, model_input, c, features) for c in chunks
+                ]
 
-            with pool_class(**pool_kwargs) as executor:
-                if is_process:
-                    futures = [
-                        executor.submit(_run_chunk_in_worker, model_input, c, features)
-                        for c in chunks
-                    ]
-                else:
-                    futures = [
-                        executor.submit(model.predict_batch, model_input, c, features)
-                        for c in chunks
-                    ]
+            for future in as_completed(futures, timeout=self.timeout):
+                chunk_res = future.result()
+                if chunk_res:
+                    results.extend(chunk_res)
 
-                for future in as_completed(futures, timeout=self.timeout):
-                    chunk_res = future.result()
-                    if chunk_res:
-                        results.extend(chunk_res)
-
-            return results
-        except Exception as e:
-            logger.error(f"{pool_class.__name__} 执行出错: {e}", exc_info=True)
-            return None
+        return results

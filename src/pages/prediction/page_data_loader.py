@@ -27,14 +27,57 @@ class machine_learning_model:
     prediction_model: Any
     loaded_feature_names: list[str]
     cases_df: pd.DataFrame
+    cases_df_fingerprint: int
+    background_universities: set[str]
+    target_base_df: pd.DataFrame
+    university_country_map: dict[str, str]
+    boundary_agent: Any = None
 
     @classmethod
     @st.cache_resource(show_spinner=False)
     def resource_loader(cls) -> "machine_learning_model":
+        from src.agent.boundary_case_agent import BoundaryCaseAgent
+        from src.pages.prediction.core.utils import _data_manager
+        from src.pages.prediction.input_form_components.target_options_service import (
+            build_target_base_df,
+        )
         from src.pages.prediction.modeling import validate_model_and_features
+        from src.pages.prediction.prediction_preparation import (
+            compute_df_fingerprint,
+        )
+        from src.utils.app_data_loader import load_school_major_details_df
 
+        _data_manager.warm_up()
         model = cached_get_prediction_model("xgboost")
         features = validate_model_and_features(model)
         cases = load_raw_cases_data()
         feature_list = features if features is not None else []
-        return cls(prediction_model=model, loaded_feature_names=feature_list, cases_df=cases)
+
+        fingerprint = compute_df_fingerprint(cases)
+        bg_unis = (
+            set(cases["background_university"].dropna().astype(str).unique())
+            if "background_university" in cases.columns
+            else set()
+        )
+
+        details_df = load_school_major_details_df()
+        unique_targets_df = None
+        if cases is not None and not cases.empty:
+            cols = [c for c in ["target_university", "target_major"] if c in cases.columns]
+            if cols:
+                unique_targets_df = cases[cols].drop_duplicates()
+
+        target_base_df, uni_country_map = build_target_base_df(unique_targets_df, details_df)
+
+        agent = BoundaryCaseAgent(cases_df=cases)
+
+        return cls(
+            prediction_model=model,
+            loaded_feature_names=feature_list,
+            cases_df=cases,
+            cases_df_fingerprint=fingerprint,
+            background_universities=bg_unis,
+            target_base_df=target_base_df,
+            university_country_map=uni_country_map,
+            boundary_agent=agent,
+        )

@@ -9,7 +9,7 @@ from src.utils.ui.ui_utils import load_component_assets
 
 @st.cache_resource(show_spinner=False)
 def _get_hk_shield_component():
-    assets_dir = Path(__file__).parent / "hk_shield_assets"
+    assets_dir = Path("assets/ui/hk_shield")
     _, script_js, _ = load_component_assets(assets_dir)
 
     return st.components.v2.component(
@@ -20,7 +20,7 @@ def _get_hk_shield_component():
 
 
 def mount_hk_shield_v2(key: str = "hk_shield_v2"):
-    assets_dir = Path(__file__).parent / "hk_shield_assets"
+    assets_dir = Path("assets/ui/hk_shield")
     style_css, _, _ = load_component_assets(assets_dir)
     st.markdown(f"<style>{style_css}</style>", unsafe_allow_html=True)
 

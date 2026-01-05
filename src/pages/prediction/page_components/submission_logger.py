@@ -37,7 +37,6 @@ def build_user_form_log(
     }
 
     res = {k: format_field(log_data_source.get(v)) for k, v in mapping.items()}
-
     res.update(
         {
             "gpa_score": format_float(log_data_source.get("gpa_raw"), 2),
@@ -52,8 +51,12 @@ def build_user_form_log(
         }
     )
 
-    for field in ("research_details", "award_details", "internship_details", "paper_details"):
-        res[field] = _snippet(exp.get(field))
+    res.update(
+        {
+            f: _snippet(exp.get(f))
+            for f in ("research_details", "award_details", "internship_details", "paper_details")
+        }
+    )
 
     return res
 
@@ -64,10 +67,9 @@ def log_first_submission_if_needed(
     input_data_from_form: dict[str, Any],
     session_key_last_submission_logged: str,
 ) -> None:
-    is_new_submission = not session_manager.get(session_key_last_submission_logged, False)
-    if not is_new_submission:
-        return
-    log_data_source = original_form_data or input_data_from_form
-    user_form_log = build_user_form_log(session_manager, log_data_source)
-    submission_logger.info(f"用户输入: {user_form_log}")
-    session_manager.set(**{session_key_last_submission_logged: True})
+    if not session_manager.get(session_key_last_submission_logged, False):
+        user_form_log = build_user_form_log(
+            session_manager, original_form_data or input_data_from_form
+        )
+        submission_logger.info(f"用户输入: {user_form_log}")
+        session_manager.set(**{session_key_last_submission_logged: True})

@@ -1,5 +1,6 @@
 .stApp .stButton > button {
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at var(--hk-glare-x, 50%) var(--hk-glare-y, 50%),
       rgba(255, 255, 255, 0.15) 0%,
       transparent 60%
@@ -85,12 +86,17 @@
   position: relative !important;
   border-radius: 14px !important;
   border: 1px solid rgba(255, 255, 255, 0.35) !important;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at var(--hk-glare-x, 50%) var(--hk-glare-y, 50%),
       rgba(255, 255, 255, 0.25) 0%,
       transparent 60%
     ),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.1)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.25),
+      rgba(255, 255, 255, 0.1)
+    ),
     linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
   box-shadow:
     0 8px 0 rgba(15, 23, 42, 0.25),
@@ -197,7 +203,8 @@
 .stApp .st-key-submit_button_key .stButton > button:disabled,
 .stApp .st-key-submit_button_key .stButton > button[disabled] {
   border-color: rgba(255, 255, 255, 0.18) !important;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       180deg,
       rgba(255, 255, 255, 0.1),
       rgba(255, 255, 255, 0.04)
@@ -238,7 +245,8 @@
     var(--hk-input-bg-top),
     var(--hk-input-bg-bottom)
   ) !important;
-  box-shadow: var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
   backdrop-filter: blur(10px) saturate(155%);
   -webkit-backdrop-filter: blur(10px) saturate(155%);
 }
@@ -254,7 +262,8 @@
   div[data-baseweb="select"]:has(input[aria-invalid="true"])
   > div:first-child {
   border-color: var(--hk-input-border) !important;
-  box-shadow: var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
 }
 
 .stApp div[data-baseweb="input"]:hover,
@@ -314,7 +323,8 @@
     var(--hk-input-bg-top),
     var(--hk-input-bg-bottom)
   ) !important;
-  box-shadow: var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
   backdrop-filter: blur(10px) saturate(155%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(155%) !important;
   transition: none !important;
@@ -354,7 +364,8 @@
     var(--hk-input-bg-top),
     var(--hk-input-bg-bottom)
   ) !important;
-  box-shadow: var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
   backdrop-filter: blur(10px) saturate(155%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(155%) !important;
   transition: none !important;

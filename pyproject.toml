@@ -31,9 +31,9 @@ exclude = [
     ".venv/",
     ".git/",
     "__pycache__/",
-    "build/",
-    "dist/",
     ".mypy_cache/",
+    "docs/",
+    ".cursor",
 ]
 explicit_package_bases = true
 
