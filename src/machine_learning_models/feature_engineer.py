@@ -38,20 +38,20 @@ class FeatureEngineer:
 
         return data
 
-    def _handle_categorical_alignment(
-        self, data: pd.DataFrame, is_fit: bool = False
-    ) -> pd.DataFrame:
+    def _handle_categorical_alignment(self, data: pd.DataFrame, is_fit: bool = False) -> pd.DataFrame:
         for col in self.existing_categorical_columns:
             if col not in data.columns:
                 continue
-
+            
             if is_fit:
                 if not pd.api.types.is_categorical_dtype(data[col]):
                     data[col] = data[col].astype("category")
                 self.categorical_levels[col] = data[col].cat.categories
             else:
                 data[col] = pd.Categorical(
-                    data[col], categories=self.categorical_levels.get(col), ordered=False
+                    data[col], 
+                    categories=self.categorical_levels.get(col), 
+                    ordered=False
                 )
         return data
 

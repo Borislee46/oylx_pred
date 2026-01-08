@@ -50,3 +50,5 @@ cookie.txt
 
 .mypy_cache/
 .gitattributes
+
+node_modules/

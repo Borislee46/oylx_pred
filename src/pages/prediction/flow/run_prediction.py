@@ -56,8 +56,6 @@ def run_single_prediction(
     bg_major = prediction_input.get("background_major", "")
     bg_major_orig = str(current_input_data.get("background_major_original") or bg_major)
 
-    if progress_reporter:
-        progress_reporter.emit("正在筛选潜在申请组合...")
     combinations, meta = generate_prediction_combinations(
         input_data=prediction_input,
         all_universities_target=all_universities_target,
@@ -71,9 +69,6 @@ def run_single_prediction(
         prediction_runner_logger.warning("有效组合为空：请检查候选池或筛选条件。")
         meta["error"] = "no_valid_combinations"
         return [], [], None, meta
-
-    if progress_reporter:
-        progress_reporter.emit(f"正在为 {len(combinations)} 个组合执行深度预测...")
 
     model_input_features, missing_inputs = prepare_model_inputs(
         current_input_data, expected_features
@@ -94,9 +89,6 @@ def run_single_prediction(
     if not all_prediction_outputs:
         meta["error"] = "execution_failed"
         return [], [], None, meta
-
-    if progress_reporter:
-        progress_reporter.emit("正在处理预测结果并生成推荐...")
 
     user_specified_combinations = get_user_specified_combinations(
         current_input_data, all_universities_target

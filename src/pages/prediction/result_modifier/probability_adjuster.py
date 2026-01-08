@@ -167,8 +167,10 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
 
 
 class ProbabilityAdjuster:
-    def __init__(self, cases_df: pd.DataFrame):
-        self._data_hash = compute_dataframe_hash(cases_df)
+    def __init__(self, cases_df: pd.DataFrame, data_hash: str | int | None = None):
+        self._data_hash = (
+            str(data_hash) if data_hash is not None else compute_dataframe_hash(cases_df)
+        )
         self.stats = _calculate_cases_statistics(cases_df, self._data_hash)
 
         self.gpa_mean = self.stats["gpa_mean"]

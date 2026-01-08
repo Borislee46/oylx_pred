@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import time
 from collections.abc import Callable
 
@@ -20,7 +21,7 @@ class ProgressReporter:
 
     def emit(
         self,
-        text: str,
+        text: str | list[str],
         *,
         force: bool = False,
     ) -> None:
@@ -28,12 +29,18 @@ class ProgressReporter:
             return
 
         now = time.time()
-        t = str(text or "").strip()
+
+        if isinstance(text, list):
+            available_choices = [t for t in text if str(t).strip() != self._last_text]
+            if not available_choices:
+                available_choices = text
+            t = str(random.choice(available_choices) if available_choices else "").strip()
+        else:
+            t = str(text or "").strip()
 
         if not force:
-            if "[阶段]" not in t:
-                if (now - self._last_emit_at) < self._min_interval:
-                    return
+            if (now - self._last_emit_at) < self._min_interval:
+                return
 
         self._progress_cb(t)
         self._last_emit_at = now

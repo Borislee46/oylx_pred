@@ -94,7 +94,7 @@ class RankerUIHandler:
     def __enter__(self):
         bg_text = self.background_major.strip() if self.background_major else "未提供"
         faculty_text = self.background_faculty.strip() if self.background_faculty else "未提供"
-        self._render(f"{self._tone}, 正在筛选专业推荐, 本科 {bg_text}, 领域 {faculty_text}")
+        self._render(f"·{self._tone}, 正在筛选专业推荐, 本科 {bg_text}, 领域 {faculty_text}")
         self.is_active = True
         return self
 

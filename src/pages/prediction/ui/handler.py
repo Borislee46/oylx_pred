@@ -1,3 +1,4 @@
+import random
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -38,9 +39,13 @@ prediction_handler_logger = setup_logger("page3", "prediction")
 ProgressCallback = Callable[[str], None]
 
 
-def _update_progress(progress_cb: ProgressCallback | None, text: str) -> None:
+def _update_progress(progress_cb: ProgressCallback | None, text: str | list[str]) -> None:
     if progress_cb is not None:
-        progress_cb(text)
+        if isinstance(text, list):
+            t = str(random.choice(text) if text else "").strip()
+        else:
+            t = str(text or "").strip()
+        progress_cb(t)
 
 
 def persist_input_state(

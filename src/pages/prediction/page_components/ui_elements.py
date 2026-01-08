@@ -16,8 +16,8 @@ def get_product_logo_image_as_base64(path: str) -> str:
 
 
 def render_header(logo_base64: str) -> None:
-    mask_base64 = get_product_logo_image_as_base64("assets/shield_mask.png")
-    metal_base64 = get_product_logo_image_as_base64("assets/shield_metal.png")
+    mask_base64 = get_product_logo_image_as_base64("assets/shield_metal.png")
+    metal_base64 = get_product_logo_image_as_base64("assets/shield_mask.png")
 
     if not logo_base64:
         st.title("EasyApply 选校预测系统")
@@ -59,22 +59,25 @@ def display_back_to_homepage() -> None:
     st.page_link("main.py", label="返回首页", query_params={"scroll_to": "main-page-header-anchor"})
 
 
+THOUGHT_BUBBLE_STYLE = """
+    border-left: 1.5px solid #efefef;
+    padding-left: 0.8rem;
+    margin-top: -12px;
+    margin-bottom: 8px;
+    color: #a0a0a0;
+    font-style: italic;
+    font-size: 0.82em;
+    line-height: 1.3;
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+"""
+
+
 def render_thought_bubble(logs: list[str], placeholder: st.delta_generator.DeltaGenerator) -> None:
     if not logs:
         return
 
     thought_content = f"""
-    <div style="
-        border-left: 1.5px solid #efefef;
-        padding-left: 0.8rem;
-        margin-top: -12px;
-        margin-bottom: 8px;
-        color: #a0a0a0;
-        font-style: italic;
-        font-size: 0.82em;
-        line-height: 1.3;
-        font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    ">
+    <div style="{THOUGHT_BUBBLE_STYLE}">
         {"<br>".join(logs)}
     </div>
     """

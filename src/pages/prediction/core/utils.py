@@ -2,7 +2,6 @@ from functools import lru_cache
 
 import pandas as pd
 
-from src.pages.prediction.school_details_config import school_details_key_fields
 from src.utils.app_data_loader import load_school_major_details_df
 from src.utils.logger import setup_logger
 
@@ -182,7 +181,28 @@ def format_school_major_details_from_row(row: dict) -> str:
     if not row:
         return "无详细信息"
 
-    key_fields = school_details_key_fields
+    key_fields = [
+        "专业中文名称",
+        "学习年限",
+        "学费",
+        "授课语言",
+        "录取要求",
+        "专业背景要求",
+        "GPA要求",
+        "IELTS",
+        "TOEFL",
+        "CET-6",
+        "考试要求",
+        "特殊要求",
+        "申请方式",
+        "推荐信方式",
+        "成绩送分要求",
+        "是否面试",
+        "是否笔试",
+        "考核形式",
+        "申请注意事项",
+        "专业网址",
+    ]
 
     details = []
     for field in key_fields:

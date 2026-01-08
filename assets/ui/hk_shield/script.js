@@ -4,7 +4,6 @@ export default function (component) {
   function init() {
     const container = doc.querySelector(".hk-logo-container");
     const logo = doc.querySelector(".hk-header-logo");
-    const metal = doc.querySelector(".hk-metal-layer");
 
     if (!container || !logo) {
       setTimeout(init, 200);
@@ -40,12 +39,12 @@ export default function (component) {
         fill="none" stroke="url(#hkLaser)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" filter="url(#hkGlow)"/>
   
   <g class="energy-bars" fill="#00E5FF" filter="url(#hkGlow)">
-    <rect x="280" y="540" width="18" height="30" rx="9"/>
-    <rect x="315" y="510" width="18" height="80" rx="9"/>
-    <rect x="350" y="465" width="18" height="150" rx="9"/>
-    <rect x="385" y="480" width="18" height="40" rx="9"/>
+    <rect x="285" y="540" width="18" height="30" rx="9"/>
+    <rect x="320" y="510" width="18" height="80" rx="9"/>
+    <rect x="355" y="465" width="18" height="150" rx="9"/>
+    <rect x="390" y="480" width="18" height="40" rx="9"/>
   </g>  
-  <path class="arrow-path" d="M285 500L365 405L415 445L530 295" 
+  <path class="arrow-path" d="M 252 514 L 370 395 L 398 434 L 494 343" 
         stroke="url(#hkLaser)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#hkGlow)"/>
   <path class="arrow-head" d="M488 295H530V337" 
         stroke="url(#hkLaser)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#hkGlow)"/>

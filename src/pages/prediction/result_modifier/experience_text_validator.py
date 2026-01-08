@@ -69,7 +69,7 @@ def _build_validation_status_message(
     llm_enabled: bool,
 ) -> str:
     method = "LLM校验" if llm_enabled else "本地规则"
-    return EXPERIENCE_VALIDATION_TEMPLATE.format(
+    return random.choice(EXPERIENCE_VALIDATION_TEMPLATE).format(
         idx=idx, total=total, field_name=field_name, length=content_len, method=method
     )
 

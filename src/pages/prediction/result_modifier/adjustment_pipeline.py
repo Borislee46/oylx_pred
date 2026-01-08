@@ -5,7 +5,6 @@ import pandas as pd
 
 from src.pages.prediction.config.ui_messages import (
     EXPERIENCE_BOOST_TEMPLATE,
-    EXPERIENCE_DEFAULT_MSG,
     EXPERIENCE_ITEM_NAMES,
 )
 from src.pages.prediction.result_modifier.arbitrator import (
@@ -170,26 +169,23 @@ class ProbabilityAdjustmentPipeline:
                     is_static=True,
                 )
 
+        adjusted_results = [self.adjust_single(r, ctx, arbitrator) for r in results]
+
         if self.text_boost_provider and ctx.experience_details:
             items = [
                 name for k, name in EXPERIENCE_ITEM_NAMES.items() if ctx.experience_details.get(k)
             ]
-            msg = (
-                EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items))
-                if items
-                else EXPERIENCE_DEFAULT_MSG
-            )
 
-            animator = LoadingMessageAnimator(progress_reporter=progress_reporter)
-            animator.show(msg, force=True)
+            if items:
+                msg = EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items))
+                animator = LoadingMessageAnimator(progress_reporter=progress_reporter)
+                animator.show(msg, force=True)
 
-            res = [self.adjust_single(r, ctx, arbitrator) for r in results]
-            res = self._apply_text_boost(res, ctx.experience_details)
+                adjusted_results = self._apply_text_boost(adjusted_results, ctx.experience_details)
 
-            animator.clear()
-            return res
+                animator.clear()
 
-        return [self.adjust_single(r, ctx, arbitrator) for r in results]
+        return adjusted_results
 
     def _apply_text_boost(
         self,
@@ -199,15 +195,19 @@ class ProbabilityAdjustmentPipeline:
         if not self.text_boost_provider:
             return results
 
-        probabilities = [get_probability(r) for r in results]
+        probabilities = [r.get("probability", 0.0) for r in results]
+
         boosted_probs = self.text_boost_provider.apply(probabilities, experience_details)
 
         if boosted_probs:
             for i, prob in enumerate(boosted_probs):
                 if i < len(results):
+                    new_prob = clip_probability(prob)
+                    if abs(new_prob - probabilities[i]) < 1e-6:
+                        continue
+
                     res = results[i]
                     old_prob = probabilities[i]
-                    new_prob = clip_probability(prob)
                     res["probability"] = new_prob
 
                     trace = res.get("_adjustment_trace", {})

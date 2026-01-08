@@ -30,8 +30,8 @@ class PredictionExecutor:
         self.total_tasks = max(0, int(total_tasks))
         self.cpu_count = os.cpu_count() or 2
 
-        self.single_threshold = int(os.getenv("PREDICTION_SINGLE_THREAD_THRESHOLD", "256"))
-        self.min_chunk_size = int(os.getenv("PREDICTION_MIN_CHUNK_SIZE", "64"))
+        self.single_threshold = int(os.getenv("PREDICTION_SINGLE_THREAD_THRESHOLD", "2048"))
+        self.min_chunk_size = int(os.getenv("PREDICTION_MIN_CHUNK_SIZE", "256"))
         self.use_process_pool = os.getenv("PREDICTION_USE_PROCESS_POOL", "0").lower() in (
             "1",
             "true",

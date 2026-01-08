@@ -1,3 +1,4 @@
+import random
 from collections.abc import Callable
 from typing import Any
 
@@ -92,7 +93,10 @@ def _execute_prediction_pipeline(
     reporter.emit(PIPELINE_MESSAGES["extract_profile"])
 
     probability_adjuster = (
-        ProbabilityAdjuster(cases_df if cases_df is not None else pd.DataFrame())
+        ProbabilityAdjuster(
+            cases_df if cases_df is not None else pd.DataFrame(),
+            data_hash=cases_df_fingerprint,
+        )
         if gpa is not None and language_score is not None
         else None
     )
@@ -189,7 +193,11 @@ def _execute_prediction_pipeline(
     if not unique_results:
         meta = meta or {}
         meta["error"] = "empty_results"
-        meta.setdefault("user_message", PIPELINE_MESSAGES["empty_results"])
+        empty_msg = PIPELINE_MESSAGES["empty_results"]
+        meta.setdefault(
+            "user_message",
+            random.choice(empty_msg) if isinstance(empty_msg, list) else empty_msg,
+        )
         prediction_handler_logger.info("预测结果为空")
         reporter.emit("分析结束", force=True)
         return PredictionResultModel(meta=meta)

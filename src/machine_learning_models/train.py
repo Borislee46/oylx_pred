@@ -9,7 +9,6 @@ from data_loader import load_data
 from model_trainer import evaluate_model, train_model
 
 import utils
-
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 
 

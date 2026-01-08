@@ -1,7 +1,10 @@
 import warnings
+from typing import Any
 
 import numpy as np
 import optuna
+from numpy import dtype, ndarray, signedinteger
+from numpy._typing._shape import _AnyShape
 from optuna.pruners import MedianPruner
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
