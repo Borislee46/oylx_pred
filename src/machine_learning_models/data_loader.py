@@ -7,7 +7,7 @@ from data_config import (
     TEXT_COLUMNS,
     TEXT_EMPTY_SAMPLE_WEIGHT,
 )
-from feature_engineer import FeatureEngineer, engineer_features
+from feature_engineer import FeatureEngineer
 from sampling_methods import apply_sampling
 from school_level_mapper import build_school_level_fallback_mapping
 from sklearn.model_selection import train_test_split
@@ -40,9 +40,7 @@ def load_and_preprocess_data(data_path, sampling_method=None):
     level_fallback_mapping = build_school_level_fallback_mapping(data)
 
     if TARGET_COLUMN not in data.columns:
-        raise ValueError(
-            f"目标列 '{TARGET_COLUMN}' 未找到，请检查原始数据。"
-        )
+        raise ValueError(f"目标列 '{TARGET_COLUMN}' 未找到，请检查原始数据。")
 
     if data[TARGET_COLUMN].isnull().any():
         raise ValueError(f"目标列 '{TARGET_COLUMN}' 中存在 NaN 值，请检查数据。")
