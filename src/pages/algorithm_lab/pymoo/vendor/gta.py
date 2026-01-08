@@ -7,11 +7,13 @@ tauT: maximum number of generation
 tau : current generation
 
 """
+
 # !/bin/python
 
-import numpy as np
+from math import cos, fabs, floor, pi, sin, sqrt
 from random import randint
-from math import floor, fabs, sin, pi, cos, sqrt
+
+import numpy as np
 
 ## Parameter configuration ##
 LOWER_BOUND = [0.0] + 20 * [-1.0]
@@ -39,8 +41,9 @@ def beta_multi(x, t, g, obj_num=2):
     """
     beta = [0.0] * obj_num
     for i in range(obj_num - 1, len(x)):
-        beta[(i + 1) % obj_num] += (x[i] - g(x, t)) * (x[i] - g(x, t)) * \
-                                   (1 + np.abs(np.sin(4 * np.pi * (x[i] - g(x, t)))))
+        beta[(i + 1) % obj_num] += (
+            (x[i] - g(x, t)) * (x[i] - g(x, t)) * (1 + np.abs(np.sin(4 * np.pi * (x[i] - g(x, t)))))
+        )
 
     beta = [(2.0 / int(len(LOWER_BOUND) / obj_num)) * b for b in beta]
     return beta
@@ -88,8 +91,7 @@ def alpha_conf(x, t):
     conflicting objective. Input are decision variable (x) and time (t).
     """
     k = int(abs(5.0 * (int(DELTA_STATE * int(t) / 5.0) % 2) - (DELTA_STATE * int(t) % 5)))
-    return [x[0], 1 - np.power(x[0], \
-                               np.log(1 - 0.1 * k) / np.log(0.1 * k + np.finfo(float).eps))]
+    return [x[0], 1 - np.power(x[0], np.log(1 - 0.1 * k) / np.log(0.1 * k + np.finfo(float).eps))]
 
 
 def alpha_conf_3obj_type1(x, t):
@@ -111,8 +113,12 @@ def alpha_conf_3obj_type2(x, t):
     """
     k = int(abs(5.0 * (int(DELTA_STATE * int(t) / 5.0) % 2) - (DELTA_STATE * int(t) % 5)))
     k_ratio = (5.0 - k) / 5.0
-    alpha1 = fix_numerical_instability(np.cos(0.5 * x[0] * np.pi) * np.cos(0.5 * x[1] * np.pi * k_ratio))
-    alpha2 = fix_numerical_instability(np.cos(0.5 * x[0] * np.pi) * np.sin(0.5 * x[1] * np.pi * k_ratio))
+    alpha1 = fix_numerical_instability(
+        np.cos(0.5 * x[0] * np.pi) * np.cos(0.5 * x[1] * np.pi * k_ratio)
+    )
+    alpha2 = fix_numerical_instability(
+        np.cos(0.5 * x[0] * np.pi) * np.sin(0.5 * x[1] * np.pi * k_ratio)
+    )
     alpha3 = fix_numerical_instability(np.sin(0.5 * x[0] * np.pi))
     return [alpha1, alpha2, alpha3]
 
@@ -168,8 +174,7 @@ def fix_numerical_instability(x):
 
 
 def additive(alpha, beta):
-    """Additive form of the benchmark problem.
-    """
+    """Additive form of the benchmark problem."""
     return [a + b for a, b in zip(alpha, beta)]
 
 
@@ -177,8 +182,7 @@ def additive(alpha, beta):
 
 
 def multiplicative(alpha, beta):
-    """Multiplicative form of the benchmark problem.
-    """
+    """Multiplicative form of the benchmark problem."""
     return [a * (1 + b) for a, b in zip(alpha, beta)]
 
 
@@ -187,8 +191,7 @@ def multiplicative(alpha, beta):
 
 ## Benchmark functions ##
 def DB1a(x, t):
-    """DB1a dynamic benchmark problem
-    """
+    """DB1a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conv(x)
         beta = beta_uni(x, t, g)
@@ -198,8 +201,7 @@ def DB1a(x, t):
 
 
 def DB1m(x, t):
-    """DB1m dynamic benchmark problem
-    """
+    """DB1m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conv(x)
         beta = beta_uni(x, t, g)
@@ -209,8 +211,7 @@ def DB1m(x, t):
 
 
 def DB2a(x, t):
-    """DB2a dynamic benchmark problem
-    """
+    """DB2a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conv(x)
         beta = beta_multi(x, t, g)
@@ -220,8 +221,7 @@ def DB2a(x, t):
 
 
 def DB2m(x, t):
-    """DB2m dynamic benchmark problem
-    """
+    """DB2m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conv(x)
         beta = beta_multi(x, t, g)
@@ -231,8 +231,7 @@ def DB2m(x, t):
 
 
 def DB3a(x, t):
-    """DB3a dynamic benchmark problem
-    """
+    """DB3a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conv(x)
         beta = beta_mix(x, t, g)
@@ -242,8 +241,7 @@ def DB3a(x, t):
 
 
 def DB3m(x, t):
-    """DB3m dynamic benchmark problem
-    """
+    """DB3m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conv(x)
         beta = beta_mix(x, t, g)
@@ -253,8 +251,7 @@ def DB3m(x, t):
 
 
 def DB4a(x, t):
-    """DB4a dynamic benchmark problem
-    """
+    """DB4a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_disc(x)
         beta = beta_mix(x, t, g)
@@ -264,8 +261,7 @@ def DB4a(x, t):
 
 
 def DB4m(x, t):
-    """DB4m dynamic benchmark problem
-    """
+    """DB4m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_disc(x)
         beta = beta_mix(x, t, g)
@@ -275,8 +271,7 @@ def DB4m(x, t):
 
 
 def DB5a(x, t):
-    """DB5a dynamic benchmark problem
-    """
+    """DB5a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_mix(x, t)
         beta = beta_multi(x, t, g)
@@ -286,8 +281,7 @@ def DB5a(x, t):
 
 
 def DB5m(x, t):
-    """DB5m dynamic benchmark problem
-    """
+    """DB5m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_mix(x, t)
         beta = beta_multi(x, t, g)
@@ -297,8 +291,7 @@ def DB5m(x, t):
 
 
 def DB6a(x, t):
-    """DB6a dynamic benchmark problem
-    """
+    """DB6a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_mix(x, t)
         beta = beta_mix(x, t, g)
@@ -308,8 +301,7 @@ def DB6a(x, t):
 
 
 def DB6m(x, t):
-    """DB6m dynamic benchmark problem
-    """
+    """DB6m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_mix(x, t)
         beta = beta_mix(x, t, g)
@@ -319,8 +311,7 @@ def DB6m(x, t):
 
 
 def DB7a(x, t):
-    """DB7a dynamic benchmark problem
-    """
+    """DB7a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf(x, t)
         beta = beta_multi(x, t, g)
@@ -330,8 +321,7 @@ def DB7a(x, t):
 
 
 def DB7m(x, t):
-    """DB7m dynamic benchmark problem
-    """
+    """DB7m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf(x, t)
         beta = beta_multi(x, t, g)
@@ -341,8 +331,7 @@ def DB7m(x, t):
 
 
 def DB8a(x, t):
-    """DB8a dynamic benchmark problem
-    """
+    """DB8a dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf(x, t)
         beta = beta_mix(x, t, g)
@@ -352,8 +341,7 @@ def DB8a(x, t):
 
 
 def DB8m(x, t):
-    """DB8m dynamic benchmark problem
-    """
+    """DB8m dynamic benchmark problem"""
     if check_boundary(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf(x, t)
         beta = beta_mix(x, t, g)
@@ -363,8 +351,7 @@ def DB8m(x, t):
 
 
 def DB9a(x, t):
-    """DB9a dynamic benchmark problem
-    """
+    """DB9a dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type1(x, t)
         beta = beta_multi(x, t, g, obj_num=3)
@@ -374,8 +361,7 @@ def DB9a(x, t):
 
 
 def DB9m(x, t):
-    """DB9m dynamic benchmark problem
-    """
+    """DB9m dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type1(x, t)
         beta = beta_multi(x, t, g, obj_num=3)
@@ -385,8 +371,7 @@ def DB9m(x, t):
 
 
 def DB10a(x, t):
-    """DB10a dynamic benchmark problem
-    """
+    """DB10a dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type1(x, t)
         beta = beta_mix(x, t, g, obj_num=3)
@@ -396,8 +381,7 @@ def DB10a(x, t):
 
 
 def DB10m(x, t):
-    """DB10m dynamic benchmark problem
-    """
+    """DB10m dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type1(x, t)
         beta = beta_mix(x, t, g, obj_num=3)
@@ -407,8 +391,7 @@ def DB10m(x, t):
 
 
 def DB11a(x, t):
-    """DB11a dynamic benchmark problem
-    """
+    """DB11a dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type2(x, t)
         beta = beta_multi(x, t, g, obj_num=3)
@@ -418,8 +401,7 @@ def DB11a(x, t):
 
 
 def DB11m(x, t):
-    """DB11m dynamic benchmark problem
-    """
+    """DB11m dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type2(x, t)
         beta = beta_multi(x, t, g, obj_num=3)
@@ -429,8 +411,7 @@ def DB11m(x, t):
 
 
 def DB12a(x, t):
-    """DB12a dynamic benchmark problem
-    """
+    """DB12a dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type2(x, t)
         beta = beta_mix(x, t, g, obj_num=3)
@@ -440,8 +421,7 @@ def DB12a(x, t):
 
 
 def DB12m(x, t):
-    """DB12m dynamic benchmark problem
-    """
+    """DB12m dynamic benchmark problem"""
     if check_boundary_3obj(x, UPPER_BOUND, LOWER_BOUND):
         alpha = alpha_conf_3obj_type2(x, t)
         beta = beta_mix(x, t, g, obj_num=3)
@@ -463,8 +443,7 @@ def fda2_deb(x, t):
 
 
 def FDA4(X, t):
-    """FDA4 dynamic benchmark problem
-    """
+    """FDA4 dynamic benchmark problem"""
     XII = X[2:]
     G = fabs(sin(0.5 * pi * t))
     g = sum([pow(xi - G, 2) for xi in XII])
@@ -475,8 +454,7 @@ def FDA4(X, t):
 
 
 def FDA5(X, t):
-    """FDA5 dynamic benchmark problem
-    """
+    """FDA5 dynamic benchmark problem"""
     XII = X[2:]
     G = fabs(sin(0.5 * pi * t))
     g = G + sum([pow(xi - G, 2) for xi in XII])
@@ -489,8 +467,7 @@ def FDA5(X, t):
 
 
 def DIMP2(X, t):
-    """DIMP2 dynamic benchmark problem
-    """
+    """DIMP2 dynamic benchmark problem"""
     n = len(X)
     XII = X[1:]
     g = 1.0 + 2.0 * (len(XII))
@@ -504,8 +481,7 @@ def DIMP2(X, t):
 
 
 def dMOP2(X, t):
-    """dMOP2 dynamic benchmark problem
-    """
+    """dMOP2 dynamic benchmark problem"""
     XII = X[1:]
     G = sin(0.5 * pi * t)
     g = 1 + 9 * sum([pow(xi - G, 2) for xi in XII])
@@ -517,13 +493,12 @@ def dMOP2(X, t):
 
 
 def dMOP3(X, tau, nt, taut, r, rIteration):
-    """dMOP3 dynamic benchmark problem
-    """
+    """dMOP3 dynamic benchmark problem"""
     if tau % taut == 0 and rIteration != tau:
         r = randint(0, 9)
         rIteration = tau
 
-    XII = X[:r] + X[r + 1:]
+    XII = X[:r] + X[r + 1 :]
     t = float(1) / float(nt)
     t = t * floor(float(tau) / float(taut))
     G = sin(0.5 * pi * t)
@@ -535,8 +510,7 @@ def dMOP3(X, tau, nt, taut, r, rIteration):
 
 
 def HE2(X, t):
-    """HE2 dynamic benchmark problem
-    """
+    """HE2 dynamic benchmark problem"""
     n = 30
     XII = X[1:]
     H = 0.75 * sin(0.5 * pi * t) + 1.25
@@ -548,8 +522,7 @@ def HE2(X, t):
 
 
 def HE7(X, t):
-    """HE7 dynamic benchmark problem
-    """
+    """HE7 dynamic benchmark problem"""
 
     def _f1(input1):
         value = input1[0]
@@ -557,7 +530,9 @@ def HE7(X, t):
         index = 0
         for k in range(2, len(input1), 2):
             val = 6 * pi * value + k * pi / len(input1)
-            ssum += pow(input1[k] - (0.3 * value * value * cos(4 * val) + 0.6 * value) * cos(val), 2)
+            ssum += pow(
+                input1[k] - (0.3 * value * value * cos(4 * val) + 0.6 * value) * cos(val), 2
+            )
             index += 1
         ssum *= 2.0 / index
         ssum += value
@@ -569,7 +544,9 @@ def HE7(X, t):
         index = 0
         for k in range(1, len(input1), 2):
             val = 6 * pi * value + k * pi / len(input1)
-            ssum += pow(input1[k] - (0.3 * value * value * cos(4 * val) + 0.6 * value) * sin(val), 2)
+            ssum += pow(
+                input1[k] - (0.3 * value * value * cos(4 * val) + 0.6 * value) * sin(val), 2
+            )
             index += 1
         ssum *= 2.0 / index
         ssum += 2.0 - sqrt(value)
@@ -584,8 +561,7 @@ def HE7(X, t):
 
 
 def HE9(X, t):
-    """HE9 dynamic benchmark problem
-    """
+    """HE9 dynamic benchmark problem"""
 
     def _f1(input1):
         value = input1[0]

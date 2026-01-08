@@ -1,11 +1,10 @@
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.mutation import Mutation
-from src.pages.algorithm_lab.pymoo.core.variable import get, Real
+from src.pages.algorithm_lab.pymoo.core.variable import Real, get
 from src.pages.algorithm_lab.pymoo.operators.crossover.binx import mut_binomial
 from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import set_to_bounds_if_outside
 from src.pages.algorithm_lab.pymoo.util import default_random_state
-
 
 # ---------------------------------------------------------------------------------------------------------
 # Function
@@ -74,7 +73,6 @@ def mut_pm(X, xl, xu, eta, prob, at_least_once, random_state=None):
 
 
 class PolynomialMutation(Mutation):
-
     def __init__(self, prob=0.9, eta=20, at_least_once=False, **kwargs):
         super().__init__(prob=prob, **kwargs)
         self.at_least_once = at_least_once
@@ -86,11 +84,18 @@ class PolynomialMutation(Mutation):
         eta = get(self.eta, size=len(X))
         prob_var = self.get_prob_var(problem, size=len(X))
 
-        Xp = mut_pm(X, problem.xl, problem.xu, eta, prob_var, at_least_once=self.at_least_once, random_state=random_state)
+        Xp = mut_pm(
+            X,
+            problem.xl,
+            problem.xu,
+            eta,
+            prob_var,
+            at_least_once=self.at_least_once,
+            random_state=random_state,
+        )
 
         return Xp
 
 
 class PM(PolynomialMutation):
     pass
-

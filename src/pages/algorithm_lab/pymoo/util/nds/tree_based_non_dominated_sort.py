@@ -3,9 +3,8 @@ import weakref
 import numpy as np
 
 
-
 class Tree:
-    '''
+    """
     Implementation of Nary-tree.
     The source code is modified based on https://github.com/lianemeth/forest/blob/master/forest/NaryTree.py
 
@@ -22,7 +21,7 @@ class Tree:
     Returns
     -------
         an N-ary tree.
-    '''
+    """
 
     def __init__(self, key, num_branch, children=None, parent=None):
         self.key = key

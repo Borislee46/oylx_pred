@@ -1,8 +1,8 @@
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.algorithms.moo.nsga2 import NSGA2
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.survival import Survival
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.operators.selection.rnd import RandomSelection
 from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from src.pages.algorithm_lab.pymoo.util.normalization import get_extreme_points_c
@@ -13,14 +13,15 @@ from src.pages.algorithm_lab.pymoo.util.normalization import get_extreme_points_
 
 
 class RNSGA2(NSGA2):
-
-    def __init__(self,
-                 ref_points,
-                 epsilon=0.001,
-                 normalization="front",
-                 weights=None,
-                 extreme_points_as_reference_points=False,
-                 **kwargs):
+    def __init__(
+        self,
+        ref_points,
+        epsilon=0.001,
+        normalization="front",
+        weights=None,
+        extreme_points_as_reference_points=False,
+        **kwargs,
+    ):
         """
 
         Parameters
@@ -41,19 +42,15 @@ class RNSGA2(NSGA2):
 
         super().__init__(**kwargs)
 
-        self.survival = RankAndModifiedCrowdingSurvival(ref_points, epsilon, weights, normalization,
-                                                        extreme_points_as_reference_points)
+        self.survival = RankAndModifiedCrowdingSurvival(
+            ref_points, epsilon, weights, normalization, extreme_points_as_reference_points
+        )
 
 
 class RankAndModifiedCrowdingSurvival(Survival):
-
-    def __init__(self, ref_points,
-                 epsilon,
-                 weights,
-                 normalization,
-                 extreme_points_as_reference_points
-                 ) -> None:
-
+    def __init__(
+        self, ref_points, epsilon, weights, normalization, extreme_points_as_reference_points
+    ) -> None:
         super().__init__(True)
         self.n_obj = ref_points.shape[1]
         self.ref_points = ref_points
@@ -69,7 +66,6 @@ class RankAndModifiedCrowdingSurvival(Survival):
         self.nadir_point = np.full(self.n_obj, -np.inf)
 
     def _do(self, problem, pop, n_survive=None, **kwargs):
-
         # get the objective space values and objects
         F = pop.get("F")
 
@@ -95,14 +91,16 @@ class RankAndModifiedCrowdingSurvival(Survival):
             self.nadir_point = np.ones(self.n_obj)
 
         if self.extreme_points_as_reference_points:
-            self.ref_points = np.vstack([self.ref_points, get_extreme_points_c(F, self.ideal_point)])
+            self.ref_points = np.vstack(
+                [self.ref_points, get_extreme_points_c(F, self.ideal_point)]
+            )
 
         # calculate the distance matrix from ever solution to all reference point
-        dist_to_ref_points = calc_norm_pref_distance(F, self.ref_points, self.weights, self.ideal_point,
-                                                     self.nadir_point)
+        dist_to_ref_points = calc_norm_pref_distance(
+            F, self.ref_points, self.weights, self.ideal_point, self.nadir_point
+        )
 
         for k, front in enumerate(fronts):
-
             # save rank attributes to the individuals - rank = front here
             pop[front].set("rank", np.full(len(front), k))
 
@@ -119,16 +117,15 @@ class RankAndModifiedCrowdingSurvival(Survival):
             ranking = rank_by_distance[np.arange(len(front)), ref_point_of_best_rank]
 
             if len(front) <= n_remaining:
-
                 # we can simply copy the crowding to ranking. not epsilon selection here
                 crowding = ranking
                 I = np.arange(len(front))
 
             else:
-
                 # Distance from solution to every other solution and set distance to itself to infinity
-                dist_to_others = calc_norm_pref_distance(F[front], F[front], self.weights, self.ideal_point,
-                                                         self.nadir_point)
+                dist_to_others = calc_norm_pref_distance(
+                    F[front], F[front], self.weights, self.ideal_point, self.nadir_point
+                )
                 np.fill_diagonal(dist_to_others, np.inf)
 
                 # the crowding that will be used for selection
@@ -139,7 +136,6 @@ class RankAndModifiedCrowdingSurvival(Survival):
 
                 # until we have saved a crowding for each solution
                 while len(not_selected) > 0:
-
                     # select the closest solution
                     idx = not_selected[0]
 

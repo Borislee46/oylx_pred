@@ -9,16 +9,14 @@ def Cache(func):
     func_name = func.__name__
 
     def wrapper(self, *args, use_cache=True, set_cache=True, **kwargs):
+        if not hasattr(self, "cache"):
+            self.cache = {}
 
-        if not hasattr(self, 'cache'):
-            setattr(self, 'cache', {})
-
-        cache = getattr(self, 'cache')
+        cache = self.cache
 
         if use_cache and func_name in cache:
             return cache[func_name]
         else:
-
             obj = func(self, *args, **kwargs)
 
             if set_cache:

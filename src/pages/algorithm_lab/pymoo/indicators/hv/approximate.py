@@ -3,12 +3,11 @@ import numpy as np
 from src.pages.algorithm_lab.pymoo.indicators.hv.exact import DynamicHypervolume
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
-
 # from moocore import hv_approx, hv_contributions
 
 
 def alpha(N, k):
-    alpha = np.zeros(N+1)
+    alpha = np.zeros(N + 1)
 
     for i in range(1, N + 1):
         alpha[i] = np.prod([(k - j) / (N - j) for j in range(1, i)]) / i
@@ -37,9 +36,10 @@ def hvc_monte_carlo(dom, V, n_dom=None, k=1):
 
 
 class ApproximateHypervolume(DynamicHypervolume):
-
     @default_random_state(seed=1)
-    def __init__(self, ref_point, n_samples=10000, n_exclusive=1, random_state=None, **kwargs) -> None:
+    def __init__(
+        self, ref_point, n_samples=10000, n_exclusive=1, random_state=None, **kwargs
+    ) -> None:
         self.n_samples = n_samples
         self.n_exclusive = n_exclusive
 
@@ -72,13 +72,13 @@ class ApproximateHypervolume(DynamicHypervolume):
         # MOOCORE VERSION (commented out for comparison)
         # if len(F) == 0:
         #     return 0.0, np.zeros(0)
-        # 
+        #
         # # Use moocore for approximate hypervolume calculation
         # hv = hv_approx(F, ref=ref_point, nsamples=self.n_samples, seed=self.random_state.randint(0, 2**32-1))
-        # 
+        #
         # # Use moocore for exact hypervolume contributions (no approximate version available)
         # hvc = hv_contributions(F, ref=ref_point)
-        # 
+        #
         # return hv, hvc
 
     def delete(self, k):
@@ -100,6 +100,5 @@ class ApproximateHypervolume(DynamicHypervolume):
         #     # Use moocore for updated hypervolume and contributions
         #     self.hv = hv_approx(self.F, ref=self.ref_point, nsamples=self.n_samples, seed=self.random_state.randint(0, 2**32-1))
         #     self.hvc = hv_contributions(self.F, ref=self.ref_point)
-        # 
+        #
         # return self
-

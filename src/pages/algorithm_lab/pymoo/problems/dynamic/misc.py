@@ -1,16 +1,12 @@
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.problems.dyn import DynamicTestProblem
-from src.pages.algorithm_lab.pymoo.vendor.gta import fda2_deb, dMOP2, DIMP2, HE2, HE7, HE9
+from src.pages.algorithm_lab.pymoo.vendor.gta import DIMP2, HE2, HE7, HE9, dMOP2, fda2_deb
 
 
 class FDA2_deb(DynamicTestProblem):
-
     def __init__(self, nt=10, taut=200):
-        super().__init__(n_var=13,
-                         n_obj=2,
-                         nt=nt,
-                         taut=taut)
+        super().__init__(n_var=13, n_obj=2, nt=nt, taut=taut)
         self.xl = -1.0 * np.ones(self.n_var)
         self.xl[0] = 0.0
         self.xu = 1.0 * np.ones(self.n_var)
@@ -34,12 +30,8 @@ class FDA2_deb(DynamicTestProblem):
 
 
 class DMOP2(DynamicTestProblem):
-
     def __init__(self, nt=10, taut=200):
-        super().__init__(n_var=10,
-                         n_obj=2,
-                         nt=nt,
-                         taut=taut)
+        super().__init__(n_var=10, n_obj=2, nt=nt, taut=taut)
 
     def _evaluate(self, X, out, *args, t=1, **kwargs):
         f1, f2 = dMOP2(X, self.time)
@@ -53,12 +45,8 @@ class DMOP2(DynamicTestProblem):
 
 
 class DIMP2b(DynamicTestProblem):
-
     def __init__(self, nt=10, taut=200):
-        super().__init__(n_var=10,
-                         n_obj=2,
-                         nt=nt,
-                         taut=taut)
+        super().__init__(n_var=10, n_obj=2, nt=nt, taut=taut)
         self.xl = -2.0 * np.ones(self.n_var)
         self.xl[0] = 0.0
         self.xu = 2.0 * np.ones(self.n_var)
@@ -79,12 +67,8 @@ class DIMP2b(DynamicTestProblem):
 
 
 class HE2b(DynamicTestProblem):
-
     def __init__(self, nt=10, taut=200):
-        super().__init__(n_var=30,
-                         n_obj=2,
-                         nt=nt,
-                         taut=taut)
+        super().__init__(n_var=30, n_obj=2, nt=nt, taut=taut)
 
     def _evaluate(self, X, out, *args, t=1, **kwargs):
         self.t = self.time(t)
@@ -103,12 +87,8 @@ class HE2b(DynamicTestProblem):
 
 
 class HE7b(DynamicTestProblem):
-
     def __init__(self, nt=10, taut=200):
-        super().__init__(n_var=10,
-                         n_obj=2,
-                         nt=nt,
-                         taut=taut)
+        super().__init__(n_var=10, n_obj=2, nt=nt, taut=taut)
 
         self.xl = -1 * np.ones(self.n_var)
         self.xl[0] = 0.0
@@ -138,12 +118,8 @@ class HE7b(DynamicTestProblem):
 
 
 class HE9b(DynamicTestProblem):
-
     def __init__(self, nt=10, taut=200):
-        super().__init__(n_var=10,
-                         n_obj=2,
-                         nt=nt,
-                         taut=taut)
+        super().__init__(n_var=10, n_obj=2, nt=nt, taut=taut)
 
     def time(self, t):
         self.tau = t

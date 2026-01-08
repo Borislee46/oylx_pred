@@ -8,14 +8,13 @@ from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class AttachConfigEvaluator(Evaluator):
-
     def __init__(self, wrapped, config):
         super().__init__()
         self.wrapped = wrapped
         self.config = config
-        
+
         # Copy all attributes from wrapped evaluator
-        for attr_name in ['evaluate_values_of', 'skip_already_evaluated', 'callback', 'n_eval']:
+        for attr_name in ["evaluate_values_of", "skip_already_evaluated", "callback", "n_eval"]:
             if hasattr(wrapped, attr_name):
                 setattr(self, attr_name, getattr(wrapped, attr_name))
 
@@ -31,7 +30,6 @@ def copy_to_dict(src, dest):
 
 
 class AdaptiveConstraintHandling(MetaAlgorithm):
-
     def __init__(self, algorithm):
         super().__init__(algorithm)
 

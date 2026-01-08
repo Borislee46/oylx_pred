@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.util.misc import at_least_2d_array, to_1d_arr
 
 
 class Decomposition:
-
     def __init__(self, eps=0.0, _type="auto", **kwargs) -> None:
         super().__init__()
         self.eps = eps
@@ -14,15 +13,16 @@ class Decomposition:
     def __call__(self, *args, **kwargs):
         return self.do(*args, **kwargs)
 
-    def do(self,
-           F,
-           weights,
-           _type="auto",
-           ideal_point=None,
-           utopian_point=None,
-           nadir_point=None,
-           **kwargs):
-
+    def do(
+        self,
+        F,
+        weights,
+        _type="auto",
+        ideal_point=None,
+        utopian_point=None,
+        nadir_point=None,
+        **kwargs,
+    ):
         _F, _weights = to_1d_array_if_possible(F), to_1d_array_if_possible(weights)
 
         if _type == "auto":

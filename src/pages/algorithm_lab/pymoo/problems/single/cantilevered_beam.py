@@ -1,11 +1,10 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class CantileveredBeam(Problem):
-
     def __init__(self):
         super().__init__(n_var=4, n_obj=1, n_ieq_constr=2, vtype=float)
         self.xl = np.array([2, 0.1, 0.1, 3.0])
@@ -16,12 +15,14 @@ class CantileveredBeam(Problem):
         E, L, P = 1e7, 36.0, 1000.0
 
         b1, h1, b2, H = x[:, 0], x[:, 1], x[:, 2], x[:, 3]
-        I = 1 / 12 * b2 * (H - 2 * h1) ** 3 + 2 * (1 / 12 * b1 * h1 ** 3 + b1 * h1 * (H - h1) ** 2 / 4)
+        I = 1 / 12 * b2 * (H - 2 * h1) ** 3 + 2 * (
+            1 / 12 * b1 * h1**3 + b1 * h1 * (H - h1) ** 2 / 4
+        )
         volume = (2 * h1 * b1 + (H - 2 * h1) * b2) * L
         out["F"] = volume
 
         sigma = P * L * H / (2 * I)
-        delta = P * L ** 3 / (3 * E * I)
+        delta = P * L**3 / (3 * E * I)
 
         g1 = (sigma - 5000.0) / 5000.0
         g2 = (delta - 0.1) / 0.1

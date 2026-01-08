@@ -6,20 +6,23 @@ from numpy.linalg import LinAlgError
 from src.pages.algorithm_lab.pymoo.algorithms.base.genetic import GeneticAlgorithm
 from src.pages.algorithm_lab.pymoo.core.survival import Survival
 from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
+from src.pages.algorithm_lab.pymoo.functions import load_function
 from src.pages.algorithm_lab.pymoo.operators.crossover.sbx import SBX
 from src.pages.algorithm_lab.pymoo.operators.mutation.pm import PM
 from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling
-from src.pages.algorithm_lab.pymoo.operators.selection.tournament import TournamentSelection, compare
-from src.pages.algorithm_lab.pymoo.util.display.multi import MultiObjectiveOutput
-from src.pages.algorithm_lab.pymoo.functions import load_function
-from src.pages.algorithm_lab.pymoo.util.misc import intersect, has_feasible
-from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
+from src.pages.algorithm_lab.pymoo.operators.selection.tournament import (
+    TournamentSelection,
+    compare,
+)
 from src.pages.algorithm_lab.pymoo.util import default_random_state
-
+from src.pages.algorithm_lab.pymoo.util.display.multi import MultiObjectiveOutput
+from src.pages.algorithm_lab.pymoo.util.misc import has_feasible, intersect
+from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
 # =========================================================================================================
 # Implementation
 # =========================================================================================================
+
 
 @default_random_state
 def comp_by_cv_then_random(pop, P, random_state=None, **kwargs):
@@ -30,7 +33,9 @@ def comp_by_cv_then_random(pop, P, random_state=None, **kwargs):
 
         # if at least one solution is infeasible
         if pop[a].CV > 0.0 or pop[b].CV > 0.0:
-            S[i] = compare(a, pop[a].CV, b, pop[b].CV, method='smaller_is_better', return_random_if_equal=True)
+            S[i] = compare(
+                a, pop[a].CV, b, pop[b].CV, method="smaller_is_better", return_random_if_equal=True
+            )
 
         # both solutions are feasible just set random
         else:
@@ -40,18 +45,19 @@ def comp_by_cv_then_random(pop, P, random_state=None, **kwargs):
 
 
 class NSGA3(GeneticAlgorithm):
-
-    def __init__(self,
-                 ref_dirs,
-                 pop_size=None,
-                 sampling=FloatRandomSampling(),
-                 selection=TournamentSelection(func_comp=comp_by_cv_then_random),
-                 crossover=SBX(eta=30, prob=1.0),
-                 mutation=PM(eta=20),
-                 eliminate_duplicates=True,
-                 n_offsprings=None,
-                 output=MultiObjectiveOutput(),
-                 **kwargs):
+    def __init__(
+        self,
+        ref_dirs,
+        pop_size=None,
+        sampling=FloatRandomSampling(),
+        selection=TournamentSelection(func_comp=comp_by_cv_then_random),
+        crossover=SBX(eta=30, prob=1.0),
+        mutation=PM(eta=20),
+        eliminate_duplicates=True,
+        n_offsprings=None,
+        output=MultiObjectiveOutput(),
+        **kwargs,
+    ):
         """
 
         Parameters
@@ -74,7 +80,6 @@ class NSGA3(GeneticAlgorithm):
 
         # in case of R-NSGA-3 they will be None - otherwise this will be executed
         if self.ref_dirs is not None:
-
             if pop_size is None:
                 pop_size = len(self.ref_dirs)
 
@@ -82,33 +87,36 @@ class NSGA3(GeneticAlgorithm):
                 print(
                     f"WARNING: pop_size={pop_size} is less than the number of reference directions ref_dirs={len(self.ref_dirs)}.\n"
                     "This might cause unwanted behavior of the algorithm. \n"
-                    "Please make sure pop_size is equal or larger than the number of reference directions. ")
+                    "Please make sure pop_size is equal or larger than the number of reference directions. "
+                )
 
-        if 'survival' in kwargs:
-            survival = kwargs['survival']
-            del kwargs['survival']
+        if "survival" in kwargs:
+            survival = kwargs["survival"]
+            del kwargs["survival"]
         else:
             survival = ReferenceDirectionSurvival(ref_dirs)
 
-        super().__init__(pop_size=pop_size,
-                         sampling=sampling,
-                         selection=selection,
-                         crossover=crossover,
-                         mutation=mutation,
-                         survival=survival,
-                         eliminate_duplicates=eliminate_duplicates,
-                         n_offsprings=n_offsprings,
-                         output=output,
-                         advance_after_initial_infill=True,
-                         **kwargs)
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            crossover=crossover,
+            mutation=mutation,
+            survival=survival,
+            eliminate_duplicates=eliminate_duplicates,
+            n_offsprings=n_offsprings,
+            output=output,
+            advance_after_initial_infill=True,
+            **kwargs,
+        )
 
     def _setup(self, problem, **kwargs):
-
         if self.ref_dirs is not None:
             if self.ref_dirs.shape[1] != problem.n_obj:
                 raise Exception(
-                    "Dimensionality of reference points must be equal to the number of objectives: %s != %s" %
-                    (self.ref_dirs.shape[1], problem.n_obj))
+                    "Dimensionality of reference points must be equal to the number of objectives: %s != %s"
+                    % (self.ref_dirs.shape[1], problem.n_obj)
+                )
 
     def _set_optimum(self, **kwargs):
         if not has_feasible(self.pop):
@@ -124,7 +132,6 @@ class NSGA3(GeneticAlgorithm):
 
 
 class ReferenceDirectionSurvival(Survival):
-
     def __init__(self, ref_dirs):
         super().__init__(filter_infeasible=True)
         self.ref_dirs = ref_dirs
@@ -132,7 +139,6 @@ class ReferenceDirectionSurvival(Survival):
         self.norm = HyperplaneNormalization(ref_dirs.shape[1])
 
     def _do(self, problem, pop, n_survive, D=None, random_state=None, **kwargs):
-
         # attributes to be set after the survival
         F = pop.get("F")
 
@@ -158,13 +164,12 @@ class ReferenceDirectionSurvival(Survival):
         last_front = fronts[-1]
 
         # associate individuals to niches
-        niche_of_individuals, dist_to_niche, dist_matrix = \
-            associate_to_niches(F, self.ref_dirs, ideal, nadir)
+        niche_of_individuals, dist_to_niche, dist_matrix = associate_to_niches(
+            F, self.ref_dirs, ideal, nadir
+        )
 
         # attributes of a population
-        pop.set('rank', rank,
-                'niche', niche_of_individuals,
-                'dist_to_niche', dist_to_niche)
+        pop.set("rank", rank, "niche", niche_of_individuals, "dist_to_niche", dist_to_niche)
 
         # set the optimum, first front and closest to all reference directions
         closest = np.unique(dist_matrix[:, np.unique(niche_of_individuals)].argmin(axis=0))
@@ -174,7 +179,6 @@ class ReferenceDirectionSurvival(Survival):
 
         # if we need to select individuals to survive
         if len(pop) > n_survive:
-
             # if there is only one front
             if len(fronts) == 1:
                 n_remaining = n_survive
@@ -184,11 +188,19 @@ class ReferenceDirectionSurvival(Survival):
             # if some individuals already survived
             else:
                 until_last_front = np.concatenate(fronts[:-1])
-                niche_count = calc_niche_count(len(self.ref_dirs), niche_of_individuals[until_last_front])
+                niche_count = calc_niche_count(
+                    len(self.ref_dirs), niche_of_individuals[until_last_front]
+                )
                 n_remaining = n_survive - len(until_last_front)
 
-            S = niching(pop[last_front], n_remaining, niche_count, niche_of_individuals[last_front],
-                        dist_to_niche[last_front], random_state=random_state)
+            S = niching(
+                pop[last_front],
+                n_remaining,
+                niche_count,
+                niche_of_individuals[last_front],
+                dist_to_niche[last_front],
+                random_state=random_state,
+            )
 
             survivors = np.concatenate((until_last_front, last_front[S].tolist()))
             pop = pop[survivors]
@@ -204,7 +216,6 @@ def niching(pop, n_remaining, niche_count, niche_of_individuals, dist_to_niche, 
     mask = np.full(len(pop), True)
 
     while len(survivors) < n_remaining:
-
         # number of individuals to select in this iteration
         n_select = n_remaining - len(survivors)
 
@@ -220,7 +231,6 @@ def niching(pop, n_remaining, niche_count, niche_of_individuals, dist_to_niche, 
         next_niches = next_niches[random_state.permutation(len(next_niches))[:n_select]]
 
         for next_niche in next_niches:
-
             # indices of individuals that are considered and assign to next_niche
             next_ind = np.where(np.logical_and(niche_of_individuals == next_niche, mask))[0]
 
@@ -272,7 +282,6 @@ def calc_niche_count(n_niches, niche_of_individuals):
 
 
 class HyperplaneNormalization:
-
     def __init__(self, n_dim) -> None:
         super().__init__()
         self.ideal_point = np.full(n_dim, np.inf)
@@ -290,15 +299,21 @@ class HyperplaneNormalization:
             nds = np.arange(len(F))
 
         # find the extreme points for normalization
-        self.extreme_points = get_extreme_points_c(F[nds, :], self.ideal_point,
-                                                   extreme_points=self.extreme_points)
+        self.extreme_points = get_extreme_points_c(
+            F[nds, :], self.ideal_point, extreme_points=self.extreme_points
+        )
 
         # find the intercepts for normalization and do backup if gaussian elimination fails
         worst_of_population = np.max(F, axis=0)
         worst_of_front = np.max(F[nds, :], axis=0)
 
-        self.nadir_point = get_nadir_point(self.extreme_points, self.ideal_point, self.worst_point,
-                                           worst_of_front, worst_of_population)
+        self.nadir_point = get_nadir_point(
+            self.extreme_points,
+            self.ideal_point,
+            self.worst_point,
+            worst_of_front,
+            worst_of_population,
+        )
 
 
 def get_extreme_points_c(F, ideal_point, extreme_points=None):
@@ -326,7 +341,6 @@ def get_extreme_points_c(F, ideal_point, extreme_points=None):
 
 def get_nadir_point(extreme_points, ideal_point, worst_point, worst_of_front, worst_of_population):
     try:
-
         # find the intercepts using gaussian elimination
         M = extreme_points - ideal_point
         b = np.ones(extreme_points.shape[1])
@@ -347,7 +361,6 @@ def get_nadir_point(extreme_points, ideal_point, worst_point, worst_of_front, wo
         nadir_point[b] = worst_point[b]
 
     except LinAlgError:
-
         # fall back to worst of front otherwise
         nadir_point = worst_of_front
 

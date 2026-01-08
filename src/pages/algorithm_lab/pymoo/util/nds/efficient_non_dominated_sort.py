@@ -28,7 +28,7 @@ def efficient_non_dominated_sort(F, strategy="sequential"):
     IEEE Transactions on Evolutionary Computation, 2015, 19(2): 201-213.
     """
 
-    assert (strategy in ["sequential", 'binary']), "Invalid search strategy"
+    assert strategy in ["sequential", "binary"], "Invalid search strategy"
 
     # the shape of the input
     N, M = F.shape
@@ -41,8 +41,7 @@ def efficient_non_dominated_sort(F, strategy="sequential"):
     fronts = []
 
     for i in range(N):
-
-        if strategy == 'sequential':
+        if strategy == "sequential":
             k = sequential_search(F, i, fronts)
         else:
             k = binary_search(F, i, fronts)
@@ -123,7 +122,6 @@ def binary_search(F, i, fronts):
     k = floor((k_max + k_min) / 2 + 0.5)  # the front now checked
     current = F[i]
     while True:
-
         # solutions in the k-th front, examine in reverse order
         fk_indices = fronts[k - 1]
         solutions = F[fk_indices[::-1]]

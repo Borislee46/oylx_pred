@@ -14,18 +14,18 @@ from src.pages.algorithm_lab.pymoo.util.optimum import filter_optimum
 
 
 class ES(GeneticAlgorithm):
-
-    def __init__(self,
-                 n_offsprings=None,
-                 pop_size=None,
-                 rule=1.0 / 7.0,
-                 phi=1.0,
-                 gamma=0.85,
-                 sampling=FloatRandomSampling(),
-                 survival=FitnessSurvival(),
-                 output=SingleObjectiveOutput(),
-                 **kwargs):
-
+    def __init__(
+        self,
+        n_offsprings=None,
+        pop_size=None,
+        rule=1.0 / 7.0,
+        phi=1.0,
+        gamma=0.85,
+        sampling=FloatRandomSampling(),
+        survival=FitnessSurvival(),
+        output=SingleObjectiveOutput(),
+        **kwargs,
+    ):
         """
         Evolutionary Strategy (ES)
 
@@ -53,17 +53,23 @@ class ES(GeneticAlgorithm):
         elif n_offsprings is None and pop_size is not None:
             n_offsprings = int(math.floor(pop_size / rule))
 
-        assert pop_size is not None and n_offsprings is not None, "You have to at least provivde pop_size of n_offsprings."
-        assert n_offsprings >= 2 * pop_size, "The number of offsprings should be at least double the population size."
+        assert (
+            pop_size is not None and n_offsprings is not None
+        ), "You have to at least provivde pop_size of n_offsprings."
+        assert (
+            n_offsprings >= 2 * pop_size
+        ), "The number of offsprings should be at least double the population size."
 
-        super().__init__(pop_size=pop_size,
-                         n_offsprings=n_offsprings,
-                         sampling=sampling,
-                         survival=survival,
-                         output=output,
-                         advance_after_initial_infill=True,
-                         eliminate_duplicates=False,
-                         **kwargs)
+        super().__init__(
+            pop_size=pop_size,
+            n_offsprings=n_offsprings,
+            sampling=sampling,
+            survival=survival,
+            output=output,
+            advance_after_initial_infill=True,
+            eliminate_duplicates=False,
+            **kwargs,
+        )
 
         self.termination = DefaultSingleObjectiveTermination()
         self.phi = phi
@@ -74,10 +80,10 @@ class ES(GeneticAlgorithm):
     def _setup(self, problem, **kwargs):
         n = problem.n_var
         self.taup = self.phi / ((2 * n) ** 0.5)
-        self.tau = self.phi / ((2 * (n ** 0.5)) ** 0.5)
+        self.tau = self.phi / ((2 * (n**0.5)) ** 0.5)
 
         xl, xu = self.problem.bounds()
-        self.sigma_max = (xu - xl) / (self.problem.n_var ** 0.5)
+        self.sigma_max = (xu - xl) / (self.problem.n_var**0.5)
 
     def _initialize_advance(self, infills=None, **kwargs):
         super()._initialize_advance(infills=infills, **kwargs)
@@ -100,15 +106,17 @@ class ES(GeneticAlgorithm):
         sigmap = es_intermediate_recomb(sigma, random_state=self.random_state)
 
         # calculate the new sigma based on tau and tau prime
-        sigmap = np.minimum(self.sigma_max, es_sigma(sigmap, self.tau, self.taup, random_state=self.random_state))
+        sigmap = np.minimum(
+            self.sigma_max, es_sigma(sigmap, self.tau, self.taup, random_state=self.random_state)
+        )
 
         # execute the evolutionary strategy to calculate the offspring solutions
         Xp = X + sigmap * self.random_state.normal(size=sigmap.shape)
 
         # if gamma is not none do the differential variation overwrite Xp and sigmap for the first mu-1 individuals
         if self.gamma is not None:
-            Xp[:mu - 1] = X[:mu - 1] + self.gamma * (X[0] - X[1:mu])
-            sigmap[:mu - 1] = sigma[:mu - 1]
+            Xp[: mu - 1] = X[: mu - 1] + self.gamma * (X[0] - X[1:mu])
+            sigmap[: mu - 1] = sigma[: mu - 1]
 
         # if we have bounds to consider -> repair the individuals which are out of bounds
         if self.problem.has_bounds():
@@ -120,7 +128,6 @@ class ES(GeneticAlgorithm):
         return off
 
     def _advance(self, infills=None, **kwargs):
-
         # if not all solutions suggested by infill() are evaluated we create a more semi (mu+lambda) algorithm
         if len(infills) < self.pop_size:
             infills = Population.merge(infills, self.pop)
@@ -135,7 +142,10 @@ class ES(GeneticAlgorithm):
 @default_random_state
 def es_sigma(sigma, tau, taup, random_state=None):
     _lambda, _n = sigma.shape
-    return sigma * np.exp(taup * random_state.normal(size=(_lambda, 1)) + tau * random_state.normal(size=(_lambda, _n)))
+    return sigma * np.exp(
+        taup * random_state.normal(size=(_lambda, 1))
+        + tau * random_state.normal(size=(_lambda, _n))
+    )
 
 
 @default_random_state
@@ -161,7 +171,6 @@ def es_mut_repair(Xp, X, sigma, xl, xu, n_trials, random_state=None):
 
     # for the given number of trials
     for k in range(n_trials):
-
         # find all indices which are out of bounds
         i, j = np.where(np.logical_or(Xp < XL, Xp > XU))
 
@@ -189,16 +198,13 @@ def es_mut_loop(X, sigmap, xl, xu, n_trials=10, random_state=None):
 
     # for each of the new offsprings
     for i in range(_lambda):
-
         # for each variable of it
         for j in range(_n):
-
             # by default just copy the value if no value is in bounds this will stay
             Xp[i, j] = X[i, j]
 
             # try to set the value a few time and be done if in bounds
             for _ in range(n_trials):
-
                 # calculate the mutated value
                 x = X[i, j] + sigmap[i, j] * random_state.normal()
 

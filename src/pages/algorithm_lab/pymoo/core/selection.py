@@ -7,7 +7,6 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class Selection(Operator):
-
     def __init__(self, **kwargs) -> None:
         """
         This class is used to select parents for the mating or other evolutionary operators.
@@ -16,7 +15,9 @@ class Selection(Operator):
         super().__init__(**kwargs)
 
     @default_random_state
-    def do(self, problem, pop, n_select, n_parents, to_pop=True, *args, random_state=None, **kwargs):
+    def do(
+        self, problem, pop, n_select, n_parents, to_pop=True, *args, random_state=None, **kwargs
+    ):
         """
         Choose from the population new individuals to be selected.
 
@@ -48,7 +49,9 @@ class Selection(Operator):
 
         """
 
-        ret = self._do(problem, pop, n_select, n_parents, *args, random_state=random_state, **kwargs)
+        ret = self._do(
+            problem, pop, n_select, n_parents, *args, random_state=random_state, **kwargs
+        )
 
         # if some selections return indices they are used to create the individual list
         if to_pop and isinstance(ret, np.ndarray) and np.issubdtype(ret.dtype, np.integer):

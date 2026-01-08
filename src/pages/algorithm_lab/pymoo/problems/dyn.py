@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABC
+from abc import ABC
 
 from src.pages.algorithm_lab.pymoo.core.callback import Callback
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
@@ -9,7 +9,6 @@ class DynamicProblem(Problem, ABC):
 
 
 class DynamicTestProblem(DynamicProblem, ABC):
-
     def __init__(self, nt, taut, tau=1, time=None, **kwargs):
         super().__init__(**kwargs)
         self.tau = tau
@@ -18,7 +17,6 @@ class DynamicTestProblem(DynamicProblem, ABC):
         self._time = time
 
     def tic(self, elapsed=1):
-
         # increase the time counter by one
         self.tau += elapsed
 
@@ -38,7 +36,6 @@ class DynamicTestProblem(DynamicProblem, ABC):
 
 
 class TimeSimulation(Callback):
-
     def update(self, algorithm):
         problem = algorithm.problem
         if hasattr(problem, "tic"):

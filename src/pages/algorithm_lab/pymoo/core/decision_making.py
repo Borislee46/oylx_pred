@@ -5,7 +5,6 @@ from src.pages.algorithm_lab.pymoo.core.indicator import Indicator
 
 
 class DecisionMaking(Indicator):
-
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.default_if_empty = None
@@ -15,13 +14,7 @@ class DecisionMaking(Indicator):
 
 
 class NeighborFinder:
-
-    def __init__(self, N,
-                 epsilon=0.125,
-                 n_neighbors=None,
-                 n_min_neigbors=None,
-                 consider_2d=True):
-
+    def __init__(self, N, epsilon=0.125, n_neighbors=None, n_min_neigbors=None, consider_2d=True):
         super().__init__()
         self.N = N
         self.consider_2d = consider_2d
@@ -54,7 +47,6 @@ class NeighborFinder:
             self.tree = cKDTree(N)
 
     def find(self, i):
-
         if self.consider_2d and self.N.shape[1] == 2:
             neighbours = []
 
@@ -65,7 +57,6 @@ class NeighborFinder:
                 neighbours.append(self.rank[pos + 1])
 
         else:
-
             # for each neighbour in a specific radius of that solution
             if self.epsilon is not None:
                 neighbours = self.tree.query_ball_point([self.N[i]], self.epsilon).tolist()[0]
@@ -82,7 +73,6 @@ class NeighborFinder:
 
 
 def find_outliers_upper_tail(mu):
-
     # remove values that are nan
     I = np.where(np.logical_and(np.logical_not(np.isnan(mu)), np.logical_not(np.isinf(mu))))[0]
     mu = mu[I]

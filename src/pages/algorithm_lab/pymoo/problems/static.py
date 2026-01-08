@@ -3,7 +3,6 @@ from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class StaticProblem(Meta, Problem):
-
     def __init__(self, problem, **kwargs):
         super().__init__(problem)
         self.kwargs = kwargs
@@ -11,4 +10,3 @@ class StaticProblem(Meta, Problem):
     def _evaluate(self, _, out, *args, **kwargs):
         for K, V in self.kwargs.items():
             out[K] = V
-

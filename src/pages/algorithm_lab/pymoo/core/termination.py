@@ -2,7 +2,6 @@ from abc import abstractmethod
 
 
 class Termination:
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -46,25 +45,21 @@ class Termination:
 
 
 class NoTermination(Termination):
-
     def _update(self, algorithm):
         return 0.0
 
 
 class MultipleCriteria(Termination):
-
     def __init__(self, *args) -> None:
         super().__init__()
         self.criteria = args
 
 
 class TerminateIfAny(MultipleCriteria):
-
     def _update(self, algorithm):
         return max([termination.update(algorithm) for termination in self.criteria])
 
 
 class TerminateIfAll(MultipleCriteria):
-
     def _update(self, algorithm):
         return min([termination.update(algorithm) for termination in self.criteria])

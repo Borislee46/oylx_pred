@@ -1,7 +1,6 @@
-
 class JoblibParallelization:
     """Parallelization using joblib.
-    
+
     Parameters
     ----------
     n_jobs : int, default=-1
@@ -15,7 +14,7 @@ class JoblibParallelization:
             import joblib
         except ImportError:
             raise ImportError("joblib must be installed: pip install joblib")
-        
+
         self.joblib = joblib
         self.n_jobs = n_jobs
         self.kwargs = kwargs

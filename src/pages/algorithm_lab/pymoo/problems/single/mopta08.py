@@ -20,7 +20,3 @@ class MOPTA08(ElementwiseProblem):
 
     def _calc_pareto_front(self, *args, **kwargs):
         return 222.74
-
-
-
-

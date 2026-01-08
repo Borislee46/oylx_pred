@@ -1,5 +1,4 @@
 class Callback:
-
     def __init__(self) -> None:
         super().__init__()
         self.data = {}
@@ -18,7 +17,6 @@ class Callback:
         pass
 
     def __call__(self, algorithm):
-
         if not self.is_initialized:
             self.initialize(algorithm)
             self.is_initialized = True
@@ -28,11 +26,9 @@ class Callback:
 
 
 class CallbackCollection(Callback):
-
     def __init__(self, *args) -> None:
         super().__init__()
         self.callbacks = args
 
     def update(self, algorithm):
         [callback.update(algorithm) for callback in self.callbacks]
-

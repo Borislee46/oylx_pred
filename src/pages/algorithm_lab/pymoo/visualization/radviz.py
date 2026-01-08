@@ -1,12 +1,17 @@
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.util.misc import set_if_none_from_tuples
-from src.pages.algorithm_lab.pymoo.visualization.util import plot_circle, plot_radar_line, plot_axis_labels, equal_axis, no_ticks, \
-    get_uniform_points_around_circle
+from src.pages.algorithm_lab.pymoo.visualization.util import (
+    equal_axis,
+    get_uniform_points_around_circle,
+    no_ticks,
+    plot_axis_labels,
+    plot_circle,
+    plot_radar_line,
+)
 
 
 class Radviz(Plot):
-
     def __init__(self, endpoint_style={}, **kwargs):
         """
 
@@ -34,13 +39,14 @@ class Radviz(Plot):
         super().__init__(**kwargs)
 
         # set the default axis style
-        set_if_none_from_tuples(self.axis_style, ("color", "black"), ("linewidth", 1), ("alpha", 0.75))
+        set_if_none_from_tuples(
+            self.axis_style, ("color", "black"), ("linewidth", 1), ("alpha", 0.75)
+        )
 
         self.endpoint_style = endpoint_style
         set_if_none_from_tuples(self.endpoint_style, ("color", "black"), ("s", 70), ("alpha", 0.3))
 
     def _do(self):
-
         # initial a figure with a single plot
         self.init_figure()
 

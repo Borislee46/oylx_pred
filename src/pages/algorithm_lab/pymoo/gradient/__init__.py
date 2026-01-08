@@ -1,14 +1,10 @@
 import sys
 
-
-BACKENDS = {
-    "numpy": "numpy",
-    "autograd": "autograd.numpy", 
-    "jax": "jax.numpy"
-}
+BACKENDS = {"numpy": "numpy", "autograd": "autograd.numpy", "jax": "jax.numpy"}
 
 # Current active backend
 active_backend = "numpy"
+
 
 def activate(name):
     global active_backend
@@ -20,5 +16,3 @@ def activate(name):
 
 def deactivate():
     activate("numpy")
-
-

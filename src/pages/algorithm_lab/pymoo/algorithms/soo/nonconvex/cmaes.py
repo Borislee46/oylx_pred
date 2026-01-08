@@ -9,10 +9,9 @@ from src.pages.algorithm_lab.pymoo.termination.max_eval import MaximumFunctionCa
 from src.pages.algorithm_lab.pymoo.termination.max_gen import MaximumGenerationTermination
 from src.pages.algorithm_lab.pymoo.util.display.column import Column
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
-from src.pages.algorithm_lab.pymoo.util.normalization import ZeroToOneNormalization, NoNormalization
+from src.pages.algorithm_lab.pymoo.util.normalization import NoNormalization, ZeroToOneNormalization
 from src.pages.algorithm_lab.pymoo.util.optimum import filter_optimum
 from src.pages.algorithm_lab.pymoo.vendor.vendor_cmaes import my_fmin
-
 
 # =========================================================================================================
 # Implementation
@@ -20,7 +19,6 @@ from src.pages.algorithm_lab.pymoo.vendor.vendor_cmaes import my_fmin
 
 
 class CMAESOutput(SingleObjectiveOutput):
-
     def __init__(self):
         super().__init__()
 
@@ -52,45 +50,47 @@ class CMAESOutput(SingleObjectiveOutput):
 
         self.sigma.set(cma.sigma)
 
-        val = cma.sigma_vec * cma.dC ** 0.5
-        self.min_std.set((cma.sigma * min(val)))
-        self.max_std.set((cma.sigma * max(val)))
+        val = cma.sigma_vec * cma.dC**0.5
+        self.min_std.set(cma.sigma * min(val))
+        self.max_std.set(cma.sigma * max(val))
 
         if algorithm.restarts > 0:
             self.run.set(int(fmin["irun"] - fmin["runs_with_small"]) + 1)
             self.fpop.set(algorithm.pop.get("F").min())
-            self.n_pop.set(int(cma.opts['popsize']))
+            self.n_pop.set(int(cma.opts["popsize"]))
 
-        axis = (cma.D.max() / cma.D.min()
-                if not cma.opts['CMA_diagonal'] or cma.countiter > cma.opts['CMA_diagonal']
-                else max(cma.sigma_vec * 1) / min(cma.sigma_vec * 1))
+        axis = (
+            cma.D.max() / cma.D.min()
+            if not cma.opts["CMA_diagonal"] or cma.countiter > cma.opts["CMA_diagonal"]
+            else max(cma.sigma_vec * 1) / min(cma.sigma_vec * 1)
+        )
         self.axis.set(axis)
 
 
 class CMAES(LocalSearch):
-
-    def __init__(self,
-                 x0=None,
-                 sigma=0.1,
-                 normalize=True,
-                 parallelize=True,
-                 maxfevals=np.inf,
-                 tolfun=1e-11,
-                 tolx=1e-11,
-                 restarts=0,
-                 restart_from_best='False',
-                 incpopsize=2,
-                 eval_initial_x=False,
-                 noise_handler=None,
-                 noise_change_sigma_exponent=1,
-                 noise_kappa_exponent=0,
-                 bipop=False,
-                 cmaes_verbose=-9,
-                 verb_log=0,
-                 output=CMAESOutput(),
-                 pop_size=None,
-                 **kwargs
-                 ):
+    def __init__(
+        self,
+        x0=None,
+        sigma=0.1,
+        normalize=True,
+        parallelize=True,
+        maxfevals=np.inf,
+        tolfun=1e-11,
+        tolx=1e-11,
+        restarts=0,
+        restart_from_best="False",
+        incpopsize=2,
+        eval_initial_x=False,
+        noise_handler=None,
+        noise_change_sigma_exponent=1,
+        noise_kappa_exponent=0,
+        bipop=False,
+        cmaes_verbose=-9,
+        verb_log=0,
+        output=CMAESOutput(),
+        pop_size=None,
+        **kwargs,
+    ):
         """
 
 
@@ -386,7 +386,7 @@ class CMAES(LocalSearch):
             maxfevals=maxfevals,
             tolfun=tolfun,
             tolx=tolx,
-            **kwargs
+            **kwargs,
         )
 
         self.send_array_to_yield = True
@@ -394,21 +394,20 @@ class CMAES(LocalSearch):
         self.al = None
 
     def _setup(self, problem, **kwargs):
-
         xl, xu = problem.bounds()
         if self.normalize:
-            self.norm, self.options['bounds'] = bounds_if_normalize(xl, xu)
+            self.norm, self.options["bounds"] = bounds_if_normalize(xl, xu)
         else:
             self.norm = NoNormalization()
-            self.options['bounds'] = [xl, xu]
+            self.options["bounds"] = [xl, xu]
 
-        seed = kwargs.get('seed', self.seed)
-        self.options['seed'] = seed
+        seed = kwargs.get("seed", self.seed)
+        self.options["seed"] = seed
 
         if isinstance(self.termination, MaximumGenerationTermination):
-            self.options['maxiter'] = self.termination.n_max_gen
+            self.options["maxiter"] = self.termination.n_max_gen
         elif isinstance(self.termination, MaximumFunctionCallTermination):
-            self.options['maxfevals'] = self.termination.n_max_evals
+            self.options["maxfevals"] = self.termination.n_max_evals
 
     def _initialize_advance(self, **kwargs):
         super()._initialize_advance(**kwargs)
@@ -424,7 +423,8 @@ class CMAES(LocalSearch):
             noise_change_sigma_exponent=self.noise_change_sigma_exponent,
             noise_kappa_exponent=self.noise_kappa_exponent,
             bipop=self.bipop,
-            random_state=self.random_state)
+            random_state=self.random_state,
+        )
 
         x0 = self.norm.forward(self.x0.X)
         self.es = my_fmin(x0, self.sigma, **kwargs)
@@ -433,7 +433,6 @@ class CMAES(LocalSearch):
         self.next_X = next(self.es)
 
     def _infill(self):
-
         X = np.array(self.next_X)
         self.send_array_to_yield = X.ndim > 1
         X = np.atleast_2d(X)
@@ -444,12 +443,10 @@ class CMAES(LocalSearch):
         return self.pop
 
     def _advance(self, infills=None, **kwargs):
-
         if infills is None:
             self.termination.force_termination = True
 
         else:
-
             # set infeasible individual's objective values to np.nan - then CMAES can handle it
             for ind in infills:
                 if not ind.feas:
@@ -482,7 +479,6 @@ class CMAES(LocalSearch):
 
 
 class SimpleCMAES(LocalSearch):
-
     def __init__(self, sigma=0.1, opts=None, normalize=True, **kwargs):
         super().__init__(**kwargs)
         self.termination = NoTermination()
@@ -505,11 +501,11 @@ class SimpleCMAES(LocalSearch):
     def _setup(self, problem, **kwargs):
         xl, xu = problem.bounds()
         if self.normalize:
-            self.norm, self.opts['bounds'] = bounds_if_normalize(xl, xu)
+            self.norm, self.opts["bounds"] = bounds_if_normalize(xl, xu)
         else:
             self.norm = NoNormalization()
-            self.opts['bounds'] = [xl, xu]
-        self.opts['seed'] = self.seed
+            self.opts["bounds"] = [xl, xu]
+        self.opts["seed"] = self.seed
 
     def _initialize_advance(self, infills=None, **kwargs):
         super()._initialize_advance(infills, **kwargs)
@@ -536,7 +532,6 @@ class SimpleCMAES(LocalSearch):
 
 
 class BIPOPCMAES(CMAES):
-
     def __init__(self, restarts=4, **kwargs):
         super().__init__(restarts=restarts, bipop=True, **kwargs)
 

@@ -1,20 +1,23 @@
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.util.misc import set_if_none_from_tuples
-from src.pages.algorithm_lab.pymoo.visualization.util import plot_axes_lines, plot_axis_labels, plot_polygon, get_circle_points, \
-    plot_radar_line, equal_axis, no_ticks, parse_bounds, normalize
+from src.pages.algorithm_lab.pymoo.visualization.util import (
+    equal_axis,
+    get_circle_points,
+    no_ticks,
+    normalize,
+    parse_bounds,
+    plot_axes_lines,
+    plot_axis_labels,
+    plot_polygon,
+    plot_radar_line,
+)
 
 
 class Radar(Plot):
-
-    def __init__(self,
-                 normalize_each_objective=True,
-                 n_partitions=3,
-                 point_style={},
-                 **kwargs):
-
+    def __init__(self, normalize_each_objective=True, n_partitions=3, point_style={}, **kwargs):
         """
         Radar Plot
 
@@ -46,10 +49,11 @@ class Radar(Plot):
         self.point_style = point_style
         set_if_none_from_tuples(self.point_style, ("s", 15))
 
-        set_if_none_from_tuples(self.axis_style, ("color", "black"), ("linewidth", 0.5), ("alpha", 0.75))
+        set_if_none_from_tuples(
+            self.axis_style, ("color", "black"), ("linewidth", 0.5), ("alpha", 0.75)
+        )
 
     def _plot(self, ax, _F, inner, outer, kwargs):
-
         set_if_none_from_tuples(kwargs, ("alpha", 0.5))
 
         # equal axis length and no ticks
@@ -72,14 +76,14 @@ class Radar(Plot):
         plot_polygon(ax, _F, **kwargs)
 
     def _do(self):
-
         if self.bounds is None:
             raise Exception("The boundaries must be provided.")
 
         _F = np.vstack([e[0] for e in self.to_plot])
         if np.any(_F < self.bounds[0]) or np.any(_F > self.bounds[1]):
             raise Exception(
-                "Points out of the boundaries exist! Please make sure the boundaries are indeed boundaries.")
+                "Points out of the boundaries exist! Please make sure the boundaries are indeed boundaries."
+            )
 
         n_rows = len(self.to_plot)
         n_cols = max([len(e[0]) for e in self.to_plot])
@@ -100,7 +104,6 @@ class Radar(Plot):
             outer = (bounds[[1]].T * V) / bounds[1].max()
 
         for k, (F, kwargs) in enumerate(to_plot_norm):
-
             for j, _F in enumerate(F):
                 self._plot(self.ax[k, j], _F, inner, outer, kwargs)
 

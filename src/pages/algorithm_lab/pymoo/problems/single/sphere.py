@@ -1,11 +1,10 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class Sphere(Problem):
-
     def __init__(self, n_var=10):
         super().__init__(n_var=n_var, n_obj=1, n_ieq_constr=0, xl=-0, xu=1, vtype=float)
 

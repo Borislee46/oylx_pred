@@ -1,11 +1,10 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class BNH(Problem):
-
     def __init__(self):
         super().__init__(n_var=2, n_obj=2, n_ieq_constr=2, vtype=float)
         self.xl = np.zeros(self.n_var)
@@ -27,8 +26,3 @@ class BNH(Problem):
 
         X = np.column_stack([x1, x2])
         return self.evaluate(X, return_values_of=["F"])
-
-
-
-
-

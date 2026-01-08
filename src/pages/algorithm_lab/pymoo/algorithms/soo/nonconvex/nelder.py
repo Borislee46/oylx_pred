@@ -3,16 +3,16 @@ import numpy as np
 from src.pages.algorithm_lab.pymoo.algorithms.base.local import LocalSearch
 from src.pages.algorithm_lab.pymoo.algorithms.soo.nonconvex.ga import FitnessSurvival
 from src.pages.algorithm_lab.pymoo.core.individual import Individual
-from src.pages.algorithm_lab.pymoo.core.population import Population
-from src.pages.algorithm_lab.pymoo.core.population import pop_from_array_or_individual
+from src.pages.algorithm_lab.pymoo.core.population import Population, pop_from_array_or_individual
 from src.pages.algorithm_lab.pymoo.core.replacement import is_better
 from src.pages.algorithm_lab.pymoo.core.termination import Termination
 from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
-from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import set_to_bounds_if_outside_by_problem
+from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import (
+    set_to_bounds_if_outside_by_problem,
+)
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util.misc import vectorized_cdist
 from src.pages.algorithm_lab.pymoo.util.vectors import max_alpha
-
 
 # =========================================================================================================
 # Implementation
@@ -20,13 +20,7 @@ from src.pages.algorithm_lab.pymoo.util.vectors import max_alpha
 
 
 class NelderAndMeadTermination(Termination):
-
-    def __init__(self,
-                 x_tol=1e-6,
-                 f_tol=1e-6,
-                 n_max_iter=1e6,
-                 n_max_evals=1e6):
-
+    def __init__(self, x_tol=1e-6, f_tol=1e-6, n_max_iter=1e6, n_max_evals=1e6):
         super().__init__()
         self.x_tol = x_tol
         self.f_tol = f_tol
@@ -96,7 +90,6 @@ def initialize_simplex(problem, x0, scale=0.05):
     X = x0[None, :].repeat(n, axis=0)
 
     for k in range(n):
-
         # if the problem has bounds do the check
         if problem.has_bounds():
             if X[k, k] + delta[k] < problem.xu[k]:
@@ -112,13 +105,13 @@ def initialize_simplex(problem, x0, scale=0.05):
 
 
 class NelderMead(LocalSearch):
-
-    def __init__(self,
-                 init_simplex_scale=0.05,
-                 func_params=adaptive_params,
-                 output=SingleObjectiveOutput(),
-                 **kwargs):
-
+    def __init__(
+        self,
+        init_simplex_scale=0.05,
+        func_params=adaptive_params,
+        output=SingleObjectiveOutput(),
+        **kwargs,
+    ):
         super().__init__(output=output, **kwargs)
 
         # the function to return the parameter
@@ -143,7 +136,9 @@ class NelderMead(LocalSearch):
         self.alpha, self.beta, self.gamma, self.delta = self.func_params(self.problem)
 
     def _initialize_simplex(self):
-        simplex = pop_from_array_or_individual(initialize_simplex(self.problem, self.x0.X, scale=0.05))
+        simplex = pop_from_array_or_individual(
+            initialize_simplex(self.problem, self.x0.X, scale=0.05)
+        )
         return Population.merge(self.x0, simplex)
 
     def _next(self):
@@ -154,13 +149,12 @@ class NelderMead(LocalSearch):
             yield from self._step()
 
     def _step(self):
-
         # number of variables increased by one - matches equations in the paper
         xl, xu = self.problem.bounds()
         pop, n = self.pop, self.problem.n_var - 1
 
         # calculate the centroid
-        centroid = pop[:n + 1].get("X").mean(axis=0)
+        centroid = pop[: n + 1].get("X").mean(axis=0)
 
         # -------------------------------------------------------------------------------------------
         # REFLECT
@@ -183,7 +177,6 @@ class NelderMead(LocalSearch):
 
         # if better than the current best - check for expansion
         if better_than_current_best:
-
             # -------------------------------------------------------------------------------------------
             # EXPAND
             # -------------------------------------------------------------------------------------------
@@ -208,7 +201,6 @@ class NelderMead(LocalSearch):
 
         # if not worse than the worst - outside contraction
         elif not better_than_second_worst and better_than_worst:
-
             # -------------------------------------------------------------------------------------------
             # Outside Contraction
             # -------------------------------------------------------------------------------------------
@@ -223,7 +215,6 @@ class NelderMead(LocalSearch):
 
         # if the reflection was worse than the worst - inside contraction
         else:
-
             # -------------------------------------------------------------------------------------------
             # Inside Contraction
             # -------------------------------------------------------------------------------------------

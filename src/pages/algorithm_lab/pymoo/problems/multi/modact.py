@@ -26,14 +26,15 @@ class MODAct(ElementwiseProblem):
     """
 
     def __init__(self, function, pf=None, **kwargs):
-
         self.function = function
         self.pf = pf
 
         try:
             import modact.problems as pb
         except:
-            raise Exception("Please install the modact library: https://github.com/epfl-lamd/modact")
+            raise Exception(
+                "Please install the modact library: https://github.com/epfl-lamd/modact"
+            )
 
         if isinstance(function, pb.Problem):
             self.fct = function
@@ -50,7 +51,9 @@ class MODAct(ElementwiseProblem):
         self.weights = np.array(self.fct.weights)
         self.c_weights = np.array(self.fct.c_weights)
 
-        super().__init__(n_var=n_var, n_obj=n_obj, n_ieq_constr=n_ieq_constr, xl=xl, xu=xu, vtype=float, **kwargs)
+        super().__init__(
+            n_var=n_var, n_obj=n_obj, n_ieq_constr=n_ieq_constr, xl=xl, xu=xu, vtype=float, **kwargs
+        )
 
     def _evaluate(self, x, out, *args, **kwargs):
         f, g = self.fct(x)

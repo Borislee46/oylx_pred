@@ -7,12 +7,7 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class Crossover(Operator):
-
-    def __init__(self,
-                 n_parents,
-                 n_offsprings,
-                 prob=0.9,
-                 **kwargs):
+    def __init__(self, n_parents, n_offsprings, prob=0.9, **kwargs):
         super().__init__(**kwargs)
         self.n_parents = n_parents
         self.n_offsprings = n_offsprings
@@ -20,7 +15,6 @@ class Crossover(Operator):
 
     @default_random_state
     def do(self, problem, pop, parents=None, *args, random_state=None, **kwargs):
-
         # if a parents with array with mating indices is provided -> transform the input first
         if parents is not None:
             pop = [pop[mating] for mating in parents]
@@ -45,10 +39,13 @@ class Crossover(Operator):
 
         # the design space from the parents used for the crossover
         if np.any(cross):
-
             # we can not prefilter for cross first, because there might be other variables using the same shape as X
             Q = self._do(problem, X, *args, random_state=random_state, **kwargs)
-            assert Q.shape == (n_offsprings, n_matings, problem.n_var), "Shape is incorrect of crossover impl."
+            assert Q.shape == (
+                n_offsprings,
+                n_matings,
+                problem.n_var,
+            ), "Shape is incorrect of crossover impl."
             Xp[:, cross] = Q[:, cross]
 
         # now set the parents whenever NO crossover has been applied
@@ -75,5 +72,3 @@ class Crossover(Operator):
 
     def _do(self, problem, X, *args, random_state=None, **kwargs):
         pass
-
-

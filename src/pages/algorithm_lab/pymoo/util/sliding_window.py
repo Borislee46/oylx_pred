@@ -2,7 +2,6 @@ import numpy as np
 
 
 class SlidingWindow(list):
-
     def __init__(self, size=None) -> None:
         super().__init__()
         self.size = size

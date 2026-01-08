@@ -15,7 +15,6 @@ def quadr_interp(a, b, c):
 
 
 class QuadraticInterpolationSearch(BracketSearch):
-
     def __init__(self, a=None, b=None, **kwargs):
         """
 
@@ -43,13 +42,11 @@ class QuadraticInterpolationSearch(BracketSearch):
         return pop
 
     def _advance(self, **kwargs):
-
         # all the elements in the interval
         a, b, c = self.pop
 
         # if this is the case then the function is not convex (which means U shaped)
         if c.F[0] >= a.F[0] or c.F[0] >= b.F[0]:
-
             # choose the left side if a smaller than b, or the right side otherwise
             if a.F[0] <= b.F[0]:
                 a = c
@@ -61,7 +58,6 @@ class QuadraticInterpolationSearch(BracketSearch):
             self.infills = c
 
         else:
-
             d = quadr_interp(a, b, c)
             self.evaluator.eval(self.problem, d, algorithm=self)
             self.infills = d

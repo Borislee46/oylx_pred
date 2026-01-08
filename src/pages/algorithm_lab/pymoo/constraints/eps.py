@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.constraints.adaptive import AdaptiveConstrain
 
 
 class AdaptiveEpsilonConstraintHandling(AdaptiveConstraintHandling):
-
     def __init__(self, algorithm, perc_eps_until=0.5):
         super().__init__(algorithm)
         self.perc_eps_until = perc_eps_until
@@ -18,7 +17,6 @@ class AdaptiveEpsilonConstraintHandling(AdaptiveConstraintHandling):
         config["cv_eps"] = eps
 
     def _initialize_advance(self, infills=None, **kwargs):
-
         # get the average constraint violation in the current generation
         if infills is not None and infills.has("cv"):
             cv = infills.get("cv")

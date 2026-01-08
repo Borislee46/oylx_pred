@@ -1,7 +1,14 @@
 import sys
 
 import numpy as np
-from src.pages.algorithm_lab.pymoo.visualization.matplotlib import matplotlib, patches, PatchCollection, plt, animation
+
+from src.pages.algorithm_lab.pymoo.visualization.matplotlib import (
+    PatchCollection,
+    animation,
+    matplotlib,
+    patches,
+    plt,
+)
 
 
 def get_circle_points(n_points):
@@ -11,13 +18,13 @@ def get_circle_points(n_points):
 
 def default_number_to_text(val):
     if val > 1e3:
-        return "{:.2e}".format(val)
+        return f"{val:.2e}"
     else:
-        return "{:.2f}".format(val)
+        return f"{val:.2f}"
 
 
 def in_notebook():
-    return 'ipykernel' in sys.modules
+    return "ipykernel" in sys.modules
 
 
 def get_uniform_points_around_circle(n):
@@ -38,12 +45,12 @@ def plot_radar_line(ax, x, **kwargs):
 
 
 def plot_axes_arrow(ax, X, extend_factor=1.0, **kwargs):
-    for (x, y) in X:
+    for x, y in X:
         ax.arrow(0, 0, x * extend_factor, y * extend_factor, **kwargs)
 
 
 def plot_axes_lines(ax, X, extend_factor=1.0, **kwargs):
-    for (x, y) in X:
+    for x, y in X:
         plt.plot([0, x * extend_factor], [0, y * extend_factor], **kwargs)
 
 
@@ -51,7 +58,7 @@ def plot_polygon(ax, x, **kwargs):
     ax.add_collection(PatchCollection([patches.Polygon(x, closed=True)], **kwargs))
 
 
-def plot_axis_labels(ax, endpoints, labels, margin=0.035, size='small', **kwargs):
+def plot_axis_labels(ax, endpoints, labels, margin=0.035, size="small", **kwargs):
     for k in range(len(labels)):
         xy = endpoints[k]
 
@@ -75,7 +82,7 @@ def plot_axis_labels(ax, endpoints, labels, margin=0.035, size='small', **kwargs
 def equal_axis(ax):
     ax.set_xlim([-1.1, 1.1])
     ax.set_ylim([-1.1, 1.1])
-    ax.axis('equal')
+    ax.axis("equal")
 
 
 def no_ticks(ax):
@@ -116,6 +123,7 @@ def parse_bounds(bounds, n_dim):
 
 def radviz_pandas(F):
     import pandas as pd
+
     df = pd.DataFrame([x for x in F], columns=["X%s" % k for k in range(F.shape[1])])
     df["class"] = "Points"
     return pd.plotting.radviz(df, "class")
@@ -123,6 +131,7 @@ def radviz_pandas(F):
 
 def plot(*args, show=True, labels=None, no_fill=False, **kwargs):
     import numpy as np
+
     F = np.array(args[0])
 
     if F.ndim == 1:
@@ -150,15 +159,14 @@ def plot(*args, show=True, labels=None, no_fill=False, **kwargs):
 
 def plot_3d(*args, no_fill=False, labels=None, **kwargs):
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     for i, F in enumerate(args):
-
         if no_fill:
             kwargs["s"] = 20
-            kwargs["marker"] = '.'
+            kwargs["marker"] = "."
             kwargs["facecolors"] = (0, 0, 0, 0)
-            kwargs["edgecolors"] = 'r'
+            kwargs["edgecolors"] = "r"
 
         if labels:
             ax.scatter(F[:, 0], F[:, 1], F[:, 2], label=labels[i], **kwargs)
@@ -170,11 +178,7 @@ def plot_3d(*args, no_fill=False, labels=None, **kwargs):
 
 def plot_2d(*args, labels=None, no_fill=False):
     if no_fill:
-        kwargs = dict(
-            s=20,
-            facecolors='none',
-            edgecolors='r'
-        )
+        kwargs = dict(s=20, facecolors="none", edgecolors="r")
     else:
         kwargs = {}
 
@@ -196,7 +200,9 @@ def animate(path_to_file, H, problem=None, func_iter=None, plot_min=None, plot_m
     # plot the pareto front if it is known for the problem
     if problem is not None:
         pf = problem.pareto_front()
-        plt.scatter(pf[:, 0], pf[:, 1], label='Pareto Front', s=60, facecolors='none', edgecolors='r')
+        plt.scatter(
+            pf[:, 0], pf[:, 1], label="Pareto Front", s=60, facecolors="none", edgecolors="r"
+        )
 
     # plot the initial population
     _F = H[0, :, :]
@@ -228,30 +234,29 @@ def animate(path_to_file, H, problem=None, func_iter=None, plot_min=None, plot_m
     ani = animation.FuncAnimation(fig, update, frames=H.shape[0])
 
     # write the file
-    Writer = animation.writers['ffmpeg']
+    Writer = animation.writers["ffmpeg"]
     writer = Writer(fps=6, bitrate=1800)
     ani.save(path_to_file, writer=writer)
 
     print("Saving: ", path_to_file)
 
 
-def plot_problem_surface(problem, n_samples, plot_type="wireframe", cmap="summer", show=True, return_figure=False):
+def plot_problem_surface(
+    problem, n_samples, plot_type="wireframe", cmap="summer", show=True, return_figure=False
+):
     try:
         from src.pages.algorithm_lab.pymoo.visualization.matplotlib import plt
-        from mpl_toolkits.mplot3d import Axes3D
     except:
         raise Exception("Please install 'matplotlib' to use the plotting functionality.")
 
     fig = plt.figure()
 
     if problem.n_var == 1 and problem.n_obj == 1:
-
         X = np.linspace(problem.xl[0], problem.xu[0], num=n_samples)[:, None]
         Y = problem.evaluate(X, return_values_of=["F"])
         ax = plt.plot(X, Y)
 
     elif problem.n_var == 2 and problem.n_obj == 1:
-
         X_range = np.linspace(problem.xl[0], problem.xu[0], num=n_samples)
         Y_range = np.linspace(problem.xl[1], problem.xu[1], num=n_samples)
         X, Y = np.meshgrid(X_range, Y_range)
@@ -268,7 +273,7 @@ def plot_problem_surface(problem, n_samples, plot_type="wireframe", cmap="summer
 
         # Plot the surface.
         if plot_type == "wireframe":
-            ax = fig.add_subplot(111, projection='3d')
+            ax = fig.add_subplot(111, projection="3d")
             ax.plot_wireframe(X, Y, F)
         elif plot_type == "contour":
             CS = plt.contour(X, Y, F)
@@ -283,7 +288,6 @@ def plot_problem_surface(problem, n_samples, plot_type="wireframe", cmap="summer
             ax.view_init(45, 45)
         else:
             raise Exception("Unknown plotting method.")
-
 
     else:
         raise Exception("Can only plot single with less than two variables and one objective.")

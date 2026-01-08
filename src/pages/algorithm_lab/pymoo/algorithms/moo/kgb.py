@@ -26,7 +26,6 @@ class KGB(NSGA2):
         save_ps=False,
         **kwargs,
     ):
-
         super().__init__(**kwargs)
         self.PERTURB_DEV = perturb_dev
         self.PERC_DIVERSITY = perc_diversity
@@ -48,13 +47,10 @@ class KGB(NSGA2):
         :param kwargs: Additional keyword arguments
         :return: The result of the superclass setup method
         """
-        assert (
-            not problem.has_constraints()
-        ), "KGB-DMOEA only works for unconstrained problems."
+        assert not problem.has_constraints(), "KGB-DMOEA only works for unconstrained problems."
         return super().setup(problem, **kwargs)
 
     def _infill(self):
-
         return None
 
     def knowledge_reconstruction_examination(self):
@@ -69,7 +65,6 @@ class KGB(NSGA2):
 
         # while there are still clusters to be condensed
         while size > Nc:
-
             counter = 0
             min_distance = None
             min_distance_index = []
@@ -77,11 +72,7 @@ class KGB(NSGA2):
             # get clusters that are closest to each other by calculating the euclidean distance
             for keys_i in clusters.keys():
                 for keys_j in clusters.keys():
-                    if (
-                        clusters[keys_i]["solutions"]
-                        is not clusters[keys_j]["solutions"]
-                    ):
-
+                    if clusters[keys_i]["solutions"] is not clusters[keys_j]["solutions"]:
                         dst = euclidean_distance(
                             clusters[keys_i]["centroid"],
                             clusters[keys_j]["centroid"],
@@ -102,9 +93,7 @@ class KGB(NSGA2):
                 clusters[min_distance_index[0]]["solutions"].append(solution)
 
             # calculate new centroid for merged cluster
-            clusters[min_distance_index[0]][
-                "centroid"
-            ] = self.calculate_cluster_centroid(
+            clusters[min_distance_index[0]]["centroid"] = self.calculate_cluster_centroid(
                 clusters[min_distance_index[0]]["solutions"]
             )
 
@@ -147,7 +136,6 @@ class KGB(NSGA2):
 
         # return useful and useless population and the centroid solutions
         return pop_useful, pop_useless, c
-    
 
     def naive_bayesian_classifier(self, pop_useful, pop_useless):
         """
@@ -194,7 +182,6 @@ class KGB(NSGA2):
         PS_counter = 0
 
         for individual in self.opt:
-
             if isinstance(individual.X, list):
                 individual.X = np.asarray(individual.X)
 
@@ -327,7 +314,6 @@ class KGB(NSGA2):
         change_detected = delta > self.EPS
 
         if change_detected:
-
             # increase t counter for unique key of PS
             self.t += 1
 
@@ -378,7 +364,6 @@ class KGB(NSGA2):
                     init_pop.append(np.asarray(solution))
 
             else:
-
                 # if not enough predicted solutions are available, add all predicted solutions to init_pop
                 init_pop = []
 
@@ -391,10 +376,8 @@ class KGB(NSGA2):
 
             # if there are still not enough solutions in init_pop randomly sample previously useful solutions directly without noise to init_pop
             if len(init_pop) < self.pop_size:
-
                 # fill up init_pop with randomly sampled solutions from pop_useful
                 if len(pop_useful) >= self.pop_size - len(init_pop):
-
                     nr_sampled_pop_useful = self.pop_size - len(init_pop)
 
                     indices = self.random_state.choice(
@@ -415,7 +398,6 @@ class KGB(NSGA2):
 
             # if there are still not enough solutions in init_pop generate random solutions with the dimensions of problem decision space
             if len(init_pop) < self.pop_size:
-
                 nr_random_filler_solutions = self.pop_size - len(init_pop)
 
                 # fill up with random solutions
@@ -430,10 +412,14 @@ class KGB(NSGA2):
             self.evaluator.eval(self.problem, pop)
 
             # do a survival to recreate rank and crowding of all individuals
-            pop = self.survival.do(self.problem, pop, n_survive=len(pop), random_state=self.random_state)
+            pop = self.survival.do(
+                self.problem, pop, n_survive=len(pop), random_state=self.random_state
+            )
 
         # create the offsprings from the current population
-        off = self.mating.do(self.problem, pop, self.n_offsprings, algorithm=self, random_state=self.random_state)
+        off = self.mating.do(
+            self.problem, pop, self.n_offsprings, algorithm=self, random_state=self.random_state
+        )
         self.evaluator.eval(self.problem, off)
 
         # merge the parent population and offsprings
@@ -441,7 +427,11 @@ class KGB(NSGA2):
 
         # execute the survival to find the fittest solutions
         self.pop = self.survival.do(
-            self.problem, pop, n_survive=self.pop_size, algorithm=self, random_state=self.random_state
+            self.problem,
+            pop,
+            n_survive=self.pop_size,
+            algorithm=self,
+            random_state=self.random_state,
         )
 
         # dump self.ps to file

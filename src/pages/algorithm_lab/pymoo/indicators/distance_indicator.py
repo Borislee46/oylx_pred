@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.indicator import Indicator
-from src.pages.algorithm_lab.pymoo.util.misc import vectorized_cdist, at_least_2d_array
+from src.pages.algorithm_lab.pymoo.util.misc import at_least_2d_array, vectorized_cdist
 
 
 def euclidean_distance(a, b, norm=None):
@@ -12,11 +12,10 @@ def modified_distance(z, a, norm=None):
     d = a - z
     d[d < 0] = 0
     d = d / norm
-    return np.sqrt((d ** 2).sum(axis=1))
+    return np.sqrt((d**2).sum(axis=1))
 
 
 def derive_ideal_and_nadir_from_pf(pf, ideal=None, nadir=None):
-
     # try to derive ideal and nadir if not already set and pf provided
     if pf is not None:
         if ideal is None:
@@ -28,9 +27,17 @@ def derive_ideal_and_nadir_from_pf(pf, ideal=None, nadir=None):
 
 
 class DistanceIndicator(Indicator):
-
-    def __init__(self, pf, dist_func, axis, zero_to_one=False, ideal=None, nadir=None, norm_by_dist=False, **kwargs):
-
+    def __init__(
+        self,
+        pf,
+        dist_func,
+        axis,
+        zero_to_one=False,
+        ideal=None,
+        nadir=None,
+        norm_by_dist=False,
+        **kwargs,
+    ):
         # the pareto front if necessary to calculate the indicator
         pf = at_least_2d_array(pf, extend_as="row")
         ideal, nadir = derive_ideal_and_nadir_from_pf(pf, ideal=ideal, nadir=nadir)
@@ -42,13 +49,14 @@ class DistanceIndicator(Indicator):
         self.pf = self.normalization.forward(pf)
 
     def _do(self, F):
-
         # a factor to normalize the distances by (1.0 disables that by default)
         norm = 1.0
 
         # if zero_to_one is disabled this can be used to normalize the distance calculation itself
         if self.norm_by_dist:
-            assert self.ideal is not None and self.nadir is not None, "If norm_by_dist is enabled ideal and nadir must be set!"
+            assert (
+                self.ideal is not None and self.nadir is not None
+            ), "If norm_by_dist is enabled ideal and nadir must be set!"
             norm = self.nadir - self.ideal
 
         D = vectorized_cdist(self.pf, F, func_dist=self.dist_func, norm=norm)

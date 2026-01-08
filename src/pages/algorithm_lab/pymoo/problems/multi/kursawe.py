@@ -1,5 +1,4 @@
 import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
-
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 from src.pages.algorithm_lab.pymoo.util.remote import Remote
 
@@ -20,6 +19,3 @@ class Kursawe(Problem):
 
     def _calc_pareto_front(self, *args, **kwargs):
         return Remote.get_instance().load("pymoo", "pf", "kursawe.pf")
-
-
-

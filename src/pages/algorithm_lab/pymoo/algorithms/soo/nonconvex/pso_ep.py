@@ -25,16 +25,18 @@ from src.pages.algorithm_lab.pymoo.core.duplicate import NoDuplicateElimination
 from src.pages.algorithm_lab.pymoo.core.infill import InfillCriterion
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.core.replacement import ImprovementReplacement, is_better
-from src.pages.algorithm_lab.pymoo.core.variable import Real, Choice, get
+from src.pages.algorithm_lab.pymoo.core.variable import Choice, Real, get
 from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.operators.control import EvolutionaryParameterControl
-from src.pages.algorithm_lab.pymoo.operators.repair.bounds_repair import repair_random_init, repair_clamp
+from src.pages.algorithm_lab.pymoo.operators.repair.bounds_repair import (
+    repair_clamp,
+    repair_random_init,
+)
 from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling, random
 from src.pages.algorithm_lab.pymoo.termination.default import DefaultSingleObjectiveTermination
-from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util import default_random_state
+from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util.sliding_window import SlidingWindow
-
 
 # =========================================================================================================
 # Mating
@@ -72,7 +74,7 @@ def alea_sphere(G, radius, random_state=None):
     n, m = G.shape
 
     x = random_state.normal(size=(n, m))
-    l = np.sqrt(np.sum(x ** 2, axis=1, keepdims=True))
+    l = np.sqrt(np.sum(x**2, axis=1, keepdims=True))
 
     r = random_state.random(size=(n, 1))
     x = r * radius * x / l
@@ -80,16 +82,16 @@ def alea_sphere(G, radius, random_state=None):
 
 
 class Swarm(InfillCriterion):
-
-    def __init__(self,
-                 w=0.7,
-                 c1=1.4,
-                 c2=1.4,
-                 V_max=0.2,
-                 prob_mut=0.33,
-                 control=EvolutionaryParameterControl,
-                 **kwargs):
-
+    def __init__(
+        self,
+        w=0.7,
+        c1=1.4,
+        c2=1.4,
+        V_max=0.2,
+        prob_mut=0.33,
+        control=EvolutionaryParameterControl,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.w = Real(w, bounds=(0.7, 0.9), strict=(0.0, 1.0))
         self.c1 = Real(c1, bounds=(1.2, 1.6), strict=(0.0, None))
@@ -186,24 +188,26 @@ def get_neighbors(name, N, random_state=None):
 
 
 class EPPSO(GeneticAlgorithm):
-
-    def __init__(self,
-                 pop_size=100,
-                 sampling=FloatRandomSampling(),
-                 swarm=Swarm(),
-                 topology="star",
-                 init_V="zero",
-                 output=SingleObjectiveOutput(),
-                 **kwargs):
-
-        super().__init__(pop_size=pop_size,
-                         sampling=sampling,
-                         mating=swarm,
-                         init_V=init_V,
-                         n_offsprings=None,
-                         eliminate_duplicates=NoDuplicateElimination(),
-                         output=output,
-                         **kwargs)
+    def __init__(
+        self,
+        pop_size=100,
+        sampling=FloatRandomSampling(),
+        swarm=Swarm(),
+        topology="star",
+        init_V="zero",
+        output=SingleObjectiveOutput(),
+        **kwargs,
+    ):
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            mating=swarm,
+            init_V=init_V,
+            n_offsprings=None,
+            eliminate_duplicates=NoDuplicateElimination(),
+            output=output,
+            **kwargs,
+        )
 
         # how the initial weights should be created
         self.init_V = Choice(init_V, options=["zero", "random"])
@@ -252,12 +256,16 @@ class EPPSO(GeneticAlgorithm):
 
         # Initialize neighbors with proper random_state
         if self.neighbors is None:
-            self.neighbors = get_neighbors(get(self.topology), len(infills), random_state=self.random_state)
+            self.neighbors = get_neighbors(
+                get(self.topology), len(infills), random_state=self.random_state
+            )
 
         FitnessSurvival().do(self.problem, self.pbest, return_indices=True)
 
     def _advance(self, infills=None, **kwargs):
-        assert infills is not None, "This algorithms uses the AskAndTell interface thus 'infills' must to be provided."
+        assert (
+            infills is not None
+        ), "This algorithms uses the AskAndTell interface thus 'infills' must to be provided."
 
         X = self.pbest.get("X")
 
@@ -275,7 +283,9 @@ class EPPSO(GeneticAlgorithm):
         self.best = S[0]
 
         if get(self.topology) == "random-adaptive" and pbest[self.best].get("n_gen") != self.n_gen:
-            self.neighbors = get_neighbors(get(self.topology), len(pbest), random_state=self.random_state)
+            self.neighbors = get_neighbors(
+                get(self.topology), len(pbest), random_state=self.random_state
+            )
 
         # send the message from each particle to all its neighbors
         msgs = [[] for _ in range(len(pbest))]
@@ -285,10 +295,8 @@ class EPPSO(GeneticAlgorithm):
 
         # now receive the messages and set the new local best (if an improvement has been found)
         for k, msg in enumerate(msgs):
-
             # if messages have been received
             if len(msg) > 0:
-
                 # find the best one from the swarm that have been send
                 i = msg[rank[msg].argmin()]
 
@@ -304,4 +312,3 @@ class EPPSO(GeneticAlgorithm):
 
 
 parse_doc_string(EPPSO.__init__)
-

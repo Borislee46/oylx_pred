@@ -1,17 +1,18 @@
 import numpy as np
 
-
 from src.pages.algorithm_lab.pymoo.util.misc import cdist
-
 from src.pages.algorithm_lab.pymoo.util.ref_dirs.misc import project_onto_unit_simplex_recursive
-from src.pages.algorithm_lab.pymoo.util.reference_direction import ReferenceDirectionFactory, sample_on_unit_simplex, \
-    select_points_with_maximum_distance, get_partition_closest_to_points, UniformReferenceDirectionFactory
+from src.pages.algorithm_lab.pymoo.util.reference_direction import (
+    ReferenceDirectionFactory,
+    UniformReferenceDirectionFactory,
+    get_partition_closest_to_points,
+    sample_on_unit_simplex,
+    select_points_with_maximum_distance,
+)
 
 
 def kmeans(X, centroids, n_max_iter, a_tol, n_ignore):
-
     for i in range(n_max_iter):
-
         # copy the old centroids
         last_centroids = np.copy(centroids)
 
@@ -37,18 +38,18 @@ def kmeans(X, centroids, n_max_iter, a_tol, n_ignore):
 
 
 class ReductionBasedReferenceDirectionFactory(ReferenceDirectionFactory):
-
-    def __init__(self,
-                 n_dim,
-                 n_points,
-                 scaling=None,
-                 n_sample_points=10000,
-                 sampling="kraemer",
-                 kmeans=True,
-                 kmeans_max_iter=1000,
-                 kmeans_a_tol=0.0001,
-                 **kwargs):
-
+    def __init__(
+        self,
+        n_dim,
+        n_points,
+        scaling=None,
+        n_sample_points=10000,
+        sampling="kraemer",
+        kmeans=True,
+        kmeans_max_iter=1000,
+        kmeans_a_tol=0.0001,
+        **kwargs,
+    ):
         super().__init__(n_dim, scaling, **kwargs)
         self.n_sample_points = n_sample_points
         self.sampling = sampling
@@ -62,7 +63,12 @@ class ReductionBasedReferenceDirectionFactory(ReferenceDirectionFactory):
         self.n_points = n_points
 
     def _do(self, random_state=None):
-        rnd = sample_on_unit_simplex(self.n_sample_points, self.n_dim, random_state=random_state, unit_simplex_mapping=self.sampling)
+        rnd = sample_on_unit_simplex(
+            self.n_sample_points,
+            self.n_dim,
+            random_state=random_state,
+            unit_simplex_mapping=self.sampling,
+        )
 
         def h(n):
             return get_partition_closest_to_points(n, self.n_dim)
@@ -75,11 +81,11 @@ class ReductionBasedReferenceDirectionFactory(ReferenceDirectionFactory):
         # add the edge coordinates
         X = np.vstack([E, rnd])
 
-        I = select_points_with_maximum_distance(X, self.n_points, selected=list(range((len(E)))))
+        I = select_points_with_maximum_distance(X, self.n_points, selected=list(range(len(E))))
         centroids = X[I].copy()
 
         if self.kmeans:
-            #centroids = kmeans(X, centroids, self.kmeans_max_iter, self.kmeans_a_tol, 0)
+            # centroids = kmeans(X, centroids, self.kmeans_max_iter, self.kmeans_a_tol, 0)
             centroids = kmeans(X, centroids, self.kmeans_max_iter, self.kmeans_a_tol, len(E))
 
         return centroids

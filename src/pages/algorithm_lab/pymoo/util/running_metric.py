@@ -11,11 +11,7 @@ from src.pages.algorithm_lab.pymoo.visualization.video.callback_video import Ani
 
 
 class RunningMetric(Callback):
-
-    def __init__(self,
-                 period=None,
-                 indicator="igd") -> None:
-
+    def __init__(self, period=None, indicator="igd") -> None:
         super().__init__()
         self.indicator = indicator
 
@@ -48,10 +44,14 @@ class RunningMetric(Callback):
         N = [normalize(e["F"], c_ideal, c_nadir) for e in history]
 
         # calculate the delta difference for each previous ideal and nadir point to current
-        delta_ideal = [calc_delta_norm(history[k]["ideal"], history[k - 1]["ideal"], norm) for k in
-                       range(1, len(history))] + [0.0]
-        delta_nadir = [calc_delta_norm(history[k]["nadir"], history[k - 1]["nadir"], norm) for k in
-                       range(1, len(history))] + [0.0]
+        delta_ideal = [
+            calc_delta_norm(history[k]["ideal"], history[k - 1]["ideal"], norm)
+            for k in range(1, len(history))
+        ] + [0.0]
+        delta_nadir = [
+            calc_delta_norm(history[k]["nadir"], history[k - 1]["nadir"], norm)
+            for k in range(1, len(history))
+        ] + [0.0]
 
         # now calculate the indicator from each previous one to the current
         if self.indicator == "igd":
@@ -66,13 +66,7 @@ class RunningMetric(Callback):
 
 
 class RunningMetricAnimation(AnimationCallback):
-
-    def __init__(self,
-                 delta_gen,
-                 n_plots=4,
-                 key_press=True,
-                 **kwargs) -> None:
-
+    def __init__(self, delta_gen, n_plots=4, key_press=True, **kwargs) -> None:
         super().__init__(**kwargs)
         self.running = RunningMetric()
         self.delta_gen = delta_gen
@@ -80,7 +74,6 @@ class RunningMetricAnimation(AnimationCallback):
         self.data = SlidingWindow(n_plots)
 
     def draw(self, data, ax):
-
         for tau, x, f, v in data[:-1]:
             ax.plot(x, f, label="t=%s" % tau, alpha=0.6, linewidth=3)
 
@@ -107,22 +100,25 @@ class RunningMetricAnimation(AnimationCallback):
         tau = algorithm.n_gen
 
         if (tau > 0 and tau % self.delta_gen == 0) or force_plot:
-
             f = running.delta_f
             x = np.arange(len(f)) + 1
-            v = [max(ideal, nadir) > 0.005 for ideal, nadir in zip(running.delta_ideal, running.delta_nadir)]
+            v = [
+                max(ideal, nadir) > 0.005
+                for ideal, nadir in zip(running.delta_ideal, running.delta_nadir)
+            ]
             self.data.append((tau, x, f, v))
 
             fig, ax = plt.subplots()
             self.draw(self.data, ax)
 
             if self.key_press:
+
                 def press(event):
-                    if event.key == 'q':
+                    if event.key == "q":
                         algorithm.termination.force_termination = True
 
-                fig.canvas.mpl_connect('key_press_event', press)
+                fig.canvas.mpl_connect("key_press_event", press)
 
                 plt.draw()
                 plt.waitforbuttonpress()
-                plt.close('all')
+                plt.close("all")

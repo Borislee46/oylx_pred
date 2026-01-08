@@ -4,16 +4,12 @@ from src.pages.algorithm_lab.pymoo.core.repair import NoRepair
 
 
 class InfillCriterion:
-
-    def __init__(self,
-                 repair=None,
-                 eliminate_duplicates=None,
-                 n_max_iterations=100,
-                 **kwargs):
-
+    def __init__(self, repair=None, eliminate_duplicates=None, n_max_iterations=100, **kwargs):
         super().__init__()
         self.n_max_iterations = n_max_iterations
-        self.eliminate_duplicates = eliminate_duplicates if eliminate_duplicates is not None else NoDuplicateElimination()
+        self.eliminate_duplicates = (
+            eliminate_duplicates if eliminate_duplicates is not None else NoDuplicateElimination()
+        )
         self.repair = repair if repair is not None else NoRepair()
 
     def __call__(self, problem, pop, n_offsprings, random_state=None, **kwargs):
@@ -31,7 +27,6 @@ class InfillCriterion:
 
         # iterate until enough offsprings are created
         while len(off) < n_offsprings:
-
             # how many offsprings are remaining to be created
             n_remaining = n_offsprings - len(off)
 
@@ -46,7 +41,6 @@ class InfillCriterion:
 
             # if more offsprings than necessary - truncate them randomly
             if len(off) + len(_off) > n_offsprings:
-
                 # IMPORTANT: Interestingly, this makes a difference in performance for some algorithms
                 n_remaining = n_offsprings - len(off)
                 _off = _off[:n_remaining]

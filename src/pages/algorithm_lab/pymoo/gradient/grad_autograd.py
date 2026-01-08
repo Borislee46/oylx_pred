@@ -1,16 +1,18 @@
 import warnings
+
 import numpy as np
 
 try:
     import autograd.numpy as anp
     from autograd.core import VJPNode, backward_pass
-    from autograd.tracer import new_box, isbox
+    from autograd.tracer import isbox, new_box
 except:
     print("autograd only supports numpy < 2.0.0 versions.")
 
 
 def value_and_grad(*args, **kwargs):
     from autograd import value_and_grad as vag
+
     return vag(*args, **kwargs)
 
 
@@ -47,7 +49,6 @@ def autograd_elementwise_value_and_grad(f, x):
         val = out[name]
 
         if val is not None:
-
             if len(val.shape) == 0:
                 val = anp.array([val])
 
@@ -78,7 +79,6 @@ def autograd_vectorized_value_and_grad(f, x):
     end = {k: v for k, v in end.items() if v is not None}
 
     for name, val in end.items():
-
         v = val
         if hasattr(v, "_value"):
             v = np.array(v._value)
@@ -90,7 +90,6 @@ def autograd_vectorized_value_and_grad(f, x):
             jac[name] = np.zeros((n, m, x.shape[1]))
 
         else:
-
             # the backward pass is done for each objective function once
             grad = []
             for j in range(val.shape[1]):

@@ -5,7 +5,7 @@ Dask-based parallelization for pymoo.
 
 class DaskParallelization:
     """Parallelization using Dask distributed client.
-    
+
     Parameters
     ----------
     client : dask.distributed.Client

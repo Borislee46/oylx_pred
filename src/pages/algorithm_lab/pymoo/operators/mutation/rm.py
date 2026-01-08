@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.core.mutation import Mutation
 
 
 class ChoiceRandomMutation(Mutation):
-
     def _do(self, problem, X, random_state=None, **kwargs):
         assert problem.vars is not None
 
@@ -20,4 +19,3 @@ class ChoiceRandomMutation(Mutation):
             X[mut, k] = v
 
         return X
-

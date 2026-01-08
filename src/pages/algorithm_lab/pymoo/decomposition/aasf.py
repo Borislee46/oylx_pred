@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.decomposition.asf import ASF
 
 
 class AASF(ASF):
-
     def __init__(self, eps=1e-10, _type="auto", rho=None, beta=None, **kwargs) -> None:
         super().__init__(eps, _type, **kwargs)
         if rho is None and beta is None:

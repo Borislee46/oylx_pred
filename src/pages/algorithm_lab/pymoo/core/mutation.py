@@ -6,15 +6,15 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class Mutation(Operator):
-
     def __init__(self, prob=1.0, prob_var=None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.prob = Real(prob, bounds=(0.7, 1.0), strict=(0.0, 1.0))
-        self.prob_var = Real(prob_var, bounds=(0.0, 0.25), strict=(0.0, 1.0)) if prob_var is not None else None
+        self.prob_var = (
+            Real(prob_var, bounds=(0.0, 0.25), strict=(0.0, 1.0)) if prob_var is not None else None
+        )
 
     @default_random_state
     def do(self, problem, pop, inplace=True, *args, random_state=None, **kwargs):
-
         # if not inplace copy the population first
         if not inplace:
             pop = deepcopy(pop)

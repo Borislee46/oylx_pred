@@ -1,21 +1,20 @@
 from functools import partial
 
 import jax
-jax.config.update("jax_enable_x64", True)
-from jax import vjp
-from jax import vmap
-from jax._src.api import _jacrev_unravel, _std_basis
-from jax.tree_util import (tree_map)
 
+jax.config.update("jax_enable_x64", True)
+import numpy as np
+from jax import vjp, vmap
+from jax._src.api import _jacrev_unravel, _std_basis
+from jax.tree_util import tree_map
 
 import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
-import numpy as np
 
 
 def jax_elementwise_value_and_grad(f, x):
     out, pullback = vjp(f, x)
     u = _std_basis(out)
-    jac, = vmap(pullback, in_axes=0)(u)
+    (jac,) = vmap(pullback, in_axes=0)(u)
 
     grad = tree_map(partial(_jacrev_unravel, out), x, jac)
 
@@ -43,7 +42,7 @@ def jax_vectorized_value_and_grad(f, x):
 
         u[k] = anp.array(a)
 
-    jac, = vmap(pullback, in_axes=0)(u)
+    (jac,) = vmap(pullback, in_axes=0)(u)
     jac = np.array(jac)
 
     grad = {k: np.swapaxes(jac[I], 0, 1) for k, I in cols.items()}

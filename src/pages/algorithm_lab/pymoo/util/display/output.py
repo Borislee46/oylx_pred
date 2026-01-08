@@ -10,7 +10,6 @@ def pareto_front_if_possible(problem):
 
 
 class NumberOfGenerations(Column):
-
     def __init__(self, **kwargs) -> None:
         super().__init__("n_gen", **kwargs)
 
@@ -19,7 +18,6 @@ class NumberOfGenerations(Column):
 
 
 class NumberOfEvaluations(Column):
-
     def __init__(self, **kwargs) -> None:
         super().__init__("n_eval", **kwargs)
 
@@ -28,7 +26,6 @@ class NumberOfEvaluations(Column):
 
 
 class Output(Callback):
-
     def __init__(self):
         super().__init__()
         self.n_gen = NumberOfGenerations(width=6)
@@ -44,7 +41,7 @@ class Output(Callback):
 
         if border:
             line = "=" * len(header)
-            header = line + '\n' + header + '\n' + line
+            header = line + "\n" + header + "\n" + line
 
         return header
 

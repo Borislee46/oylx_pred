@@ -8,17 +8,16 @@ from src.pages.algorithm_lab.pymoo.core.solution import SolutionSet
 
 
 class WolfeSearch(Algorithm):
-
     def __init__(self, c1=1e-4, c2=0.9, max_iter=10, **kwargs):
-
         super().__init__(**kwargs)
         self.c1 = c1
         self.c2 = c2
         self.max_iter = max_iter
 
     def _setup(self, problem, **kwargs):
-        assert isinstance(problem,
-                          LineSearchProblem), "The wolfe search only purpose is to solve a line search problem!"
+        assert isinstance(
+            problem, LineSearchProblem
+        ), "The wolfe search only purpose is to solve a line search problem!"
         self.pop = SolutionSet.create(problem.point)
         self.opt = self.pop
 
@@ -32,7 +31,6 @@ class WolfeSearch(Algorithm):
         self.termination.force_termination = True
 
     def _infill(self):
-
         problem, evaluator = self.problem, self.evaluator
         evaluator.skip_already_evaluated = False
 
@@ -43,14 +41,15 @@ class WolfeSearch(Algorithm):
         sol_F, sol_dF = sol.F[0], sol.get("dF")[0]
 
         def zoom(alpha_low, alpha_high, max_iter=100):
-
             while True:
-
                 _alpha = (alpha_high.get("alpha") + alpha_low.get("alpha")) / 2
                 _point = Individual(X=_alpha)
                 evaluator.eval(problem, _point, evaluate_values_of=["F", "CV"])
 
-                if _point.F[0] > sol_F + self.c1 * _alpha * sol_dF @ direction or _point.F[0] > alpha_low.F[0]:
+                if (
+                    _point.F[0] > sol_F + self.c1 * _alpha * sol_dF @ direction
+                    or _point.F[0] > alpha_low.F[0]
+                ):
                     alpha_high = _point
                 else:
                     evaluator.eval(problem, _point, evaluate_values_of=["dF"])
@@ -59,7 +58,9 @@ class WolfeSearch(Algorithm):
                     if np.abs(point_dF @ direction) <= -self.c2 * sol_dF @ direction:
                         return _point
 
-                    if (point_dF @ direction) * (alpha_high.get("alpha") - alpha_low.get("alpha")) >= 0:
+                    if (point_dF @ direction) * (
+                        alpha_high.get("alpha") - alpha_low.get("alpha")
+                    ) >= 0:
                         alpha_high = alpha_low
 
                     alpha_low = _point
@@ -70,7 +71,6 @@ class WolfeSearch(Algorithm):
         current = Individual(X=alpha)
 
         for i in range(1, self.max_iter + 1):
-
             # evaluate the solutions
             evaluator.eval(problem, current, evaluate_values_of=["F", "CV"])
 
@@ -108,14 +108,15 @@ def wolfe_line_search(problem, sol, direction, c1=1e-4, c2=0.9, max_iter=10, eva
     sol_F, sol_dF = sol.F[0], sol.get("dF")[0]
 
     def zoom(alpha_low, alpha_high, max_iter=100):
-
         while True:
-
             _alpha = (alpha_high.get("alpha") + alpha_low.get("alpha")) / 2
             _point = Individual(X=sol.X + _alpha * direction, alpha=_alpha)
             evaluator.eval(problem, _point, evaluate_values_of=["F", "CV"])
 
-            if _point.F[0] > sol_F + c1 * _alpha * sol_dF @ direction or _point.F[0] > alpha_low.F[0]:
+            if (
+                _point.F[0] > sol_F + c1 * _alpha * sol_dF @ direction
+                or _point.F[0] > alpha_low.F[0]
+            ):
                 alpha_high = _point
             else:
                 evaluator.eval(problem, _point, evaluate_values_of=["dF"])
@@ -135,7 +136,6 @@ def wolfe_line_search(problem, sol, direction, c1=1e-4, c2=0.9, max_iter=10, eva
     current = Individual(X=sol.X + alpha * direction, alpha=alpha)
 
     for i in range(1, max_iter + 1):
-
         # evaluate the solutions
         evaluator.eval(problem, current, evaluate_values_of=["F", "CV"])
 

@@ -1,24 +1,23 @@
 import numpy as np
 
-import src.pages.algorithm_lab.pymoo.visualization.util
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.util.misc import all_combinations
 
 
 class FitnessLandscape(Plot):
-
-    def __init__(self,
-                 problem,
-                 _type="surface+contour",
-                 n_samples=100,
-                 colorbar=False,
-                 contour_levels=30,
-                 kwargs_surface=None,
-                 kwargs_contour=None,
-                 kwargs_contour_labels=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        problem,
+        _type="surface+contour",
+        n_samples=100,
+        colorbar=False,
+        contour_levels=30,
+        kwargs_surface=None,
+        kwargs_contour=None,
+        kwargs_contour_labels=None,
+        **kwargs,
+    ):
         """
 
         Fitness Landscape
@@ -66,11 +65,9 @@ class FitnessLandscape(Plot):
         self.kwargs_contour_labels = kwargs_contour_labels
 
     def _do(self):
-
         problem, n_samples, _type = self.problem, self.n_samples, self._type
 
         if problem.n_var == 1 and problem.n_obj == 1:
-
             self.init_figure()
 
             X = np.linspace(problem.xl[0], problem.xu[0], num=n_samples)[:, None]
@@ -80,7 +77,6 @@ class FitnessLandscape(Plot):
             self.ax.set_ylabel("f(x)")
 
         elif problem.n_var == 2 and problem.n_obj == 1:
-
             A = np.linspace(problem.xl[0], problem.xu[0], n_samples)
             B = np.linspace(problem.xl[1], problem.xu[1], n_samples)
             X = all_combinations(A, B)
@@ -116,13 +112,14 @@ class FitnessLandscape(Plot):
 
                 plot_contour()
             elif _type == "surface+contour":
-
                 self.init_figure(plot_3D=True)
                 plot_surface()
                 plot_contour()
 
         else:
-            raise Exception("Only landscapes of problems with one or two variables and one objective can be visualized.")
+            raise Exception(
+                "Only landscapes of problems with one or two variables and one objective can be visualized."
+            )
 
 
 parse_doc_string(FitnessLandscape.__init__)

@@ -6,7 +6,7 @@ from src.pages.algorithm_lab.pymoo.core.individual import Individual
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
-from src.pages.algorithm_lab.pymoo.util.normalization import normalize, denormalize
+from src.pages.algorithm_lab.pymoo.util.normalization import denormalize, normalize
 
 
 def norm_bounds(pop, problem):
@@ -26,15 +26,16 @@ def update_bounds(ind, xl, xu, k, delta):
 
 
 class DIRECT(LocalSearch):
-
-    def __init__(self,
-                 eps=1e-2,
-                 penalty=0.1,
-                 n_max_candidates=10,
-                 n_max_archive=400,
-                 archive_reduct=0.66,
-                 output=SingleObjectiveOutput(),
-                 **kwargs):
+    def __init__(
+        self,
+        eps=1e-2,
+        penalty=0.1,
+        n_max_candidates=10,
+        n_max_archive=400,
+        archive_reduct=0.66,
+        output=SingleObjectiveOutput(),
+        **kwargs,
+    ):
         super().__init__(output=output, **kwargs)
         self.eps = eps
         self.penalty = penalty
@@ -43,7 +44,6 @@ class DIRECT(LocalSearch):
         self.archive_reduct = archive_reduct
 
     def _setup(self, problem, **kwargs):
-
         xl, xu = problem.bounds()
         X = denormalize(0.5 * np.ones(problem.n_var), xl, xu)
 
@@ -86,7 +86,15 @@ class DIRECT(LocalSearch):
             I = np.argsort(rank)[:n_truncated]
 
             # also update all the utility variables defined so far to match the truncation
-            pop, F, nxl, nxu, length, val, obj = pop[I], F[I], nxl[I], nxu[I], length[I], val[I], obj[I]
+            pop, F, nxl, nxu, length, val, obj = (
+                pop[I],
+                F[I],
+                nxl[I],
+                nxu[I],
+                length[I],
+                val[I],
+                obj[I],
+            )
             self.pop = pop
 
         I = NonDominatedSorting().do(obj, only_non_dominated_front=True)
@@ -97,12 +105,13 @@ class DIRECT(LocalSearch):
             return candidates
         else:
             if len(candidates) > self.n_max_candidates:
-                candidates = RankAndCrowdingSurvival().do(self.problem, pop, n_survive=self.n_max_candidates, algorithm=self)
+                candidates = RankAndCrowdingSurvival().do(
+                    self.problem, pop, n_survive=self.n_max_candidates, algorithm=self
+                )
 
             return candidates
 
     def _infill(self):
-
         # the offspring population to finally evaluate and attach to the population
         infills = Population()
 
@@ -111,7 +120,6 @@ class DIRECT(LocalSearch):
 
         # for each of those solutions execute the division move
         for current in potential_optimal:
-
             # find the largest dimension the solution has not been evaluated yet
             nxl, nxu = norm_bounds(current, self.problem)
             k = np.argmax(nxu - nxl)
@@ -144,5 +152,7 @@ class DIRECT(LocalSearch):
         return infills
 
     def _advance(self, infills=None, **kwargs):
-        assert infills is not None, "This algorithms uses the AskAndTell interface thus infills must to be provided."
+        assert (
+            infills is not None
+        ), "This algorithms uses the AskAndTell interface thus infills must to be provided."
         self.pop = Population.merge(self.pop, infills)

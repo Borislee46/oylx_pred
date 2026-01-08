@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.core.repair import Repair
 
 
 class RoundingRepair(Repair):
-
     def __init__(self, **kwargs) -> None:
         """
 

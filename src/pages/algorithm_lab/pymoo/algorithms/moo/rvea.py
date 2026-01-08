@@ -14,20 +14,21 @@ from src.pages.algorithm_lab.pymoo.util.misc import has_feasible, vectorized_cdi
 
 
 class RVEA(GeneticAlgorithm):
-
-    def __init__(self,
-                 ref_dirs,
-                 alpha=2.0,
-                 adapt_freq=0.1,
-                 pop_size=None,
-                 sampling=FloatRandomSampling(),
-                 selection=RandomSelection(),
-                 crossover=SBX(eta=30, prob=1.0),
-                 mutation=PM(eta=20),
-                 eliminate_duplicates=True,
-                 n_offsprings=None,
-                 output=MultiObjectiveOutput(),
-                 **kwargs):
+    def __init__(
+        self,
+        ref_dirs,
+        alpha=2.0,
+        adapt_freq=0.1,
+        pop_size=None,
+        sampling=FloatRandomSampling(),
+        selection=RandomSelection(),
+        crossover=SBX(eta=30, prob=1.0),
+        mutation=PM(eta=20),
+        eliminate_duplicates=True,
+        n_offsprings=None,
+        output=MultiObjectiveOutput(),
+        **kwargs,
+    ):
         """
 
         Parameters
@@ -62,19 +63,20 @@ class RVEA(GeneticAlgorithm):
         if survival is None:
             survival = APDSurvival(ref_dirs, alpha=alpha)
 
-        super().__init__(pop_size=pop_size,
-                         sampling=sampling,
-                         selection=selection,
-                         crossover=crossover,
-                         mutation=mutation,
-                         survival=survival,
-                         eliminate_duplicates=eliminate_duplicates,
-                         n_offsprings=n_offsprings,
-                         output=output,
-                         **kwargs)
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            crossover=crossover,
+            mutation=mutation,
+            survival=survival,
+            eliminate_duplicates=eliminate_duplicates,
+            n_offsprings=n_offsprings,
+            output=output,
+            **kwargs,
+        )
 
     def _setup(self, problem, **kwargs):
-
         # if maximum functions termination convert it to generations
         if isinstance(self.termination, MaximumFunctionCallTermination):
             n_gen = np.ceil((self.termination.n_max_evals - self.pop_size) / self.n_offsprings)
@@ -82,7 +84,9 @@ class RVEA(GeneticAlgorithm):
 
         # check whether the n_gen termination is used - otherwise this algorithm can be not run
         if not isinstance(self.termination, MaximumGenerationTermination):
-            raise Exception("Please use the n_gen or n_eval as a termination criterion to run RVEA!")
+            raise Exception(
+                "Please use the n_gen or n_eval as a termination criterion to run RVEA!"
+            )
 
     def _advance(self, **kwargs):
         super()._advance(**kwargs)
@@ -105,8 +109,9 @@ class RVEA(GeneticAlgorithm):
 # Survival Selection
 # ---------------------------------------------------------------------------------------------------------
 
+
 def calc_gamma(V):
-    gamma = np.arccos((- np.sort(-1 * V @ V.T))[:, 1])
+    gamma = np.arccos((-np.sort(-1 * V @ V.T))[:, 1])
     gamma = np.maximum(gamma, 1e-64)
     return gamma
 
@@ -116,7 +121,6 @@ def calc_V(ref_dirs):
 
 
 class APDSurvival(Survival):
-
     def __init__(self, ref_dirs, alpha=2.0) -> None:
         super().__init__(filter_infeasible=True)
         n_dim = ref_dirs.shape[1]
@@ -127,7 +131,9 @@ class APDSurvival(Survival):
         self.ideal, self.nadir = np.full(n_dim, np.inf), None
 
         self.ref_dirs = ref_dirs
-        self.extreme_ref_dirs = np.where(np.any(vectorized_cdist(self.ref_dirs, np.eye(n_dim)) == 0, axis=1))[0]
+        self.extreme_ref_dirs = np.where(
+            np.any(vectorized_cdist(self.ref_dirs, np.eye(n_dim)) == 0, axis=1)
+        )[0]
 
         self.V = calc_V(self.ref_dirs)
         self.gamma = calc_gamma(self.V)
@@ -138,7 +144,6 @@ class APDSurvival(Survival):
             self.gamma = calc_gamma(self.V)
 
     def _do(self, problem, pop, n_survive, algorithm=None, n_gen=None, n_max_gen=None, **kwargs):
-
         if n_gen is None:
             n_gen = algorithm.n_gen - 1
         if n_max_gen is None:
@@ -174,13 +179,11 @@ class APDSurvival(Survival):
 
         # for each reference direction
         for k in range(len(self.V)):
-
             # individuals assigned to the niche
             assigned_to_niche = niches_to_ind[k]
 
             # if niche not empty
             if len(assigned_to_niche) > 0:
-
                 # the angle of niche to nearest neighboring niche
                 gamma = self.gamma[k]
 

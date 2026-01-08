@@ -1,7 +1,5 @@
 from os.path import dirname, realpath
 
-from src.pages.algorithm_lab.pymoo.version import __version__
-
 
 class Config:
     """
@@ -12,9 +10,7 @@ class Config:
     # the root directory where the package is located at
     root = dirname(realpath(__file__))
 
-    warnings = {
-        "not_compiled": True
-    }
+    warnings = {"not_compiled": True}
 
     # whether a warning should be printed if compiled modules are not available
     show_compile_hint = True
@@ -25,7 +21,7 @@ class Config:
     # a method defining the endpoint to load data remotely - default from GitHub repo
     @classmethod
     def data(cls):
-        return f"https://raw.githubusercontent.com/anyoptimization/pymoo-data/main/"
+        return "https://raw.githubusercontent.com/anyoptimization/pymoo-data/main/"
 
 
 # returns the directory to be used for imports

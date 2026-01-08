@@ -1,6 +1,6 @@
 import numpy as np
-from moocore import hypervolume as hv
 from moocore import hv_contributions as hvc
+from moocore import hypervolume as hv
 
 
 def hv_exact(ref_point, F):
@@ -12,7 +12,6 @@ def hvc_exact(ref_point, F):
 
 
 class DynamicHypervolume:
-
     def __init__(self, ref_point, F=None, func_hv=None, func_hvc=None) -> None:
         super().__init__()
         self.ref_point = ref_point
@@ -31,7 +30,9 @@ class DynamicHypervolume:
 
     def add(self, F):
         assert len(F.shape) == 2, "The points to add must be a two-dimensional array."
-        assert F.shape[1] == self.n_dim, "The dimensions of the ref_point and points to add must be equal"
+        assert (
+            F.shape[1] == self.n_dim
+        ), "The dimensions of the ref_point and points to add must be equal"
         self.F = np.vstack([self.F, F])
         self.hv, self.hvc = self.calc()
         return self
@@ -63,6 +64,5 @@ class DynamicHypervolume:
 
 
 class ExactHypervolume(DynamicHypervolume):
-
     def __init__(self, ref_point, func_hv=hv_exact, func_hvc=hvc_exact, **kwargs) -> None:
         super().__init__(ref_point, func_hv=func_hv, func_hvc=func_hvc, **kwargs)

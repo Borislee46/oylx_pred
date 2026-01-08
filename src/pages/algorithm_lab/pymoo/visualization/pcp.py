@@ -1,21 +1,22 @@
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.util.misc import set_if_none, set_if_none_from_tuples
-from src.pages.algorithm_lab.pymoo.visualization.util import parse_bounds, normalize
 from src.pages.algorithm_lab.pymoo.visualization.matplotlib import plt
+from src.pages.algorithm_lab.pymoo.visualization.util import normalize, parse_bounds
 
 
 class PCP(Plot):
-
-    def __init__(self,
-                 bounds=None,
-                 show_bounds=True,
-                 n_ticks=5,
-                 normalize_each_axis=True,
-                 bbox=False,
-                 **kwargs):
+    def __init__(
+        self,
+        bounds=None,
+        show_bounds=True,
+        n_ticks=5,
+        normalize_each_axis=True,
+        bbox=False,
+        **kwargs,
+    ):
         """
 
         Parallel Coordinate Plot
@@ -56,10 +57,11 @@ class PCP(Plot):
         self.bbox = bbox
         self.normalize_each_axis = normalize_each_axis
 
-        set_if_none_from_tuples(self.axis_style, ("color", "red"), ("linewidth", 2), ("alpha", 0.75))
+        set_if_none_from_tuples(
+            self.axis_style, ("color", "red"), ("linewidth", 2), ("alpha", 0.75)
+        )
 
     def _do(self):
-
         # initial a figure with a single plot
         self.init_figure()
 
@@ -74,7 +76,6 @@ class PCP(Plot):
 
         # plot for each set the lines
         for k, (F, kwargs) in enumerate(to_plot_norm):
-
             _kwargs = kwargs.copy()
             set_if_none(_kwargs, "color", self.colors[k % len(self.colors)])
 
@@ -89,12 +90,14 @@ class PCP(Plot):
             margin_left = 0.08
 
             if self.show_bounds:
-                lower = self.ax.text(i - margin_left, bottom, self.func_number_to_text(bounds[0][i]))
+                lower = self.ax.text(
+                    i - margin_left, bottom, self.func_number_to_text(bounds[0][i])
+                )
                 upper = self.ax.text(i - margin_left, top, self.func_number_to_text(bounds[1][i]))
 
                 if self.bbox:
-                    lower.set_bbox(dict(facecolor='white', alpha=0.8))
-                    upper.set_bbox(dict(facecolor='white', alpha=0.8))
+                    lower.set_bbox(dict(facecolor="white", alpha=0.8))
+                    upper.set_bbox(dict(facecolor="white", alpha=0.8))
 
             if self.n_ticks is not None:
                 n_length = 0.03
@@ -103,10 +106,10 @@ class PCP(Plot):
 
         # if bounds are shown, then move them to the bottom
         if self.show_bounds:
-            self.ax.tick_params(axis='x', which='major', pad=25)
+            self.ax.tick_params(axis="x", which="major", pad=25)
 
-        self.ax.spines['right'].set_visible(False)
-        self.ax.spines['left'].set_visible(False)
+        self.ax.spines["right"].set_visible(False)
+        self.ax.spines["left"].set_visible(False)
 
         self.ax.set_yticklabels([])
         self.ax.set_yticks([])

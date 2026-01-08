@@ -4,11 +4,10 @@ from src.pages.algorithm_lab.pymoo.core.population import Population
 
 
 class GoldenSectionSearch(BracketSearch):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.left, self.right = None, None
-        self.R = (5 ** 0.5 - 1) / 2
+        self.R = (5**0.5 - 1) / 2
 
     def _initialize_infill(self):
         super()._initialize_infill()
@@ -28,7 +27,6 @@ class GoldenSectionSearch(BracketSearch):
         return pop
 
     def _advance(self, **kwargs):
-
         # all the elements in the interval
         a, c, d, b = self.pop
 
@@ -37,7 +35,6 @@ class GoldenSectionSearch(BracketSearch):
 
         # if the left solution is better than the right
         if c.F[0] < d.F[0]:
-
             # make the right to be the new right bound and the left becomes the right
             a, b = a, d
             d = c
@@ -49,7 +46,6 @@ class GoldenSectionSearch(BracketSearch):
 
         # if the right solution is better than the left
         else:
-
             # make the left to be the new left bound and the right becomes the left
             a, b = c, b
             c = d
@@ -61,5 +57,3 @@ class GoldenSectionSearch(BracketSearch):
 
         # update the population with all the four individuals
         self.pop = Population.create(a, c, d, b)
-
-

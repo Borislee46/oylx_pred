@@ -1,17 +1,26 @@
 import numpy as np
+from moocore import hypervolume as _hypervolume
 
 from src.pages.algorithm_lab.pymoo.core.indicator import Indicator
 from src.pages.algorithm_lab.pymoo.functions import FunctionLoader, load_function
-from src.pages.algorithm_lab.pymoo.indicators.distance_indicator import derive_ideal_and_nadir_from_pf
+from src.pages.algorithm_lab.pymoo.indicators.distance_indicator import (
+    derive_ideal_and_nadir_from_pf,
+)
 from src.pages.algorithm_lab.pymoo.util.misc import at_least_2d_array
 from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
-from moocore import hypervolume as _hypervolume
 
 
 class Hypervolume(Indicator):
-
-    def __init__(self, ref_point=None, pf=None, nds=True, norm_ref_point=True, ideal=None, nadir=None, **kwargs):
-
+    def __init__(
+        self,
+        ref_point=None,
+        pf=None,
+        nds=True,
+        norm_ref_point=True,
+        ideal=None,
+        nadir=None,
+        **kwargs,
+    ):
         pf = at_least_2d_array(pf, extend_as="row")
         ideal, nadir = derive_ideal_and_nadir_from_pf(pf, ideal=ideal, nadir=nadir)
 
@@ -36,7 +45,7 @@ class Hypervolume(Indicator):
 
     def _do(self, F):
         # calculate the hypervolume using moocore
-        val = _hypervolume(F, ref = self.ref_point)
+        val = _hypervolume(F, ref=self.ref_point)
         return val
 
 

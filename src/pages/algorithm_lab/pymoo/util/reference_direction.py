@@ -3,9 +3,8 @@ import sys
 import numpy as np
 from scipy import special
 
-from src.pages.algorithm_lab.pymoo.util.misc import find_duplicates, cdist
 from src.pages.algorithm_lab.pymoo.util import default_random_state
-
+from src.pages.algorithm_lab.pymoo.util.misc import cdist, find_duplicates
 
 # =========================================================================================================
 # Model
@@ -20,12 +19,13 @@ def default_ref_dirs(m):
     elif m == 3:
         return UniformReferenceDirectionFactory(m, n_partitions=12).do()
     else:
-        raise Exception("No default reference directions for more than 3 objectives. Please provide them directly:"
-                        "https://pymoo.org/misc/reference_directions.html")
+        raise Exception(
+            "No default reference directions for more than 3 objectives. Please provide them directly:"
+            "https://pymoo.org/misc/reference_directions.html"
+        )
 
 
 class ReferenceDirectionFactory:
-
     def __init__(self, n_dim, scaling=None, lexsort=True, verbose=False, **kwargs) -> None:
         super().__init__()
         self.n_dim = n_dim
@@ -38,11 +38,9 @@ class ReferenceDirectionFactory:
 
     @default_random_state(seed=1)
     def do(self, random_state=None):
-
         if self.n_dim == 1:
             return np.array([[1.0]])
         else:
-
             val = self._do(random_state=random_state)
             if isinstance(val, tuple):
                 ref_dirs, other = val[0], val[1:]
@@ -113,7 +111,6 @@ def das_dennis_recursion(ref_dirs, ref_dir, n_partitions, beta, depth):
 
 
 class UniformReferenceDirectionFactory(ReferenceDirectionFactory):
-
     def __init__(self, n_dim, scaling=None, n_points=None, n_partitions=None, **kwargs) -> None:
         super().__init__(n_dim, scaling=scaling, **kwargs)
 
@@ -124,10 +121,12 @@ class UniformReferenceDirectionFactory(ReferenceDirectionFactory):
             # the number of points are not matching to any partition number
             if results_in != n_points:
                 results_in_next = get_number_of_uniform_points(n_partitions + 1, n_dim)
-                raise Exception("The number of points (n_points = %s) can not be created uniformly.\n"
-                                "Either choose n_points = %s (n_partitions = %s) or "
-                                "n_points = %s (n_partitions = %s)." %
-                                (n_points, results_in, n_partitions, results_in_next, n_partitions + 1))
+                raise Exception(
+                    "The number of points (n_points = %s) can not be created uniformly.\n"
+                    "Either choose n_points = %s (n_partitions = %s) or "
+                    "n_points = %s (n_partitions = %s)."
+                    % (n_points, results_in, n_partitions, results_in_next, n_partitions + 1)
+                )
 
             self.n_partitions = n_partitions
 
@@ -147,7 +146,6 @@ class UniformReferenceDirectionFactory(ReferenceDirectionFactory):
 
 
 class MultiLayerReferenceDirectionFactory:
-
     def __init__(self, *args) -> None:
         self.layers = []
         self.layers.extend(args)
@@ -171,13 +169,16 @@ class MultiLayerReferenceDirectionFactory:
 # Util
 # =========================================================================================================
 
+
 @default_random_state
 def get_rng(random_state=None, **kwargs):
     return random_state
 
 
 @default_random_state
-def sample_on_unit_simplex(n_points, n_dim, unit_simplex_mapping="kraemer", random_state=None, **kwargs):
+def sample_on_unit_simplex(
+    n_points, n_dim, unit_simplex_mapping="kraemer", random_state=None, **kwargs
+):
     if unit_simplex_mapping == "sum":
         rnd = map_onto_unit_simplex(random_state.random((n_points, n_dim)), "sum")
 
@@ -204,7 +205,7 @@ def map_onto_unit_simplex(rnd, method):
         M = sys.maxsize
 
         rnd *= M
-        rnd = rnd[:, :n_dim - 1]
+        rnd = rnd[:, : n_dim - 1]
         rnd = np.column_stack([np.zeros(n_points), rnd, np.full(n_points, M)])
 
         rnd = np.sort(rnd, axis=1)

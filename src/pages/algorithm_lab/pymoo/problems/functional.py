@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.problem import ElementwiseProblem
@@ -9,16 +8,16 @@ def func_return_none(*args, **kwargs):
 
 
 class FunctionalProblem(ElementwiseProblem):
-
-    def __init__(self,
-                 n_var,
-                 objs,
-                 constr_ieq=[],
-                 constr_eq=[],
-                 func_pf=func_return_none,
-                 func_ps=func_return_none,
-                 **kwargs):
-
+    def __init__(
+        self,
+        n_var,
+        objs,
+        constr_ieq=[],
+        constr_eq=[],
+        func_pf=func_return_none,
+        func_ps=func_return_none,
+        **kwargs,
+    ):
         # if only a single callable is provided (for single-objective problems) convert it to a list
         if callable(objs):
             objs = [objs]
@@ -29,11 +28,13 @@ class FunctionalProblem(ElementwiseProblem):
         self.func_pf = func_pf
         self.func_ps = func_ps
 
-        super().__init__(n_var=n_var,
-                         n_obj=len(self.objs),
-                         n_ieq_constr=len(constr_ieq),
-                         n_eq_constr=len(constr_eq),
-                         **kwargs)
+        super().__init__(
+            n_var=n_var,
+            n_obj=len(self.objs),
+            n_ieq_constr=len(constr_ieq),
+            n_eq_constr=len(constr_eq),
+            **kwargs,
+        )
 
     def _evaluate(self, x, out, *args, **kwargs):
         out["F"] = np.array([obj(x) for obj in self.objs])
@@ -45,4 +46,3 @@ class FunctionalProblem(ElementwiseProblem):
 
     def _calc_pareto_set(self, *args, **kwargs):
         return self.func_ps(*args, **kwargs)
-

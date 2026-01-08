@@ -1,10 +1,12 @@
-
 def get_termination(name, *args, **kwargs):
-    from src.pages.algorithm_lab.pymoo.termination.default import DefaultMultiObjectiveTermination, DefaultSingleObjectiveTermination
+    from src.pages.algorithm_lab.pymoo.termination.default import (
+        DefaultMultiObjectiveTermination,
+        DefaultSingleObjectiveTermination,
+    )
+    from src.pages.algorithm_lab.pymoo.termination.fmin import MinimumFunctionValueTermination
     from src.pages.algorithm_lab.pymoo.termination.max_eval import MaximumFunctionCallTermination
     from src.pages.algorithm_lab.pymoo.termination.max_gen import MaximumGenerationTermination
     from src.pages.algorithm_lab.pymoo.termination.max_time import TimeBasedTermination
-    from src.pages.algorithm_lab.pymoo.termination.fmin import MinimumFunctionValueTermination
 
     TERMINATION = {
         "n_eval": MaximumFunctionCallTermination,

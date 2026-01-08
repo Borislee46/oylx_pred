@@ -5,11 +5,12 @@ from src.pages.algorithm_lab.pymoo.core.individual import Individual
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.core.replacement import is_better
 from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
-from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import set_to_bounds_if_outside_by_problem
+from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import (
+    set_to_bounds_if_outside_by_problem,
+)
+from src.pages.algorithm_lab.pymoo.util import default_random_state
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util.optimum import filter_optimum
-from src.pages.algorithm_lab.pymoo.util import default_random_state
-
 
 # =========================================================================================================
 # Implementation
@@ -17,12 +18,9 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class PatternSearch(LocalSearch):
-    def __init__(self,
-                 init_delta=0.25,
-                 init_rho=0.5,
-                 step_size=1.0,
-                 output=SingleObjectiveOutput(),
-                 **kwargs):
+    def __init__(
+        self, init_delta=0.25, init_rho=0.5, step_size=1.0, output=SingleObjectiveOutput(), **kwargs
+    ):
         """
         An implementation of well-known Hooke and Jeeves Pattern Search.
 
@@ -79,39 +77,42 @@ class PatternSearch(LocalSearch):
             self._delta[self._delta <= 1.0] = 1.0
 
     def _next(self):
-
         # whether the last iteration has resulted in a new optimum or not
         has_improved = is_better(self._explr, self._center)
 
         # that means that the exploration did not find any new point and was thus unsuccessful
         if not has_improved:
-
             # increase the counter (by default this will be initialized to 0 and directly increased to 1)
             self.n_not_improved += 1
 
             # keep track of the rho values in the normalized space
-            self._rho = self.init_rho ** self.n_not_improved
+            self._rho = self.init_rho**self.n_not_improved
 
             # explore around the current center - try finding a suitable direction
-            self._explr = yield from exploration_move(self.problem, self._center, self._sign, self._delta, self._rho)
+            self._explr = yield from exploration_move(
+                self.problem, self._center, self._sign, self._delta, self._rho
+            )
 
         # if we have found a direction in the last iteration to be worth following
         else:
-
             # get the direction which was successful in the last move
-            self._direction = (self._explr.X - self._center.X)
+            self._direction = self._explr.X - self._center.X
 
             # declare the exploration point the new center (it has led to an improvement in the last iteration!)
             self._center = self._explr
 
             # use the pattern move to get a new trial vector along that given direction
-            self._trial = yield pattern_move(self.problem, self._center, self._direction, self.step_size)
+            self._trial = yield pattern_move(
+                self.problem, self._center, self._direction, self.step_size
+            )
 
             # get the delta sign adjusted for the exploration
             self._sign = calc_sign(self._direction)
 
             # explore around the current center to try finding a suitable direction
-            self._explr = yield from exploration_move(self.problem, self._trial, self._sign, self._delta, self._rho)
+            self._explr = yield from exploration_move(
+                self.problem, self._trial, self._sign, self._delta, self._rho
+            )
 
         self.pop = Population.create(self._center, self._explr)
 
@@ -132,7 +133,6 @@ def exploration_move(problem, center, sign, delta, rho, randomize=True, random_s
 
     # iterate over each variable
     for k in K:
-
         # the value to be tried first is given by the amount times the sign
         _delta = sign[k] * rho * delta
 
@@ -144,7 +144,6 @@ def exploration_move(problem, center, sign, delta, rho, randomize=True, random_s
 
         # if not successful try the other direction
         else:
-
             # now try the negative value of delta and see if we can improve
             _explr = yield step_along_axis(problem, center.X, -1 * _delta, k)
 

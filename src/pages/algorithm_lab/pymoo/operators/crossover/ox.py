@@ -43,14 +43,13 @@ def ox(receiver, donor, seq=None, shift=False, random_state=None):
     start, end = seq
 
     # the donation and a set of it to allow a quick lookup
-    donation = np.copy(donor[start:end + 1])
+    donation = np.copy(donor[start : end + 1])
     donation_as_set = set(donation)
 
     # the final value to be returned
     y = []
 
     for k in range(len(receiver)):
-
         # do the shift starting from the swapped sequence - as proposed in the paper
         i = k if not shift else (start + k) % len(receiver)
         v = receiver[i]
@@ -65,7 +64,6 @@ def ox(receiver, donor, seq=None, shift=False, random_state=None):
 
 
 class OrderCrossover(Crossover):
-
     def __init__(self, shift=False, **kwargs):
         super().__init__(2, 2, **kwargs)
         self.shift = shift

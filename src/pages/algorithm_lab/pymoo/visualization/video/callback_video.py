@@ -1,20 +1,19 @@
-from src.pages.algorithm_lab.pymoo.visualization.matplotlib import plt
-
 from src.pages.algorithm_lab.pymoo.core.callback import Callback
+from src.pages.algorithm_lab.pymoo.visualization.matplotlib import plt
 from src.pages.algorithm_lab.pymoo.visualization.scatter import Scatter
 
 
 class AnimationCallback(Callback):
-
-    def __init__(self,
-                 do_show=False,
-                 do_close=True,
-                 nth_gen=1,
-                 dpi=None,
-                 recorder=None,
-                 fname=None,
-                 exception_if_not_applicable=True):
-
+    def __init__(
+        self,
+        do_show=False,
+        do_close=True,
+        nth_gen=1,
+        dpi=None,
+        recorder=None,
+        fname=None,
+        exception_if_not_applicable=True,
+    ):
         super().__init__()
         self.nth_gen = nth_gen
         self.do_show = do_show
@@ -24,17 +23,19 @@ class AnimationCallback(Callback):
         self.recorder = recorder
         if self.recorder is None and fname is not None:
             try:
+                from pyrecorder.converters.matplotlib import Matplotlib
                 from pyrecorder.recorder import Recorder
                 from pyrecorder.writers.video import Video
-                from pyrecorder.converters.matplotlib import Matplotlib
+
                 self.recorder = Recorder(Video(fname), converter=Matplotlib(dpi=dpi))
             except:
-                raise Exception("Please install or update pyrecorder for animation support: pip install -U pyrecorder")
+                raise Exception(
+                    "Please install or update pyrecorder for animation support: pip install -U pyrecorder"
+                )
 
     def update(self, algorithm):
         if algorithm.n_gen == 1 or algorithm.n_gen % self.nth_gen == 0:
             try:
-
                 figure = self.do(algorithm.problem, algorithm)
 
                 if self.do_show:
@@ -60,11 +61,11 @@ class AnimationCallback(Callback):
 
 
 class ObjectiveSpaceAnimation(AnimationCallback):
-
     def __init__(self, recorder=None, **kwargs):
         if recorder is None:
             from pyrecorder.recorder import Recorder
             from pyrecorder.writers.streamer import Streamer
+
             recorder = Recorder(Streamer())
         super().__init__(recorder=recorder, **kwargs)
 
@@ -79,4 +80,3 @@ class ObjectiveSpaceAnimation(AnimationCallback):
         sc.do()
 
         self.recorder.record()
-

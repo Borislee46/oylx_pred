@@ -4,12 +4,17 @@ from src.pages.algorithm_lab.pymoo.core.crossover import Crossover
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.operators.crossover.binx import mut_binomial
 from src.pages.algorithm_lab.pymoo.operators.crossover.expx import mut_exp
-from src.pages.algorithm_lab.pymoo.operators.repair.bounds_repair import is_out_of_bounds_by_problem, repair_random_init
+from src.pages.algorithm_lab.pymoo.operators.repair.bounds_repair import (
+    is_out_of_bounds_by_problem,
+    repair_random_init,
+)
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 @default_random_state
-def de_differential(X, F, dither=None, jitter=True, gamma=0.0001, return_differentials=False, random_state=None):
+def de_differential(
+    X, F, dither=None, jitter=True, gamma=0.0001, return_differentials=False, random_state=None
+):
     n_parents, n_matings, n_var = X.shape
     assert n_parents % 2 == 1, "For the differential an odd number of values need to be provided"
 
@@ -24,15 +29,14 @@ def de_differential(X, F, dither=None, jitter=True, gamma=0.0001, return_differe
 
     # for each difference
     for i, j in pairs:
-
         if dither == "vector":
-            F = (F + random_state.random(n_matings) * (1 - F))
+            F = F + random_state.random(n_matings) * (1 - F)
         elif dither == "scalar":
             F = F + random_state.random() * (1 - F)
 
         # http://www.cs.ndsu.nodak.edu/~siludwig/Publish/papers/SSCI20141.pdf
         if jitter:
-            F = (F * (1 + gamma * (random_state.random(n_matings) - 0.5)))
+            F = F * (1 + gamma * (random_state.random(n_matings) - 0.5))
 
         # an add the difference to the first vector
         diffs += F[:, None] * (X[i] - X[j])
@@ -47,18 +51,18 @@ def de_differential(X, F, dither=None, jitter=True, gamma=0.0001, return_differe
 
 
 class DEX(Crossover):
-
-    def __init__(self,
-                 F=None,
-                 CR=0.7,
-                 variant="bin",
-                 dither=None,
-                 jitter=False,
-                 n_diffs=1,
-                 n_iter=1,
-                 at_least_once=True,
-                 **kwargs):
-
+    def __init__(
+        self,
+        F=None,
+        CR=0.7,
+        variant="bin",
+        dither=None,
+        jitter=False,
+        n_diffs=1,
+        n_iter=1,
+        at_least_once=True,
+        **kwargs,
+    ):
         super().__init__(1 + 2 * n_diffs, 1, **kwargs)
         self.n_diffs = n_diffs
         self.F = F
@@ -70,13 +74,14 @@ class DEX(Crossover):
         self.n_iter = n_iter
 
     def do(self, problem, pop, parents=None, *args, random_state, **kwargs):
-
         # if a parents with array with mating indices is provided -> transform the input first
         if parents is not None:
             pop = [pop[mating] for mating in parents]
 
         # get the actual values from each of the parents
-        X = np.swapaxes(np.array([[parent.get("X") for parent in mating] for mating in pop]), 0, 1).copy()
+        X = np.swapaxes(
+            np.array([[parent.get("X") for parent in mating] for mating in pop]), 0, 1
+        ).copy()
 
         n_parents, n_matings, n_var = X.shape
 
@@ -91,7 +96,6 @@ class DEX(Crossover):
 
         # if the problem has boundaries to be considered
         if problem.has_bounds():
-
             for k in range(self.n_iter):
                 # find the individuals which are still infeasible
                 m = is_out_of_bounds_by_problem(problem, Xp)
@@ -105,9 +109,21 @@ class DEX(Crossover):
             Xp = repair_random_init(Xp, X[0], *problem.bounds())
 
         if self.variant == "bin":
-            M = mut_binomial(n_matings, n_var, self.CR, at_least_once=self.at_least_once, random_state=random_state)
+            M = mut_binomial(
+                n_matings,
+                n_var,
+                self.CR,
+                at_least_once=self.at_least_once,
+                random_state=random_state,
+            )
         elif self.variant == "exp":
-            M = mut_exp(n_matings, n_var, self.CR, at_least_once=self.at_least_once, random_state=random_state)
+            M = mut_exp(
+                n_matings,
+                n_var,
+                self.CR,
+                at_least_once=self.at_least_once,
+                random_state=random_state,
+            )
         else:
             raise Exception(f"Unknown variant: {self.variant}")
 

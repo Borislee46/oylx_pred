@@ -16,7 +16,6 @@ def calc_complex_gradient(problem, return_values_of, x, eps, *args, **kwargs):
 
 
 class ComplexNumberGradient(Meta, Problem):
-
     def __init__(self, problem, eps=1e-8, **kwargs):
         super().__init__(problem, **kwargs)
         self.eps = eps
@@ -27,9 +26,11 @@ class ComplexNumberGradient(Meta, Problem):
         vals_not_grad = [v for v in return_values_of if not v.startswith("d")]
 
         for i, x in enumerate(X):
-            grad = calc_complex_gradient(self.__object__, vals_not_grad, x, self.eps, *args, **kwargs)
+            grad = calc_complex_gradient(
+                self.__object__, vals_not_grad, x, self.eps, *args, **kwargs
+            )
 
             for name, value in grad.items():
-                out['d' + name][i] = value
+                out["d" + name][i] = value
 
         return out

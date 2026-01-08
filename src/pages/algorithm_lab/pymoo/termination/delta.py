@@ -1,11 +1,9 @@
-import math
 from abc import abstractmethod
 
 from src.pages.algorithm_lab.pymoo.core.termination import Termination
 
 
 class DeltaToleranceTermination(Termination):
-
     def __init__(self, tol, n_skip=0):
         super().__init__()
 
@@ -23,7 +21,6 @@ class DeltaToleranceTermination(Termination):
         self.n_skip = n_skip
 
     def _update(self, algorithm):
-
         # the object from the previous iteration
         prev = self.data
 
@@ -44,7 +41,7 @@ class DeltaToleranceTermination(Termination):
             if delta <= tol:
                 return 1.0
             else:
-                v = (delta - tol)
+                v = delta - tol
                 perc = 1 / (1 + v)
 
         # remember the data from the current iteration and set it to data

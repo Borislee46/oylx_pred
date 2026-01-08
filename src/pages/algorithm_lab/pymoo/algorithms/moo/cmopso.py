@@ -12,7 +12,9 @@ from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import (
     set_to_bounds_if_outside,
 )
 from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling
-from src.pages.algorithm_lab.pymoo.operators.survival.rank_and_crowding.metrics import get_crowding_function
+from src.pages.algorithm_lab.pymoo.operators.survival.rank_and_crowding.metrics import (
+    get_crowding_function,
+)
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 from src.pages.algorithm_lab.pymoo.util.archive import MultiObjectiveArchive, SurvivalTruncation
 from src.pages.algorithm_lab.pymoo.util.display.multi import MultiObjectiveOutput
@@ -183,9 +185,7 @@ class CMOPSO(Algorithm):
     def _setup(self, problem, **kwargs):
         super()._setup(problem, **kwargs)
         self.elites = MultiObjectiveArchive(
-            truncation=SurvivalTruncation(
-                CrowdingDistanceTournamentSurvival(), problem=problem
-            ),
+            truncation=SurvivalTruncation(CrowdingDistanceTournamentSurvival(), problem=problem),
             max_size=self.pop_size,
             truncate_size=self.elite_size,
         )
@@ -201,8 +201,7 @@ class CMOPSO(Algorithm):
 
         if self.initial_velocity == "random":
             init_V = (
-                self.random_state.random((len(self.pop), self.problem.n_var))
-                * self.V_max[None, :]
+                self.random_state.random((len(self.pop), self.problem.n_var)) * self.V_max[None, :]
             )
         elif self.initial_velocity == "zero":
             init_V = np.zeros((len(self.pop), self.problem.n_var))
@@ -226,9 +225,9 @@ class CMOPSO(Algorithm):
         return off
 
     def _advance(self, infills=None, **kwargs):
-        assert infills is not None, (
-            "This algorithm uses the AskAndTell interface thus 'infills' must to be provided."
-        )
+        assert (
+            infills is not None
+        ), "This algorithm uses the AskAndTell interface thus 'infills' must to be provided."
 
         particles = Population.merge(self.pop, infills)
         self.elites = self.elites.add(particles)

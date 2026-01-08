@@ -1,10 +1,7 @@
-from math import log
-
 from src.pages.algorithm_lab.pymoo.core.termination import Termination
 
 
 class IndicatorTermination(Termination):
-
     def __init__(self, indicator, threshold, goal, **kwargs) -> None:
         super().__init__()
 
@@ -26,7 +23,6 @@ class IndicatorTermination(Termination):
         self._max = -float("inf")
 
     def _update(self, algorithm):
-
         # get the objective space values
         F = algorithm.opt.get("F")
 

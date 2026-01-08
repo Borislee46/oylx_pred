@@ -6,7 +6,6 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class Sampling(Operator):
-
     def __init__(self) -> None:
         """
         This abstract class represents any sampling strategy that can be used to create an initial population or
@@ -40,6 +39,3 @@ class Sampling(Operator):
     @abstractmethod
     def _do(self, problem, n_samples, *args, random_state=None, **kwargs):
         pass
-
-
-

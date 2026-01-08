@@ -3,7 +3,6 @@ from src.pages.algorithm_lab.pymoo.functions import load_function
 
 
 class PerpendicularDistance(Decomposition):
-
     def __init__(self, theta=5, **kwargs) -> None:
         super().__init__(**kwargs)
         self.theta = theta

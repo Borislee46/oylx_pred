@@ -20,7 +20,7 @@ def inverse_penality(x, p, xl, xu, alpha=None, random_state=None):
 
     else:
         # lower bounds of Y
-        diff = (p - x)
+        diff = p - x
         diff[diff == 0] = 1e-32
         d = normv * np.max(np.maximum(idl * (xl - x) / diff, idr * (xu - x) / diff))
 
@@ -50,10 +50,11 @@ def inverse_penality_by_problem(problem, x, p, **kwargs):
 
 
 class InversePenaltyOutOfBoundsRepair(BoundsRepair):
-
     def repair_out_of_bounds(self, problem, X, P=None, **kwargs):
         if P is None:
-            raise Exception("For this out of bounds handling a parent solution in bounds needs to be provided.")
+            raise Exception(
+                "For this out of bounds handling a parent solution in bounds needs to be provided."
+            )
         assert len(X) == len(P)
         n = len(X)
 
@@ -63,8 +64,7 @@ class InversePenaltyOutOfBoundsRepair(BoundsRepair):
         return X
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # lower and upper bounds
     xl = np.zeros(2)
     xu = np.ones(2)

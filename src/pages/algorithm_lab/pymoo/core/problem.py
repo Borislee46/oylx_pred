@@ -17,7 +17,6 @@ class LoopedElementwiseEvaluation:
 
 
 class ElementwiseEvaluationFunction:
-
     def __init__(self, problem, args, kwargs) -> None:
         super().__init__()
         self.problem = problem
@@ -31,25 +30,26 @@ class ElementwiseEvaluationFunction:
 
 
 class Problem:
-    def __init__(self,
-                 n_var=-1,
-                 n_obj=1,
-                 n_ieq_constr=0,
-                 n_eq_constr=0,
-                 xl=None,
-                 xu=None,
-                 vtype=None,
-                 vars=None,
-                 elementwise=False,
-                 elementwise_func=ElementwiseEvaluationFunction,
-                 elementwise_runner=LoopedElementwiseEvaluation(),
-                 requires_kwargs=False,
-                 replace_nan_values_by=None,
-                 exclude_from_serialization=None,
-                 callback=None,
-                 strict=True,
-                 **kwargs):
-
+    def __init__(
+        self,
+        n_var=-1,
+        n_obj=1,
+        n_ieq_constr=0,
+        n_eq_constr=0,
+        xl=None,
+        xu=None,
+        vtype=None,
+        vars=None,
+        elementwise=False,
+        elementwise_func=ElementwiseEvaluationFunction,
+        elementwise_runner=LoopedElementwiseEvaluation(),
+        requires_kwargs=False,
+        replace_nan_values_by=None,
+        exclude_from_serialization=None,
+        callback=None,
+        strict=True,
+        **kwargs,
+    ):
         """
 
         Parameters
@@ -84,7 +84,9 @@ class Problem:
         self.n_obj = n_obj
 
         # number of inequality constraints
-        self.n_ieq_constr = n_ieq_constr if "n_constr" not in kwargs else max(n_ieq_constr, kwargs["n_constr"])
+        self.n_ieq_constr = (
+            n_ieq_constr if "n_constr" not in kwargs else max(n_ieq_constr, kwargs["n_constr"])
+        )
 
         # number of equality constraints
         self.n_eq_constr = n_eq_constr
@@ -104,9 +106,13 @@ class Problem:
             self.n_var = len(vars)
 
             if self.xl is None:
-                self.xl = {name: var.lb if hasattr(var, "lb") else None for name, var in vars.items()}
+                self.xl = {
+                    name: var.lb if hasattr(var, "lb") else None for name, var in vars.items()
+                }
             if self.xu is None:
-                self.xu = {name: var.ub if hasattr(var, "ub") else None for name, var in vars.items()}
+                self.xu = {
+                    name: var.ub if hasattr(var, "ub") else None for name, var in vars.items()
+                }
 
         # the variable type (only as a type hint at this point)
         self.vtype = vtype
@@ -124,7 +130,6 @@ class Problem:
 
         # if it is a problem with an actual number of variables - make sure xl and xu are numpy arrays
         if n_var > 0:
-
             if self.xl is not None:
                 if not isinstance(self.xl, np.ndarray):
                     self.xl = np.ones(n_var) * xl
@@ -141,13 +146,7 @@ class Problem:
         # attribute which are excluded from being serialized
         self.exclude_from_serialization = exclude_from_serialization
 
-    def evaluate(self,
-                 X,
-                 *args,
-                 return_values_of=None,
-                 return_as_dictionary=False,
-                 **kwargs):
-
+    def evaluate(self, X, *args, return_values_of=None, return_as_dictionary=False, **kwargs):
         # if the problem does not require any kwargs they are re-initialized
         if not self.requires_kwargs:
             kwargs = dict()
@@ -162,7 +161,9 @@ class Problem:
         # make sure the array is at least 2d. store if reshaping was necessary
         if isinstance(X, np.ndarray) and X.dtype != object:
             X, only_single_value = at_least_2d_array(X, extend_as="row", return_if_reshaped=True)
-            assert X.shape[1] == self.n_var, f'Input dimension {X.shape[1]} are not equal to n_var {self.n_var}!'
+            assert (
+                X.shape[1] == self.n_var
+            ), f"Input dimension {X.shape[1]} are not equal to n_var {self.n_var}!"
         else:
             only_single_value = not (isinstance(X, list) or isinstance(X, np.ndarray))
 
@@ -171,7 +172,6 @@ class Problem:
 
         out = {}
         for k, v in _out.items():
-
             # copy it to a numpy array (it might be one of jax at this point)
             v = np.array(v)
 
@@ -201,9 +201,8 @@ class Problem:
             return tuple([out[e] for e in return_values_of])
 
     def do(self, X, return_values_of, *args, **kwargs):
-
         # create an empty dictionary
-        out = {name: None for name in return_values_of}
+        out = dict.fromkeys(return_values_of)
 
         # do the function evaluation
         if self.elementwise:
@@ -220,7 +219,6 @@ class Problem:
         self._evaluate(X, out, *args, **kwargs)
 
     def _evaluate_elementwise(self, X, out, *args, **kwargs):
-
         # create the function that evaluates a single individual
         f = self.elementwise_func(self, args, kwargs)
 
@@ -229,10 +227,8 @@ class Problem:
 
         # for each evaluation call
         for elem in elems:
-
             # for each key stored for this evaluation
             for k, v in elem.items():
-
                 # if the element does not exist in out yet -> create it
                 if out.get(k, None) is None:
                     out[k] = []
@@ -245,7 +241,6 @@ class Problem:
                 out[k] = anp.array(out[k])
 
     def _format_dict(self, out, N, return_values_of):
-
         # get the default output shape for the default values
         shape = default_shape(self, N)
 
@@ -254,13 +249,10 @@ class Problem:
 
         # for all values that have been set in the user implemented function
         for name, v in out.items():
-
             # only if they have truly been set
             if v is not None:
-
                 # if there is a shape to be expected
                 if name in shape:
-
                     if isinstance(v, list):
                         v = anp.column_stack(v)
 
@@ -269,7 +261,8 @@ class Problem:
                     except Exception as e:
                         raise Exception(
                             f"Problem Error: {name} can not be set, expected shape {shape[name]} but provided {v.shape}",
-                            e)
+                            e,
+                        )
 
                 ret[name] = v
 
@@ -296,7 +289,7 @@ class Problem:
     @Cache
     def pareto_front(self, *args, **kwargs):
         pf = self._calc_pareto_front(*args, **kwargs)
-        pf = at_least_2d_array(pf, extend_as='r')
+        pf = at_least_2d_array(pf, extend_as="r")
         if pf is not None and pf.shape[1] == 2:
             pf = pf[np.argsort(pf[:, 0])]
         return pf
@@ -304,7 +297,7 @@ class Problem:
     @Cache
     def pareto_set(self, *args, **kwargs):
         ps = self._calc_pareto_set(*args, **kwargs)
-        ps = at_least_2d_array(ps, extend_as='r')
+        ps = at_least_2d_array(ps, extend_as="r")
         return ps
 
     @property
@@ -355,7 +348,6 @@ class Problem:
 
 
 class ElementwiseProblem(Problem):
-
     def __init__(self, elementwise=True, **kwargs):
         super().__init__(elementwise=elementwise, **kwargs)
 
@@ -377,20 +369,23 @@ def default_shape(problem, n):
 # Backward compatibility for moved parallelization classes
 # ===========================================================================
 
+
 def __getattr__(name):
     """
     Provide backward compatibility for StarmapParallelization import.
     This class was moved from src.pages.algorithm_lab.pymoo.core.problem to pymoo.parallelization.
     """
-    if name == 'StarmapParallelization':
+    if name == "StarmapParallelization":
         import warnings
+
         warnings.warn(
             "Importing 'StarmapParallelization' from 'pymoo.core.problem' is deprecated. "
             "Please use 'from src.pages.algorithm_lab.pymoo.parallelization import StarmapParallelization' instead. "
             "This backward compatibility import will be removed in a future version.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         from src.pages.algorithm_lab.pymoo.parallelization import StarmapParallelization
+
         return StarmapParallelization
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

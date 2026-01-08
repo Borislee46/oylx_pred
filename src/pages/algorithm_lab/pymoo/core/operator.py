@@ -6,12 +6,7 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class Operator:
-
-    def __init__(self,
-                 name=None,
-                 vtype=None,
-                 repair=None) -> None:
-
+    def __init__(self, name=None, vtype=None, repair=None) -> None:
         super().__init__()
 
         if name is None:

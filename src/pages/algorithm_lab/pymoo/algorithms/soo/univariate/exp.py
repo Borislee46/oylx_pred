@@ -8,7 +8,6 @@ from src.pages.algorithm_lab.pymoo.termination.default import DefaultSingleObjec
 
 
 class ExponentialSearch(Algorithm):
-
     def __init__(self, delta=0.05, **kwargs):
         super().__init__(**kwargs)
         self.termination = DefaultSingleObjectiveTermination()

@@ -5,7 +5,7 @@ from src.pages.algorithm_lab.pymoo.util.misc import at_least_2d_array
 
 
 def bounce_back(X, xl, xu):
-    only_1d = (X.ndim == 1)
+    only_1d = X.ndim == 1
     X = at_least_2d_array(X)
 
     xl = np.repeat(xl[None, :], X.shape[0], axis=0)
@@ -27,6 +27,5 @@ def bounce_back_by_problem(problem, X):
 
 
 class BounceBackOutOfBoundsRepair(BoundsRepair):
-
     def repair_out_of_bounds(self, problem, X, **kwargs):
         return bounce_back_by_problem(problem, X)

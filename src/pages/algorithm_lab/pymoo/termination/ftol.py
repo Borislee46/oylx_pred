@@ -2,12 +2,12 @@ import numpy as np
 
 from src.pages.algorithm_lab.pymoo.indicators.hv import Hypervolume
 from src.pages.algorithm_lab.pymoo.indicators.igd import IGD
-from src.pages.algorithm_lab.pymoo.util.normalization import normalize
 from src.pages.algorithm_lab.pymoo.termination.delta import DeltaToleranceTermination
+from src.pages.algorithm_lab.pymoo.util.normalization import normalize
 
 
 def calc_delta(a, b):
-    return np.max(np.abs((a - b)))
+    return np.max(np.abs(a - b))
 
 
 def calc_delta_norm(a, b, norm):
@@ -15,7 +15,6 @@ def calc_delta_norm(a, b, norm):
 
 
 class SingleObjectiveSpaceTermination(DeltaToleranceTermination):
-
     def __init__(self, tol=1e-6, only_feas=True, **kwargs) -> None:
         super().__init__(tol, **kwargs)
         self.only_feas = only_feas
@@ -40,7 +39,6 @@ class SingleObjectiveSpaceTermination(DeltaToleranceTermination):
 
 
 class MultiObjectiveSpaceTermination(DeltaToleranceTermination):
-
     def __init__(self, tol=0.0025, only_feas=True, **kwargs):
         super().__init__(tol, **kwargs)
         self.delta_ideal = None
@@ -60,7 +58,6 @@ class MultiObjectiveSpaceTermination(DeltaToleranceTermination):
             return dict(ideal=None, nadir=None, F=F, feas=False)
 
     def _delta(self, prev, current):
-
         if not (prev["feas"] and current["feas"]):
             return np.inf
 
@@ -92,14 +89,9 @@ class MultiObjectiveSpaceTermination(DeltaToleranceTermination):
 
 
 class MultiObjectiveSpaceTerminationWithRenormalization(MultiObjectiveSpaceTermination):
-
-    def __init__(self,
-                 n=30,
-                 all_to_current=False,
-                 sliding_window=True,
-                 indicator="igd",
-                 **kwargs) -> None:
-
+    def __init__(
+        self, n=30, all_to_current=False, sliding_window=True, indicator="igd", **kwargs
+    ) -> None:
         super().__init__(**kwargs)
         self.n = n
         self.all_to_current = all_to_current
@@ -112,7 +104,7 @@ class MultiObjectiveSpaceTerminationWithRenormalization(MultiObjectiveSpaceTermi
         ret = super()._metric(data)
 
         if not self.sliding_window:
-            data = self.data[-self.metric_window_size:]
+            data = self.data[-self.metric_window_size :]
 
         # get necessary data from the current population
         current = data[-1]
@@ -123,7 +115,6 @@ class MultiObjectiveSpaceTerminationWithRenormalization(MultiObjectiveSpaceTermi
 
         # check if the movement of all points is significant
         if self.all_to_current:
-
             c_N = normalize(c_F, c_ideal, c_nadir)
             if self.indicator == "igd":
                 delta_f = [IGD(c_N).do(N[k]) for k in range(len(N))]

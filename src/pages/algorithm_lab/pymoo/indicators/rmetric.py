@@ -7,16 +7,15 @@ from src.pages.algorithm_lab.pymoo.indicators.igd import IGD
 
 
 class RMetric(Indicator):
-
     def __init__(self, problem, ref_points, w=None, delta=0.2, pf=None):
         """
 
         Parameters
         ----------
-        
+
         problem : class
             problem instance
-            
+
         ref_points : numpy.array
             list of reference points
 
@@ -40,7 +39,6 @@ class RMetric(Indicator):
         self.others = None
 
     def _filter(self):
-
         def check_dominance(a, b, n_obj):
             flag1 = False
             flag2 = False
@@ -75,7 +73,6 @@ class RMetric(Indicator):
         return filtered_pop
 
     def _preprocess(self, data, ref_point, w_point):
-
         datasize = np.size(data, 0)
 
         # Identify representative point
@@ -87,12 +84,12 @@ class RMetric(Indicator):
         idx = np.argmin(agg_value)
         zp = [data[idx, :]]
 
-        return zp,
+        return (zp,)
 
     def _translate(self, zp, trimmed_data, ref_point, w_point):
         # Solution translation - Matlab reproduction
         # find k
-        temp = ((zp[0] - ref_point) / (w_point - ref_point))
+        temp = (zp[0] - ref_point) / (w_point - ref_point)
         kIdx = np.argmax(temp)
 
         # find zl
@@ -112,7 +109,7 @@ class RMetric(Indicator):
         return filtered_matrix
 
     def _trim_fast(self, pop, centeroid, range=0.2):
-        centeroid_matrix = cdist(pop, centeroid, metric='euclidean')
+        centeroid_matrix = cdist(pop, centeroid, metric="euclidean")
         filtered_matrix = pop[np.where(centeroid_matrix < range / 2), :][0]
         return filtered_matrix
 
@@ -120,8 +117,8 @@ class RMetric(Indicator):
         """
 
         This method calculates the R-IGD and R-HV based off of the values provided.
-        
-        
+
+
         Parameters
         ----------
 
@@ -169,11 +166,15 @@ class RMetric(Indicator):
                 # 3. Filtering Procedure - Filter points
                 trimmed_data = self._trim(cluster, zp, range=self.delta)
                 # 4. Solution Translation
-                pop_t = self._translate(zp, trimmed_data, self.ref_points[i], w_point=self.w_points[i])
+                pop_t = self._translate(
+                    zp, trimmed_data, self.ref_points[i], w_point=self.w_points[i]
+                )
                 translated.extend(pop_t)
 
             # 5. R-Metric Computation
-            target = self._preprocess(data=pf, ref_point=self.ref_points[i], w_point=self.w_points[i])
+            target = self._preprocess(
+                data=pf, ref_point=self.ref_points[i], w_point=self.w_points[i]
+            )
             PF = self._trim(pf, target)
             final_PF.extend(PF)
 
@@ -183,7 +184,6 @@ class RMetric(Indicator):
         rigd, rhv = None, None
 
         if len(translated) > 0:
-
             # IGD Computation
             rigd = IGD(final_PF).do(translated)
 

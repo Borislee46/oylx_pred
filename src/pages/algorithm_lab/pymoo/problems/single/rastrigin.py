@@ -1,6 +1,6 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 

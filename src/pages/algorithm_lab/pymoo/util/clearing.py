@@ -28,11 +28,7 @@ def select_by_clearing(pop, D, n_select, func_select, delta=0.05):
 
 
 class EpsilonClearing:
-
-    def __init__(self,
-                 D,
-                 epsilon) -> None:
-
+    def __init__(self, D, epsilon) -> None:
         super().__init__()
 
         if isinstance(D, tuple):

@@ -5,7 +5,7 @@ Starmap-based parallelization for pymoo.
 
 class StarmapParallelization:
     """Parallelization using a starmap function.
-    
+
     Parameters
     ----------
     starmap : callable

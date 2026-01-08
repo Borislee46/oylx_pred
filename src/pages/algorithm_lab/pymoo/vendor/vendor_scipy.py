@@ -1,10 +1,10 @@
-
 from src.pages.algorithm_lab.pymoo.core.termination import NoTermination
 from src.pages.algorithm_lab.pymoo.termination.max_eval import MaximumFunctionCallTermination
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 
 try:
-    from scipy.optimize import minimize as scipy_minimize, NonlinearConstraint, LinearConstraint
+    from scipy.optimize import LinearConstraint, NonlinearConstraint
+    from scipy.optimize import minimize as scipy_minimize
 except:
     raise Exception("Please install SciPy: pip install scipy")
 
@@ -15,10 +15,7 @@ import numpy as np
 from src.pages.algorithm_lab.pymoo.algorithms.base.local import LocalSearch
 from src.pages.algorithm_lab.pymoo.core.individual import Individual, constr_to_cv
 from src.pages.algorithm_lab.pymoo.core.population import Population
-
 from src.pages.algorithm_lab.pymoo.termination.max_gen import MaximumGenerationTermination
-
-
 
 # ---------------------------------------------------------------------------------------------------------
 # Interface
@@ -26,21 +23,36 @@ from src.pages.algorithm_lab.pymoo.termination.max_gen import MaximumGenerationT
 
 
 class Optimizer(LocalSearch):
-
-    def __init__(self, method, with_bounds=False, with_constr=False, require_jac=False,
-                 use_bounds=True, use_constr=True, estm_gradients=True, disp=False, show_warnings=False, **kwargs):
-
+    def __init__(
+        self,
+        method,
+        with_bounds=False,
+        with_constr=False,
+        require_jac=False,
+        use_bounds=True,
+        use_constr=True,
+        estm_gradients=True,
+        disp=False,
+        show_warnings=False,
+        **kwargs,
+    ):
         super().__init__(output=SingleObjectiveOutput(), **kwargs)
 
-        self.method, self.with_bounds, self.with_constr, self.require_jac = method, with_bounds, with_constr, require_jac
+        self.method, self.with_bounds, self.with_constr, self.require_jac = (
+            method,
+            with_bounds,
+            with_constr,
+            require_jac,
+        )
         self.show_warnings = show_warnings
         self.use_bounds = use_bounds
         self.use_constr = use_constr
         self.estm_gradients = estm_gradients
 
         self.options = {
-            'maxiter': int(1e8),  # because of C code interfacing this can not be inf
-            'disp': disp}
+            "maxiter": int(1e8),  # because of C code interfacing this can not be inf
+            "disp": disp,
+        }
 
     def _setup(self, problem, **kwargs):
         if isinstance(self.termination, MaximumGenerationTermination):
@@ -57,23 +69,23 @@ class Optimizer(LocalSearch):
         # add the box constraints defined in the problem
         bounds = None
         if self.use_bounds:
-
             xl, xu = self.problem.bounds()
             if self.with_bounds:
                 bounds = np.column_stack([xl, xu])
             else:
                 if xl is not None or xu is not None:
-                    raise Exception(f"Error: Boundary constraints can not be handled by {self.method}")
+                    raise Exception(
+                        f"Error: Boundary constraints can not be handled by {self.method}"
+                    )
 
         # define the actual constraints if supported by the algorithm
         constr = []
         if self.use_constr:
-
             constr = [LinearConstraint(np.eye(self.problem.n_var), xl, xu)]
 
             if problem.has_constraints():
-
                 if self.with_constr:
+
                     def fun_constr(x):
                         g = problem.evaluate(x, return_values_of=["G"])
                         cv = constr_to_cv(g)
@@ -102,13 +114,22 @@ class Optimizer(LocalSearch):
                 f, df = problem.evaluate(x, return_values_of=["F", "dF"])
 
                 if df is None:
-                    raise Exception("If the gradient shall not be estimate, please set out['dF'] in _evaluate. ")
+                    raise Exception(
+                        "If the gradient shall not be estimate, please set out['dF'] in _evaluate. "
+                    )
 
                 evaluator.n_eval += 1
                 return f[0], df[0]
 
         # the arguments to be used
-        kwargs = dict(args=(), method=self.method, bounds=bounds, constraints=constr, jac=jac, options=self.options)
+        kwargs = dict(
+            args=(),
+            method=self.method,
+            bounds=bounds,
+            constraints=constr,
+            jac=jac,
+            options=self.options,
+        )
 
         # the starting solution found by sampling beforehand
         x0 = self.opt[0].X
@@ -138,56 +159,48 @@ class Optimizer(LocalSearch):
 # UNCONSTRAINED
 # +++++++++++++++++++++++++++++++++++++++++
 
-class NelderMead(Optimizer):
 
+class NelderMead(Optimizer):
     def __init__(self, **kwargs):
         super().__init__("Nelder-Mead", **kwargs)
 
 
 class CG(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("CG", require_jac=True, **kwargs)
 
 
 class NewtonCG(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("Newton-CG", require_jac=True, **kwargs)
 
 
 class BFGS(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("BFGS", **kwargs)
 
 
 class Powell(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("Powell", **kwargs)
 
 
 class Dogleg(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("dogleg", require_jac=True, **kwargs)
 
 
 class TrustNCG(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("trust-ncg", require_jac=True, **kwargs)
 
 
 class TrustExact(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("trust-exact", require_jac=True, **kwargs)
 
 
 class TrustKrylov(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("trust-krylov", require_jac=True, **kwargs)
 
@@ -198,13 +211,11 @@ class TrustKrylov(Optimizer):
 
 
 class LBFGSB(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("L-BFGS-B", with_bounds=True, **kwargs)
 
 
 class TNC(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("TNC", with_bounds=True, **kwargs)
 
@@ -215,18 +226,15 @@ class TNC(Optimizer):
 
 
 class COBYLA(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("COBYLA", with_bounds=False, with_constr=True, **kwargs)
 
 
 class SLSQP(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("SLSQP", with_bounds=True, with_constr=True, **kwargs)
 
 
 class TrustConstr(Optimizer):
-
     def __init__(self, **kwargs):
         super().__init__("trust-constr", with_bounds=True, with_constr=True, **kwargs)

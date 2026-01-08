@@ -1,16 +1,13 @@
+import numpy as np
+
 from src.pages.algorithm_lab.pymoo.core.individual import calc_cv
 from src.pages.algorithm_lab.pymoo.core.meta import Meta
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 from src.pages.algorithm_lab.pymoo.util.misc import from_dict
 
-import numpy as np
-
 
 class ConstraintsAsPenalty(Meta, Problem):
-
-    def __init__(self,
-                 problem,
-                 penalty: float = 0.1):
+    def __init__(self, problem, penalty: float = 0.1):
         super().__init__(problem)
 
         # the amount of penalty to add for this type

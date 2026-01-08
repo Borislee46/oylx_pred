@@ -1,6 +1,8 @@
 from src.pages.algorithm_lab.pymoo.problems.single.ackley import *
 from src.pages.algorithm_lab.pymoo.problems.single.cantilevered_beam import *
+from src.pages.algorithm_lab.pymoo.problems.single.g import *
 from src.pages.algorithm_lab.pymoo.problems.single.griewank import *
+from src.pages.algorithm_lab.pymoo.problems.single.himmelblau import *
 from src.pages.algorithm_lab.pymoo.problems.single.knapsack import *
 from src.pages.algorithm_lab.pymoo.problems.single.pressure_vessel import *
 from src.pages.algorithm_lab.pymoo.problems.single.rastrigin import *
@@ -8,5 +10,3 @@ from src.pages.algorithm_lab.pymoo.problems.single.rosenbrock import *
 from src.pages.algorithm_lab.pymoo.problems.single.schwefel import *
 from src.pages.algorithm_lab.pymoo.problems.single.sphere import *
 from src.pages.algorithm_lab.pymoo.problems.single.zakharov import *
-from src.pages.algorithm_lab.pymoo.problems.single.g import *
-from src.pages.algorithm_lab.pymoo.problems.single.himmelblau import *

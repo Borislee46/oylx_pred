@@ -2,7 +2,6 @@ import numpy as np
 
 
 class Optimizer:
-
     def __init__(self, precision=1e-6) -> None:
         super().__init__()
         self.has_converged = False
@@ -18,7 +17,6 @@ class Optimizer:
 
 
 class GradientDescent(Optimizer):
-
     def __init__(self, learning_rate=0.01, **kwargs) -> None:
         super().__init__(**kwargs)
         self.learning_rate = learning_rate
@@ -28,7 +26,6 @@ class GradientDescent(Optimizer):
 
 
 class Adam(Optimizer):
-
     def __init__(self, alpha=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-8, **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -50,8 +47,8 @@ class Adam(Optimizer):
         self.v_t = beta_2 * self.v_t + (1 - beta_2) * (dX * dX)
 
         # calculates the bias-corrected estimates
-        m_cap = self.m_t / (1 - (beta_1 ** self.t))
-        v_cap = self.v_t / (1 - (beta_2 ** self.t))
+        m_cap = self.m_t / (1 - (beta_1**self.t))
+        v_cap = self.v_t / (1 - (beta_2**self.t))
 
         # do the gradient update
         _X = X - (self.alpha * m_cap) / (np.sqrt(v_cap) + self.epsilon)

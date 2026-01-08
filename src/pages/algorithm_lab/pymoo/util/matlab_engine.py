@@ -1,6 +1,8 @@
 def install_matlab():
     print("Please install the Matlab python interface:")
-    print("Tutorial: https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html")
+    print(
+        "Tutorial: https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html"
+    )
     print("---------------------------")
     print("Go to:")
     print("Windows:", 'cd "matlabroot\extern\engines\python"')
@@ -23,7 +25,6 @@ class MatlabEngine:
     @staticmethod
     def get_instance():
         if MatlabEngine.__instance is None:
-
             try:
                 import matlab
                 import matlab.engine

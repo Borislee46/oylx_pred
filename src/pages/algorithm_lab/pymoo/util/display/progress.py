@@ -4,7 +4,6 @@ from alive_progress import alive_bar
 
 
 class ProgressBar:
-
     def __init__(self, *args, start=True, non_decreasing=True, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -32,7 +31,6 @@ class ProgressBar:
         self.obj(value, *args, **kwargs)
 
     def start(self):
-
         if not self.obj:
             # save the generator to this object
             self.func = alive_bar(*self.args, **self.kwargs).gen

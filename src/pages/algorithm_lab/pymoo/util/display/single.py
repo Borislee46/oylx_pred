@@ -3,7 +3,6 @@ from src.pages.algorithm_lab.pymoo.util.display.output import Output, pareto_fro
 
 
 class MinimumConstraintViolation(Column):
-
     def __init__(self, **kwargs) -> None:
         super().__init__("cv_min", **kwargs)
 
@@ -12,7 +11,6 @@ class MinimumConstraintViolation(Column):
 
 
 class AverageConstraintViolation(Column):
-
     def __init__(self, **kwargs) -> None:
         super().__init__("cv_avg", **kwargs)
 
@@ -21,7 +19,6 @@ class AverageConstraintViolation(Column):
 
 
 class SingleObjectiveOutput(Output):
-
     def __init__(self):
         super().__init__()
         self.cv_min = MinimumConstraintViolation()

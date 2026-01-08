@@ -7,7 +7,6 @@ from src.pages.algorithm_lab.pymoo.util.misc import crossover_mask
 
 
 class HalfUniformCrossover(Crossover):
-
     def __init__(self, prob_hux=0.5, **kwargs):
         super().__init__(2, 2, **kwargs)
         self.prob_hux = prob_hux

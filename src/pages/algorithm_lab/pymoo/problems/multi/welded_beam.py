@@ -1,6 +1,6 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 from src.pages.algorithm_lab.pymoo.util.remote import Remote
 
@@ -22,10 +22,16 @@ class WeldedBeam(Problem):
 
         R = anp.sqrt(0.25 * (x[:, 1] ** 2 + (x[:, 0] + x[:, 2]) ** 2))
         M = P * (L + x[:, 1] / 2)
-        J = 2 * anp.sqrt(0.5) * x[:, 0] * x[:, 1] * (x[:, 1] ** 2 / 12 + 0.25 * (x[:, 0] + x[:, 2]) ** 2)
+        J = (
+            2
+            * anp.sqrt(0.5)
+            * x[:, 0]
+            * x[:, 1]
+            * (x[:, 1] ** 2 / 12 + 0.25 * (x[:, 0] + x[:, 2]) ** 2)
+        )
         t1 = P / (anp.sqrt(2) * x[:, 0] * x[:, 1])
         t2 = M * R / J
-        t = anp.sqrt(t1 ** 2 + t2 ** 2 + t1 * t2 * x[:, 1] / R)
+        t = anp.sqrt(t1**2 + t2**2 + t1 * t2 * x[:, 1] / R)
         s = 6 * P * L / (x[:, 3] * x[:, 2] ** 2)
         P_c = 64746.022 * (1 - 0.0282346 * x[:, 2]) * x[:, 2] * x[:, 3] ** 3
 

@@ -1,13 +1,12 @@
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.meta import Meta
-from src.pages.algorithm_lab.pymoo.core.problem import Problem, ElementwiseEvaluationFunction
+from src.pages.algorithm_lab.pymoo.core.problem import ElementwiseEvaluationFunction, Problem
 from src.pages.algorithm_lab.pymoo.gradient import activate, deactivate
 
 
 class ElementwiseEvaluationFunctionWithGradient(ElementwiseEvaluationFunction):
-
-    def __init__(self, problem, backend='autograd', args=(), kwargs={}):
+    def __init__(self, problem, backend="autograd", args=(), kwargs={}):
         super().__init__(problem, args, kwargs)
         self.backend = backend
 
@@ -16,10 +15,16 @@ class ElementwiseEvaluationFunctionWithGradient(ElementwiseEvaluationFunction):
 
         activate(self.backend)
         if self.backend == "jax":
-            from src.pages.algorithm_lab.pymoo.gradient.grad_jax import jax_elementwise_value_and_grad
+            from src.pages.algorithm_lab.pymoo.gradient.grad_jax import (
+                jax_elementwise_value_and_grad,
+            )
+
             out, grad = jax_elementwise_value_and_grad(f, x)
         elif self.backend == "autograd":
-            from src.pages.algorithm_lab.pymoo.gradient.grad_autograd import autograd_elementwise_value_and_grad
+            from src.pages.algorithm_lab.pymoo.gradient.grad_autograd import (
+                autograd_elementwise_value_and_grad,
+            )
+
             out, grad = autograd_elementwise_value_and_grad(f, x)
         else:
             raise Exception("Unknown backend %s" % self.backend)
@@ -32,10 +37,11 @@ class ElementwiseEvaluationFunctionWithGradient(ElementwiseEvaluationFunction):
 
 
 class ElementwiseAutomaticDifferentiation(Meta, Problem):
-
-    def __init__(self, problem, backend='autograd', copy=True):
+    def __init__(self, problem, backend="autograd", copy=True):
         if not problem.elementwise:
-            raise Exception("Elementwise automatic differentiation can only be applied to elementwise problems.")
+            raise Exception(
+                "Elementwise automatic differentiation can only be applied to elementwise problems."
+            )
 
         super().__init__(problem, copy)
         self.backend = backend
@@ -45,21 +51,20 @@ class ElementwiseAutomaticDifferentiation(Meta, Problem):
 
     def _create_elementwise_func(self, problem, args, kwargs):
         """Create an elementwise function that matches the expected signature"""
-        return ElementwiseEvaluationFunctionWithGradient(self.__object__, self.backend, args, kwargs)
+        return ElementwiseEvaluationFunctionWithGradient(
+            self.__object__, self.backend, args, kwargs
+        )
 
 
 class AutomaticDifferentiation(Meta, Problem):
-
-    def __init__(self, object, backend='autograd', **kwargs):
+    def __init__(self, object, backend="autograd", **kwargs):
         super().__init__(object, **kwargs)
         self.backend = backend
 
     def do(self, x, return_values_of, *args, **kwargs):
-
         vals_not_grad = [v for v in return_values_of if not v.startswith("d")]
 
         class F:
-
             def __init__(self, object):
                 self.__object__ = object
 
@@ -70,10 +75,16 @@ class AutomaticDifferentiation(Meta, Problem):
 
         activate(self.backend)
         if self.backend == "jax":
-            from src.pages.algorithm_lab.pymoo.gradient.grad_jax import jax_vectorized_value_and_grad
+            from src.pages.algorithm_lab.pymoo.gradient.grad_jax import (
+                jax_vectorized_value_and_grad,
+            )
+
             out, grad = jax_vectorized_value_and_grad(f, x)
         elif self.backend == "autograd":
-            from src.pages.algorithm_lab.pymoo.gradient.grad_autograd import autograd_vectorized_value_and_grad
+            from src.pages.algorithm_lab.pymoo.gradient.grad_autograd import (
+                autograd_vectorized_value_and_grad,
+            )
+
             out, grad = autograd_vectorized_value_and_grad(f, x)
         else:
             raise Exception("Unknown backend %s" % self.backend)

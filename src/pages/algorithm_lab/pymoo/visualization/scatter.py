@@ -36,7 +36,6 @@ def plot_3d(sc, angle):
     ax = sc.ax
 
     for k, (F, kwargs) in enumerate(sc.to_plot):
-
         # here alo `plot_trisurf` is allowed
         func = getattr(ax, kwargs.pop("mode"))
         func(F[:, 0], F[:, 1], F[:, 2], **kwargs)
@@ -58,13 +57,11 @@ def plot_pairwise(sc):
     labels = sc.get_labels()
 
     for k, (F, kwargs) in enumerate(sc.to_plot):
-
         assert F.shape[1] >= 2, "A pairwise sc plot needs at least two dimensions."
         mode = kwargs.pop("mode")
 
         for i in range(sc.n_dim):
             for j in range(sc.n_dim):
-
                 ax = sc.ax[i, j]
                 func = getattr(ax, mode)
 
@@ -76,15 +73,11 @@ def plot_pairwise(sc):
                     func(0, 0, s=1, color="white")
                     ax.set_xticks([])
                     ax.set_yticks([])
-                    ax.text(0, 0, labels[i], ha='center', va='center', fontsize=20)
+                    ax.text(0, 0, labels[i], ha="center", va="center", fontsize=20)
 
 
 class Scatter(Plot):
-
-    def __init__(self,
-                 plot_3d=True,
-                 angle=(45, 45),
-                 **kwargs):
+    def __init__(self, plot_3d=True, angle=(45, 45), **kwargs):
         """
 
         Scatter Plot
@@ -110,7 +103,6 @@ class Scatter(Plot):
         self.plot_3d = plot_3d
 
     def _do(self):
-
         # set some default values
         to_plot = []
         for k, (F, v) in enumerate(self.to_plot):

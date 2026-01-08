@@ -19,7 +19,7 @@ class BenchResult:
         p50 = float(np.percentile(t, 50))
         p95 = float(np.percentile(t, 95))
         std = float(np.std(t, ddof=1)) if t.size >= 2 else 0.0
-        
+
         if mean < 1e-6:
             unit, factor = "ns", 1e9
         elif mean < 1e-3:

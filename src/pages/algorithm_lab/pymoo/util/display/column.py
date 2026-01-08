@@ -2,7 +2,6 @@ import numpy as np
 
 
 class Column:
-
     def __init__(self, name, width=13, func=None, truncate=True) -> None:
         super().__init__()
         self.name = name
@@ -38,7 +37,6 @@ def number_to_text(number, width):
 
 def format_text(value, width, truncate):
     if value is not None:
-
         if isinstance(value, (np.floating, float)):
             text = number_to_text(value, width)
         else:

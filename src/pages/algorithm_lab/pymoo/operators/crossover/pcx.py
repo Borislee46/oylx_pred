@@ -34,8 +34,8 @@ def pcx(X, eta, zeta, index, random_state=None):
         if i != index:
             temp1 = (diff_to_index[i] * diff_to_centroid).sum(axis=-1)
             temp2 = temp1 / (dist_to_index[i] * dist_to_centroid)
-            temp3 = np.maximum(0.0, 1.0 - temp2 ** 2)
-            orth_dir[i] = dist_to_index[i] * (temp3 ** 0.5)
+            temp3 = np.maximum(0.0, 1.0 - temp2**2)
+            orth_dir[i] = dist_to_index[i] * (temp3**0.5)
 
     # this is the avg of the perpendicular distances from other parents to the parent k
     D_not = orth_dir.sum(axis=0) / (n_parents - 1)
@@ -57,11 +57,7 @@ def pcx(X, eta, zeta, index, random_state=None):
 
 
 class ParentCentricCrossover(Crossover):
-    def __init__(self,
-                 eta=0.1,
-                 zeta=0.1,
-                 **kwargs):
-
+    def __init__(self, eta=0.1, zeta=0.1, **kwargs):
         super().__init__(n_parents=3, n_offsprings=1, **kwargs)
         self.eta = Real(eta, bounds=(0.01, 0.3))
         self.zeta = Real(zeta, bounds=(0.01, 0.3))

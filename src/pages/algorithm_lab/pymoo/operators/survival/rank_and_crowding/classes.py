@@ -2,13 +2,14 @@ import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.core.survival import Survival, split_by_feasibility
-from src.pages.algorithm_lab.pymoo.operators.survival.rank_and_crowding.metrics import get_crowding_function
+from src.pages.algorithm_lab.pymoo.operators.survival.rank_and_crowding.metrics import (
+    get_crowding_function,
+)
 from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from src.pages.algorithm_lab.pymoo.util.randomized_argsort import randomized_argsort
 
 
 class RankAndCrowding(Survival):
-
     def __init__(self, nds=None, crowding_func="cd"):
         """
         A generalization of the NSGA-II survival operator that ranks individuals by dominance criteria
@@ -37,8 +38,8 @@ class RankAndCrowding(Survival):
             in which F (n, m) and must return metrics in a (n,) array.
 
             The options 'pcd', 'cd', and 'ce' are recommended for two-objective problems, whereas 'mnn' and '2nn' for many objective.
-            When using 'pcd', 'mnn', or '2nn', individuals are already eliminated in a 'single' manner. 
-            Due to Cython implementation, they are as fast as the corresponding 'cd', 'mnn-fast', or '2nn-fast', 
+            When using 'pcd', 'mnn', or '2nn', individuals are already eliminated in a 'single' manner.
+            Due to Cython implementation, they are as fast as the corresponding 'cd', 'mnn-fast', or '2nn-fast',
             although they can singnificantly improve diversity of solutions.
             Defaults to 'cd'.
         """
@@ -49,15 +50,7 @@ class RankAndCrowding(Survival):
         self.nds = nds if nds is not None else NonDominatedSorting()
         self.crowding_func = crowding_func_
 
-
-    def _do(self,
-            problem,
-            pop,
-            *args,
-            random_state=None,
-            n_survive=None,
-            **kwargs):
-
+    def _do(self, problem, pop, *args, random_state=None, n_survive=None, **kwargs):
         # get the objective space values and objects
         F = pop.get("F").astype(float, copy=False)
 
@@ -68,33 +61,25 @@ class RankAndCrowding(Survival):
         fronts = self.nds.do(F, n_stop_if_ranked=n_survive)
 
         for k, front in enumerate(fronts):
-            
             I = np.arange(len(front))
 
             # current front sorted by crowding distance if splitting
             if len(survivors) + len(I) > n_survive:
-
                 # Define how many will be removed
                 n_remove = len(survivors) + len(front) - n_survive
 
                 # re-calculate the crowding distance of the front
-                crowding_of_front = \
-                    self.crowding_func.do(
-                        F[front, :],
-                        n_remove=n_remove
-                    )
+                crowding_of_front = self.crowding_func.do(F[front, :], n_remove=n_remove)
 
-                I = randomized_argsort(crowding_of_front, order='descending', method='numpy', random_state=random_state)
+                I = randomized_argsort(
+                    crowding_of_front, order="descending", method="numpy", random_state=random_state
+                )
                 I = I[:-n_remove]
 
             # otherwise take the whole front unsorted
             else:
                 # calculate the crowding distance of the front
-                crowding_of_front = \
-                    self.crowding_func.do(
-                        F[front, :],
-                        n_remove=0
-                    )
+                crowding_of_front = self.crowding_func.do(F[front, :], n_remove=0)
 
             # save rank and crowding in the individual class
             for j, i in enumerate(front):
@@ -108,7 +93,6 @@ class RankAndCrowding(Survival):
 
 
 class ConstrRankAndCrowding(Survival):
-
     def __init__(self, nds=None, crowding_func="cd"):
         """
         The Rank and Crowding survival approach for handling constraints proposed on
@@ -132,8 +116,8 @@ class ConstrRankAndCrowding(Survival):
             in which F (n, m) and must return metrics in a (n,) array.
 
             The options 'pcd', 'cd', and 'ce' are recommended for two-objective problems, whereas 'mnn' and '2nn' for many objective.
-            When using 'pcd', 'mnn', or '2nn', individuals are already eliminated in a 'single' manner. 
-            Due to Cython implementation, they are as fast as the corresponding 'cd', 'mnn-fast', or '2nn-fast', 
+            When using 'pcd', 'mnn', or '2nn', individuals are already eliminated in a 'single' manner.
+            Due to Cython implementation, they are as fast as the corresponding 'cd', 'mnn-fast', or '2nn-fast',
             although they can singnificantly improve diversity of solutions.
             Defaults to 'cd'.
         """
@@ -142,13 +126,7 @@ class ConstrRankAndCrowding(Survival):
         self.nds = nds if nds is not None else NonDominatedSorting()
         self.ranking = RankAndCrowding(nds=nds, crowding_func=crowding_func)
 
-    def _do(self,
-            problem,
-            pop,
-            *args,
-            n_survive=None,
-            **kwargs):
-
+    def _do(self, problem, pop, *args, n_survive=None, **kwargs):
         if n_survive is None:
             n_survive = len(pop)
 
@@ -156,9 +134,10 @@ class ConstrRankAndCrowding(Survival):
 
         # If the split should be done beforehand
         if problem.n_constr > 0:
-
             # Split by feasibility
-            feas, infeas = split_by_feasibility(pop, sort_infeas_by_cv=True, sort_feas_by_obj=False, return_pop=False)
+            feas, infeas = split_by_feasibility(
+                pop, sort_infeas_by_cv=True, sort_feas_by_obj=False, return_pop=False
+            )
 
             # Obtain len of feasible
             n_feas = len(feas)
@@ -167,14 +146,15 @@ class ConstrRankAndCrowding(Survival):
             if n_feas == 0:
                 survivors = Population()
             else:
-                survivors = self.ranking.do(problem, pop[feas], *args, n_survive=min(len(feas), n_survive), **kwargs)
+                survivors = self.ranking.do(
+                    problem, pop[feas], *args, n_survive=min(len(feas), n_survive), **kwargs
+                )
 
             # Calculate how many individuals are still remaining to be filled up with infeasible ones
             n_remaining = n_survive - len(survivors)
 
             # If infeasible solutions need to be added
             if n_remaining > 0:
-
                 # Constraints to new ranking
                 G = pop[infeas].get("G")
                 G = np.maximum(G, 0)
@@ -187,17 +167,15 @@ class ConstrRankAndCrowding(Survival):
 
                 # Iterate over fronts
                 for k, front in enumerate(infeas_fronts):
-
                     # Save ranks
                     pop[infeas][front].set("cv_rank", k)
 
                     # Current front sorted by CV
                     if len(survivors) + len(front) > n_survive:
-
                         # Obtain CV of front
                         CV = pop[infeas][front].get("CV").flatten()
-                        I = randomized_argsort(CV, order='ascending', method='numpy')
-                        I = I[:(n_survive - len(survivors))]
+                        I = randomized_argsort(CV, order="ascending", method="numpy")
+                        I = I[: (n_survive - len(survivors))]
 
                     # Otherwise take the whole front unsorted
                     else:

@@ -5,7 +5,9 @@ from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.operators.repair.to_bound import set_to_bounds_if_outside
 from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling
-from src.pages.algorithm_lab.pymoo.operators.survival.rank_and_crowding.metrics import get_crowding_function
+from src.pages.algorithm_lab.pymoo.operators.survival.rank_and_crowding.metrics import (
+    get_crowding_function,
+)
 from src.pages.algorithm_lab.pymoo.termination.default import DefaultMultiObjectiveTermination
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 from src.pages.algorithm_lab.pymoo.util.archive import MultiObjectiveArchive
@@ -87,16 +89,12 @@ class MOPSO_CD(Algorithm):
         self.v_max = self.max_velocity_rate * (xu - xl)
 
         # Initialize particles, velocities, and personal bests
-        self.pop = self.sampling.do(
-            problem, self.pop_size, random_state=self.random_state
-        )
+        self.pop = self.sampling.do(problem, self.pop_size, random_state=self.random_state)
         self.velocities = self.random_state.uniform(
             -self.v_max, self.v_max, (self.pop_size, problem.n_var)
         )
         self.pbest = self.pop.copy()  # Personal bests
-        self.pbest_f = np.full(
-            (self.pop_size, problem.n_obj), np.inf
-        )  # Initialize with inf
+        self.pbest_f = np.full((self.pop_size, problem.n_obj), np.inf)  # Initialize with inf
 
         # Evaluate initial population to set personal best objectives
         self.evaluator.eval(self.problem, self.pop)
@@ -218,9 +216,7 @@ class MOPSO_CD(Algorithm):
             non_dominated = non_dominated[selected_indices]
 
         # Create new archive
-        return MultiObjectiveArchive(
-            individuals=non_dominated, max_size=self.archive_size
-        )
+        return MultiObjectiveArchive(individuals=non_dominated, max_size=self.archive_size)
 
     def _select_diverse_leaders(self):
         """Select diverse leaders for all particles"""

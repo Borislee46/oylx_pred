@@ -1,9 +1,12 @@
 import numpy as np
-import numpy as np
 from scipy.spatial.qhull import Delaunay
 from scipy.stats import gmean
 
-from src.pages.algorithm_lab.pymoo.util.misc import distance_of_closest_points_to_others, vectorized_cdist, cdist
+from src.pages.algorithm_lab.pymoo.util.misc import (
+    cdist,
+    distance_of_closest_points_to_others,
+    vectorized_cdist,
+)
 from src.pages.algorithm_lab.pymoo.util.ref_dirs.das_dennis import DasDennis
 from src.pages.algorithm_lab.pymoo.util.reference_direction import get_partition_closest_to_points
 

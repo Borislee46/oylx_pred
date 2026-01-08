@@ -1,21 +1,22 @@
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
-from src.pages.algorithm_lab.pymoo.problems.many import generic_sphere, get_ref_dirs
 from src.pages.algorithm_lab.pymoo.functions import load_function
-from src.pages.algorithm_lab.pymoo.util.misc import powerset
+from src.pages.algorithm_lab.pymoo.problems.many import generic_sphere, get_ref_dirs
 from src.pages.algorithm_lab.pymoo.util import default_random_state
+from src.pages.algorithm_lab.pymoo.util.misc import powerset
 
 
 class WFG(Problem):
-
     def __init__(self, n_var, n_obj, k=None, l=None, **kwargs):
-        super().__init__(n_var=n_var,
-                         n_obj=n_obj,
-                         xl=0.0,
-                         xu=2 * np.arange(1, n_var + 1).astype(float),
-                         vtype=float,
-                         **kwargs)
+        super().__init__(
+            n_var=n_var,
+            n_obj=n_obj,
+            xl=0.0,
+            xu=2 * np.arange(1, n_var + 1).astype(float),
+            vtype=float,
+            **kwargs,
+        )
 
         self.S = np.arange(2, 2 * self.n_obj + 1, 2).astype(float)
         self.A = np.ones(self.n_obj - 1)
@@ -37,13 +38,17 @@ class WFG(Problem):
 
     def validate(self, l, k, n_obj):
         if n_obj < 2:
-            raise ValueError('WFG problems must have two or more objectives.')
+            raise ValueError("WFG problems must have two or more objectives.")
         if not k % (n_obj - 1) == 0:
-            raise ValueError('Position parameter (k) must be divisible by number of objectives minus one.')
+            raise ValueError(
+                "Position parameter (k) must be divisible by number of objectives minus one."
+            )
         if k < 4:
-            raise ValueError('Position parameter (k) must be greater or equal than 4.')
+            raise ValueError("Position parameter (k) must be greater or equal than 4.")
         if (k + l) < n_obj:
-            raise ValueError('Sum of distance and position parameters must be greater than num. of objs. (k + l >= M).')
+            raise ValueError(
+                "Sum of distance and position parameters must be greater than num. of objs. (k + l >= M)."
+            )
 
     def _post(self, t, a):
         x = []
@@ -65,7 +70,7 @@ class WFG(Problem):
         return X * self.xu
 
     def _calc_pareto_set_extremes(self):
-        ps = np.ones((2 ** self.k, self.k))
+        ps = np.ones((2**self.k, self.k))
         for i, s in enumerate(powerset(np.arange(self.k))):
             ps[i, s] = 0
         return self._positional_to_optimal(ps)
@@ -78,19 +83,23 @@ class WFG(Problem):
         interior = self._calc_pareto_set_interior(n_points - len(extremes))
         return np.vstack([extremes, interior])
 
-    def _calc_pareto_front(self, ref_dirs=None, n_iterations=200, points_each_iteration=200, *args, **kwargs):
+    def _calc_pareto_front(
+        self, ref_dirs=None, n_iterations=200, points_each_iteration=200, *args, **kwargs
+    ):
         pf = self.evaluate(self._calc_pareto_set_extremes(), return_values_of=["F"])
 
         if ref_dirs is None:
             ref_dirs = get_ref_dirs(self.n_obj)
 
         for k in range(n_iterations):
-            _pf = self.evaluate(self._calc_pareto_set_interior(points_each_iteration), return_values_of=["F"])
+            _pf = self.evaluate(
+                self._calc_pareto_set_interior(points_each_iteration), return_values_of=["F"]
+            )
             pf = np.vstack([pf, _pf])
 
             ideal, nadir = pf.min(axis=0), pf.max(axis=0)
 
-            N = (pf - ideal) / (nadir-ideal)
+            N = (pf - ideal) / (nadir - ideal)
             dist_matrix = load_function("calc_perpendicular_distance")(N, ref_dirs)
 
             closest = np.argmin(dist_matrix, axis=0)
@@ -101,7 +110,6 @@ class WFG(Problem):
 
 
 class WFG1(WFG):
-
     @staticmethod
     def t1(x, n, k):
         x[:, k:n] = _transformation_shift_linear(x[:, k:n], 0.35)
@@ -123,8 +131,8 @@ class WFG1(WFG):
         gap = k // (m - 1)
         t = []
         for m in range(1, m):
-            _y = x[:, (m - 1) * gap: (m * gap)]
-            _w = w[(m - 1) * gap: (m * gap)]
+            _y = x[:, (m - 1) * gap : (m * gap)]
+            _w = w[(m - 1) * gap : (m * gap)]
             t.append(_reduction_weighted_sum(_y, _w))
         t.append(_reduction_weighted_sum(x[:, k:n], w[k:n]))
         return np.column_stack(t)
@@ -149,7 +157,6 @@ class WFG1(WFG):
 
 
 class WFG2(WFG):
-
     def validate(self, l, k, n_obj):
         super().validate(l, k, n_obj)
         validate_wfg2_wfg3(l)
@@ -175,7 +182,7 @@ class WFG2(WFG):
         ind_r_sum = k + (n - k) // 2
         gap = k // (m - 1)
 
-        t = [_reduction_weighted_sum_uniform(x[:, (m - 1) * gap: (m * gap)]) for m in range(1, m)]
+        t = [_reduction_weighted_sum_uniform(x[:, (m - 1) * gap : (m * gap)]) for m in range(1, m)]
         t.append(_reduction_weighted_sum_uniform(x[:, k:ind_r_sum]))
 
         return np.column_stack(t)
@@ -194,7 +201,6 @@ class WFG2(WFG):
 
 
 class WFG3(WFG):
-
     def __init__(self, n_var, n_obj, k=None, **kwargs):
         super().__init__(n_var, n_obj, k=k, **kwargs)
         self.A[1:] = 0
@@ -221,7 +227,6 @@ class WFG3(WFG):
 
 
 class WFG4(WFG):
-
     @staticmethod
     def t1(x):
         return _transformation_shift_multi_modal(x, 30.0, 10.0, 0.35)
@@ -229,7 +234,7 @@ class WFG4(WFG):
     @staticmethod
     def t2(x, m, k):
         gap = k // (m - 1)
-        t = [_reduction_weighted_sum_uniform(x[:, (m - 1) * gap: (m * gap)]) for m in range(1, m)]
+        t = [_reduction_weighted_sum_uniform(x[:, (m - 1) * gap : (m * gap)]) for m in range(1, m)]
         t.append(_reduction_weighted_sum_uniform(x[:, k:]))
         return np.column_stack(t)
 
@@ -250,7 +255,6 @@ class WFG4(WFG):
 
 
 class WFG5(WFG):
-
     @staticmethod
     def t1(x):
         return _transformation_param_deceptive(x, A=0.35, B=0.001, C=0.05)
@@ -272,11 +276,10 @@ class WFG5(WFG):
 
 
 class WFG6(WFG):
-
     @staticmethod
     def t2(x, m, n, k):
         gap = k // (m - 1)
-        t = [_reduction_non_sep(x[:, (m - 1) * gap: (m * gap)], gap) for m in range(1, m)]
+        t = [_reduction_non_sep(x[:, (m - 1) * gap : (m * gap)], gap) for m in range(1, m)]
         t.append(_reduction_non_sep(x[:, k:], n - k))
         return np.column_stack(t)
 
@@ -297,11 +300,10 @@ class WFG6(WFG):
 
 
 class WFG7(WFG):
-
     @staticmethod
     def t1(x, k):
         for i in range(k):
-            aux = _reduction_weighted_sum_uniform(x[:, i + 1:])
+            aux = _reduction_weighted_sum_uniform(x[:, i + 1 :])
             x[:, i] = _transformation_param_dependent(x[:, i], aux)
         return x
 
@@ -323,18 +325,19 @@ class WFG7(WFG):
 
 
 class WFG8(WFG):
-
     @staticmethod
     def t1(x, n, k):
         ret = []
         for i in range(k, n):
             aux = _reduction_weighted_sum_uniform(x[:, :i])
-            ret.append(_transformation_param_dependent(x[:, i], aux, A=0.98 / 49.98, B=0.02, C=50.0))
+            ret.append(
+                _transformation_param_dependent(x[:, i], aux, A=0.98 / 49.98, B=0.02, C=50.0)
+            )
         return np.column_stack(ret)
 
     def _evaluate(self, x, out, *args, **kwargs):
         y = x / self.xu
-        y[:, self.k:self.n_var] = WFG8.t1(y, self.n_var, self.k)
+        y[:, self.k : self.n_var] = WFG8.t1(y, self.n_var, self.k)
         y = WFG1.t1(y, self.n_var, self.k)
         y = WFG4.t2(y, self.n_obj, self.k)
         y = self._post(y, self.A)
@@ -359,12 +362,11 @@ class WFG8(WFG):
 
 
 class WFG9(WFG):
-
     @staticmethod
     def t1(x, n):
         ret = []
         for i in range(0, n - 1):
-            aux = _reduction_weighted_sum_uniform(x[:, i + 1:])
+            aux = _reduction_weighted_sum_uniform(x[:, i + 1 :])
             ret.append(_transformation_param_dependent(x[:, i], aux))
         return np.column_stack(ret)
 
@@ -377,13 +379,13 @@ class WFG9(WFG):
     @staticmethod
     def t3(x, m, n, k):
         gap = k // (m - 1)
-        t = [_reduction_non_sep(x[:, (m - 1) * gap: (m * gap)], gap) for m in range(1, m)]
+        t = [_reduction_non_sep(x[:, (m - 1) * gap : (m * gap)], gap) for m in range(1, m)]
         t.append(_reduction_non_sep(x[:, k:], n - k))
         return np.column_stack(t)
 
     def _evaluate(self, x, out, *args, **kwargs):
         y = x / self.xu
-        y[:, :self.n_var - 1] = WFG9.t1(y, self.n_var)
+        y[:, : self.n_var - 1] = WFG9.t1(y, self.n_var)
         y = WFG9.t2(y, self.n_var, self.k)
         y = WFG9.t3(y, self.n_obj, self.n_var, self.k)
 
@@ -399,7 +401,7 @@ class WFG9(WFG):
         X[:, self.k + self.l - 1] = 0.35
 
         for i in range(self.k + self.l - 2, self.k - 1, -1):
-            m = X[:, i + 1:k + l]
+            m = X[:, i + 1 : k + l]
             val = m.sum(axis=1) / m.shape[1]
             X[:, i] = 0.35 ** ((0.02 + 1.96 * val) ** -1)
 
@@ -436,13 +438,16 @@ def _transformation_shift_multi_modal(y, A, B, C):
 
 
 def _transformation_bias_flat(y, a, b, c):
-    ret = a + np.minimum(0, np.floor(y - b)) * (a * (b - y) / b) \
-          - np.minimum(0, np.floor(c - y)) * ((1.0 - a) * (y - c) / (1.0 - c))
+    ret = (
+        a
+        + np.minimum(0, np.floor(y - b)) * (a * (b - y) / b)
+        - np.minimum(0, np.floor(c - y)) * ((1.0 - a) * (y - c) / (1.0 - c))
+    )
     return correct_to_01(ret)
 
 
 def _transformation_bias_poly(y, alpha):
-    return correct_to_01(y ** alpha)
+    return correct_to_01(y**alpha)
 
 
 def _transformation_param_dependent(y, y_deg, A=0.98 / 49.98, B=0.02, C=50.0):
@@ -496,7 +501,7 @@ def _shape_concave(x, m):
     if m == 1:
         ret = np.prod(np.sin(0.5 * x[:, :M] * np.pi), axis=1)
     elif 1 < m <= M:
-        ret = np.prod(np.sin(0.5 * x[:, :M - m + 1] * np.pi), axis=1)
+        ret = np.prod(np.sin(0.5 * x[:, : M - m + 1] * np.pi), axis=1)
         ret *= np.cos(0.5 * x[:, M - m + 1] * np.pi)
     else:
         ret = np.cos(0.5 * x[:, 0] * np.pi)
@@ -508,7 +513,7 @@ def _shape_convex(x, m):
     if m == 1:
         ret = np.prod(1.0 - np.cos(0.5 * x[:, :M] * np.pi), axis=1)
     elif 1 < m <= M:
-        ret = np.prod(1.0 - np.cos(0.5 * x[:, :M - m + 1] * np.pi), axis=1)
+        ret = np.prod(1.0 - np.cos(0.5 * x[:, : M - m + 1] * np.pi), axis=1)
         ret *= 1.0 - np.sin(0.5 * x[:, M - m + 1] * np.pi)
     else:
         ret = 1.0 - np.sin(0.5 * x[:, 0] * np.pi)
@@ -520,7 +525,7 @@ def _shape_linear(x, m):
     if m == 1:
         ret = np.prod(x, axis=1)
     elif 1 < m <= M:
-        ret = np.prod(x[:, :M - m + 1], axis=1)
+        ret = np.prod(x[:, : M - m + 1], axis=1)
         ret *= 1.0 - x[:, M - m + 1]
     else:
         ret = 1.0 - x[:, 0]
@@ -534,17 +539,18 @@ def _shape_mixed(x, A=5.0, alpha=1.0):
 
 
 def _shape_disconnected(x, alpha=1.0, beta=1.0, A=5.0):
-    aux = np.cos(A * np.pi * x ** beta)
-    return correct_to_01(1.0 - x ** alpha * aux ** 2)
+    aux = np.cos(A * np.pi * x**beta)
+    return correct_to_01(1.0 - x**alpha * aux**2)
 
 
 # ---------------------------------------------------------------------------------------------------------
 # UTIL
 # ---------------------------------------------------------------------------------------------------------
 
+
 def validate_wfg2_wfg3(l):
     if not l % 2 == 0:
-        raise ValueError('In WFG2/WFG3 the distance-related parameter (l) must be divisible by 2.')
+        raise ValueError("In WFG2/WFG3 the distance-related parameter (l) must be divisible by 2.")
 
 
 def correct_to_01(X, epsilon=1.0e-10):

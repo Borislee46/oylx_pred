@@ -38,13 +38,12 @@ def hvc_2d_fast(ref_point, F_sorted, left=None, right=None):
 
 def hv_2d_fast(ref_point, F_sorted):
     V = np.vstack([ref_point, F_sorted])
-    height = (V[:-1, 1] - V[1:, 1])
+    height = V[:-1, 1] - V[1:, 1]
     width = ref_point[0] - V[1:, 0]
     return (height * width).sum()
 
 
 class ExactHypervolume2D(ExactHypervolume):
-
     def __init__(self, ref_point, **kwargs) -> None:
         assert len(ref_point) == 2, "This hypervolume calculation only works in 2 dimensions."
         super().__init__(ref_point, func_hv=hv_2d_fast, func_hvc=hvc_2d_fast, **kwargs)

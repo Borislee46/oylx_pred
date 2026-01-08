@@ -3,14 +3,14 @@ import math
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.selection import Selection
-from src.pages.algorithm_lab.pymoo.util.misc import random_permutations
 from src.pages.algorithm_lab.pymoo.util import default_random_state
+from src.pages.algorithm_lab.pymoo.util.misc import random_permutations
 
 
 class TournamentSelection(Selection):
     """
-      The Tournament selection is used to simulate a tournament between individuals. The pressure balances
-      greedy the genetic algorithm will be.
+    The Tournament selection is used to simulate a tournament between individuals. The pressure balances
+    greedy the genetic algorithm will be.
     """
 
     def __init__(self, func_comp=None, pressure=2, **kwargs):
@@ -54,7 +54,7 @@ class TournamentSelection(Selection):
 
 @default_random_state
 def compare(a, a_val, b, b_val, method, return_random_if_equal=False, random_state=None):
-    if method == 'larger_is_better':
+    if method == "larger_is_better":
         if a_val > b_val:
             return a
         elif a_val < b_val:
@@ -64,7 +64,7 @@ def compare(a, a_val, b, b_val, method, return_random_if_equal=False, random_sta
                 return random_state.choice([a, b])
             else:
                 return None
-    elif method == 'smaller_is_better':
+    elif method == "smaller_is_better":
         if a_val < b_val:
             return a
         elif a_val > b_val:

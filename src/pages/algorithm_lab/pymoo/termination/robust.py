@@ -3,11 +3,11 @@ from src.pages.algorithm_lab.pymoo.util.sliding_window import SlidingWindow
 
 
 class RobustTermination(Termination):
-
-    def __init__(self,
-                 termination,
-                 period=30,
-                 ) -> None:
+    def __init__(
+        self,
+        termination,
+        period=30,
+    ) -> None:
         """
 
         Parameters

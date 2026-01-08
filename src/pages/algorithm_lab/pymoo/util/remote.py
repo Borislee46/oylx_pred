@@ -1,7 +1,7 @@
 import json
 import os
 import urllib.request
-from os.path import join, dirname, abspath
+from os.path import abspath, dirname, join
 
 import numpy as np
 
@@ -18,7 +18,7 @@ class Remote:
     def get_instance():
         if Remote.__instance is None:
             server = Config.data()
-            folder = join(dirname(dirname(abspath(__file__))), 'data')
+            folder = join(dirname(dirname(abspath(__file__))), "data")
             Remote.__instance = Remote(server, folder)
         return Remote.__instance
 
@@ -30,13 +30,11 @@ class Remote:
         self.folder = folder
 
     def load(self, *args, to="numpy"):
-
         # the local file we can try loading
         f = join(str(self.folder), *args)
 
         # check if that path already exists
         if not os.path.exists(f):
-
             # if not make sure to create it that the file can be written
             folder = dirname(f)
             if not os.path.exists(folder):

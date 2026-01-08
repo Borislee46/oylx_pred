@@ -1,6 +1,6 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.individual import calc_cv
 from src.pages.algorithm_lab.pymoo.core.meta import Meta
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
@@ -8,12 +8,7 @@ from src.pages.algorithm_lab.pymoo.util.misc import from_dict
 
 
 class ConstraintsAsObjective(Meta, Problem):
-
-    def __init__(self,
-                 problem,
-                 config=None,
-                 append=True):
-
+    def __init__(self, problem, config=None, append=True):
         super().__init__(problem)
         self.config = config
         self.append = append

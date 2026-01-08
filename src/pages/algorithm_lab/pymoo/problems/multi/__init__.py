@@ -11,4 +11,3 @@ from src.pages.algorithm_lab.pymoo.problems.multi.tnk import *
 from src.pages.algorithm_lab.pymoo.problems.multi.truss2d import *
 from src.pages.algorithm_lab.pymoo.problems.multi.welded_beam import *
 from src.pages.algorithm_lab.pymoo.problems.multi.zdt import *
-

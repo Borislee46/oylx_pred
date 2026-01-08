@@ -7,12 +7,14 @@ from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.operators.crossover.sbx import SBX
 from src.pages.algorithm_lab.pymoo.operators.mutation.pm import PM
 from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling
-from src.pages.algorithm_lab.pymoo.operators.selection.tournament import TournamentSelection, compare
+from src.pages.algorithm_lab.pymoo.operators.selection.tournament import (
+    TournamentSelection,
+    compare,
+)
 from src.pages.algorithm_lab.pymoo.termination.default import DefaultMultiObjectiveTermination
 from src.pages.algorithm_lab.pymoo.util.display.multi import MultiObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util.dominator import Dominator
 from src.pages.algorithm_lab.pymoo.util.misc import vectorized_cdist
-
 
 # ---------------------------------------------------------------------------------------------------------
 # Environmental Survival (in the original paper it is referred to as archiving)
@@ -20,7 +22,6 @@ from src.pages.algorithm_lab.pymoo.util.misc import vectorized_cdist
 
 
 class SPEA2Survival(Survival):
-
     def __init__(self, normalize=False, filter_infeasible=True):
         super().__init__(filter_infeasible)
 
@@ -31,7 +32,6 @@ class SPEA2Survival(Survival):
         self.norm = None
 
     def _do(self, problem, pop, *args, n_survive=None, **kwargs):
-
         # get the objective space values and objects
         F = pop.get("F").astype(float, copy=False)
 
@@ -51,7 +51,6 @@ class SPEA2Survival(Survival):
 
         # if normalization is enabled keep track of ideal and nadir
         if self.normalize:
-
             # initialize the first time and then always update the boundary points
             if self.norm is None:
                 self.norm = HyperplaneNormalization(F.shape[1])
@@ -92,14 +91,12 @@ class SPEA2Survival(Survival):
 
         # if not enough solutions, will up by F
         if len(survivors) < n_survive:
-
             # sort them by the fitness values (lower is better) and append them
             rem_by_F = rem[SPEA_F[rem].argsort()]
-            survivors.extend(rem_by_F[:n_survive - len(survivors)])
+            survivors.extend(rem_by_F[: n_survive - len(survivors)])
 
         # if too many, delete based on distances
         elif len(survivors) > n_survive:
-
             # remove one individual per loop, until we hit n_survive
             while len(survivors) > n_survive:
                 i = dists[survivors][:, survivors].min(axis=1).argmin()
@@ -122,19 +119,42 @@ def spea_binary_tournament(pop, P, algorithm, random_state=None, **kwargs):
     S = np.full(n_tournaments, np.nan)
 
     for i in range(n_tournaments):
-
         a, b = P[i, 0], P[i, 1]
-        a_cv, a_f, b_cv, b_f, = pop[a].CV[0], pop[a].F, pop[b].CV[0], pop[b].F
+        (
+            a_cv,
+            a_f,
+            b_cv,
+            b_f,
+        ) = (
+            pop[a].CV[0],
+            pop[a].F,
+            pop[b].CV[0],
+            pop[b].F,
+        )
 
         # if at least one solution is infeasible
         if a_cv > 0.0 or b_cv > 0.0:
-            S[i] = compare(a, a_cv, b, b_cv, method='smaller_is_better',
-                           return_random_if_equal=True, random_state=random_state)
+            S[i] = compare(
+                a,
+                a_cv,
+                b,
+                b_cv,
+                method="smaller_is_better",
+                return_random_if_equal=True,
+                random_state=random_state,
+            )
 
         # both solutions are feasible
         else:
-            S[i] = compare(a, pop[a].get("SPEA_F"), b, pop[b].get("SPEA_F"), method='smaller_is_better',
-                           return_random_if_equal=True, random_state=random_state)
+            S[i] = compare(
+                a,
+                pop[a].get("SPEA_F"),
+                b,
+                pop[b].get("SPEA_F"),
+                method="smaller_is_better",
+                return_random_if_equal=True,
+                random_state=random_state,
+            )
 
     return S[:, None].astype(int, copy=False)
 
@@ -145,18 +165,19 @@ def spea_binary_tournament(pop, P, algorithm, random_state=None, **kwargs):
 
 
 class SPEA2(GeneticAlgorithm):
-
-    def __init__(self,
-                 pop_size=100,
-                 sampling=FloatRandomSampling(),
-                 selection=TournamentSelection(spea_binary_tournament),
-                 crossover=SBX(),
-                 mutation=PM(),
-                 survival=SPEA2Survival(normalize=True),
-                 eliminate_duplicates=True,
-                 n_offsprings=None,
-                 output=MultiObjectiveOutput(),
-                 **kwargs):
+    def __init__(
+        self,
+        pop_size=100,
+        sampling=FloatRandomSampling(),
+        selection=TournamentSelection(spea_binary_tournament),
+        crossover=SBX(),
+        mutation=PM(),
+        survival=SPEA2Survival(normalize=True),
+        eliminate_duplicates=True,
+        n_offsprings=None,
+        output=MultiObjectiveOutput(),
+        **kwargs,
+    ):
         """
 
         SPEA2 - Strength Pareto EA 2
@@ -173,19 +194,20 @@ class SPEA2(GeneticAlgorithm):
 
         """
 
-        super().__init__(pop_size=pop_size,
-                         sampling=sampling,
-                         selection=selection,
-                         crossover=crossover,
-                         mutation=mutation,
-                         survival=survival,
-                         eliminate_duplicates=eliminate_duplicates,
-                         n_offsprings=n_offsprings,
-                         output=output,
-                         advance_after_initial_infill=True,
-                         **kwargs)
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            crossover=crossover,
+            mutation=mutation,
+            survival=survival,
+            eliminate_duplicates=eliminate_duplicates,
+            n_offsprings=n_offsprings,
+            output=output,
+            advance_after_initial_infill=True,
+            **kwargs,
+        )
         self.termination = DefaultMultiObjectiveTermination()
 
 
 parse_doc_string(SPEA2.__init__)
-

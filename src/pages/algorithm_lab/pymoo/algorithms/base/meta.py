@@ -5,14 +5,8 @@ from src.pages.algorithm_lab.pymoo.core.algorithm import Algorithm
 
 
 class MetaAlgorithm:
-
     def __new__(cls, algorithm) -> Any:
-
-
-
-
         return algorithm
-
 
     def __init__(self, algorithm) -> None:
         super().__init__()
@@ -26,11 +20,11 @@ class MetaAlgorithm:
 
 
 class MetaAlgorithm2(Algorithm):
-
-    def __init__(self,
-                 algorithm,
-                 copy=False,
-                 ):
+    def __init__(
+        self,
+        algorithm,
+        copy=False,
+    ):
         super().__init__()
 
         # if the algorithm object should be copied to keep the original one unmodified

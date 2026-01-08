@@ -1,6 +1,6 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 from src.pages.algorithm_lab.pymoo.util.remote import Remote
 
@@ -11,11 +11,10 @@ def g_linear(x):
 
 def g_multimodal(x):
     A = 10
-    return 1 + A * x.shape[1] + np.sum(x ** 2 - A * np.cos(2 * np.pi * x), axis=1)
+    return 1 + A * x.shape[1] + np.sum(x**2 - A * np.cos(2 * np.pi * x), axis=1)
 
 
 class CTP(Problem):
-
     def __init__(self, n_var=2, n_ieq_constr=1, option="linear"):
         super().__init__(n_var=n_var, n_obj=2, n_ieq_constr=n_ieq_constr, xl=0, xu=1, vtype=float)
 
@@ -37,14 +36,13 @@ class CTP(Problem):
         return f1, f2
 
     def calc_constraint(self, theta, a, b, c, d, e, f1, f2):
-
         # Equations in readable format
         exp1 = (f2 - e) * anp.cos(theta) - f1 * anp.sin(theta)
 
         exp2 = (f2 - e) * anp.sin(theta) + f1 * anp.cos(theta)
-        exp2 = b * anp.pi * (exp2 ** c)
+        exp2 = b * anp.pi * (exp2**c)
         exp2 = anp.abs(anp.sin(exp2))
-        exp2 = a * (exp2 ** d)
+        exp2 = a * (exp2**d)
 
         # as in the paper
         # val = - (exp1 - exp2)
@@ -59,11 +57,12 @@ class CTP(Problem):
         return val
 
     def _calc_pareto_front(self, *args, **kwargs):
-        return Remote.get_instance().load("pymoo", "pf", "CTP", str(self.__class__.__name__).lower() + ".pf")
+        return Remote.get_instance().load(
+            "pymoo", "pf", "CTP", str(self.__class__.__name__).lower() + ".pf"
+        )
 
 
 class CTP1(CTP):
-
     def __init__(self, n_var=2, n_ieq_constr=2, **kwargs):
         super().__init__(n_var, n_ieq_constr, **kwargs)
 
@@ -75,7 +74,7 @@ class CTP1(CTP):
         for j in range(n_ieq_constr):
             beta = a[j] * np.exp(-b[j] * alpha)
             a[j + 1] = (a[j] + beta) / 2
-            b[j + 1] = - 1 / alpha * np.log(beta / a[j + 1])
+            b[j + 1] = -1 / alpha * np.log(beta / a[j + 1])
 
             alpha += delta
 
@@ -91,13 +90,12 @@ class CTP1(CTP):
         a, b = self.a, self.b
         g = []
         for j in range(self.n_ieq_constr):
-            _g = - (f2 - (a[j] * anp.exp(-b[j] * f1)))
+            _g = -(f2 - (a[j] * anp.exp(-b[j] * f1)))
             g.append(_g)
         out["G"] = anp.column_stack(g)
 
 
 class CTP2(CTP):
-
     def _evaluate(self, x, out, *args, **kwargs):
         f1, f2 = self.calc_objectives(x)
         out["F"] = anp.column_stack([f1, f2])
@@ -108,7 +106,6 @@ class CTP2(CTP):
 
 
 class CTP3(CTP):
-
     def _evaluate(self, x, out, *args, **kwargs):
         f1, f2 = self.calc_objectives(x)
         out["F"] = anp.column_stack([f1, f2])
@@ -120,7 +117,6 @@ class CTP3(CTP):
 
 
 class CTP4(CTP):
-
     def _evaluate(self, x, out, *args, **kwargs):
         f1, f2 = self.calc_objectives(x)
         out["F"] = anp.column_stack([f1, f2])
@@ -132,7 +128,6 @@ class CTP4(CTP):
 
 
 class CTP5(CTP):
-
     def _evaluate(self, x, out, *args, **kwargs):
         f1, f2 = self.calc_objectives(x)
         out["F"] = anp.column_stack([f1, f2])
@@ -144,7 +139,6 @@ class CTP5(CTP):
 
 
 class CTP6(CTP):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.xu = np.full(self.n_var, 20)
@@ -161,7 +155,6 @@ class CTP6(CTP):
 
 
 class CTP7(CTP):
-
     def _evaluate(self, x, out, *args, **kwargs):
         f1, f2 = self.calc_objectives(x)
         out["F"] = anp.column_stack([f1, f2])
@@ -193,6 +186,6 @@ class CTP8(CTP):
         out["G"] = anp.column_stack([g1, g2])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     problem = CTP1(n_ieq_constr=3)
     print(problem.n_ieq_constr)

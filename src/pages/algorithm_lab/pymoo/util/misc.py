@@ -44,7 +44,7 @@ def repair(X, xl, xu):
 
 def unique_rows(a):
     a = np.ascontiguousarray(a)
-    unique_a = np.unique(a.view([('', a.dtype)] * a.shape[1]))
+    unique_a = np.unique(a.view([("", a.dtype)] * a.shape[1]))
     return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
 
 
@@ -90,6 +90,7 @@ def get_duplicates(M):
 # Euclidean Distance
 # -----------------------------------------------
 
+
 def func_euclidean_distance(a, b):
     return np.sqrt(((a - b) ** 2).sum(axis=1))
 
@@ -109,6 +110,7 @@ def norm_eucl_dist(problem, A, B, **kwargs):
 # -----------------------------------------------
 # Manhatten Distance
 # -----------------------------------------------
+
 
 def func_manhatten_distance(a, b):
     return np.abs(a - b).sum(axis=1)
@@ -154,10 +156,13 @@ def norm_tchebychev_dist(problem, A, B, **kwargs):
 
 def cdist(A, B, **kwargs):
     from scipy.spatial import distance
+
     return distance.cdist(A.astype(float), B.astype(float), **kwargs)
 
 
-def vectorized_cdist(A, B, func_dist=func_euclidean_distance, fill_diag_with_inf=False, **kwargs) -> object:
+def vectorized_cdist(
+    A, B, func_dist=func_euclidean_distance, fill_diag_with_inf=False, **kwargs
+) -> object:
     assert A.ndim <= 2 and B.ndim <= 2
 
     A, only_row = at_least_2d_array(A, extend_as="row", return_if_reshaped=True)
@@ -310,7 +315,6 @@ def set_if_none_from_tuples(kwargs, *args):
             kwargs[key] = val
 
 
-
 def distance_of_closest_points_to_others(X):
     D = vectorized_cdist(X, X)
     np.fill_diagonal(D, np.inf)
@@ -359,6 +363,7 @@ def termination_from_tuple(termination):
     # get the termination if provided as a tuple - create an object
     if termination is not None and not isinstance(termination, Termination):
         from src.pages.algorithm_lab.pymoo.termination import get_termination
+
         if isinstance(termination, str):
             termination = get_termination(termination)
         else:
@@ -370,8 +375,9 @@ def termination_from_tuple(termination):
 def unique_and_all_indices(arr):
     sort_indexes = np.argsort(arr)
     arr = np.asarray(arr)[sort_indexes]
-    vals, first_indexes, inverse, counts = np.unique(arr,
-                                                     return_index=True, return_inverse=True, return_counts=True)
+    vals, first_indexes, inverse, counts = np.unique(
+        arr, return_index=True, return_inverse=True, return_counts=True
+    )
     indexes = np.split(sort_indexes, first_indexes[1:])
     for x in indexes:
         x.sort()
@@ -417,7 +423,7 @@ def filter_params(params, prefix, delete_prefix=True):
     for k, v in params.items():
         if k.startswith(prefix):
             if delete_prefix:
-                k = k[len(prefix):]
+                k = k[len(prefix) :]
             ret[k] = v
     return ret
 

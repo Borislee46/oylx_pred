@@ -2,15 +2,14 @@ import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 from src.pages.algorithm_lab.pymoo.operators.sampling.lhs import LatinHypercubeSampling
-from src.pages.algorithm_lab.pymoo.util.reference_direction import ReferenceDirectionFactory, map_onto_unit_simplex
+from src.pages.algorithm_lab.pymoo.util.reference_direction import (
+    ReferenceDirectionFactory,
+    map_onto_unit_simplex,
+)
 
 
 class RandomSamplingAndMap(ReferenceDirectionFactory):
-
-    def __init__(self,
-                 n_dim,
-                 n_points,
-                 **kwargs):
+    def __init__(self, n_dim, n_points, **kwargs):
         super().__init__(n_dim, **kwargs)
         self.n_points = n_points
 

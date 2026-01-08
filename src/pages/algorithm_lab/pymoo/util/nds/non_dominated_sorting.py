@@ -7,14 +7,21 @@ from src.pages.algorithm_lab.pymoo.util.dominator import Dominator
 
 
 class NonDominatedSorting:
-
     def __init__(self, epsilon=None, method="fast_non_dominated_sort", dominator=None) -> None:
         super().__init__()
         self.epsilon = epsilon
         self.method = method
         self.dominator = dominator
 
-    def do(self, F, return_rank=False, only_non_dominated_front=False, n_stop_if_ranked=None, n_fronts=None, **kwargs):
+    def do(
+        self,
+        F,
+        return_rank=False,
+        only_non_dominated_front=False,
+        n_stop_if_ranked=None,
+        n_fronts=None,
+        **kwargs,
+    ):
         F = F.astype(float)
 
         # if not set just set it to a very large values because the cython algorithms do not take None
@@ -30,7 +37,10 @@ class NonDominatedSorting:
         # if a custom dominator is provided, use the custom dominator and run fast_non_dominated_sort
         if self.dominator is not None:
             # Use the custom dominator directly
-            from src.pages.algorithm_lab.pymoo.util.nds.fast_non_dominated_sort import fast_non_dominated_sort
+            from src.pages.algorithm_lab.pymoo.util.nds.fast_non_dominated_sort import (
+                fast_non_dominated_sort,
+            )
+
             fronts = fast_non_dominated_sort(F, dominator=self.dominator, **kwargs)
         else:
             # Use the standard function loader approach
@@ -51,7 +61,6 @@ class NonDominatedSorting:
         _fronts = []
         n_ranked = 0
         for front in fronts:
-
             _fronts.append(np.array(front, dtype=int))
 
             # increment the n_ranked solution counter

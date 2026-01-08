@@ -6,10 +6,11 @@ from src.pages.algorithm_lab.pymoo.util.normalization import denormalize, normal
 
 
 class ZeroToOne(Meta, Problem):
-
     def __init__(self, problem):
         super().__init__(problem)
-        assert self.xl is not None and self.xu is not None, "Both, xl and xu, must be set to redefine the problem!"
+        assert (
+            self.xl is not None and self.xu is not None
+        ), "Both, xl and xu, must be set to redefine the problem!"
         self.xl, self.xu = np.zeros(self.n_var), np.ones(self.n_var)
 
     def do(self, X, return_values_of, *args, **kwargs):

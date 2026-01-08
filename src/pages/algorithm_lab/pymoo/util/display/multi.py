@@ -2,14 +2,15 @@ from src.pages.algorithm_lab.pymoo.indicators.gd import GD
 from src.pages.algorithm_lab.pymoo.indicators.hv import Hypervolume
 from src.pages.algorithm_lab.pymoo.indicators.igd import IGD
 from src.pages.algorithm_lab.pymoo.termination.ftol import MultiObjectiveSpaceTermination
-
 from src.pages.algorithm_lab.pymoo.util.display.column import Column
 from src.pages.algorithm_lab.pymoo.util.display.output import Output, pareto_front_if_possible
-from src.pages.algorithm_lab.pymoo.util.display.single import MinimumConstraintViolation, AverageConstraintViolation
+from src.pages.algorithm_lab.pymoo.util.display.single import (
+    AverageConstraintViolation,
+    MinimumConstraintViolation,
+)
 
 
 class NumberOfNondominatedSolutions(Column):
-
     def __init__(self, width=6, **kwargs) -> None:
         super().__init__("n_nds", width=width, **kwargs)
 
@@ -18,7 +19,6 @@ class NumberOfNondominatedSolutions(Column):
 
 
 class MultiObjectiveOutput(Output):
-
     def __init__(self):
         super().__init__()
         self.cv_min = MinimumConstraintViolation()
@@ -63,13 +63,11 @@ class MultiObjectiveOutput(Output):
         F = F[feas]
 
         if len(F) > 0:
-            
             problem = algorithm.problem
             if hasattr(problem, "time"):
                 self.pf = pareto_front_if_possible(problem)
 
             if self.pf is not None:
-
                 if feas.sum() > 0:
                     self.igd.set(IGD(self.pf, zero_to_one=True).do(F))
                     self.gd.set(GD(self.pf, zero_to_one=True).do(F))
@@ -78,14 +76,12 @@ class MultiObjectiveOutput(Output):
                         self.hv.set(Hypervolume(pf=self.pf, zero_to_one=True).do(F))
 
             if self.indicator_no_pf is not None:
-
                 ind = self.indicator_no_pf
                 ind.update(algorithm)
 
                 valid = ind.delta_ideal is not None
 
                 if valid:
-
                     if ind.delta_ideal > ind.tol:
                         max_from = "ideal"
                         eps = ind.delta_ideal

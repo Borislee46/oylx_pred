@@ -3,7 +3,6 @@ from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class MultiToSingleObjective(Meta, Problem):
-
     def __init__(self, problem, decomposition, kwargs=None):
         super().__init__(problem)
         self.decomposition = decomposition
@@ -16,7 +15,3 @@ class MultiToSingleObjective(Meta, Problem):
         out["__F__"] = F
         out["F"] = self.decomposition.do(F, **self.kwargs)[:, None]
         return out
-
-
-
-

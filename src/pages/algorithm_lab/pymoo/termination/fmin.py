@@ -2,7 +2,6 @@ from src.pages.algorithm_lab.pymoo.core.termination import Termination
 
 
 class MinimumFunctionValueTermination(Termination):
-
     def __init__(self, fmin) -> None:
         super().__init__()
         self.fmin = fmin

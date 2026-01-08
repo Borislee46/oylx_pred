@@ -8,13 +8,14 @@ from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOut
 
 
 class LocalSearch(LoopwiseAlgorithm, Algorithm):
-
-    def __init__(self,
-                 initial=None,
-                 sampling=LatinHypercubeSampling(),
-                 output=SingleObjectiveOutput(),
-                 n_sample_points=20,
-                 **kwargs):
+    def __init__(
+        self,
+        initial=None,
+        sampling=LatinHypercubeSampling(),
+        output=SingleObjectiveOutput(),
+        n_sample_points=20,
+        **kwargs,
+    ):
         super().__init__(output=output, **kwargs)
 
         # the default termination if not specified otherwise
@@ -31,9 +32,9 @@ class LocalSearch(LoopwiseAlgorithm, Algorithm):
         self.n_sample_points = n_sample_points
 
     def _initialize_infill(self):
-        return self.initialization.do(self.problem, self.n_sample_points, algorithm=self, random_state=self.random_state)
+        return self.initialization.do(
+            self.problem, self.n_sample_points, algorithm=self, random_state=self.random_state
+        )
 
     def _initialize_advance(self, infills=None, **kwargs):
         self.x0 = FitnessSurvival().do(self.problem, infills, n_survive=1, algorithm=self)[0]
-
-

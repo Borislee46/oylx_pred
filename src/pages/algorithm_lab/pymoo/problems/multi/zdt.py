@@ -1,4 +1,3 @@
-
 import numpy as np
 
 import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
@@ -7,13 +6,11 @@ from src.pages.algorithm_lab.pymoo.util.normalization import normalize
 
 
 class ZDT(Problem):
-
     def __init__(self, n_var=30, **kwargs):
         super().__init__(n_var=n_var, n_obj=2, xl=0, xu=1, vtype=float, **kwargs)
 
 
 class ZDT1(ZDT):
-
     def _calc_pareto_front(self, n_pareto_points=100):
         x = np.linspace(0, 1, n_pareto_points)
         return np.array([x, 1 - np.sqrt(x)]).T
@@ -27,7 +24,6 @@ class ZDT1(ZDT):
 
 
 class ZDT2(ZDT):
-
     def _calc_pareto_front(self, n_pareto_points=100):
         x = np.linspace(0, 1, n_pareto_points)
         return np.array([x, 1 - np.power(x, 2)]).T
@@ -42,13 +38,14 @@ class ZDT2(ZDT):
 
 
 class ZDT3(ZDT):
-
     def _calc_pareto_front(self, n_points=100, flatten=True):
-        regions = [[0, 0.0830015349],
-                   [0.182228780, 0.2577623634],
-                   [0.4093136748, 0.4538821041],
-                   [0.6183967944, 0.6525117038],
-                   [0.8233317983, 0.8518328654]]
+        regions = [
+            [0, 0.0830015349],
+            [0.182228780, 0.2577623634],
+            [0.4093136748, 0.4538821041],
+            [0.6183967944, 0.6525117038],
+            [0.8233317983, 0.8518328654],
+        ]
 
         pf = []
 
@@ -58,7 +55,7 @@ class ZDT3(ZDT):
             pf.append(np.array([x1, x2]).T)
 
         if not flatten:
-            pf = np.concatenate([pf[None,...] for pf in pf])
+            pf = np.concatenate([pf[None, ...] for pf in pf])
         else:
             pf = np.vstack(pf)
 
@@ -99,7 +96,6 @@ class ZDT4(ZDT):
 
 
 class ZDT5(ZDT):
-
     def __init__(self, m=11, n=5, normalize=True, **kwargs):
         self.m = m
         self.n = n
@@ -108,7 +104,7 @@ class ZDT5(ZDT):
 
     def _calc_pareto_front(self, n_pareto_points=100):
         x = 1 + np.linspace(0, 1, n_pareto_points) * 30
-        pf = np.column_stack([x, (self.m-1) / x])
+        pf = np.column_stack([x, (self.m - 1) / x])
         if self.normalize:
             pf = normalize(pf)
         return pf
@@ -118,7 +114,7 @@ class ZDT5(ZDT):
 
         _x = [x[:, :30]]
         for i in range(self.m - 1):
-            _x.append(x[:, 30 + i * self.n: 30 + (i + 1) * self.n])
+            _x.append(x[:, 30 + i * self.n : 30 + (i + 1) * self.n])
 
         u = anp.column_stack([x_i.sum(axis=1) for x_i in _x])
         v = (2 + u) * (u < self.n) + 1 * (u == self.n)
@@ -129,13 +125,12 @@ class ZDT5(ZDT):
 
         if self.normalize:
             f1 = normalize(f1, 1, 31)
-            f2 = normalize(f2, (self.m-1) * 1/31, (self.m-1))
+            f2 = normalize(f2, (self.m - 1) * 1 / 31, (self.m - 1))
 
         out["F"] = anp.column_stack([f1, f2])
 
 
 class ZDT6(ZDT):
-
     def __init__(self, n_var=10, **kwargs):
         super().__init__(n_var=n_var, **kwargs)
 

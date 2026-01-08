@@ -7,8 +7,8 @@ For the original work see:
 Adapted from https://github.com/rsenwar/Non-Dominated-Sorting-Algorithms/tree/master
 """
 
+from typing import Literal
 
-from typing import Literal, List
 import numpy as np
 
 
@@ -61,13 +61,11 @@ def construct_domination_matrix(f_scores: np.ndarray, **kwargs) -> np.ndarray:
     b = np.apply_over_axes(np.argsort, f_scores, axes=0)
     for vec, srt in zip(f_scores.T, b.T):
         d += construct_comp_matrix(vec, srt)
-    d = np.where(
-        np.logical_and(d == f_scores.shape[-1], d.T == f_scores.shape[-1]), 0, d
-    )
+    d = np.where(np.logical_and(d == f_scores.shape[-1], d.T == f_scores.shape[-1]), 0, d)
     return d
 
 
-def dda_ns(f_scores: np.ndarray, **kwargs) -> List[List[int]]:
+def dda_ns(f_scores: np.ndarray, **kwargs) -> list[list[int]]:
     """
     dda_ns runs the DDA-NS algorithm.
 
@@ -99,7 +97,7 @@ def dda_ns(f_scores: np.ndarray, **kwargs) -> List[List[int]]:
     return fronts
 
 
-def dda_ens(f_scores: np.ndarray, **kwargs) -> List[List[int]]:
+def dda_ens(f_scores: np.ndarray, **kwargs) -> list[list[int]]:
     """
     dda_ens runs the DDA-ENS (efficient DDA) algorithm
 
@@ -115,7 +113,7 @@ def dda_ens(f_scores: np.ndarray, **kwargs) -> List[List[int]]:
     """
     d_mx = construct_domination_matrix(f_scores)
 
-    fronts: List[List[int]] = []
+    fronts: list[list[int]] = []
     for s in np.lexsort(f_scores.T):
         isinserted = False
         for fk in fronts:
@@ -130,7 +128,7 @@ def dda_ens(f_scores: np.ndarray, **kwargs) -> List[List[int]]:
 
 def dominance_degree_non_dominated_sort(
     f_scores: np.ndarray, strategy: Literal["efficient", "fast"] = "efficient"
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     dominance_degree_non_dominated_sort performs the non-dominating sort with the specified algorithm
 

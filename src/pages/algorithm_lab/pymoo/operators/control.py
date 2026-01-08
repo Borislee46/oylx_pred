@@ -7,21 +7,23 @@ from src.pages.algorithm_lab.pymoo.core.duplicate import NoDuplicateElimination
 from src.pages.algorithm_lab.pymoo.core.individual import Individual
 from src.pages.algorithm_lab.pymoo.core.infill import InfillCriterion
 from src.pages.algorithm_lab.pymoo.core.mixed import MixedVariableMating
-from src.pages.algorithm_lab.pymoo.core.parameters import get_params, flatten
+from src.pages.algorithm_lab.pymoo.core.parameters import flatten, get_params
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
-from src.pages.algorithm_lab.pymoo.core.variable import Choice, Real, Integer, Binary
+from src.pages.algorithm_lab.pymoo.core.variable import Binary, Choice, Integer, Real
 from src.pages.algorithm_lab.pymoo.operators.crossover.sbx import SBX
 from src.pages.algorithm_lab.pymoo.operators.crossover.ux import UX
 from src.pages.algorithm_lab.pymoo.operators.mutation.bitflip import BFM
 from src.pages.algorithm_lab.pymoo.operators.mutation.pm import PM
 from src.pages.algorithm_lab.pymoo.operators.mutation.rm import ChoiceRandomMutation
 from src.pages.algorithm_lab.pymoo.operators.repair.rounding import RoundingRepair
-from src.pages.algorithm_lab.pymoo.operators.selection.tournament import TournamentSelection, compare
+from src.pages.algorithm_lab.pymoo.operators.selection.tournament import (
+    TournamentSelection,
+    compare,
+)
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class ParameterControl:
-
     def __init__(self, obj) -> None:
         super().__init__()
 
@@ -51,12 +53,12 @@ class ParameterControl:
     def advance(self, infills=None):
         for k, v in self.params.items():
             assert len(v.get()) == len(
-                infills), "Make sure that the infills and parameters asked for have the same size."
+                infills
+            ), "Make sure that the infills and parameters asked for have the same size."
             infills.set(k, v.get())
 
 
 class NoParameterControl(ParameterControl):
-
     def __init__(self, _) -> None:
         super().__init__(None)
 
@@ -65,13 +67,13 @@ class NoParameterControl(ParameterControl):
 
 
 class RandomParameterControl(ParameterControl):
-
     def _do(self, N, random_state=None):
-        return {key: value.sample(N, random_state=random_state) for key, value in self.params.items()}
+        return {
+            key: value.sample(N, random_state=random_state) for key, value in self.params.items()
+        }
 
 
 class EvolutionaryParameterControl(ParameterControl):
-
     def __init__(self, obj) -> None:
         super().__init__(obj)
         self.eps = 0.05
@@ -103,15 +105,16 @@ class EvolutionaryParameterControl(ParameterControl):
         }
 
         mating = MixedVariableMating(
-            crossover=crossover,
-            mutation=mutation,
-            eliminate_duplicates=NoDuplicateElimination()
+            crossover=crossover, mutation=mutation, eliminate_duplicates=NoDuplicateElimination()
         )
 
         problem = Problem(vars=params)
 
         parents = selection(problem, pop, N, n_parents=2, random_state=random_state)
-        parents = [[Individual(X={key: parent.get(key) for key in params}) for parent in mating] for mating in parents]
+        parents = [
+            [Individual(X={key: parent.get(key) for key in params}) for parent in mating]
+            for mating in parents
+        ]
 
         off = mating(problem, parents, N, parents=True, random_state=random_state)
 
@@ -122,7 +125,6 @@ class EvolutionaryParameterControl(ParameterControl):
 
 
 class AgeBasedTournamentSelection(TournamentSelection):
-
     def __init__(self, pressure=2):
         super().__init__(age_binary_tournament, pressure)
 
@@ -134,24 +136,26 @@ def age_binary_tournament(pop, P, **kwargs):
         raise ValueError("Only implemented for binary tournament!")
 
     S = np.full(n_tournaments, np.nan)
-    random_state = kwargs.get('random_state', None)
+    random_state = kwargs.get("random_state", None)
 
     for i in range(n_tournaments):
         a, b = P[i, 0], P[i, 1]
         a_gen, b_gen = pop[a].get("n_gen"), pop[b].get("n_gen")
-        S[i] = compare(a, a_gen, b, b_gen, method='larger_is_better', return_random_if_equal=True, random_state=random_state)
+        S[i] = compare(
+            a,
+            a_gen,
+            b,
+            b_gen,
+            method="larger_is_better",
+            return_random_if_equal=True,
+            random_state=random_state,
+        )
 
     return S[:, None].astype(int, copy=False)
 
 
 class ParameterControlMating(InfillCriterion):
-
-    def __init__(self,
-                 selection,
-                 crossover,
-                 mutation,
-                 control=NoParameterControl,
-                 **kwargs):
+    def __init__(self, selection, crossover, mutation, control=NoParameterControl, **kwargs):
         super().__init__(**kwargs)
         self.selection = selection
         self.crossover = crossover
@@ -159,7 +163,6 @@ class ParameterControlMating(InfillCriterion):
         self.control = control(self)
 
     def _do(self, problem, pop, n_offsprings, parents=None, **kwargs):
-
         # how many parents need to be select for the mating - depending on number of offsprings remaining
         n_matings = math.ceil(n_offsprings / self.crossover.n_offsprings)
 
@@ -170,9 +173,10 @@ class ParameterControlMating(InfillCriterion):
 
         # if the parents for the mating are not provided directly - usually selection will be used
         if parents is None:
-
             # select the parents for the mating - just an index array
-            parents = self.selection.do(problem, pop, n_matings, n_parents=self.crossover.n_parents, **kwargs)
+            parents = self.selection.do(
+                problem, pop, n_matings, n_parents=self.crossover.n_parents, **kwargs
+            )
 
         # do the crossover using the parents index and the population - additional data provided if necessary
         off = self.crossover(problem, parents, **kwargs)

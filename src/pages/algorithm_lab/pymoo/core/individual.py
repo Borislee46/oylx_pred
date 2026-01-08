@@ -1,5 +1,5 @@
 """
-Module containing infrastructure for representing individuals in 
+Module containing infrastructure for representing individuals in
 population-based optimization algorithms.
 """
 
@@ -12,11 +12,9 @@ __all__ = [
 ]
 
 import copy
-from typing import Any
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Optional
 from warnings import warn
+
 import numpy as np
 
 
@@ -30,16 +28,16 @@ def default_config() -> dict:
         A dictionary of default constraint violation settings.
     """
     return dict(
-        cache = True,
-        cv_eps = 0.0,
-        cv_ieq = dict(scale=None, eps=0.0, pow=None, func=np.sum),
-        cv_eq = dict(scale=None, eps=1e-4, pow=None, func=np.sum),
+        cache=True,
+        cv_eps=0.0,
+        cv_ieq=dict(scale=None, eps=0.0, pow=None, func=np.sum),
+        cv_eq=dict(scale=None, eps=1e-4, pow=None, func=np.sum),
     )
 
 
 class Individual:
     """
-    Base class for representing an individual in a population-based 
+    Base class for representing an individual in a population-based
     optimization algorithm.
     """
 
@@ -47,10 +45,10 @@ class Individual:
     default_config = default_config
 
     def __init__(
-            self, 
-            config: Optional[dict] = None, 
-            **kwargs: Any,
-        ) -> None:
+        self,
+        config: dict | None = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Constructor for the ``Invididual`` class.
 
@@ -60,25 +58,25 @@ class Individual:
             A dictionary of configuration metadata.
             If ``None``, use a class-dependent default configuration.
         kwargs : Any
-            Additional keyword arguments containing data which is to be stored 
+            Additional keyword arguments containing data which is to be stored
             in the ``Individual``.
         """
         # set decision variable vector to None
         self._X = None
 
-        # set values objective(s), inequality constraint(s), equality 
+        # set values objective(s), inequality constraint(s), equality
         # contstraint(s) to None
         self._F = None
         self._G = None
         self._H = None
-        
-        # set first derivatives of objective(s), inequality constraint(s), 
+
+        # set first derivatives of objective(s), inequality constraint(s),
         # equality contstraint(s) to None
         self._dF = None
         self._dG = None
         self._dH = None
-        
-        # set second derivatives of objective(s), inequality constraint(s), 
+
+        # set second derivatives of objective(s), inequality constraint(s),
         # equality contstraint(s) to None
         self._ddF = None
         self._ddG = None
@@ -109,12 +107,12 @@ class Individual:
                 self.data[k] = v
 
     def reset(
-            self, 
-            data: bool = True,
-        ) -> None:
+        self,
+        data: bool = True,
+    ) -> None:
         """
-        Reset the value of objective(s), inequality constraint(s), equality 
-        constraint(s), their first and second derivatives, the constraint 
+        Reset the value of objective(s), inequality constraint(s), equality
+        constraint(s), their first and second derivatives, the constraint
         violation, and the metadata to empty values.
 
         Parameters
@@ -153,9 +151,9 @@ class Individual:
         self.evaluated = set()
 
     def has(
-            self, 
-            key: str,
-        ) -> bool:
+        self,
+        key: str,
+    ) -> bool:
         """
         Determine whether an individual has a provided key or not.
 
@@ -163,7 +161,7 @@ class Individual:
         ----------
         key : str
             The key for which to test.
-        
+
         Returns
         -------
         out : bool
@@ -274,7 +272,7 @@ class Individual:
     @property
     def CV(self) -> np.ndarray:
         """
-        Get the constraint violation vector for an individual by either reading 
+        Get the constraint violation vector for an individual by either reading
         it from the cache or calculating it.
 
         Returns
@@ -311,7 +309,7 @@ class Individual:
         Returns
         -------
         out : np.ndarray
-            An array containing whether each constraint is feasible for an 
+            An array containing whether each constraint is feasible for an
             individual.
         """
         eps = self.config.get("cv_eps", 0.0)
@@ -498,9 +496,9 @@ class Individual:
         return self.F[0]
 
     @property
-    def cv(self) -> Union[float,None]:
+    def cv(self) -> float | None:
         """
-        Convenience property. Get the first constraint violation value for an 
+        Convenience property. Get the first constraint violation value for an
         individual by either reading it from the cache or calculating it.
 
         Returns
@@ -516,7 +514,7 @@ class Individual:
     @property
     def feas(self) -> bool:
         """
-        Convenience property. Get whether an individual is feasible for the 
+        Convenience property. Get whether an individual is feasible for the
         first constraint.
 
         Returns
@@ -538,13 +536,13 @@ class Individual:
         Returns
         -------
         out : np.ndarray
-            An array containing whether each constraint is feasible for an 
+            An array containing whether each constraint is feasible for an
             individual.
         """
         warn(
             "The ``feasible`` property for ``pymoo.core.individual.Individual`` is deprecated",
             DeprecationWarning,
-            stacklevel = 2,
+            stacklevel=2,
         )
         return self.FEAS
 
@@ -552,10 +550,7 @@ class Individual:
     # Other Functions
     # -------------------------------------------------------
 
-    def set_by_dict(
-            self, 
-            **kwargs: Any
-        ) -> None:
+    def set_by_dict(self, **kwargs: Any) -> None:
         """
         Set an individual's data or metadata using values in a dictionary.
 
@@ -568,10 +563,10 @@ class Individual:
             self.set(k, v)
 
     def set(
-            self, 
-            key: str, 
-            value: object,
-        ) -> 'Individual':
+        self,
+        key: str,
+        value: object,
+    ) -> "Individual":
         """
         Set an individual's data or metadata based on a key and value.
 
@@ -581,7 +576,7 @@ class Individual:
             Key of the data for which to set.
         value : object
             Value of the data for which to set.
-        
+
         Returns
         -------
         out : Individual
@@ -594,9 +589,9 @@ class Individual:
         return self
 
     def get(
-            self, 
-            *keys: str,
-        ) -> Union[tuple,object]:
+        self,
+        *keys: str,
+    ) -> tuple | object:
         """
         Get the values for one or more keys for an individual.
 
@@ -629,10 +624,10 @@ class Individual:
             return tuple(ret)
 
     def duplicate(
-            self, 
-            key: str, 
-            new_key: str,
-        ) -> None:
+        self,
+        key: str,
+        new_key: str,
+    ) -> None:
         """
         Duplicate a key to a new key.
 
@@ -645,7 +640,7 @@ class Individual:
         """
         self.set(new_key, self.get(key))
 
-    def new(self) -> 'Individual':
+    def new(self) -> "Individual":
         """
         Create a new instance of this class.
 
@@ -657,10 +652,10 @@ class Individual:
         return self.__class__()
 
     def copy(
-            self, 
-            other: Optional['Individual'] = None, 
-            deep: bool = True,
-        ) -> 'Individual':
+        self,
+        other: Optional["Individual"] = None,
+        deep: bool = True,
+    ) -> "Individual":
         """
         Copy an individual.
 
@@ -670,7 +665,7 @@ class Individual:
             The individual to copy. If ``None``, assumed to be self.
         deep : bool
             Whether to deep copy the individual.
-        
+
         Returns
         -------
         out : Individual
@@ -696,12 +691,12 @@ class Individual:
 
 
 def calc_cv(
-        G: Optional[np.ndarray] = None, 
-        H: Optional[np.ndarray] = None, 
-        config: Optional[dict] = None,
-    ) -> np.ndarray:
+    G: np.ndarray | None = None,
+    H: np.ndarray | None = None,
+    config: dict | None = None,
+) -> np.ndarray:
     """
-    Calculate the constraint violation(s) for a set of inequality constraint(s), 
+    Calculate the constraint violation(s) for a set of inequality constraint(s),
     equality constraint(s), and a scoring configuration.
 
     Parameters
@@ -712,7 +707,7 @@ def calc_cv(
         A vector of equality constraint(s).
     config : dict, None
         A dictionary of constraint violation scoring configuration settings.
-    
+
     Returns
     -------
     out : np.ndarray
@@ -745,12 +740,12 @@ def calc_cv(
 
 
 def constr_to_cv(
-        c: Union[np.ndarray,None], 
-        eps: float = 0.0, 
-        scale: Optional[float] = None, 
-        pow: Optional[float] = None, 
-        func: object = np.mean,
-    ) -> float:
+    c: np.ndarray | None,
+    eps: float = 0.0,
+    scale: float | None = None,
+    pow: float | None = None,
+    func: object = np.mean,
+) -> float:
     """
     Convert a constraint to a constraint violation.
 
@@ -779,6 +774,6 @@ def constr_to_cv(
 
     # if a pow factor has been provided
     if pow is not None:
-        c = c ** pow
+        c = c**pow
 
     return func(c)

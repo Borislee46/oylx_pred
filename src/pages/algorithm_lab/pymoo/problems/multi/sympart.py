@@ -1,7 +1,6 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
-
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
@@ -29,9 +28,7 @@ class SYMPARTRotated(Problem):
         self.w = angle
 
         # Calculate the inverted rotation matrix, store for fitness evaluation
-        self.IRM = np.array([
-            [np.cos(self.w), np.sin(self.w)],
-            [-np.sin(self.w), np.cos(self.w)]])
+        self.IRM = np.array([[np.cos(self.w), np.sin(self.w)], [-np.sin(self.w), np.cos(self.w)]])
 
         r = max(self.b, self.c)
         xl = np.full(2, -10 * r)
@@ -59,8 +56,8 @@ class SYMPARTRotated(Problem):
         p1 = X1 - t1 * c
         p2 = X2 - t2 * b
 
-        f1 = (p1 + a) ** 2 + p2 ** 2
-        f2 = (p1 - a) ** 2 + p2 ** 2
+        f1 = (p1 + a) ** 2 + p2**2
+        f2 = (p1 - a) ** 2 + p2**2
         out["F"] = anp.vstack((f1, f2)).T
 
     def _calc_pareto_set(self, n_pareto_points=500):
@@ -72,15 +69,12 @@ class SYMPARTRotated(Problem):
             for col in [1, 0, -1]:
                 X1 = np.linspace(row * self.c - self.a, row * self.c + self.a, h)
                 X2 = np.tile(col * self.b, h)
-                PS[cnt * h:cnt * h + h, :] = np.vstack((X1, X2)).T
+                PS[cnt * h : cnt * h + h, :] = np.vstack((X1, X2)).T
                 cnt = cnt + 1
         if self.w != 0:
             # If rotated, we apply the rotation matrix to PS
             # Calculate the rotation matrix
-            RM = np.array([
-                [np.cos(self.w), -np.sin(self.w)],
-                [np.sin(self.w), np.cos(self.w)]
-            ])
+            RM = np.array([[np.cos(self.w), -np.sin(self.w)], [np.sin(self.w), np.cos(self.w)]])
             PS = np.array([np.matmul(RM, x) for x in PS])
         return PS
 

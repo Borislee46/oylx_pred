@@ -6,7 +6,6 @@ from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDomi
 
 
 def filter_optimum(pop, least_infeasible=False):
-
     # if the population is none to optimum can be found
     if pop is None or len(pop) == 0:
         return None
@@ -16,7 +15,6 @@ def filter_optimum(pop, least_infeasible=False):
 
     # if at least one feasible solution was found
     if len(ret) > 0:
-
         # then check the objective values
         F = ret.get("F")
 

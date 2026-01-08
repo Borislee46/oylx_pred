@@ -1,17 +1,23 @@
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.util.misc import set_if_none
-from src.pages.algorithm_lab.pymoo.visualization.util import get_circle_points, plot_axes_lines, \
-    plot_axis_labels, plot_circle, plot_polygon, parse_bounds, normalize, equal_axis, no_ticks
+from src.pages.algorithm_lab.pymoo.visualization.util import (
+    equal_axis,
+    get_circle_points,
+    no_ticks,
+    normalize,
+    parse_bounds,
+    plot_axes_lines,
+    plot_axis_labels,
+    plot_circle,
+    plot_polygon,
+)
 
 
 class Petal(Plot):
-
-    def __init__(self,
-                 bounds=None,
-                 **kwargs):
+    def __init__(self, bounds=None, **kwargs):
         """
 
         Petal Diagram
@@ -39,14 +45,15 @@ class Petal(Plot):
         super().__init__(bounds=bounds, **kwargs)
 
         if bounds is None:
-            raise Exception("Boundaries must be provided for Petal Width. Otherwise, no trade-offs can be calculated.")
+            raise Exception(
+                "Boundaries must be provided for Petal Width. Otherwise, no trade-offs can be calculated."
+            )
 
         set_if_none(self.axis_style, "color", "black")
         set_if_none(self.axis_style, "linewidth", 2)
         set_if_none(self.axis_style, "alpha", 0.5)
 
     def _plot(self, ax, F):
-
         # equal axis length and no ticks
         equal_axis(ax)
         no_ticks(ax)
@@ -74,7 +81,6 @@ class Petal(Plot):
         plot_axes_lines(ax, V, **self.axis_style)
 
     def _do(self):
-
         n_rows = len(self.to_plot)
         n_cols = max([len(e[0]) for e in self.to_plot])
         self.init_figure(n_rows=n_rows, n_cols=n_cols, force_axes_as_matrix=True)

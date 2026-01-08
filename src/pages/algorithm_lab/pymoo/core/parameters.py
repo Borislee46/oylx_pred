@@ -1,9 +1,9 @@
 from src.pages.algorithm_lab.pymoo.core.variable import Variable
 
-
 # ---------------------------------------------------------------------------------------------------------
 # Functions
 # ---------------------------------------------------------------------------------------------------------
+
 
 def get_data(obj):
     if not isinstance(obj, dict):
@@ -27,13 +27,10 @@ def get_params_bfs(obj, flag, only_active):
     visited = set()
 
     while len(q) > 0:
-
         prefix, obj = q.pop()
 
         if isinstance(obj, Variable):
-
             if obj not in visited and obj.flag == flag and (not only_active or obj.active):
-
                 # find the right spot in the ret dictionary
                 e = ret
 
@@ -64,7 +61,6 @@ def get_params_rec(obj, visited, flag, only_active):
     ret = {}
     for k, v in data.items():
         if isinstance(v, Variable):
-
             if v not in visited and v.flag == flag and (not only_active or v.active):
                 ret[k] = v
 

@@ -1,15 +1,24 @@
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.algorithms.moo.nsga3 import calc_niche_count, niching, comp_by_cv_then_random, associate_to_niches, NSGA3
+from src.pages.algorithm_lab.pymoo.algorithms.moo.nsga3 import (
+    NSGA3,
+    associate_to_niches,
+    calc_niche_count,
+    comp_by_cv_then_random,
+    niching,
+)
 from src.pages.algorithm_lab.pymoo.core.survival import Survival
 from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling
 from src.pages.algorithm_lab.pymoo.operators.selection.tournament import TournamentSelection
 from src.pages.algorithm_lab.pymoo.util.misc import intersect
 from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
-from src.pages.algorithm_lab.pymoo.util.normalization import denormalize, get_extreme_points_c, get_nadir_point
+from src.pages.algorithm_lab.pymoo.util.normalization import (
+    denormalize,
+    get_extreme_points_c,
+    get_nadir_point,
+)
 from src.pages.algorithm_lab.pymoo.util.reference_direction import UniformReferenceDirectionFactory
-
 
 # =========================================================================================================
 # Implementation
@@ -17,23 +26,24 @@ from src.pages.algorithm_lab.pymoo.util.reference_direction import UniformRefere
 
 
 class RNSGA3(NSGA3):
-
-    def __init__(self,
-                 ref_points,
-                 pop_per_ref_point,
-                 mu=0.05,
-                 sampling=FloatRandomSampling(),
-                 selection=TournamentSelection(func_comp=comp_by_cv_then_random),
-                 eliminate_duplicates=True,
-                 n_offsprings=None,
-                 **kwargs):
+    def __init__(
+        self,
+        ref_points,
+        pop_per_ref_point,
+        mu=0.05,
+        sampling=FloatRandomSampling(),
+        selection=TournamentSelection(func_comp=comp_by_cv_then_random),
+        eliminate_duplicates=True,
+        n_offsprings=None,
+        **kwargs,
+    ):
         """
 
         Parameters
         ----------
 
         ref_points : {ref_points}
-        
+
         pop_per_ref_point : int
             Size of the population used for each reference point.
 
@@ -54,32 +64,37 @@ class RNSGA3(NSGA3):
         n_obj = ref_points.shape[1]
 
         # add the aspiration point lines
-        aspiration_ref_dirs = UniformReferenceDirectionFactory(n_dim=n_obj, n_points=pop_per_ref_point).do()
+        aspiration_ref_dirs = UniformReferenceDirectionFactory(
+            n_dim=n_obj, n_points=pop_per_ref_point
+        ).do()
 
         survival = AspirationPointSurvival(ref_points, aspiration_ref_dirs, mu=mu)
         pop_size = ref_points.shape[0] * aspiration_ref_dirs.shape[0] + aspiration_ref_dirs.shape[1]
         ref_dirs = None
 
-        super().__init__(ref_dirs,
-                         pop_size=pop_size,
-                         sampling=sampling,
-                         selection=selection,
-                         survival=survival,
-                         eliminate_duplicates=eliminate_duplicates,
-                         n_offsprings=n_offsprings,
-                         **kwargs)
+        super().__init__(
+            ref_dirs,
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            survival=survival,
+            eliminate_duplicates=eliminate_duplicates,
+            n_offsprings=n_offsprings,
+            **kwargs,
+        )
 
     def _setup(self, problem, **kwargs):
         if self.survival.ref_points.shape[1] != problem.n_obj:
-            raise Exception("Dimensionality of reference points must be equal to the number of objectives: %s != %s" %
-                            (self.survival.ref_points.shape[1], problem.n_obj))
+            raise Exception(
+                "Dimensionality of reference points must be equal to the number of objectives: %s != %s"
+                % (self.survival.ref_points.shape[1], problem.n_obj)
+            )
 
     def _finalize(self):
         pass
 
 
 class AspirationPointSurvival(Survival):
-
     def __init__(self, ref_points, aspiration_ref_dirs, mu=0.1):
         super().__init__()
 
@@ -96,7 +111,6 @@ class AspirationPointSurvival(Survival):
         self.worst_point = np.full(ref_points.shape[1], -np.inf)
 
     def _do(self, problem, pop, n_survive, D=None, random_state=None, **kwargs):
-
         # attributes to be set after the survival
         F = pop.get("F")
 
@@ -110,16 +124,22 @@ class AspirationPointSurvival(Survival):
 
         # find the extreme points for normalization
         self.extreme_points = get_extreme_points_c(
-            np.vstack([F[non_dominated], self.ref_points])
-            , self.ideal_point,
-            extreme_points=self.extreme_points)
+            np.vstack([F[non_dominated], self.ref_points]),
+            self.ideal_point,
+            extreme_points=self.extreme_points,
+        )
 
         # find the intercepts for normalization and do backup if gaussian elimination fails
         worst_of_population = np.max(F, axis=0)
         worst_of_front = np.max(F[non_dominated, :], axis=0)
 
-        self.nadir_point = get_nadir_point(self.extreme_points, self.ideal_point, self.worst_point,
-                                           worst_of_population, worst_of_front)
+        self.nadir_point = get_nadir_point(
+            self.extreme_points,
+            self.ideal_point,
+            self.worst_point,
+            worst_of_population,
+            worst_of_front,
+        )
 
         #  consider only the population until we come to the splitting front
         I = np.concatenate(fronts)
@@ -133,14 +153,17 @@ class AspirationPointSurvival(Survival):
                 counter += 1
         last_front = fronts[-1]
 
-        unit_ref_points = (self.ref_points - self.ideal_point) / (self.nadir_point - self.ideal_point)
+        unit_ref_points = (self.ref_points - self.ideal_point) / (
+            self.nadir_point - self.ideal_point
+        )
         ref_dirs = get_ref_dirs_from_points(unit_ref_points, self.aspiration_ref_dirs, mu=self.mu)
         self.ref_dirs = denormalize(ref_dirs, self.ideal_point, self.nadir_point)
 
         # associate individuals to niches
-        niche_of_individuals, dist_to_niche, dist_matrix = associate_to_niches(F, ref_dirs, self.ideal_point,
-                                                                               self.nadir_point)
-        pop.set('rank', rank, 'niche', niche_of_individuals, 'dist_to_niche', dist_to_niche)
+        niche_of_individuals, dist_to_niche, dist_matrix = associate_to_niches(
+            F, ref_dirs, self.ideal_point, self.nadir_point
+        )
+        pop.set("rank", rank, "niche", niche_of_individuals, "dist_to_niche", dist_to_niche)
 
         # set the optimum, first front and closest to all reference directions
         closest = np.unique(dist_matrix[:, np.unique(niche_of_individuals)].argmin(axis=0))
@@ -148,7 +171,6 @@ class AspirationPointSurvival(Survival):
 
         # if we need to select individuals to survive
         if len(pop) > n_survive:
-
             # if there is only one front
             if len(fronts) == 1:
                 n_remaining = n_survive
@@ -158,11 +180,19 @@ class AspirationPointSurvival(Survival):
             # if some individuals already survived
             else:
                 until_last_front = np.concatenate(fronts[:-1])
-                niche_count = calc_niche_count(len(ref_dirs), niche_of_individuals[until_last_front])
+                niche_count = calc_niche_count(
+                    len(ref_dirs), niche_of_individuals[until_last_front]
+                )
                 n_remaining = n_survive - len(until_last_front)
 
-            S = niching(pop[last_front], n_remaining, niche_count, niche_of_individuals[last_front],
-                        dist_to_niche[last_front], random_state=random_state)
+            S = niching(
+                pop[last_front],
+                n_remaining,
+                niche_count,
+                niche_of_individuals[last_front],
+                dist_to_niche[last_front],
+                random_state=random_state,
+            )
 
             survivors = np.concatenate((until_last_front, last_front[S].tolist()))
             pop = pop[survivors]
@@ -187,11 +217,12 @@ def get_ref_dirs_from_points(ref_point, ref_dirs, mu=0.1):
     point_on_plane = np.eye(n_obj)[0]  # Point on Das-Dennis
 
     for point in ref_point:
-
         ref_dir_for_aspiration_point = np.copy(ref_dirs)  # Copy of computed reference directions
         ref_dir_for_aspiration_point = mu * ref_dir_for_aspiration_point
 
-        cent = np.mean(ref_dir_for_aspiration_point, axis=0)  # Find centroid of shrunken reference points
+        cent = np.mean(
+            ref_dir_for_aspiration_point, axis=0
+        )  # Find centroid of shrunken reference points
 
         # Project shrunken Das-Dennis points back onto original Das-Dennis hyperplane
         intercept = line_plane_intersection(np.zeros(n_obj), point, point_on_plane, n_vector)
@@ -202,8 +233,9 @@ def get_ref_dirs_from_points(ref_point, ref_dirs, mu=0.1):
         # If reference directions are located outside of first octant, redefine points onto the border
         if not (ref_dir_for_aspiration_point > 0).min():
             ref_dir_for_aspiration_point[ref_dir_for_aspiration_point < 0] = 0
-            ref_dir_for_aspiration_point = ref_dir_for_aspiration_point / np.sum(ref_dir_for_aspiration_point, axis=1)[
-                                                                          :, None]
+            ref_dir_for_aspiration_point = (
+                ref_dir_for_aspiration_point / np.sum(ref_dir_for_aspiration_point, axis=1)[:, None]
+            )
         val.extend(ref_dir_for_aspiration_point)
 
     val.extend(np.eye(n_obj))  # Add extreme points
@@ -211,6 +243,7 @@ def get_ref_dirs_from_points(ref_point, ref_dirs, mu=0.1):
 
 
 # intersection function
+
 
 def line_plane_intersection(l0, l1, p0, p_no, epsilon=1e-6):
     """

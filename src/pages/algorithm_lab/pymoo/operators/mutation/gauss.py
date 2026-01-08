@@ -5,7 +5,6 @@ from src.pages.algorithm_lab.pymoo.core.variable import Real, get
 from src.pages.algorithm_lab.pymoo.operators.repair.bounds_repair import repair_random_init
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
-
 # ---------------------------------------------------------------------------------------------------------
 # Function
 # ---------------------------------------------------------------------------------------------------------
@@ -40,7 +39,6 @@ def mut_gauss(X, xl, xu, sigma, prob, random_state=None):
 
 
 class GaussianMutation(Mutation):
-
     def __init__(self, sigma=0.1, **kwargs):
         super().__init__(**kwargs)
         self.sigma = Real(sigma, bounds=(0.01, 0.25), strict=(0.0, 1.0))

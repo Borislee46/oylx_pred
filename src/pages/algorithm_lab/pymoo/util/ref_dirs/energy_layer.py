@@ -1,25 +1,30 @@
-
-
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.gradient.grad_autograd import value_and_grad, triu_indices, row_stack
+from src.pages.algorithm_lab.pymoo.gradient.grad_autograd import (
+    row_stack,
+    triu_indices,
+    value_and_grad,
+)
 from src.pages.algorithm_lab.pymoo.util.normalization import normalize
 from src.pages.algorithm_lab.pymoo.util.ref_dirs.energy import squared_dist
 from src.pages.algorithm_lab.pymoo.util.ref_dirs.optimizer import Adam
-from src.pages.algorithm_lab.pymoo.util.reference_direction import ReferenceDirectionFactory, scale_reference_directions
+from src.pages.algorithm_lab.pymoo.util.reference_direction import (
+    ReferenceDirectionFactory,
+    scale_reference_directions,
+)
 
 
 class LayerwiseRieszEnergyReferenceDirectionFactory(ReferenceDirectionFactory):
-
-    def __init__(self,
-                 n_dim,
-                 partitions,
-                 return_as_tuple=False,
-                 n_max_iter=1000,
-                 verbose=False,
-                 X=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        n_dim,
+        partitions,
+        return_as_tuple=False,
+        n_max_iter=1000,
+        verbose=False,
+        X=None,
+        **kwargs,
+    ):
         super().__init__(n_dim, **kwargs)
         self.scalings = None
         self.n_max_iter = n_max_iter
@@ -35,13 +40,11 @@ class LayerwiseRieszEnergyReferenceDirectionFactory(ReferenceDirectionFactory):
         return scalings, obj
 
     def _solve(self, X, scalings):
-
         # initialize the optimizer for the run
         optimizer = Adam()
 
         # for each iteration of gradient descent
         for i in range(self.n_max_iter):
-
             # execute one optimization step
             _scalings, _obj = self._step(optimizer, X, scalings)
 
@@ -63,12 +66,10 @@ class LayerwiseRieszEnergyReferenceDirectionFactory(ReferenceDirectionFactory):
         return get_points(X, scalings)
 
     def do(self, **kwargs):
-
         X = []
         scalings = []
 
         for k, p in enumerate(self.partitions):
-
             if p > 1:
                 val = np.linspace(0, 1, p + 1)[1:-1]
                 _X = []

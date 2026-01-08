@@ -2,35 +2,35 @@ from src.pages.algorithm_lab.pymoo.util.optimum import filter_optimum
 
 try:
     import optuna
-    from optuna.samplers import TPESampler
     from optuna.logging import get_logger
+    from optuna.samplers import TPESampler
 except:
     raise Exception("Please install optuna: pip install optuna")
 
 from src.pages.algorithm_lab.pymoo.core.algorithm import Algorithm
 from src.pages.algorithm_lab.pymoo.core.individual import Individual
 from src.pages.algorithm_lab.pymoo.core.population import Population
-from src.pages.algorithm_lab.pymoo.core.variable import Real, Integer, Choice, Binary
+from src.pages.algorithm_lab.pymoo.core.variable import Binary, Choice, Integer, Real
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 
 
 class Optuna(Algorithm):
-
     def __init__(self, sampler=None, output=SingleObjectiveOutput(), **kwargs):
         super().__init__(output=output, **kwargs)
         self.sampler = sampler
 
     def _setup(self, problem, **kwargs):
-
         sampler = self.sampler
         if sampler is None:
             sampler = TPESampler(seed=self.seed)
 
         # that disables the warning in the very beginning
-        get_logger('optuna.storages._in_memory').disabled = True
+        get_logger("optuna.storages._in_memory").disabled = True
 
         # create a new study
-        self.study = optuna.create_study(study_name=f"Study@{id(self)}", sampler=sampler, direction='minimize')
+        self.study = optuna.create_study(
+            study_name=f"Study@{id(self)}", sampler=sampler, direction="minimize"
+        )
 
         # the current trial for an individual
         self.trial = None
@@ -75,6 +75,3 @@ class Optuna(Algorithm):
         if self.opt is not None:
             pop = Population.merge(self.opt, pop)
         self.opt = filter_optimum(pop, least_infeasible=True)
-
-
-

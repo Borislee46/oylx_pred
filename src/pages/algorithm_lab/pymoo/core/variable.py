@@ -13,24 +13,25 @@ __all__ = [
     "get",
 ]
 
-from typing import Any, Optional, Tuple
-from typing import Union
+from typing import Any
+
 import numpy as np
 from numpy.typing import ArrayLike
+
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
-class Variable(object):
+class Variable:
     """
     Semi-abstract base class for the representation of a decision variable.
     """
 
     def __init__(
-            self, 
-            value: Optional[object] = None, 
-            active: bool = True, 
-            flag: str = "default",
-        ) -> None:
+        self,
+        value: object | None = None,
+        active: bool = True,
+        flag: str = "default",
+    ) -> None:
         """
         Constructor for the ``Variable`` class.
 
@@ -50,10 +51,10 @@ class Variable(object):
 
     @default_random_state
     def sample(
-            self, 
-            n: Optional[int] = None,
-            random_state=None,
-        ) -> Union[object,np.ndarray]:
+        self,
+        n: int | None = None,
+        random_state=None,
+    ) -> object | np.ndarray:
         """
         Randomly sample ``n`` instances of a decision variable.
 
@@ -63,13 +64,13 @@ class Variable(object):
             Number of decision variable samples which to draw.
             If ``int``, sample ``n`` decision variables.
             If ``None``, sample a single decision variables.
-        
+
         Returns
         -------
         out : object, np.ndarray
-            If ``n`` is ``int``, return a ``np.ndarray`` of shape ``(n,)`` 
+            If ``n`` is ``int``, return a ``np.ndarray`` of shape ``(n,)``
             containing sampled decision variables.
-            If ``n`` is ``None``, return an ``object`` of a sampled decision 
+            If ``n`` is ``None``, return an ``object`` of a sampled decision
             variable.
         """
         if n is None:
@@ -78,13 +79,13 @@ class Variable(object):
             return self._sample(n, random_state=random_state)
 
     def _sample(
-            self, 
-            n: int,
-            random_state=None,
-        ) -> np.ndarray:
+        self,
+        n: int,
+        random_state=None,
+    ) -> np.ndarray:
         """
         Randomly sample ``n`` instances of a decision variable.
-        This is an abstract private method governing the behavior of the 
+        This is an abstract private method governing the behavior of the
         ``sample`` method.
 
         Parameters
@@ -100,9 +101,9 @@ class Variable(object):
         pass
 
     def set(
-            self, 
-            value: object,
-        ) -> None:
+        self,
+        value: object,
+    ) -> None:
         """
         Set the value of a decision variable.
 
@@ -113,10 +114,7 @@ class Variable(object):
         """
         self.value = value
 
-    def get(
-            self, 
-            **kwargs: Any
-        ) -> object:
+    def get(self, **kwargs: Any) -> object:
         """
         Get the value of a decision variable.
 
@@ -124,7 +122,7 @@ class Variable(object):
         ----------
         kwargs : Any
             Additional keyword arguments.
-        
+
         Returns
         -------
         out : object
@@ -139,12 +137,12 @@ class BoundedVariable(Variable):
     """
 
     def __init__(
-            self, 
-            value: Optional[object] = None, 
-            bounds: Tuple[Optional[object],Optional[object]] = (None, None), 
-            strict: Optional[Tuple[Optional[object],Optional[object]]] = None, 
-            **kwargs: Any,
-        ) -> None:
+        self,
+        value: object | None = None,
+        bounds: tuple[object | None, object | None] = (None, None),
+        strict: tuple[object | None, object | None] | None = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Constructor for the ``BoundedVariable`` class.
 
@@ -153,7 +151,7 @@ class BoundedVariable(Variable):
         value : object
             Value the decision variable is to take.
         bounds : tuple
-            A tuple of length 2 containing upper and lower limits for the 
+            A tuple of length 2 containing upper and lower limits for the
             decision variable.
         strict : tuple, None
             Strict boundaries for the decision variable.
@@ -161,11 +159,11 @@ class BoundedVariable(Variable):
         kwargs : Any
             Additional keyword arguments for ``active`` and ``flag``.
         """
-        # call the Variable constructor 
+        # call the Variable constructor
         super().__init__(value=value, **kwargs)
         self.bounds = bounds
 
-        # if no strict boundaries were provided, consider ``bounds`` as 
+        # if no strict boundaries were provided, consider ``bounds`` as
         # strict boundaries
         if strict is None:
             strict = bounds
@@ -200,19 +198,20 @@ class Real(BoundedVariable):
     """
     Class for the representation of bounded, real decision variables.
     """
+
     # variable type represented by this object class
     vtype = float
 
     def _sample(
-            self, 
-            n: int,
-            random_state=None,
-        ) -> np.ndarray:
+        self,
+        n: int,
+        random_state=None,
+    ) -> np.ndarray:
         """
         Randomly sample ``n`` instances of a real, bounded decision variable.
         Decision variables are sampled from a uniform distribution.
 
-        This is a private method governing the behavior of the ``sample`` 
+        This is a private method governing the behavior of the ``sample``
         method.
 
         Parameters
@@ -225,7 +224,7 @@ class Real(BoundedVariable):
         Returns
         -------
         out : np.ndarray
-            An array of shape ``(n,)`` containing sampled real, bounded 
+            An array of shape ``(n,)`` containing sampled real, bounded
             decision variables.
         """
         low, high = self.bounds
@@ -236,19 +235,20 @@ class Integer(BoundedVariable):
     """
     Class for the representation of bounded, integer decision variables.
     """
+
     # variable type represented by this object class
     vtype = int
 
     def _sample(
-            self, 
-            n: int,
-            random_state=None,
-        ) -> np.ndarray:
+        self,
+        n: int,
+        random_state=None,
+    ) -> np.ndarray:
         """
         Randomly sample ``n`` instances of a bounded, integer decision variable.
         Decision variables are sampled from a uniform distribution.
 
-        This is a private method governing the behavior of the ``sample`` 
+        This is a private method governing the behavior of the ``sample``
         method.
 
         Parameters
@@ -261,7 +261,7 @@ class Integer(BoundedVariable):
         Returns
         -------
         out : np.ndarray
-            An array of shape ``(n,)`` containing sampled bounded, integer 
+            An array of shape ``(n,)`` containing sampled bounded, integer
             decision variables.
         """
         low, high = self.bounds
@@ -272,19 +272,20 @@ class Binary(BoundedVariable):
     """
     Class for the representation of a binary, bounded decision variable.
     """
+
     # variable type represented by this object class
     vtype = bool
 
     def _sample(
-            self, 
-            n: int,
-            random_state=None,
-        ) -> np.ndarray:
+        self,
+        n: int,
+        random_state=None,
+    ) -> np.ndarray:
         """
         Randomly sample ``n`` instances of a bounded, binary decision variable.
         Decision variables are sampled from a uniform distribution.
 
-        This is a private method governing the behavior of the ``sample`` 
+        This is a private method governing the behavior of the ``sample``
         method.
 
         Parameters
@@ -297,7 +298,7 @@ class Binary(BoundedVariable):
         Returns
         -------
         out : np.ndarray
-            An array of shape ``(n,)`` containing sampled bounded, binary 
+            An array of shape ``(n,)`` containing sampled bounded, binary
             decision variables.
         """
         return random_state.random(size=n) < 0.5
@@ -307,16 +308,17 @@ class Choice(Variable):
     """
     Class for the representation of a discrete, subset decision variable.
     """
+
     # variable type represented by this object class
     vtype = object
 
     def __init__(
-            self, 
-            value: Optional[object] = None, 
-            options: Optional[ArrayLike] = None, 
-            all: Optional[ArrayLike] = None, 
-            **kwargs: Any,
-        ) -> None:
+        self,
+        value: object | None = None,
+        options: ArrayLike | None = None,
+        all: ArrayLike | None = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Constructor for the ``Choice`` class.
 
@@ -342,16 +344,16 @@ class Choice(Variable):
         self.all = all
 
     def _sample(
-            self, 
-            n: int,
-            random_state=None,
-        ) -> np.ndarray:
+        self,
+        n: int,
+        random_state=None,
+    ) -> np.ndarray:
         """
         Randomly sample ``n`` instances of a discrete, subset decision variable.
-        Decision variables are sampled with replacement from a uniform 
+        Decision variables are sampled with replacement from a uniform
         distribution.
 
-        This is a private method governing the behavior of the ``sample`` 
+        This is a private method governing the behavior of the ``sample``
         method.
 
         Parameters
@@ -364,17 +366,15 @@ class Choice(Variable):
         Returns
         -------
         out : np.ndarray
-            An array of shape ``(n,)`` containing sampled bounded, integer 
+            An array of shape ``(n,)`` containing sampled bounded, integer
             decision variables.
         """
         return random_state.choice(self.options, size=n)
 
 
 def get(
-        *args: Tuple[Union[Variable,object],...], 
-        size: Optional[Union[tuple,int]] = None, 
-        **kwargs: Any
-    ) -> Union[tuple,object,None]:
+    *args: tuple[Variable | object, ...], size: tuple | int | None = None, **kwargs: Any
+) -> tuple | object | None:
     """
     Get decision variable values from a tuple of ``Variable`` objects.
 
@@ -385,9 +385,9 @@ def get(
     size : tuple, int, None
         Size to reshape decision variables.
     kwargs : Any
-        Additional keyword arguments to pass to the ``get`` method of the 
+        Additional keyword arguments to pass to the ``get`` method of the
         ``Variable`` class when getting decision variable values.
-    
+
     Returns
     -------
     out : tuple, object, None
@@ -401,7 +401,6 @@ def get(
         v = arg.get(**kwargs) if isinstance(arg, Variable) else arg
 
         if size is not None:
-
             if isinstance(v, np.ndarray):
                 v = np.reshape(v, size)
             else:

@@ -8,7 +8,6 @@ from src.pages.algorithm_lab.pymoo.indicators.igd_plus import IGDPlus
 
 
 class Recorder(Callback):
-
     def __init__(self, nth_evals=None) -> None:
         super().__init__()
         self.data = []
@@ -16,7 +15,6 @@ class Recorder(Callback):
         self.rec_n_evals = 0
 
     def notify(self, algorithm, **kwargs):
-
         if self.nth_evals is None:
             self.data.append(self.save(algorithm))
 
@@ -42,7 +40,6 @@ class Recorder(Callback):
 
 
 class DefaultSingleObjectiveRecorder(Recorder):
-
     def save(self, algorithm):
         n_evals = algorithm.evaluator.n_eval
 
@@ -69,9 +66,7 @@ class DefaultSingleObjectiveRecorder(Recorder):
 
 
 class DefaultMultiObjectiveRecorder(Recorder):
-
     def save(self, algorithm):
-
         igd, igd_plus = np.inf, np.inf
 
         opt = algorithm.opt
@@ -80,7 +75,6 @@ class DefaultMultiObjectiveRecorder(Recorder):
         feas_opt = opt[opt.get("feas")]
 
         if len(feas_opt) > 0:
-
             try:
                 pf = algorithm.problem.pareto_front()
             except:

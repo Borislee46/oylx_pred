@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.util.normalization import PreNormalization
 
 
 class Indicator(PreNormalization):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -15,7 +14,6 @@ class Indicator(PreNormalization):
         return self.do(F, *args, **kwargs)
 
     def do(self, F, *args, **kwargs):
-
         # if it is a 1d array
         if F.ndim == 1:
             F = F[None, :]

@@ -16,7 +16,6 @@ from src.pages.algorithm_lab.pymoo.util.reference_direction import default_ref_d
 
 
 class NeighborhoodSelection(Selection):
-
     def __init__(self, prob=1.0) -> None:
         super().__init__()
         self.prob = Real(prob, bounds=(0.0, 1.0))
@@ -40,19 +39,20 @@ class NeighborhoodSelection(Selection):
 # Implementation
 # =========================================================================================================
 
+
 class MOEAD(LoopwiseAlgorithm, GeneticAlgorithm):
-
-    def __init__(self,
-                 ref_dirs=None,
-                 n_neighbors=20,
-                 decomposition=None,
-                 prob_neighbor_mating=0.9,
-                 sampling=FloatRandomSampling(),
-                 crossover=SBX(prob=1.0, eta=20),
-                 mutation=PM(prob_var=None, eta=20),
-                 output=MultiObjectiveOutput(),
-                 **kwargs):
-
+    def __init__(
+        self,
+        ref_dirs=None,
+        n_neighbors=20,
+        decomposition=None,
+        prob_neighbor_mating=0.9,
+        sampling=FloatRandomSampling(),
+        crossover=SBX(prob=1.0, eta=20),
+        mutation=PM(prob_var=None, eta=20),
+        output=MultiObjectiveOutput(),
+        **kwargs,
+    ):
         # reference directions used for MOEAD
         self.ref_dirs = ref_dirs
 
@@ -66,17 +66,21 @@ class MOEAD(LoopwiseAlgorithm, GeneticAlgorithm):
 
         self.selection = NeighborhoodSelection(prob=prob_neighbor_mating)
 
-        super().__init__(pop_size=len(ref_dirs),
-                         sampling=sampling,
-                         crossover=crossover,
-                         mutation=mutation,
-                         eliminate_duplicates=NoDuplicateElimination(),
-                         output=output,
-                         advance_after_initialization=False,
-                         **kwargs)
+        super().__init__(
+            pop_size=len(ref_dirs),
+            sampling=sampling,
+            crossover=crossover,
+            mutation=mutation,
+            eliminate_duplicates=NoDuplicateElimination(),
+            output=output,
+            advance_after_initialization=False,
+            **kwargs,
+        )
 
     def _setup(self, problem, **kwargs):
-        assert not problem.has_constraints(), "This implementation of MOEAD does not support any constraints."
+        assert (
+            not problem.has_constraints()
+        ), "This implementation of MOEAD does not support any constraints."
 
         # if no reference directions have been provided get them and override the population size and other settings
         if self.ref_dirs is None:
@@ -84,7 +88,9 @@ class MOEAD(LoopwiseAlgorithm, GeneticAlgorithm):
         self.pop_size = len(self.ref_dirs)
 
         # neighbours includes the entry by itself intentionally for the survival method
-        self.neighbors = np.argsort(cdist(self.ref_dirs, self.ref_dirs), axis=1, kind='quicksort')[:, :self.n_neighbors]
+        self.neighbors = np.argsort(cdist(self.ref_dirs, self.ref_dirs), axis=1, kind="quicksort")[
+            :, : self.n_neighbors
+        ]
 
         # if the decomposition is not set yet, set the default
         if self.decomposition is None:
@@ -100,10 +106,26 @@ class MOEAD(LoopwiseAlgorithm, GeneticAlgorithm):
         # iterate for each member of the population in random order
         for k in self.random_state.permutation(len(pop)):
             # get the parents using the neighborhood selection
-            P = self.selection.do(self.problem, pop, 1, self.mating.crossover.n_parents, neighbors=[self.neighbors[k]], random_state=self.random_state)
+            P = self.selection.do(
+                self.problem,
+                pop,
+                1,
+                self.mating.crossover.n_parents,
+                neighbors=[self.neighbors[k]],
+                random_state=self.random_state,
+            )
 
             # perform a mating using the default operators - if more than one offspring just pick the first
-            off = self.random_state.choice(self.mating.do(self.problem, pop, 1, parents=P, n_max_iterations=1, random_state=self.random_state))
+            off = self.random_state.choice(
+                self.mating.do(
+                    self.problem,
+                    pop,
+                    1,
+                    parents=P,
+                    n_max_iterations=1,
+                    random_state=self.random_state,
+                )
+            )
 
             # evaluate the offspring
             off = yield off
@@ -119,8 +141,12 @@ class MOEAD(LoopwiseAlgorithm, GeneticAlgorithm):
 
         # calculate the decomposed values for each neighbor
         N = self.neighbors[k]
-        FV = self.decomposition.do(pop[N].get("F"), weights=self.ref_dirs[N, :], ideal_point=self.ideal)
-        off_FV = self.decomposition.do(off.F[None, :], weights=self.ref_dirs[N, :], ideal_point=self.ideal)
+        FV = self.decomposition.do(
+            pop[N].get("F"), weights=self.ref_dirs[N, :], ideal_point=self.ideal
+        )
+        off_FV = self.decomposition.do(
+            off.F[None, :], weights=self.ref_dirs[N, :], ideal_point=self.ideal
+        )
 
         # this makes the algorithm to support constraints - not originally proposed though and not tested enough
         # if self.problem.has_constraints():
@@ -134,26 +160,44 @@ class MOEAD(LoopwiseAlgorithm, GeneticAlgorithm):
 
 
 class ParallelMOEAD(MOEAD):
-
     def __init__(self, ref_dirs, **kwargs):
         super().__init__(ref_dirs, **kwargs)
         self.indices = None
 
     def _infill(self):
-        pop_size, cross_parents, cross_off = self.pop_size, self.mating.crossover.n_parents, self.mating.crossover.n_offsprings
+        pop_size, cross_parents, cross_off = (
+            self.pop_size,
+            self.mating.crossover.n_parents,
+            self.mating.crossover.n_offsprings,
+        )
 
         # do the mating in a random order
-        indices = self.random_state.permutation(len(self.pop))[:self.n_offsprings]
+        indices = self.random_state.permutation(len(self.pop))[: self.n_offsprings]
 
         # get the parents using the neighborhood selection
-        P = self.selection.do(self.problem, self.pop, self.n_offsprings, cross_parents,
-                              neighbors=self.neighbors[indices], random_state=self.random_state)
+        P = self.selection.do(
+            self.problem,
+            self.pop,
+            self.n_offsprings,
+            cross_parents,
+            neighbors=self.neighbors[indices],
+            random_state=self.random_state,
+        )
 
         # do not any duplicates elimination - thus this results in exactly pop_size * n_offsprings offsprings
-        off = self.mating.do(self.problem, self.pop, 1e12, n_max_iterations=1, parents=P, random_state=self.random_state)
+        off = self.mating.do(
+            self.problem,
+            self.pop,
+            1e12,
+            n_max_iterations=1,
+            parents=P,
+            random_state=self.random_state,
+        )
 
         # select a random offspring from each mating
-        off = Population.create(*[self.random_state.choice(pool) for pool in np.reshape(off, (self.n_offsprings, -1))])
+        off = Population.create(
+            *[self.random_state.choice(pool) for pool in np.reshape(off, (self.n_offsprings, -1))]
+        )
 
         # store the indices because of the neighborhood matching in advance
         self.indices = indices
@@ -161,7 +205,9 @@ class ParallelMOEAD(MOEAD):
         return off
 
     def _advance(self, infills=None, **kwargs):
-        assert len(self.indices) == len(infills), "Number of infills must be equal to the one created beforehand."
+        assert len(self.indices) == len(
+            infills
+        ), "Number of infills must be equal to the one created beforehand."
 
         # update the ideal point before starting to replace
         self.ideal = np.min(np.vstack([self.ideal, infills.get("F")]), axis=0)
@@ -174,9 +220,11 @@ class ParallelMOEAD(MOEAD):
 def default_decomp(problem):
     if problem.n_obj <= 2:
         from src.pages.algorithm_lab.pymoo.decomposition.tchebicheff import Tchebicheff
+
         return Tchebicheff()
     else:
         from src.pages.algorithm_lab.pymoo.decomposition.pbi import PBI
+
         return PBI()
 
 

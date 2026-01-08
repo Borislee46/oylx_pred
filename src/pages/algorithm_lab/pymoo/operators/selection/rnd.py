@@ -3,12 +3,11 @@ import math
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.selection import Selection
-from src.pages.algorithm_lab.pymoo.util.misc import random_permutations
 from src.pages.algorithm_lab.pymoo.util import default_random_state
+from src.pages.algorithm_lab.pymoo.util.misc import random_permutations
 
 
 class RandomSelection(Selection):
-
     def _do(self, _, pop, n_select, n_parents, *args, random_state=None, **kwargs):
         # number of random individuals needed
         n_random = n_select * n_parents
@@ -49,7 +48,6 @@ def fast_fill_random(X, N, columns=None, Xp=None, n_max_attempts=10, random_stat
 
     # for each of the columns which should be set to be no duplicates
     for col in columns:
-
         D = X[:, J]
         if Xp is not None:
             D = np.column_stack([D, Xp])
@@ -58,12 +56,11 @@ def fast_fill_random(X, N, columns=None, Xp=None, n_max_attempts=10, random_stat
         rem = np.arange(len(X))
 
         for _ in range(n_max_attempts):
-
             # random_state is guaranteed to be set by decorator
             if len(rem) > N:
                 X[rem, col] = random_state.choice(N, replace=True, size=len(rem))
             else:
-                X[rem, col] = random_state.permutation(N)[:len(rem)]
+                X[rem, col] = random_state.permutation(N)[: len(rem)]
 
             rem = np.where((X[rem, col][:, None] == D[rem]).any(axis=1))[0]
 

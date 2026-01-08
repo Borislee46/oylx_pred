@@ -1,19 +1,15 @@
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.visualization.util import parse_bounds, normalize
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.util.misc import set_if_none_from_tuples
+from src.pages.algorithm_lab.pymoo.visualization.util import normalize, parse_bounds
 
 
 class Heatmap(Plot):
-
-    def __init__(self,
-                 cmap="Blues",
-                 order_by_objectives=False,
-                 reverse=True,
-                 solution_labels=True,
-                 **kwargs):
+    def __init__(
+        self, cmap="Blues", order_by_objectives=False, reverse=True, solution_labels=True, **kwargs
+    ):
         """
 
         Heatmap
@@ -55,10 +51,11 @@ class Heatmap(Plot):
         self.solution_labels = solution_labels
 
         # set default style
-        set_if_none_from_tuples(self.axis_style, ("interpolation", "nearest"), ("vmin", 0), ("vmax", 1))
+        set_if_none_from_tuples(
+            self.axis_style, ("interpolation", "nearest"), ("vmin", 0), ("vmax", 1)
+        )
 
     def _do(self):
-
         if len(self.to_plot) != 1:
             raise Exception("Only one element can be added to a heatmap.")
 
@@ -72,8 +69,10 @@ class Heatmap(Plot):
 
         # dot the sorting if required
         if self.order_by_objectives is not None and self.order_by_objectives is not False:
-
-            if isinstance(self.order_by_objectives, list) and len(self.order_by_objectives) == self.n_dim:
+            if (
+                isinstance(self.order_by_objectives, list)
+                and len(self.order_by_objectives) == self.n_dim
+            ):
                 L = self.order_by_objectives
             elif isinstance(self.order_by_objectives, int):
                 L = [i for i in range(F.shape[1]) if i != self.order_by_objectives]
@@ -105,14 +104,14 @@ class Heatmap(Plot):
         else:
             if len(self.solution_labels) != len(F):
                 raise Exception(
-                    "The labels provided for each solution must be equal to the number of solutions being plotted.")
+                    "The labels provided for each solution must be equal to the number of solutions being plotted."
+                )
 
         if self.solution_labels is None:
             self.ax.set_yticks([])
             self.ax.set_yticklabels([])
 
         else:
-
             # for ordered by objective apply it to labels
             self.solution_labels = [self.solution_labels[i] for i in I]
 

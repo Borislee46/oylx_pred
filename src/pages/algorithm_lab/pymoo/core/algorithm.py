@@ -9,27 +9,30 @@ from src.pages.algorithm_lab.pymoo.core.meta import Meta
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.core.result import Result
 from src.pages.algorithm_lab.pymoo.functions import FunctionLoader
-from src.pages.algorithm_lab.pymoo.termination.default import DefaultMultiObjectiveTermination, DefaultSingleObjectiveTermination
+from src.pages.algorithm_lab.pymoo.termination.default import (
+    DefaultMultiObjectiveTermination,
+    DefaultSingleObjectiveTermination,
+)
 from src.pages.algorithm_lab.pymoo.util.display.display import Display
 from src.pages.algorithm_lab.pymoo.util.misc import termination_from_tuple
 from src.pages.algorithm_lab.pymoo.util.optimum import filter_optimum
 
 
 class Algorithm:
-
-    def __init__(self,
-                 termination=None,
-                 output=None,
-                 display=None,
-                 callback=None,
-                 archive=None,
-                 return_least_infeasible=False,
-                 save_history=False,
-                 verbose=False,
-                 seed=None,
-                 evaluator=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        termination=None,
+        output=None,
+        display=None,
+        callback=None,
+        archive=None,
+        return_least_infeasible=False,
+        save_history=False,
+        verbose=False,
+        seed=None,
+        evaluator=None,
+        **kwargs,
+    ):
         super().__init__()
 
         # prints the compile warning if enabled
@@ -98,7 +101,6 @@ class Algorithm:
         self.start_time = None
 
     def setup(self, problem, verbose=False, progress=False, **kwargs):
-
         # the problem to be solved by the algorithm
         self.problem = problem
 
@@ -137,14 +139,12 @@ class Algorithm:
         return not self.termination.has_terminated()
 
     def finalize(self):
-
         # finalize the display output in the end of the run
         self.display.finalize()
 
         return self._finalize()
 
     def next(self):
-
         # get the infill solutions
         infills = self.infill()
 
@@ -158,7 +158,6 @@ class Algorithm:
             self.advance()
 
     def _initialize(self):
-
         # the time starts whenever this method is called
         self.start_time = time.time()
 
@@ -173,7 +172,6 @@ class Algorithm:
 
         # the first time next is called simply initial the algorithm - makes the interface cleaner
         if not self.is_initialized:
-
             # hook mostly used by the class to happen before even to initialize
             self._initialize()
 
@@ -192,13 +190,11 @@ class Algorithm:
         return infills
 
     def advance(self, infills=None, **kwargs):
-
         # if infills have been provided set them as offsprings and feed them into advance
         self.off = infills
 
         # if the algorithm has not been already initialized
         if not self.is_initialized:
-
             # set the generation counter to 1
             self.n_iter = 1
 
@@ -215,7 +211,6 @@ class Algorithm:
             self._post_advance()
 
         else:
-
             # call the implementation of the advance method - if the infill is not None
             val = self._advance(infills=infills, **kwargs)
 
@@ -294,7 +289,6 @@ class Algorithm:
         self.opt = filter_optimum(self.pop, least_infeasible=True)
 
     def _post_advance(self):
-
         # update the current optimum of the algorithm
         self._set_optimum()
 
@@ -354,7 +348,6 @@ class Algorithm:
 
 
 class LoopwiseAlgorithm(Algorithm):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.generator = None
@@ -399,10 +392,10 @@ class MetaAlgorithm(Meta):
         # If the algorithm is already a Meta object, don't copy to avoid deepcopy issues with nested proxies
         if isinstance(algorithm, Meta):
             copy = False
-            
+
         # Initialize Meta
         super().__init__(algorithm, copy=copy)
-        
+
         # Pass any additional kwargs to the wrapped algorithm if needed
         for key, value in kwargs.items():
             setattr(self, key, value)

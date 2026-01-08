@@ -3,7 +3,6 @@ from src.pages.algorithm_lab.pymoo.util.display.progress import ProgressBar
 
 
 class Display(Callback):
-
     def __init__(self, output=None, progress=False, verbose=False):
         super().__init__()
         self.output = output
@@ -19,7 +18,7 @@ class Display(Callback):
             output(algorithm)
 
             if header:
-                text += output.header(border=True) + '\n'
+                text += output.header(border=True) + "\n"
             text += output.text()
 
             print(text)
@@ -29,6 +28,5 @@ class Display(Callback):
             progress.set(perc)
 
     def finalize(self):
-
         if self.progress:
             self.progress.close()

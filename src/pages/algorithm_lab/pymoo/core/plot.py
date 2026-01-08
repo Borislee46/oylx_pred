@@ -1,35 +1,39 @@
 import importlib
 
 import numpy as np
-from src.pages.algorithm_lab.pymoo.visualization.matplotlib import matplotlib, plt, colors, ListedColormap
 
 from src.pages.algorithm_lab.pymoo.util.misc import set_if_none
+from src.pages.algorithm_lab.pymoo.visualization.matplotlib import (
+    ListedColormap,
+    matplotlib,
+    plt,
+)
 from src.pages.algorithm_lab.pymoo.visualization.util import default_number_to_text, in_notebook
 
 
 class Plot:
-
-    def __init__(self,
-                 fig=None,
-                 ax=None,
-                 figsize=(8, 6),
-                 title=None,
-                 legend=False,
-                 tight_layout=False,
-                 bounds=None,
-                 reverse=False,
-                 cmap="tab10",
-                 axis_style=None,
-                 axis_label_style=None,
-                 func_number_to_text=default_number_to_text,
-                 labels="f",
-                 close_on_destroy=True,
-                 **kwargs):
-
+    def __init__(
+        self,
+        fig=None,
+        ax=None,
+        figsize=(8, 6),
+        title=None,
+        legend=False,
+        tight_layout=False,
+        bounds=None,
+        reverse=False,
+        cmap="tab10",
+        axis_style=None,
+        axis_label_style=None,
+        func_number_to_text=default_number_to_text,
+        labels="f",
+        close_on_destroy=True,
+        **kwargs,
+    ):
         super().__init__()
 
         # change the font of plots to serif (looks better)
-        plt.rc('font', family='serif')
+        plt.rc("font", family="serif")
 
         # the matplotlib classes
         self.fig = fig
@@ -93,14 +97,13 @@ class Plot:
         else:
             importlib.import_module("mpl_toolkits.mplot3d")
             self.fig = plt.figure(figsize=self.figsize)
-            self.ax = self.fig.add_subplot(1, 1, 1, projection='3d')
+            self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
 
         # if there is more than one figure we represent it as a 2D numpy array
         if (n_rows > 1 or n_cols > 1) or force_axes_as_matrix:
             self.ax = np.array(self.ax).reshape(n_rows, n_cols)
 
     def do(self):
-
         if len(self.to_plot) > 0:
             unique_dim = np.unique(np.array([e[0].shape[-1] for e in self.to_plot]))
             if len(unique_dim) > 1:
@@ -115,7 +118,6 @@ class Plot:
         axes = np.array(self.ax).flatten()
 
         for i, ax in enumerate(axes):
-
             legend, kwargs = get_parameter_with_options(self.legend)
             if legend:
                 ax.legend(**kwargs)
@@ -150,7 +152,6 @@ class Plot:
         return self
 
     def add(self, F, **kwargs):
-
         if F is None:
             return self
         elif F.ndim == 1:

@@ -5,7 +5,6 @@ from src.pages.algorithm_lab.pymoo.util.misc import time_to_int
 
 
 class TimeBasedTermination(Termination):
-
     def __init__(self, max_time) -> None:
         super().__init__()
         if isinstance(max_time, str):

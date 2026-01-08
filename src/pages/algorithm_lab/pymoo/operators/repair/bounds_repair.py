@@ -44,7 +44,7 @@ def repair_clamp(Xp, xl, xu):
 def repair_periodic(Xp, xl, xu):
     XL, XU = repeat_bounds(xl, xu, len(Xp))
 
-    S = (XU - XL)
+    S = XU - XL
 
     I = np.where(Xp < XL)
     Xp[I] = XU[I] - (XL[I] - Xp[I]) % S[I]
@@ -71,13 +71,7 @@ def repair_random_init(Xp, X, xl, xu, random_state=None):
 
 
 class BoundsRepair(Repair):
-
-    def _do(self,
-            problem,
-            pop_or_X,
-            check_out_of_bounds=True,
-            **kwargs):
-
+    def _do(self, problem, pop_or_X, check_out_of_bounds=True, **kwargs):
         is_array = not isinstance(pop_or_X, Population)
 
         X = pop_or_X if is_array else pop_or_X.get("X")

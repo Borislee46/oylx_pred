@@ -1,6 +1,6 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
@@ -16,8 +16,9 @@ class OmniTest(Problem):
     ----------
     [1] Deb, K., Tiwari, S. "Omni-optimizer: A generic evolutionary algorithm for single and multi-objective optimization"
     """
+
     def __init__(self, n_var=2):
-        assert (n_var >= 2), "The dimension of the decision space should at least be 2!"
+        assert n_var >= 2, "The dimension of the decision space should at least be 2!"
         super().__init__(
             n_var=n_var, n_obj=2, vtype=float, xl=np.full(n_var, 0), xu=np.full(n_var, 6)
         )
@@ -29,7 +30,7 @@ class OmniTest(Problem):
 
     def _calc_pareto_set(self, n_pareto_points=500):
         # The Omni-test problem has 3^D Pareto subsets
-        num_ps = int(3 ** self.n_var)
+        num_ps = int(3**self.n_var)
         h = int(n_pareto_points / num_ps)
         PS = np.zeros((num_ps * h, self.n_var))
 
@@ -40,7 +41,7 @@ class OmniTest(Problem):
         combination_indices = np.array(a).T.reshape(-1, self.n_var)
         # generate 3^D combinations
         for i in range(num_ps):
-            PS[i * h:i * h + h, :] = candidates[combination_indices[i]].T
+            PS[i * h : i * h + h, :] = candidates[combination_indices[i]].T
         return PS
 
     def _calc_pareto_front(self, n_pareto_points=500):

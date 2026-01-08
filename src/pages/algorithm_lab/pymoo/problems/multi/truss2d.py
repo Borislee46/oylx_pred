@@ -1,11 +1,10 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 from src.pages.algorithm_lab.pymoo.core.problem import Problem
 
 
 class Truss2D(Problem):
-
     def __init__(self):
         super().__init__(n_var=3, n_obj=2, n_ieq_constr=1, vtype=float)
 
@@ -16,14 +15,13 @@ class Truss2D(Problem):
         self.xu = np.array([self.Amax, self.Amax, 3.0])
 
     def _evaluate(self, x, out, *args, **kwargs):
-
         # variable names for convenient access
         x1 = x[:, 0]
         x2 = x[:, 1]
         y = x[:, 2]
 
         # first objectives
-        f1 = x1 * anp.sqrt(16 + anp.square(y)) + x2 * anp.sqrt((1 + anp.square(y)))
+        f1 = x1 * anp.sqrt(16 + anp.square(y)) + x2 * anp.sqrt(1 + anp.square(y))
 
         # measure which are needed for the second objective
         sigma_ac = 20 * anp.sqrt(16 + anp.square(y)) / (y * x1)
@@ -39,7 +37,6 @@ class Truss2D(Problem):
         out["G"] = g1
 
     def _calc_pareto_front(self, *args, **kwargs):
-
         T = 2 * np.sqrt(5) * self.Amax
 
         # Part A - before transition point T
@@ -79,5 +76,3 @@ class Truss2D(Problem):
         pf = np.vstack([part_a, part_b])
 
         return pf
-
-

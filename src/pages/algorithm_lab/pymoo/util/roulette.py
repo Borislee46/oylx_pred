@@ -1,9 +1,9 @@
 import numpy as np
+
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class RouletteWheelSelection:
-
     def __init__(self, val, larger_is_better=True):
         super().__init__()
         if not larger_is_better:

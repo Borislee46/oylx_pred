@@ -1,12 +1,22 @@
 from src.pages.algorithm_lab.pymoo.util.ref_dirs.energy import RieszEnergyReferenceDirectionFactory
-from src.pages.algorithm_lab.pymoo.util.ref_dirs.energy_layer import LayerwiseRieszEnergyReferenceDirectionFactory
-from src.pages.algorithm_lab.pymoo.util.ref_dirs.reduction import ReductionBasedReferenceDirectionFactory
-from src.pages.algorithm_lab.pymoo.util.ref_dirs.incremental import IncrementalReferenceDirectionFactory
-from src.pages.algorithm_lab.pymoo.util.reference_direction import MultiLayerReferenceDirectionFactory
+from src.pages.algorithm_lab.pymoo.util.ref_dirs.energy_layer import (
+    LayerwiseRieszEnergyReferenceDirectionFactory,
+)
+from src.pages.algorithm_lab.pymoo.util.ref_dirs.incremental import (
+    IncrementalReferenceDirectionFactory,
+)
+from src.pages.algorithm_lab.pymoo.util.ref_dirs.reduction import (
+    ReductionBasedReferenceDirectionFactory,
+)
+from src.pages.algorithm_lab.pymoo.util.reference_direction import (
+    MultiLayerReferenceDirectionFactory,
+)
 
 
 def get_reference_directions(name, *args, **kwargs):
-    from src.pages.algorithm_lab.pymoo.util.reference_direction import UniformReferenceDirectionFactory
+    from src.pages.algorithm_lab.pymoo.util.reference_direction import (
+        UniformReferenceDirectionFactory,
+    )
 
     REF = {
         "uniform": UniformReferenceDirectionFactory,

@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.core.decision_making import DecisionMaking
 
 
 class PseudoWeights(DecisionMaking):
-
     def __init__(self, weights, **kwargs) -> None:
         super().__init__(**kwargs)
         self.weights = weights
@@ -18,7 +17,7 @@ class PseudoWeights(DecisionMaking):
             nadir = F.max(axis=0)
 
         # normalized distance to the worst solution
-        pseudo_weights = ((nadir - F) / (nadir - ideal))
+        pseudo_weights = (nadir - F) / (nadir - ideal)
 
         # normalize weights to sum up to one
         pseudo_weights = pseudo_weights / np.sum(pseudo_weights, axis=1)[:, None]

@@ -1,4 +1,3 @@
-
 import numpy as np
 
 from src.pages.algorithm_lab.pymoo.core.problem import ElementwiseProblem
@@ -6,7 +5,6 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class FlowshopScheduling(ElementwiseProblem):
-
     def __init__(self, processing_times, **kwargs):
         """
         Flowshop scheduling problem.
@@ -22,12 +20,7 @@ class FlowshopScheduling(ElementwiseProblem):
         self.records = processing_times
 
         super(FlowshopScheduling, self).__init__(
-            n_var=n_jobs,
-            n_obj=1,
-            xl=0,
-            xu=n_machines,
-            vtype=int,
-            **kwargs
+            n_var=n_jobs, n_obj=1, xl=0, xu=n_machines, vtype=int, **kwargs
         )
 
     def _evaluate(self, x, out, *args, **kwargs):
@@ -52,16 +45,12 @@ class FlowshopScheduling(ElementwiseProblem):
         machine_times[0].append(0)
         for i in range(1, n_machines):
             # Start the next job when the previous one is finished
-            machine_times[i].append(
-                machine_times[i - 1][0] + self.records[i - 1][x[0]]
-            )
+            machine_times[i].append(machine_times[i - 1][0] + self.records[i - 1][x[0]])
 
         # Assign the remaining jobs
         for j in range(1, n_jobs):
             # For the first machine, we can put a job when the previous one is finished
-            machine_times[0].append(
-                machine_times[0][j - 1] + self.records[0][x[j - 1]]
-            )
+            machine_times[0].append(machine_times[0][j - 1] + self.records[0][x[j - 1]])
 
             # For the remaining machines, the starting time of the current job j is the max of the following two times:
             # 1. The finish time of the previous job on the current machine
@@ -70,7 +59,7 @@ class FlowshopScheduling(ElementwiseProblem):
                 machine_times[i].append(
                     max(
                         machine_times[i][j - 1] + self.records[i][x[j - 1]],  # 1
-                        machine_times[i - 1][j] + self.records[i - 1][x[j]]  # 2
+                        machine_times[i - 1][j] + self.records[i - 1][x[j]],  # 2
                     )
                 )
         return machine_times
@@ -84,7 +73,8 @@ def create_random_flowshop_problem(n_machines, n_jobs, random_state=None, **kwar
 
 def visualize(problem, x, path=None, label=True):
     from src.pages.algorithm_lab.pymoo.visualization.matplotlib import plt
-    with plt.style.context('ggplot'):
+
+    with plt.style.context("ggplot"):
         n_machines, n_jobs = problem.records.shape
         machine_times = problem.get_machine_times(x)
 
@@ -97,13 +87,25 @@ def visualize(problem, x, path=None, label=True):
             for j in range(n_jobs):
                 width = problem.records[i][x[j]]
                 left = machine_times[i][j]
-                ax.barh(Y[i], width, left=left,
-                        align='center', color='gray',
-                        edgecolor='black', linewidth=0.8
-                        )
+                ax.barh(
+                    Y[i],
+                    width,
+                    left=left,
+                    align="center",
+                    color="gray",
+                    edgecolor="black",
+                    linewidth=0.8,
+                )
                 if label:
-                    ax.text((left + width / 2), Y[i], str(x[j] + 1), ha='center', va='center', color='white',
-                            fontsize=15)
+                    ax.text(
+                        (left + width / 2),
+                        Y[i],
+                        str(x[j] + 1),
+                        ha="center",
+                        va="center",
+                        color="white",
+                        fontsize=15,
+                    )
         ax.set_xlabel("Time")
         ax.set_yticks(np.arange(n_machines))
         ax.set_yticklabels(["M%d" % (i + 1) for i in Y])

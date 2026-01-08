@@ -1,11 +1,8 @@
-import numpy as np
-
 from src.pages.algorithm_lab.pymoo.core.crossover import Crossover
 from src.pages.algorithm_lab.pymoo.util.misc import crossover_mask
 
 
 class UniformCrossover(Crossover):
-
     def __init__(self, **kwargs):
         super().__init__(2, 2, **kwargs)
 

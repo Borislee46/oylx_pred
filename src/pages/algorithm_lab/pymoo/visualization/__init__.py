@@ -10,12 +10,4 @@ This ensures proper handling when matplotlib is not available.
 # Import centralized matplotlib module
 from . import matplotlib
 
-__all__ = ["heatmap",
-           "pcp", 
-           "petal",
-           "radar",
-           "radviz",
-           "scatter",
-           "star_coordinate",
-           "matplotlib"
-           ]
+__all__ = ["heatmap", "pcp", "petal", "radar", "radviz", "scatter", "star_coordinate", "matplotlib"]

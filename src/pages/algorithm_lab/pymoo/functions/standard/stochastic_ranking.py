@@ -3,6 +3,7 @@ Standard Python implementation of stochastic ranking.
 """
 
 import numpy as np
+
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
@@ -20,11 +21,9 @@ def stochastic_ranking(f, phi, pr, I=None, random_state=None):
         I = np.arange(_lambda)
 
     for i in range(_lambda):
-
         at_least_one_swap = False
 
         for j in range(_lambda - 1):
-
             u = random_state.random()
 
             if u < pr or (phi[I[j]] == 0 and phi[I[j + 1]] == 0):

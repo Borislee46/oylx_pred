@@ -1,7 +1,9 @@
 import copy
 
 
-def minimize(problem, algorithm, termination=None, copy_algorithm=True, copy_termination=True, **kwargs):
+def minimize(
+    problem, algorithm, termination=None, copy_algorithm=True, copy_termination=True, **kwargs
+):
     """
 
     Minimization of function of one or more variables, objectives and constraints.
@@ -55,7 +57,6 @@ def minimize(problem, algorithm, termination=None, copy_algorithm=True, copy_ter
     # initialize the algorithm object given a problem - if not set already
     if algorithm.problem is None:
         if termination is not None:
-
             if copy_termination:
                 termination = copy.deepcopy(termination)
 

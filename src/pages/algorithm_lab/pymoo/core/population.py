@@ -4,7 +4,6 @@ from src.pages.algorithm_lab.pymoo.core.individual import Individual
 
 
 class Population(np.ndarray):
-
     def __new__(cls, individuals=[]):
         if isinstance(individuals, Individual):
             individuals = [individuals]
@@ -25,7 +24,6 @@ class Population(np.ndarray):
         self.collect(func, to_numpy=False)
 
     def set(self, *args, **kwargs):
-
         # if population is empty just return
         if self.size == 0:
             return
@@ -35,10 +33,12 @@ class Population(np.ndarray):
 
         # for each entry in the dictionary set it to each individual
         for key, values in kwargs.items():
-            is_iterable = hasattr(values, '__len__') and not isinstance(values, str)
+            is_iterable = hasattr(values, "__len__") and not isinstance(values, str)
 
             if is_iterable and len(values) != len(self):
-                raise Exception("Population Set Attribute Error: Number of values and population size do not match!")
+                raise Exception(
+                    "Population Set Attribute Error: Number of values and population size do not match!"
+                )
 
             for i in range(len(self)):
                 val = values[i] if is_iterable else values
@@ -52,14 +52,12 @@ class Population(np.ndarray):
         return self
 
     def get(self, *args, to_numpy=True, **kwargs):
-
         val = {}
         for c in args:
             val[c] = []
 
         # for each individual
         for i in range(len(self)):
-
             # for each argument
             for c in args:
                 val[c].append(self[i].get(c, **kwargs))
@@ -79,7 +77,6 @@ class Population(np.ndarray):
 
     @classmethod
     def merge(cls, a, b, *args):
-
         # do the regular merge between first and second element
         m = merge(a, b)
 
@@ -108,7 +105,9 @@ class Population(np.ndarray):
             if len(sizes) == 1:
                 size = sizes[0]
             else:
-                raise Exception(f"Population.new needs to be called with same-sized inputs, but the sizes are {sizes}")
+                raise Exception(
+                    f"Population.new needs to be called with same-sized inputs, but the sizes are {sizes}"
+                )
         else:
             size = 0
 
@@ -156,7 +155,9 @@ def merge(a, b):
 
 def interleaving_args(*args, kwargs=None):
     if len(args) % 2 != 0:
-        raise Exception(f"Even number of arguments are required but {len(args)} arguments were provided.")
+        raise Exception(
+            f"Even number of arguments are required but {len(args)} arguments were provided."
+        )
 
     if kwargs is None:
         kwargs = {}
@@ -168,13 +169,13 @@ def interleaving_args(*args, kwargs=None):
 
 
 def calc_cv(pop, config=None):
-
     if config is None:
         config = Individual.default_config()
 
     G, H = pop.get("G", "H")
 
     from src.pages.algorithm_lab.pymoo.core.individual import calc_cv as func
+
     CV = np.array([func(g, h, config) for g, h in zip(G, H)])
-    
+
     return CV

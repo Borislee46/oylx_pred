@@ -30,7 +30,6 @@ def fast_non_dominated_sort(F, dominator=Dominator(), **kwargs):
     current_front = []
 
     for i in range(n):
-
         for j in range(i + 1, n):
             rel = M[i, j]
             if rel == 1:
@@ -50,12 +49,10 @@ def fast_non_dominated_sort(F, dominator=Dominator(), **kwargs):
 
     # while not all solutions are assigned to a pareto front
     while n_ranked < n:
-
         next_front = []
 
         # for each individual in the current front
         for i in current_front:
-
             # all solutions that are dominated by this individuals
             for j in is_dominating[i]:
                 n_dominated[j] -= 1

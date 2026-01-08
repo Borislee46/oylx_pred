@@ -8,13 +8,14 @@ from src.pages.algorithm_lab.pymoo.functions import load_function
 
 
 class StochasticRankingSurvival(Survival):
-
     def __init__(self, PR):
         super().__init__(filter_infeasible=False)
         self.PR = PR
 
     def _do(self, problem, pop, *args, n_survive=None, tcv=None, random_state=None, **kwargs):
-        assert problem.n_obj == 1, "This stochastic ranking implementation only works for single-objective problems."
+        assert (
+            problem.n_obj == 1
+        ), "This stochastic ranking implementation only works for single-objective problems."
 
         F, G = pop.get("F", "G")
         f = F[:, 0]
@@ -31,7 +32,6 @@ class StochasticRankingSurvival(Survival):
 
 
 class SRES(ES):
-
     def __init__(self, PF=0.45, **kwargs):
         """
         Stochastic Ranking Evolutionary Strategy (SRES)
@@ -45,7 +45,6 @@ class SRES(ES):
         self.PF = PF
 
     def _advance(self, infills=None, **kwargs):
-
         # if not all solutions suggested by infill() are evaluated we create a more semi (mu+lambda) algorithm
         if len(infills) < self.pop_size:
             infills = Population.merge(infills, self.pop)

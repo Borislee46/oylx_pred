@@ -28,7 +28,6 @@ from src.pages.algorithm_lab.pymoo.util import default_random_state
 
 
 class FitnessSurvival(Survival):
-
     def __init__(self) -> None:
         super().__init__(filter_infeasible=False)
 
@@ -113,7 +112,9 @@ class NRBO(Algorithm):
         return super()._setup(problem, **kwargs)
 
     def _initialize_infill(self):
-        return self.initialization.do(self.problem, self.pop_size, algorithm=self, random_state=self.random_state)
+        return self.initialization.do(
+            self.problem, self.pop_size, algorithm=self, random_state=self.random_state
+        )
 
     def _initialize_advance(self, infills=None, **kwargs):
         self.pop = self.survial.do(self.problem, infills)
@@ -132,7 +133,6 @@ class NRBO(Algorithm):
         off = []
 
         for i in range(self.pop_size):
-
             # random select r1,r2
             idx = np.arange(self.pop_size)
             idx = np.delete(idx, i)
@@ -158,7 +158,9 @@ class NRBO(Algorithm):
                 u1 = beta * 3 * self.random_state.random() + (1 - beta)
                 u2 = beta * self.random_state.random() + (1 - beta)
 
-                tmp = theta1 * (u1 * Xb - u2 * X[i]) + theta2 * delta * (u1 * np.mean(X[i]) - u2 * X[i])
+                tmp = theta1 * (u1 * Xb - u2 * X[i]) + theta2 * delta * (
+                    u1 * np.mean(X[i]) - u2 * X[i]
+                )
                 if u1 < 0.5:
                     X_tao = Xn_new + tmp
                 else:
@@ -187,5 +189,3 @@ class NRBO(Algorithm):
     def _set_optimum(self):
         k = self.pop.get("rank") == 0
         self.opt = self.pop[k]
-
-

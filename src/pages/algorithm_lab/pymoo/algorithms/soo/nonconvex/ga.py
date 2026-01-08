@@ -7,20 +7,24 @@ from src.pages.algorithm_lab.pymoo.operators.crossover.sbx import SBX
 from src.pages.algorithm_lab.pymoo.operators.crossover.spx import SPX
 from src.pages.algorithm_lab.pymoo.operators.mutation.bitflip import BitflipMutation
 from src.pages.algorithm_lab.pymoo.operators.mutation.pm import PM
-from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import BinaryRandomSampling
-from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import FloatRandomSampling
-from src.pages.algorithm_lab.pymoo.operators.selection.tournament import compare, TournamentSelection
+from src.pages.algorithm_lab.pymoo.operators.sampling.rnd import (
+    BinaryRandomSampling,
+    FloatRandomSampling,
+)
+from src.pages.algorithm_lab.pymoo.operators.selection.tournament import (
+    TournamentSelection,
+    compare,
+)
 from src.pages.algorithm_lab.pymoo.termination.default import DefaultSingleObjectiveTermination
 from src.pages.algorithm_lab.pymoo.util import default_random_state
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
-
 
 # =========================================================================================================
 # Survival
 # =========================================================================================================
 
-class FitnessSurvival(Survival):
 
+class FitnessSurvival(Survival):
     def __init__(self) -> None:
         super().__init__(filter_infeasible=False)
 
@@ -46,49 +50,65 @@ def comp_by_cv_and_fitness(pop, P, random_state=None, **kwargs):
 
         # if at least one solution is infeasible
         if pop[a].CV > 0.0 or pop[b].CV > 0.0:
-            S[i] = compare(a, pop[a].CV, b, pop[b].CV, method='smaller_is_better', return_random_if_equal=True, random_state=random_state)
+            S[i] = compare(
+                a,
+                pop[a].CV,
+                b,
+                pop[b].CV,
+                method="smaller_is_better",
+                return_random_if_equal=True,
+                random_state=random_state,
+            )
 
         # both solutions are feasible just set random
         else:
-            S[i] = compare(a, pop[a].F, b, pop[b].F, method='smaller_is_better', return_random_if_equal=True, random_state=random_state)
+            S[i] = compare(
+                a,
+                pop[a].F,
+                b,
+                pop[b].F,
+                method="smaller_is_better",
+                return_random_if_equal=True,
+                random_state=random_state,
+            )
 
     return S[:, None].astype(int)
 
 
 class GA(GeneticAlgorithm):
-
-    def __init__(self,
-                 pop_size=100,
-                 sampling=FloatRandomSampling(),
-                 selection=TournamentSelection(func_comp=comp_by_cv_and_fitness),
-                 crossover=SBX(),
-                 mutation=PM(),
-                 survival=FitnessSurvival(),
-                 eliminate_duplicates=True,
-                 n_offsprings=None,
-                 output=SingleObjectiveOutput(),
-                 **kwargs):
-        super().__init__(pop_size=pop_size,
-                         sampling=sampling,
-                         selection=selection,
-                         crossover=crossover,
-                         mutation=mutation,
-                         survival=survival,
-                         eliminate_duplicates=eliminate_duplicates,
-                         n_offsprings=n_offsprings,
-                         output=output,
-                         **kwargs)
+    def __init__(
+        self,
+        pop_size=100,
+        sampling=FloatRandomSampling(),
+        selection=TournamentSelection(func_comp=comp_by_cv_and_fitness),
+        crossover=SBX(),
+        mutation=PM(),
+        survival=FitnessSurvival(),
+        eliminate_duplicates=True,
+        n_offsprings=None,
+        output=SingleObjectiveOutput(),
+        **kwargs,
+    ):
+        super().__init__(
+            pop_size=pop_size,
+            sampling=sampling,
+            selection=selection,
+            crossover=crossover,
+            mutation=mutation,
+            survival=survival,
+            eliminate_duplicates=eliminate_duplicates,
+            n_offsprings=n_offsprings,
+            output=output,
+            **kwargs,
+        )
 
         self.termination = DefaultSingleObjectiveTermination()
 
 
 class BGA(GA):
-
-    def __init__(self,
-                 sampling=BinaryRandomSampling(),
-                 crossover=SPX(),
-                 mutation=BitflipMutation(),
-                 **kwargs):
+    def __init__(
+        self, sampling=BinaryRandomSampling(), crossover=SPX(), mutation=BitflipMutation(), **kwargs
+    ):
         super().__init__(sampling=sampling, crossover=crossover, mutation=mutation, **kwargs)
 
 

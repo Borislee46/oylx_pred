@@ -3,7 +3,6 @@ from scipy import special
 
 
 class DasDennis:
-
     def __init__(self, n_partitions, n_dim, scaling=None):
         super().__init__()
         self.n_partitions = n_partitions
@@ -25,14 +24,12 @@ class DasDennis:
         return len(self.stack) > 0
 
     def traverse(self, func, n_points=None):
-
         if self.n_partitions == 0:
             return np.full((1, self.n_dim), 1 / self.n_dim)
 
         counter = 0
 
         while (n_points is None or counter < n_points) and len(self.stack) > 0:
-
             point, beta = self.stack.pop()
 
             if len(point) + 1 == self.n_dim:

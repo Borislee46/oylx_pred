@@ -8,11 +8,9 @@ def naive_non_dominated_sort(F, **kwargs):
     remaining = set(range(M.shape[0]))
 
     while len(remaining) > 0:
-
         front = []
 
         for i in remaining:
-
             is_dominated = False
             dominating = set()
 

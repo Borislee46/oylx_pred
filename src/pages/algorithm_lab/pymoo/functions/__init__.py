@@ -7,20 +7,26 @@ from src.pages.algorithm_lab.pymoo.config import Config
 
 
 def get_functions():
-    from src.pages.algorithm_lab.pymoo.functions.standard.non_dominated_sorting import (
-        fast_non_dominated_sort,
-        efficient_non_dominated_sort,
-        tree_based_non_dominated_sort,
-        dominance_degree_non_dominated_sort,
-        find_non_dominated,
-        fast_best_order_sort,
+    from src.pages.algorithm_lab.pymoo.functions.standard.calc_perpendicular_distance import (
+        calc_perpendicular_distance,
     )
-    from src.pages.algorithm_lab.pymoo.functions.standard.decomposition import calc_distance_to_weights
-    from src.pages.algorithm_lab.pymoo.functions.standard.calc_perpendicular_distance import calc_perpendicular_distance
+    from src.pages.algorithm_lab.pymoo.functions.standard.decomposition import (
+        calc_distance_to_weights,
+    )
     from src.pages.algorithm_lab.pymoo.functions.standard.hv import hv
-    from src.pages.algorithm_lab.pymoo.functions.standard.stochastic_ranking import stochastic_ranking
-    from src.pages.algorithm_lab.pymoo.functions.standard.mnn import calc_mnn, calc_2nn
+    from src.pages.algorithm_lab.pymoo.functions.standard.mnn import calc_2nn, calc_mnn
+    from src.pages.algorithm_lab.pymoo.functions.standard.non_dominated_sorting import (
+        dominance_degree_non_dominated_sort,
+        efficient_non_dominated_sort,
+        fast_best_order_sort,
+        fast_non_dominated_sort,
+        find_non_dominated,
+        tree_based_non_dominated_sort,
+    )
     from src.pages.algorithm_lab.pymoo.functions.standard.pruning_cd import calc_pcd
+    from src.pages.algorithm_lab.pymoo.functions.standard.stochastic_ranking import (
+        stochastic_ranking,
+    )
 
     FUNCTIONS = {
         "fast_non_dominated_sort": {

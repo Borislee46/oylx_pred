@@ -1,11 +1,16 @@
-import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.problems.many.dtlz import DTLZ1, DTLZ2, DTLZ3, DTLZ4, get_ref_dirs
+import src.pages.algorithm_lab.pymoo.gradient.toolbox as anp
+from src.pages.algorithm_lab.pymoo.problems.many.dtlz import (
+    DTLZ1,
+    DTLZ2,
+    DTLZ3,
+    DTLZ4,
+    get_ref_dirs,
+)
 
 
 class C1DTLZ1(DTLZ1):
-
     def __init__(self, n_var=12, n_obj=3, **kwargs):
         super().__init__(n_var=n_var, n_obj=n_obj, n_ieq_constr=1, **kwargs)
 
@@ -20,7 +25,6 @@ class C1DTLZ1(DTLZ1):
 
 
 class C1DTLZ3(DTLZ3):
-
     def __init__(self, n_var=12, n_obj=3, r=None, **kwargs):
         super().__init__(n_var=n_var, n_obj=n_obj, n_ieq_constr=1, **kwargs)
 
@@ -45,7 +49,6 @@ class C1DTLZ3(DTLZ3):
 
 
 class C2DTLZ2(DTLZ2):
-
     def __init__(self, n_var=12, n_obj=3, r=None, **kwargs):
         super().__init__(n_var=n_var, n_obj=n_obj, n_ieq_constr=1, **kwargs)
 
@@ -73,7 +76,6 @@ class C2DTLZ2(DTLZ2):
 
 
 class C3DTLZ1(DTLZ1):
-
     def __init__(self, n_var=12, n_obj=3, **kwargs):
         super().__init__(n_var=n_var, n_obj=n_obj, n_ieq_constr=n_obj, **kwargs)
 
@@ -83,7 +85,6 @@ class C3DTLZ1(DTLZ1):
 
 
 class C3DTLZ4(DTLZ4):
-
     def __init__(self, n_var=7, n_obj=3, **kwargs):
         super().__init__(n_var=n_var, n_obj=n_obj, n_ieq_constr=n_obj, **kwargs)
 
@@ -95,7 +96,7 @@ class C3DTLZ4(DTLZ4):
         if ref_dirs is None:
             ref_dirs = get_ref_dirs(self.n_obj)
         F = super()._calc_pareto_front(ref_dirs, *args, **kwargs)
-        a = np.sqrt(np.sum(F ** 2, 1) - 3 / 4 * np.max(F ** 2, axis=1))
+        a = np.sqrt(np.sum(F**2, 1) - 3 / 4 * np.max(F**2, axis=1))
         a = np.expand_dims(a, axis=1)
         a = np.tile(a, [1, ref_dirs.shape[1]])
         F = F / a
@@ -104,13 +105,13 @@ class C3DTLZ4(DTLZ4):
 
 
 def constraint_c1_linear(f):
-    g = - (1 - f[:, -1] / 0.6 - anp.sum(f[:, :-1] / 0.5, axis=1))
+    g = -(1 - f[:, -1] / 0.6 - anp.sum(f[:, :-1] / 0.5, axis=1))
     return g
 
 
 def constraint_c1_spherical(f, r):
-    radius = anp.sum(f ** 2, axis=1)
-    g = - (radius - 16) * (radius - r ** 2)
+    radius = anp.sum(f**2, axis=1)
+    g = -(radius - 16) * (radius - r**2)
 
     return g
 
@@ -121,11 +122,11 @@ def constraint_c2(f, r):
     v1 = anp.full(f.shape[0], anp.inf)
 
     for i in range(n_obj):
-        temp = (f[:, i] - 1) ** 2 + (anp.sum(f ** 2, axis=1) - f[:, i] ** 2) - r ** 2
+        temp = (f[:, i] - 1) ** 2 + (anp.sum(f**2, axis=1) - f[:, i] ** 2) - r**2
         v1 = anp.minimum(temp.flatten(), v1)
 
     a = 1 / anp.sqrt(n_obj)
-    v2 = anp.sum((f - a) ** 2, axis=1) - r ** 2
+    v2 = anp.sum((f - a) ** 2, axis=1) - r**2
     g = anp.minimum(v1, v2.flatten())
 
     return g
@@ -147,7 +148,7 @@ def constraint_c3_spherical(f):  # M ellipse
     g = []
 
     for i in range(n_obj):
-        _g = 1 - f[:, i] ** 2 / 4 - (anp.sum(f ** 2, axis=1) - f[:, i] ** 2)
+        _g = 1 - f[:, i] ** 2 / 4 - (anp.sum(f**2, axis=1) - f[:, i] ** 2)
         g.append(_g)
     return anp.column_stack(g)
 

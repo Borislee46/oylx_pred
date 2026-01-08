@@ -5,9 +5,7 @@ from src.pages.algorithm_lab.pymoo.termination.delta import DeltaToleranceTermin
 from src.pages.algorithm_lab.pymoo.util.normalization import normalize
 
 
-
 class DesignSpaceTermination(DeltaToleranceTermination):
-
     def __init__(self, tol=0.005, **kwargs):
         """
         Check the distance in the design-space and terminate based on tolerance.
@@ -22,7 +20,6 @@ class DesignSpaceTermination(DeltaToleranceTermination):
             return np.inf
 
     def _data(self, algorithm):
-
         X = algorithm.opt.get("X")
 
         # do normalization if bounds are given

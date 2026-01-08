@@ -11,12 +11,11 @@ def inversion_mutation(y, seq, inplace=True):
         seq = random_sequence(len(y))
     start, end = seq
 
-    y[start:end + 1] = np.flip(y[start:end + 1])
+    y[start : end + 1] = np.flip(y[start : end + 1])
     return y
 
 
 class InversionMutation(Mutation):
-
     def __init__(self, prob=1.0):
         """
 
@@ -27,7 +26,7 @@ class InversionMutation(Mutation):
         ----------
         prob : float
             Probability to apply the mutation to the individual
-            
+
         """
         super().__init__()
         self.prob = prob

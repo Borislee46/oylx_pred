@@ -2,7 +2,10 @@ import numpy as np
 
 from src.pages.algorithm_lab.pymoo.algorithms.base.genetic import GeneticAlgorithm
 from src.pages.algorithm_lab.pymoo.algorithms.soo.nonconvex.ga import FitnessSurvival
-from src.pages.algorithm_lab.pymoo.core.duplicate import DefaultDuplicateElimination, DuplicateElimination
+from src.pages.algorithm_lab.pymoo.core.duplicate import (
+    DefaultDuplicateElimination,
+    DuplicateElimination,
+)
 from src.pages.algorithm_lab.pymoo.core.population import Population
 from src.pages.algorithm_lab.pymoo.core.selection import Selection
 from src.pages.algorithm_lab.pymoo.core.survival import Survival
@@ -14,36 +17,35 @@ from src.pages.algorithm_lab.pymoo.termination.default import DefaultSingleObjec
 from src.pages.algorithm_lab.pymoo.util.display.single import SingleObjectiveOutput
 from src.pages.algorithm_lab.pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
-
 # =========================================================================================================
 # Implementation
 # =========================================================================================================
 
 
 class EliteSurvival(Survival):
-
     def __init__(self, n_elites, eliminate_duplicates=None):
         super().__init__(False)
         self.n_elites = n_elites
         self.eliminate_duplicates = eliminate_duplicates
 
     def _do(self, problem, pop, n_survive=None, algorithm=None, **kwargs):
-
         if isinstance(self.eliminate_duplicates, bool) and self.eliminate_duplicates:
             pop = DefaultDuplicateElimination(func=lambda p: p.get("F")).do(pop)
 
         elif isinstance(self.eliminate_duplicates, DuplicateElimination):
-            _, no_candidates, candidates = DefaultDuplicateElimination(func=lambda pop: pop.get("F")).do(pop,
-                                                                                                         return_indices=True)
-            _, _, is_duplicate = self.eliminate_duplicates.do(pop[candidates], pop[no_candidates], return_indices=True,
-                                                              to_itself=False)
+            _, no_candidates, candidates = DefaultDuplicateElimination(
+                func=lambda pop: pop.get("F")
+            ).do(pop, return_indices=True)
+            _, _, is_duplicate = self.eliminate_duplicates.do(
+                pop[candidates], pop[no_candidates], return_indices=True, to_itself=False
+            )
             elim = set(np.array(candidates)[is_duplicate])
             pop = pop[[k for k in range(len(pop)) if k not in elim]]
 
         if problem.n_obj == 1:
             pop = FitnessSurvival().do(problem, pop, n_survive=len(pop))
-            elites = pop[:self.n_elites]
-            non_elites = pop[self.n_elites:]
+            elites = pop[: self.n_elites]
+            non_elites = pop[self.n_elites :]
         else:
             I = NonDominatedSorting().do(pop.get("F"), only_non_dominated_front=True)
             elites = pop[I]
@@ -56,9 +58,8 @@ class EliteSurvival(Survival):
 
 
 class EliteBiasedSelection(Selection):
-
     def _do(self, problem, pop, n_select, n_parents, **kwargs):
-        random_state = kwargs.get('random_state')
+        random_state = kwargs.get("random_state")
         _type = pop.get("type")
         elites = np.where(_type == "elite")[0].astype(int)
         non_elites = np.where(_type == "non_elite")[0].astype(int)
@@ -75,18 +76,18 @@ class EliteBiasedSelection(Selection):
 
 
 class BRKGA(GeneticAlgorithm):
-
-    def __init__(self,
-                 n_elites=200,
-                 n_offsprings=700,
-                 n_mutants=100,
-                 bias=0.7,
-                 sampling=FloatRandomSampling(),
-                 survival=None,
-                 output=SingleObjectiveOutput(),
-                 eliminate_duplicates=False,
-                 **kwargs
-                 ):
+    def __init__(
+        self,
+        n_elites=200,
+        n_offsprings=700,
+        n_mutants=100,
+        bias=0.7,
+        sampling=FloatRandomSampling(),
+        survival=None,
+        output=SingleObjectiveOutput(),
+        eliminate_duplicates=False,
+        **kwargs,
+    ):
         """
 
 
@@ -117,17 +118,19 @@ class BRKGA(GeneticAlgorithm):
         if survival is None:
             survival = EliteSurvival(n_elites, eliminate_duplicates=eliminate_duplicates)
 
-        super().__init__(pop_size=n_elites + n_offsprings + n_mutants,
-                         n_offsprings=n_offsprings,
-                         sampling=sampling,
-                         selection=EliteBiasedSelection(),
-                         crossover=BinomialCrossover(bias, prob=1.0, n_offsprings=1),
-                         mutation=NoMutation(),
-                         survival=survival,
-                         output=output,
-                         eliminate_duplicates=True,
-                         advance_after_initial_infill=True,
-                         **kwargs)
+        super().__init__(
+            pop_size=n_elites + n_offsprings + n_mutants,
+            n_offsprings=n_offsprings,
+            sampling=sampling,
+            selection=EliteBiasedSelection(),
+            crossover=BinomialCrossover(bias, prob=1.0, n_offsprings=1),
+            mutation=NoMutation(),
+            survival=survival,
+            output=output,
+            eliminate_duplicates=True,
+            advance_after_initial_infill=True,
+            **kwargs,
+        )
 
         self.n_elites = n_elites
         self.n_mutants = n_mutants
@@ -138,10 +141,18 @@ class BRKGA(GeneticAlgorithm):
         pop = self.pop
 
         # actually do the mating given the elite selection and biased crossover
-        off = self.mating.do(self.problem, pop, n_offsprings=self.n_offsprings, algorithm=self, random_state=self.random_state)
+        off = self.mating.do(
+            self.problem,
+            pop,
+            n_offsprings=self.n_offsprings,
+            algorithm=self,
+            random_state=self.random_state,
+        )
 
         # create the mutants randomly to fill the population with
-        mutants = FloatRandomSampling().do(self.problem, self.n_mutants, algorithm=self, random_state=self.random_state)
+        mutants = FloatRandomSampling().do(
+            self.problem, self.n_mutants, algorithm=self, random_state=self.random_state
+        )
 
         # evaluate all the new solutions
         return Population.merge(off, mutants)

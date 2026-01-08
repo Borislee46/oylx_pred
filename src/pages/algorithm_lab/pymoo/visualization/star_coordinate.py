@@ -1,16 +1,20 @@
 import numpy as np
 
-from src.pages.algorithm_lab.pymoo.visualization.util import plot_axes_arrow, plot_axis_labels, equal_axis, no_ticks, parse_bounds, \
-    normalize, get_uniform_points_around_circle
-from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
 from src.pages.algorithm_lab.pymoo.core.plot import Plot
+from src.pages.algorithm_lab.pymoo.docs import parse_doc_string
+from src.pages.algorithm_lab.pymoo.visualization.util import (
+    equal_axis,
+    get_uniform_points_around_circle,
+    no_ticks,
+    normalize,
+    parse_bounds,
+    plot_axes_arrow,
+    plot_axis_labels,
+)
 
 
 class StarCoordinate(Plot):
-
-    def __init__(self,
-                 axis_extension=1.03,
-                 **kwargs):
+    def __init__(self, axis_extension=1.03, **kwargs):
         """
 
         Star Coordinate Plot
@@ -38,15 +42,11 @@ class StarCoordinate(Plot):
         self.axis_extension = axis_extension
 
         if "arrow_style" not in kwargs:
-            self.arrow_style = {
-                "head_width": 0.02,
-                "head_length": 0.01
-            }
+            self.arrow_style = {"head_width": 0.02, "head_length": 0.01}
         else:
             self.arrow_style = kwargs["arrow_style"]
 
     def _do(self):
-
         # initial a figure with a single plot
         self.init_figure()
 
@@ -60,7 +60,9 @@ class StarCoordinate(Plot):
 
         V = get_uniform_points_around_circle(self.n_dim)
 
-        plot_axes_arrow(self.ax, V, extend_factor=self.axis_extension, **{**self.axis_style, **self.arrow_style})
+        plot_axes_arrow(
+            self.ax, V, extend_factor=self.axis_extension, **{**self.axis_style, **self.arrow_style}
+        )
         plot_axis_labels(self.ax, V, self.get_labels(), **self.axis_label_style)
 
         # normalize in range for this plot - here no implicit normalization as in radviz

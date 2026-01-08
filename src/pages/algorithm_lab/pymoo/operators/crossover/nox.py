@@ -13,7 +13,9 @@ class NoCrossover(Crossover):
         for parents in pop:
             if self.n_offsprings < self.n_parents:
                 # Select without replacement
-                offsprings.extend(random_state.choice(parents, size=self.n_offsprings, replace=False))
+                offsprings.extend(
+                    random_state.choice(parents, size=self.n_offsprings, replace=False)
+                )
             elif self.n_offsprings == self.n_parents:
                 # Return all parents as-is
                 offsprings.extend(parents)

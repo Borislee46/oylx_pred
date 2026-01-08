@@ -5,7 +5,6 @@ from src.pages.algorithm_lab.pymoo.indicators.igd import IGD
 
 
 class MIGD(Callback):
-
     def __init__(self, reevaluate=True) -> None:
         """
         Mean Inverted Generational Distance (MIGD)
@@ -25,10 +24,11 @@ class MIGD(Callback):
         self.records = []
 
     def update(self, algorithm, **kwargs):
-
         # the problem to be solved
         problem = algorithm.problem
-        assert problem.n_constr == 0, "The current implementation only works for unconstrained problems!"
+        assert (
+            problem.n_constr == 0
+        ), "The current implementation only works for unconstrained problems!"
 
         # the current time
         t = problem.time

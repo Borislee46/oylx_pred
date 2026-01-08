@@ -1,5 +1,6 @@
 import numpy as np
-from numba import njit, float64, guvectorize, vectorize, prange
+from numba import float64, guvectorize, njit, prange, vectorize
+
 
 @njit(fastmath=False)
 def fastmath_off(a):
@@ -8,12 +9,14 @@ def fastmath_off(a):
         res += np.exp(a[i])
     return res
 
+
 @njit(fastmath=True)
 def fastmath_on(a):
     res = 0.0
     for i in range(len(a)):
         res += np.exp(a[i])
     return res
+
 
 @njit
 def sum_slice(arr):
@@ -26,15 +29,18 @@ def sum_slice(arr):
         res[j] = tmp
     return res
 
+
 @njit(float64(float64[:]))
 def explicit_sig(a):
     return np.sum(a)
+
 
 @njit
 def auto_sig(a):
     return np.sum(a)
 
-@guvectorize([(float64[:,:], float64[:,:], float64[:,:])], '(m,n),(n,p)->(m,p)')
+
+@guvectorize([(float64[:, :], float64[:, :], float64[:, :])], "(m,n),(n,p)->(m,p)")
 def numba_matmul_gu(a, b, res):
     for i in range(a.shape[0]):
         for j in range(b.shape[1]):
@@ -42,6 +48,7 @@ def numba_matmul_gu(a, b, res):
             for k in range(a.shape[1]):
                 tmp += a[i, k] * b[k, j]
             res[i, j] = tmp
+
 
 @njit
 def binary_search_numba(arr, item):
@@ -58,6 +65,7 @@ def binary_search_numba(arr, item):
             low = mid + 1
     return -1
 
+
 def binary_search_python(arr, item):
     low = 0
     high = len(arr) - 1
@@ -72,6 +80,7 @@ def binary_search_python(arr, item):
             low = mid + 1
     return -1
 
+
 def python_pi(n):
     acc = 0
     for i in range(n):
@@ -81,6 +90,7 @@ def python_pi(n):
             acc += 1
     return 4.0 * acc / n
 
+
 def python_pi_from_arrays(x, y):
     acc = 0
     n = len(x)
@@ -88,6 +98,7 @@ def python_pi_from_arrays(x, y):
         if (x[i] * x[i] + y[i] * y[i]) < 1.0:
             acc += 1
     return 4.0 * acc / n
+
 
 @njit
 def numba_pi(n):
@@ -99,6 +110,7 @@ def numba_pi(n):
             acc += 1
     return 4.0 * acc / n
 
+
 @njit
 def count_inside_circle(x, y):
     acc = 0
@@ -106,6 +118,7 @@ def count_inside_circle(x, y):
         if (x[i] * x[i] + y[i] * y[i]) < 1.0:
             acc += 1
     return acc
+
 
 @njit(parallel=True)
 def numba_pi_parallel(n):
@@ -117,6 +130,7 @@ def numba_pi_parallel(n):
             acc += 1
     return 4.0 * acc / n
 
+
 @njit(parallel=True)
 def count_inside_circle_parallel(x, y):
     acc = 0
@@ -125,18 +139,20 @@ def count_inside_circle_parallel(x, y):
             acc += 1
     return acc
 
+
 def mandelbrot_python(h, w, max_iter):
-    y, x = np.ogrid[-1.4:1.4:h*1j, -2:0.8:w*1j]
-    c = x + y*1j
+    y, x = np.ogrid[-1.4 : 1.4 : h * 1j, -2 : 0.8 : w * 1j]
+    c = x + y * 1j
     z = c
     divtime = max_iter + np.zeros(z.shape, dtype=int)
     for i in range(max_iter):
         z = z**2 + c
-        diverge = z*np.conj(z) > 2**2
+        diverge = z * np.conj(z) > 2**2
         div_now = diverge & (divtime == max_iter)
         divtime[div_now] = i
         z[diverge] = 2
     return divtime
+
 
 @njit
 def mandelbrot_numba(h, w, max_iter):
@@ -154,6 +170,7 @@ def mandelbrot_numba(h, w, max_iter):
                 image[i, j] = max_iter
     return image
 
+
 @njit(parallel=True)
 def mandelbrot_numba_parallel(h, w, max_iter):
     image = np.zeros((h, w), dtype=np.int32)
@@ -170,13 +187,16 @@ def mandelbrot_numba_parallel(h, w, max_iter):
                 image[i, j] = max_iter
     return image
 
-@vectorize([float64(float64, float64)], target='cpu')
+
+@vectorize([float64(float64, float64)], target="cpu")
 def numba_vectorize_add(a, b):
     return a + b
 
-@vectorize([float64(float64, float64)], target='parallel')
+
+@vectorize([float64(float64, float64)], target="parallel")
 def numba_vectorize_add_parallel(a, b):
     return a + b
+
 
 @njit(parallel=True)
 def sobel_numba_parallel(image):
@@ -184,12 +204,15 @@ def sobel_numba_parallel(image):
     out = np.zeros_like(image)
     for i in prange(1, h - 1):
         for j in range(1, w - 1):
-            gx = (image[i-1, j+1] + 2*image[i, j+1] + image[i+1, j+1]) - \
-                 (image[i-1, j-1] + 2*image[i, j-1] + image[i+1, j-1])
-            gy = (image[i+1, j-1] + 2*image[i+1, j] + image[i+1, j+1]) - \
-                 (image[i-1, j-1] + 2*image[i-1, j] + image[i-1, j+1])
+            gx = (image[i - 1, j + 1] + 2 * image[i, j + 1] + image[i + 1, j + 1]) - (
+                image[i - 1, j - 1] + 2 * image[i, j - 1] + image[i + 1, j - 1]
+            )
+            gy = (image[i + 1, j - 1] + 2 * image[i + 1, j] + image[i + 1, j + 1]) - (
+                image[i - 1, j - 1] + 2 * image[i - 1, j] + image[i - 1, j + 1]
+            )
             out[i, j] = np.sqrt(gx**2 + gy**2)
     return out
+
 
 def sobel_numpy(image):
     out = np.zeros_like(image)

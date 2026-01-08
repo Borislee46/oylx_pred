@@ -56,7 +56,6 @@ def project_onto_unit_simplex(X):
 
     # now check for each point if it is still in bound
     for j in out_of_unit_simplex:
-
         # indices where the last point was already out of bounds
         subspace = np.logical_not(I[j])
 
@@ -83,7 +82,6 @@ def project_onto_unit_simplex_recursive(X):
 
     # now check for each point if it is still in bound
     for j in out_of_unit_simplex:
-
         while True:
             X[j, X[j] < 0] = 0
 
@@ -123,6 +121,6 @@ def matrix_project_onto_sum_equals_one_plane(next):
     x = np.linalg.solve(A, b)
 
     # finally calculate the projection onto the plane
-    proj = (P + x @ v)
+    proj = P + x @ v
 
     return proj
