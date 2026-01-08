@@ -710,15 +710,9 @@
     "zoushiyue@xdf.cn",
     "zuochong@xdf.cn"
   ],
-  "ADMIN_EMAILS": [
-    "cuiting3@xdf.cn",
-    "lijiapeng8@xdf.cn"
-  ],
+  "ADMIN_EMAILS": ["cuiting3@xdf.cn", "lijiapeng8@xdf.cn"],
   "MODULE_PERMISSIONS": {
-    "admin": [
-      "cuiting3@xdf.cn",
-      "lijiapeng8@xdf.cn"
-    ],
+    "admin": ["cuiting3@xdf.cn", "lijiapeng8@xdf.cn"],
     "hr_dashboard": [
       "chenshuangshuang2@xdf.cn",
       "cuiting3@xdf.cn",

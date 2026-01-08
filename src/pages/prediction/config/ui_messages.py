@@ -68,7 +68,7 @@ RANKER_MESSAGES = {
     "relax": [
         "·{tone}, 调整{target_major}参数边界...",
         "·{tone}, 评估{target_major}参数边界权重...",
-        "·{tone}, 评估{target_major}是否要放入推荐专业池中..."
+        "·{tone}, 评估{target_major}是否要放入推荐专业池中...",
     ],
     "tighten": [
         "·{tone}, 收紧{target_major}模型阈值...",

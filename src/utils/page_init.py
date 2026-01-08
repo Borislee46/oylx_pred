@@ -45,7 +45,7 @@ def init_page(
         css_files_to_load.extend(additional_css_files)
 
     for css_file in css_files_to_load:
-         with open(css_file, encoding="utf-8") as f:
+        with open(css_file, encoding="utf-8") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
     if not skip_auth:
