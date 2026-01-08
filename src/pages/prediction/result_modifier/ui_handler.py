@@ -94,7 +94,7 @@ class RankerUIHandler:
     def __enter__(self):
         bg_text = self.background_major.strip() if self.background_major else "未提供"
         faculty_text = self.background_faculty.strip() if self.background_faculty else "未提供"
-        self._render(f"·{self._tone}, 正在筛选专业推荐, 本科 {bg_text}, 领域 {faculty_text}")
+        self._render(f"·{self._tone}, 正在筛选专业推荐, 本科 {bg_text}, 所属学院 {faculty_text}")
         self.is_active = True
         return self
 
@@ -121,12 +121,17 @@ class RankerUIHandler:
             pool = self._message_pools[self._round_count % len(self._message_pools)]
             msg = self._pick_message(
                 pool,
-                majors=text,
-                bg_major=self.background_major or "当前背景",
-                faculty=self.background_faculty or "目标领域",
+                target_major=text,
+                background_major_ori=self.background_major or "当前背景",
                 tone=self._tone,
+                faculty=self.background_faculty or "所属学院",
             )
             self._render(msg)
         else:
-            msg = self._pick_message(self.FALLBACK_MESSAGES, tone=self._tone)
+            msg = self._pick_message(
+                self.FALLBACK_MESSAGES,
+                tone=self._tone,
+                target_major="目标专业",
+                background_major_ori=self.background_major or "当前背景",
+            )
             self._render(msg)

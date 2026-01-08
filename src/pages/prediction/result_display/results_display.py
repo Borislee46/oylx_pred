@@ -141,11 +141,7 @@ class ResultsDisplay:
         return pd.DataFrame(data)
 
     def display(self):
-        session_manager = SessionManager()
-        combination_count = session_manager.get("combination_count", 0)
-        pool_is_large = isinstance(combination_count, int) and combination_count > 10
-
-        has_user_specified = (not pool_is_large) and bool(self.user_specified_results)
+        has_user_specified = bool(self.user_specified_results)
         has_similarity = bool(self.top_similarity_results)
         has_cross_major = bool(self.top_cross_major_results)
 

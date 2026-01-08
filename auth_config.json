@@ -402,6 +402,7 @@
     "songmeng3@xdf.cn",
     "songpingting@xdf.cn",
     "songxuejing2@xdf.cn",
+    "songyang52@xdf.cn",
     "suihongyan@xdf.cn",
     "suiliang@xdf.cn",
     "sunchongyao1@xdf.cn",
@@ -633,6 +634,7 @@
     "zhangli417@xdf.cn",
     "zhanglihao1@xdf.cn",
     "zhangling78@xdf.cn",
+    "zhangliqun@xdf.cn",
     "zhangmeiyu3@xdf.cn",
     "zhangmiao13@xdf.cn",
     "zhangnan106@xdf.cn",
@@ -708,9 +710,15 @@
     "zoushiyue@xdf.cn",
     "zuochong@xdf.cn"
   ],
-  "ADMIN_EMAILS": ["cuiting3@xdf.cn", "lijiapeng8@xdf.cn"],
+  "ADMIN_EMAILS": [
+    "cuiting3@xdf.cn",
+    "lijiapeng8@xdf.cn"
+  ],
   "MODULE_PERMISSIONS": {
-    "admin": ["cuiting3@xdf.cn", "lijiapeng8@xdf.cn"],
+    "admin": [
+      "cuiting3@xdf.cn",
+      "lijiapeng8@xdf.cn"
+    ],
     "hr_dashboard": [
       "chenshuangshuang2@xdf.cn",
       "cuiting3@xdf.cn",
@@ -1141,6 +1149,7 @@
       "songmeng3@xdf.cn",
       "songpingting@xdf.cn",
       "songxuejing2@xdf.cn",
+      "songyang52@xdf.cn",
       "suihongyan@xdf.cn",
       "suiliang@xdf.cn",
       "sunchongyao1@xdf.cn",
@@ -1370,6 +1379,7 @@
       "zhangli417@xdf.cn",
       "zhanglihao1@xdf.cn",
       "zhangling78@xdf.cn",
+      "zhangliqun@xdf.cn",
       "zhangmeiyu3@xdf.cn",
       "zhangmiao13@xdf.cn",
       "zhangnan106@xdf.cn",

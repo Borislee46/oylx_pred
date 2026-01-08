@@ -45,11 +45,8 @@ def init_page(
         css_files_to_load.extend(additional_css_files)
 
     for css_file in css_files_to_load:
-        try:
-            with open(css_file, encoding="utf-8") as f:
-                st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-        except FileNotFoundError:
-            pass
+         with open(css_file, encoding="utf-8") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
     if not skip_auth:
         handle_e2_login(current_page_path, module_name=module_name, admin_only=admin_only)

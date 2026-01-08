@@ -49,10 +49,7 @@ class DeltaCalculator:
 
         details = {}
         if sig and sig.startswith("{"):
-            try:
-                details = json.loads(sig)
-            except (json.JSONDecodeError, TypeError, ValueError):
-                pass
+            details = json.loads(sig)
 
         sims, remarks = compute_sims(details)
         if not sims:

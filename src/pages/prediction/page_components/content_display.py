@@ -32,7 +32,7 @@ def display_content(
 
     form_changed = session_manager.get(session_key_form_data_changed, False)
     if not submitted and form_changed:
-        st.warning("您的输入已更改，当前显示的是先前输入的预测结果。请点击预测按钮获取最新结果。")
+        st.caption("您的输入已更改，当前显示的是先前输入的预测结果。请点击预测按钮获取最新结果。")
 
     res_model = session_manager.get("prediction_results")
     display_results_section(

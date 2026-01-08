@@ -51,26 +51,31 @@ EXPERIENCE_VALIDATION_TEMPLATE = [
 
 RANKER_MESSAGES = {
     "basic": [
-        "·{tone}, 测算录取概率...",
-        "·{tone}, 校验项目契合度...",
-        "·{tone}, 评估竞争压力...",
+        "·{tone}, 测算{target_major}录取概率...",
+        "·{tone}, 校验{target_major}项目契合度...",
+        "·{tone}, 评估{target_major}竞争压力...",
     ],
     "cross_major": [
-        "·{tone}, 跨申路径分析...",
-        "·{tone}, 校准相关性信号...",
+        "·{tone}, 跨申路径分析：{background_major_ori} → {target_major}...",
+        "·{tone}, 校准{background_major_ori}和{target_major}的相关性信号...",
+        "·{tone}, 研判{background_major_ori}和{target_major}的跨专业程度...",
     ],
     "faculty": [
-        "·{tone}, 学院维度加权...",
-        "·{tone}, 跨学科信号增强...",
+        "·{tone}, {target_major}学院维度加权...",
+        "·{tone}, {target_major}跨学科信号增强...",
+        "·{tone}, 评估{target_major}学院维度权重...",
     ],
     "relax": [
-        "·{tone}, 调整参数边界...",
+        "·{tone}, 调整{target_major}参数边界...",
+        "·{tone}, 评估{target_major}参数边界权重...",
+        "·{tone}, 评估{target_major}是否要放入推荐专业池中..."
     ],
     "tighten": [
-        "·{tone}, 收紧模型阈值...",
+        "·{tone}, 收紧{target_major}模型阈值...",
+        "·{tone}, 评估{target_major}是否要从推荐专业池中剔除...",
     ],
     "fallback": [
-        "·{tone}, 聚合特征矩阵...",
-        "·{tone}, 优化结果集...",
+        "·{tone}, 聚合{target_major}特征矩阵...",
+        "·{tone}, 优化{target_major}结果集...",
     ],
 }
