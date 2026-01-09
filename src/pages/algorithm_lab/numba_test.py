@@ -82,10 +82,10 @@ def run_numba_acceleration_test():
             results = []
             if n_points <= 10**6:
                 b = bench(
-                    lambda: python_pi_from_arrays(x, y), 
-                    warmup=int(warmup), 
+                    lambda: python_pi_from_arrays(x, y),
+                    warmup=int(warmup),
                     repeat=int(repeat),
-                    progress_cb=lambda p: progress_bar.progress(p, text="运行 Pure Python 测试...")
+                    progress_cb=lambda p: progress_bar.progress(p, text="运行 Pure Python 测试..."),
                 )
                 python_res = python_pi_from_arrays(x, y)
                 row = {"实现方式": "Pure Python", **b.stats(), "结果": float(python_res)}
@@ -98,10 +98,10 @@ def run_numba_acceleration_test():
                 return 4.0 * acc / int(n_points)
 
             b = bench(
-                lambda: run_single(), 
-                warmup=int(warmup), 
+                lambda: run_single(),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba JIT 测试...")
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba JIT 测试..."),
             )
             numba_res = float(run_single())
             results.append(
@@ -118,10 +118,10 @@ def run_numba_acceleration_test():
                 return 4.0 * acc_p / int(n_points)
 
             b = bench(
-                lambda: run_parallel(), 
-                warmup=int(warmup), 
+                lambda: run_parallel(),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Parallel 测试...")
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Parallel 测试..."),
             )
             numba_p_res = float(run_parallel())
             results.append(
@@ -199,27 +199,31 @@ def run_numba_acceleration_test():
             perf = []
             ref = a + b
             b0 = bench(
-                lambda: a + b, 
-                warmup=int(warmup), 
+                lambda: a + b,
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Native NumPy 测试...")
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Native NumPy 测试..."),
             )
             perf.append({"方式": "Native NumPy (+)", **b0.stats()})
 
             b1 = bench(
-                lambda: numba_vectorize_add(a, b), 
-                warmup=int(warmup), 
+                lambda: numba_vectorize_add(a, b),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Vectorize (Single) 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 Numba Vectorize (Single) 测试..."
+                ),
             )
             out1 = numba_vectorize_add(a, b)
             perf.append({"方式": "Numba Vectorize (Single)", **b1.stats()})
 
             b2 = bench(
-                lambda: numba_vectorize_add_parallel(a, b), 
-                warmup=int(warmup), 
+                lambda: numba_vectorize_add_parallel(a, b),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Vectorize (Parallel) 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 Numba Vectorize (Parallel) 测试..."
+                ),
             )
             out2 = numba_vectorize_add_parallel(a, b)
             perf.append({"方式": "Numba Vectorize (Parallel)", **b2.stats()})
@@ -241,10 +245,12 @@ def run_numba_acceleration_test():
             sobel_numba_parallel(test_img[:10, :10])
 
             b0 = bench(
-                lambda: sobel_numba_parallel(test_img), 
-                warmup=int(warmup), 
+                lambda: sobel_numba_parallel(test_img),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Parallel 卷积测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 Numba Parallel 卷积测试..."
+                ),
             )
             st.metric("Numba Parallel mean(s)", f"{b0.stats()['mean_s']:.4f}")
             st.metric("Numba Parallel p95(s)", f"{b0.stats()['p95_s']:.4f}")
@@ -280,18 +286,22 @@ def run_numba_acceleration_test():
 
             ref = np.dot(A, B)
             b0 = bench(
-                lambda: np.dot(A, B), 
-                warmup=int(warmup), 
+                lambda: np.dot(A, B),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 NumPy np.dot (BLAS) 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 NumPy np.dot (BLAS) 测试..."
+                ),
             )
             perf_g.append({"方式": "NumPy np.dot (BLAS)", **b0.stats()})
 
             b1 = bench(
-                lambda: numba_matmul_gu(A, B), 
-                warmup=int(warmup), 
+                lambda: numba_matmul_gu(A, B),
+                warmup=int(warmup),
                 repeat=int(repeat),
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Guvectorize 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 Numba Guvectorize 测试..."
+                ),
             )
             out = numba_matmul_gu(A, B)
             perf_g.append({"方式": "Numba Guvectorize", **b1.stats()})
@@ -326,7 +336,9 @@ def run_numba_acceleration_test():
                 warmup=int(warmup),
                 repeat=int(repeat),
                 iters=n_iters,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Pure Python Loop 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 Pure Python Loop 测试..."
+                ),
             )
             perf_bs.append({"方式": "Pure Python Loop", **b0.stats()})
 
@@ -341,7 +353,7 @@ def run_numba_acceleration_test():
                 warmup=int(warmup),
                 repeat=int(repeat),
                 iters=n_iters,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba JIT 测试...")
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba JIT 测试..."),
             )
             perf_bs.append({"方式": "Numba JIT", **b1.stats()})
 
@@ -350,7 +362,9 @@ def run_numba_acceleration_test():
                 warmup=int(warmup),
                 repeat=int(repeat),
                 iters=n_iters,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 NumPy searchsorted 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 NumPy searchsorted 测试..."
+                ),
             )
             perf_bs.append({"方式": "NumPy searchsorted", **b2.stats()})
 
@@ -373,16 +387,16 @@ def run_numba_acceleration_test():
             fastmath_on(fm_data[:10])
 
             b_off = bench(
-                lambda: fastmath_off(fm_data), 
-                warmup=1, 
+                lambda: fastmath_off(fm_data),
+                warmup=1,
                 repeat=5,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 FastMath=False 测试...")
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 FastMath=False 测试..."),
             )
             b_on = bench(
-                lambda: fastmath_on(fm_data), 
-                warmup=1, 
+                lambda: fastmath_on(fm_data),
+                warmup=1,
                 repeat=5,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 FastMath=True 测试...")
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 FastMath=True 测试..."),
             )
 
             st.table(
@@ -409,16 +423,20 @@ def run_numba_acceleration_test():
             sum_slice(C_arr[:10, :10])
 
             b_c = bench(
-                lambda: sum_slice(C_arr), 
-                warmup=1, 
+                lambda: sum_slice(C_arr),
+                warmup=1,
                 repeat=3,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 C-order (Row Major) 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 C-order (Row Major) 测试..."
+                ),
             )
             b_f = bench(
-                lambda: sum_slice(F_arr), 
-                warmup=1, 
+                lambda: sum_slice(F_arr),
+                warmup=1,
                 repeat=3,
-                progress_cb=lambda p: progress_bar.progress(p, text="运行 F-order (Column Major) 测试...")
+                progress_cb=lambda p: progress_bar.progress(
+                    p, text="运行 F-order (Column Major) 测试..."
+                ),
             )
 
             st.table(

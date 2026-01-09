@@ -34,6 +34,7 @@ class Plot:
 
         # change the font of plots to serif (looks better)
         plt.rc("font", family="serif")
+        plt.rcParams["axes.unicode_minus"] = False
 
         # the matplotlib classes
         self.fig = fig

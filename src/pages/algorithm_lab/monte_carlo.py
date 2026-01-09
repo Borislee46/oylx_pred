@@ -166,7 +166,8 @@ def run_qmc_efficiency_test():
                     mc_ests.append(float(run_mc()))
 
                     engine = qmc.Sobol(d=int(test_dims), scramble=True, seed=int(seed) + r)
-                    qmc_samples = engine.random(n=int(n))
+                    n_sobol = int(n)
+                    qmc_samples = engine.random(n=n_sobol)
 
                     def run_qmc():
                         return float(np.mean(f(qmc_samples)))
@@ -327,7 +328,10 @@ def run_qmc_efficiency_test():
 
             if st.button("运行 Multinomial 实验"):
                 base_engine = qmc.Sobol(d=1) if m_engine_type == "Sobol" else qmc.Halton(d=1)
-                mqmc = qmc.MultinomialQMC(p, n_trials=m_n_points, engine=base_engine)
+                n_trials_actual = (
+                    m_n_points if m_engine_type != "Sobol" else 2 ** int(np.log2(m_n_points))
+                )
+                mqmc = qmc.MultinomialQMC(p, n_trials=n_trials_actual, engine=base_engine)
 
                 qmc_counts = mqmc.random(n=1)[0]
 
