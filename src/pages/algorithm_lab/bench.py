@@ -41,10 +41,14 @@ class BenchResult:
         }
 
 
-def bench(func, *, warmup: int = 2, repeat: int = 10, iters: int = 1) -> BenchResult:
+def bench(func, *, warmup: int = 2, repeat: int = 10, iters: int = 1, progress_cb=None) -> BenchResult:
+    total_steps = int(warmup) + int(repeat)
+    
     if warmup > 0:
-        for _ in range(int(warmup)):
+        for i in range(int(warmup)):
             func()
+            if progress_cb:
+                progress_cb((i + 1) / total_steps)
 
     times = np.empty(int(repeat), dtype=np.float64)
     for i in range(int(repeat)):
@@ -52,4 +56,7 @@ def bench(func, *, warmup: int = 2, repeat: int = 10, iters: int = 1) -> BenchRe
         for _ in range(int(iters)):
             func()
         times[i] = time.perf_counter() - start
+        if progress_cb:
+            progress_cb((int(warmup) + i + 1) / total_steps)
+    
     return BenchResult(times=times, iters=int(iters))

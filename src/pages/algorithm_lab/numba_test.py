@@ -67,6 +67,7 @@ def run_numba_acceleration_test():
         )
 
         if st.button("运行 Pi 估算对比", key="btn_pi"):
+            progress_bar = st.progress(0, text="初始化测试数据...")
             rng = np.random.default_rng(int(seed))
             x = rng.random(int(n_points), dtype=np.float64)
             y = rng.random(int(n_points), dtype=np.float64)
@@ -81,7 +82,10 @@ def run_numba_acceleration_test():
             results = []
             if n_points <= 10**6:
                 b = bench(
-                    lambda: python_pi_from_arrays(x, y), warmup=int(warmup), repeat=int(repeat)
+                    lambda: python_pi_from_arrays(x, y), 
+                    warmup=int(warmup), 
+                    repeat=int(repeat),
+                    progress_cb=lambda p: progress_bar.progress(p, text="运行 Pure Python 测试...")
                 )
                 python_res = python_pi_from_arrays(x, y)
                 row = {"实现方式": "Pure Python", **b.stats(), "结果": float(python_res)}
@@ -93,7 +97,12 @@ def run_numba_acceleration_test():
                 acc = count_inside_circle(x, y)
                 return 4.0 * acc / int(n_points)
 
-            b = bench(lambda: run_single(), warmup=int(warmup), repeat=int(repeat))
+            b = bench(
+                lambda: run_single(), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba JIT 测试...")
+            )
             numba_res = float(run_single())
             results.append(
                 {
@@ -108,7 +117,12 @@ def run_numba_acceleration_test():
                 acc_p = count_inside_circle_parallel(x, y)
                 return 4.0 * acc_p / int(n_points)
 
-            b = bench(lambda: run_parallel(), warmup=int(warmup), repeat=int(repeat))
+            b = bench(
+                lambda: run_parallel(), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Parallel 测试...")
+            )
             numba_p_res = float(run_parallel())
             results.append(
                 {
@@ -118,6 +132,7 @@ def run_numba_acceleration_test():
                     "结果": numba_p_res,
                 }
             )
+            progress_bar.empty()
 
             st.table(pd.DataFrame(results))
             st.download_button(
@@ -177,23 +192,38 @@ def run_numba_acceleration_test():
         )
 
         if st.button("开始 Ufunc 压测", key="btn_u"):
+            progress_bar = st.progress(0, text="运行 Ufunc 测试...")
             a, b = np.random.random(array_size), np.random.random(array_size)
             numba_vectorize_add(a[:10], b[:10])
 
             perf = []
             ref = a + b
-            b0 = bench(lambda: a + b, warmup=int(warmup), repeat=int(repeat))
+            b0 = bench(
+                lambda: a + b, 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Native NumPy 测试...")
+            )
             perf.append({"方式": "Native NumPy (+)", **b0.stats()})
 
-            b1 = bench(lambda: numba_vectorize_add(a, b), warmup=int(warmup), repeat=int(repeat))
+            b1 = bench(
+                lambda: numba_vectorize_add(a, b), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Vectorize (Single) 测试...")
+            )
             out1 = numba_vectorize_add(a, b)
             perf.append({"方式": "Numba Vectorize (Single)", **b1.stats()})
 
             b2 = bench(
-                lambda: numba_vectorize_add_parallel(a, b), warmup=int(warmup), repeat=int(repeat)
+                lambda: numba_vectorize_add_parallel(a, b), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Vectorize (Parallel) 测试...")
             )
             out2 = numba_vectorize_add_parallel(a, b)
             perf.append({"方式": "Numba Vectorize (Parallel)", **b2.stats()})
+            progress_bar.empty()
 
             st.caption(
                 f"正确性: single={np.allclose(ref, out1)} | parallel={np.allclose(ref, out2)}"
@@ -206,11 +236,15 @@ def run_numba_acceleration_test():
         img_size = st.selectbox("模拟图像尺寸", [512, 1024, 2048, 4096], index=1, key="s_size")
 
         if st.button("运行 Sobel 压测", key="btn_s"):
+            progress_bar = st.progress(0, text="运行 Sobel 压测...")
             test_img = np.random.random((img_size, img_size)).astype(np.float32)
             sobel_numba_parallel(test_img[:10, :10])
 
             b0 = bench(
-                lambda: sobel_numba_parallel(test_img), warmup=int(warmup), repeat=int(repeat)
+                lambda: sobel_numba_parallel(test_img), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Parallel 卷积测试...")
             )
             st.metric("Numba Parallel mean(s)", f"{b0.stats()['mean_s']:.4f}")
             st.metric("Numba Parallel p95(s)", f"{b0.stats()['p95_s']:.4f}")
@@ -228,6 +262,7 @@ def run_numba_acceleration_test():
             st.caption(
                 f"小样本一致性 max_abs_diff={float(np.max(np.abs(nb_small - np_small))):.6g}"
             )
+            progress_bar.empty()
 
     with test_tabs[4]:
         st.write("测试 `@guvectorize` 处理多维数组（矩阵乘法）的性能。")
@@ -235,6 +270,7 @@ def run_numba_acceleration_test():
         dim = st.selectbox("矩阵维度 (N x N)", [128, 256, 512, 1024], index=1, key="g_dim")
 
         if st.button("运行矩阵乘法测试", key="btn_g"):
+            progress_bar = st.progress(0, text="运行矩阵乘法测试...")
             A = np.random.random((dim, dim))
             B = np.random.random((dim, dim))
 
@@ -243,10 +279,20 @@ def run_numba_acceleration_test():
             perf_g = []
 
             ref = np.dot(A, B)
-            b0 = bench(lambda: np.dot(A, B), warmup=int(warmup), repeat=int(repeat))
+            b0 = bench(
+                lambda: np.dot(A, B), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 NumPy np.dot (BLAS) 测试...")
+            )
             perf_g.append({"方式": "NumPy np.dot (BLAS)", **b0.stats()})
 
-            b1 = bench(lambda: numba_matmul_gu(A, B), warmup=int(warmup), repeat=int(repeat))
+            b1 = bench(
+                lambda: numba_matmul_gu(A, B), 
+                warmup=int(warmup), 
+                repeat=int(repeat),
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba Guvectorize 测试...")
+            )
             out = numba_matmul_gu(A, B)
             perf_g.append({"方式": "Numba Guvectorize", **b1.stats()})
 
@@ -255,6 +301,7 @@ def run_numba_acceleration_test():
             st.caption(
                 "注：np.dot 通常调用高度优化的 BLAS 库，Numba 在此类密集线性代数运算中通常难以超越它，但展示了灵活实现的性能潜力。"
             )
+            progress_bar.empty()
 
     with test_tabs[5]:
         st.write("测试 JIT 对分支逻辑密集的算法加速效果。")
@@ -264,6 +311,7 @@ def run_numba_acceleration_test():
         )
 
         if st.button("运行二分查找测试", key="btn_bs"):
+            progress_bar = st.progress(0, text="初始化数据...")
             data = np.sort(np.random.randint(0, list_size * 10, list_size))
             target = data[len(data) // 2]
 
@@ -278,6 +326,7 @@ def run_numba_acceleration_test():
                 warmup=int(warmup),
                 repeat=int(repeat),
                 iters=n_iters,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Pure Python Loop 测试...")
             )
             perf_bs.append({"方式": "Pure Python Loop", **b0.stats()})
 
@@ -292,6 +341,7 @@ def run_numba_acceleration_test():
                 warmup=int(warmup),
                 repeat=int(repeat),
                 iters=n_iters,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 Numba JIT 测试...")
             )
             perf_bs.append({"方式": "Numba JIT", **b1.stats()})
 
@@ -300,6 +350,7 @@ def run_numba_acceleration_test():
                 warmup=int(warmup),
                 repeat=int(repeat),
                 iters=n_iters,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 NumPy searchsorted 测试...")
             )
             perf_bs.append({"方式": "NumPy searchsorted", **b2.stats()})
 
@@ -308,6 +359,7 @@ def run_numba_acceleration_test():
             if float(perf_bs[0]["mean_s"]) > 0:
                 bs_speedup = float(perf_bs[0]["mean_s"]) / float(perf_bs[1]["mean_s"])
                 st.success(f"Numba 相比 Python 循环加速了 **{bs_speedup:.1f}x** (mean)")
+            progress_bar.empty()
 
     with test_tabs[6]:
         st.write("FastMath 影响 (Exp Sum)")
@@ -315,12 +367,23 @@ def run_numba_acceleration_test():
             "测试规模", options=[10**5, 10**6, 10**7], value=10**6, key="fm_size"
         )
         if st.button("运行 FastMath 对比"):
+            progress_bar = st.progress(0, text="运行 FastMath 对比...")
             fm_data = np.random.random(fm_size)
             fastmath_off(fm_data[:10])
             fastmath_on(fm_data[:10])
 
-            b_off = bench(lambda: fastmath_off(fm_data), warmup=1, repeat=5)
-            b_on = bench(lambda: fastmath_on(fm_data), warmup=1, repeat=5)
+            b_off = bench(
+                lambda: fastmath_off(fm_data), 
+                warmup=1, 
+                repeat=5,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 FastMath=False 测试...")
+            )
+            b_on = bench(
+                lambda: fastmath_on(fm_data), 
+                warmup=1, 
+                repeat=5,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 FastMath=True 测试...")
+            )
 
             st.table(
                 pd.DataFrame(
@@ -333,18 +396,30 @@ def run_numba_acceleration_test():
             st.info(
                 "注：FastMath 允许 Numba 使用不严格遵循 IEEE 754 的浮点优化（如重排算术运算），在某些硬件上可显著加速。"
             )
+            progress_bar.empty()
 
         st.write("---")
         st.write("内存布局 (C vs Fortran Order)")
         layout_dim = st.selectbox("矩阵尺寸", [1000, 2000, 4000], index=1)
         if st.button("运行布局对比"):
+            progress_bar = st.progress(0, text="运行布局对比...")
             C_arr = np.ascontiguousarray(np.random.random((layout_dim, layout_dim)))
             F_arr = np.asfortranarray(np.random.random((layout_dim, layout_dim)))
 
             sum_slice(C_arr[:10, :10])
 
-            b_c = bench(lambda: sum_slice(C_arr), warmup=1, repeat=3)
-            b_f = bench(lambda: sum_slice(F_arr), warmup=1, repeat=3)
+            b_c = bench(
+                lambda: sum_slice(C_arr), 
+                warmup=1, 
+                repeat=3,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 C-order (Row Major) 测试...")
+            )
+            b_f = bench(
+                lambda: sum_slice(F_arr), 
+                warmup=1, 
+                repeat=3,
+                progress_cb=lambda p: progress_bar.progress(p, text="运行 F-order (Column Major) 测试...")
+            )
 
             st.table(
                 pd.DataFrame(
@@ -355,6 +430,7 @@ def run_numba_acceleration_test():
                 )
             )
             st.caption("注：按列求和时，F-order 布局由于内存连续访问，通常比 C-order 快得多。")
+            progress_bar.empty()
 
         st.write("---")
         st.write("显式类型 vs 自动推断 (Compilation overhead)")
