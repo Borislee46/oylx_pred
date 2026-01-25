@@ -78,7 +78,7 @@ class ResultsDisplay:
             },
             "user_specified": {
                 "results": self.user_specified_results,
-                "title": "意向申请方案",
+                "title": "意向专业大类",
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
         }

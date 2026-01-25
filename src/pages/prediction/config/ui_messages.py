@@ -1,7 +1,7 @@
 PIPELINE_MESSAGES = {
-    "init_engine": ["·系统环境初始化...", "·正在配置预测模型...", "·底层算力调度中..."],
+    "init_engine": ["·系统环境初始化...", "·正在配置预测模型...", "·底层算法调度中..."],
     "verify_data": ["·核验背景信息...", "·核验申请人画像...", "·深度解析背景属性..."],
-    "wake_model": ["·加载模型...", "·正在激活机器学习模型...", "·XGBoost模型权重加载中..."],
+    "wake_model": ["·加载模型...", "·正在加载机器学习模型...", "·XGBoost模型权重加载中..."],
     "search_cases": ["·对标案例库...", "·检索历史录取数据...", "·匹配海量历史样本..."],
     "check_consistency": ["·匹配核心信号...", "·验证数据一致性...", "·信号校准中..."],
     "build_features": ["·提取特征向量...", "·特征工程并行计算...", "·构建多维画像空间..."],
@@ -45,7 +45,7 @@ EXPERIENCE_ANALYSIS_MESSAGES = [
 
 EXPERIENCE_VALIDATION_TEMPLATE = [
     "·正在Agent校验文本：{field_name} ({idx}/{total})...",
-    "·正在调用大模型校验用户输入的{field_name}文本，进度：{idx}/{total}...",
+    "·正在调用LLM校验用户输入的{field_name}文本，当前进度：{idx}/{total}...",
     "·正在查看学生的{field_name}...",
 ]
 
