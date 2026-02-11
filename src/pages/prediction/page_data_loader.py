@@ -17,7 +17,7 @@ def get_prediction_model(model_name):
     return model_instance
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False, scope="global")
 def cached_get_prediction_model(model_name):
     return get_prediction_model(model_name)
 
@@ -34,7 +34,11 @@ class machine_learning_model:
     boundary_agent: Any = None
 
     @classmethod
-    @st.cache_resource(show_spinner=False)
+    @st.cache_resource(
+        show_spinner=False,
+        scope="session",
+        on_release=lambda obj: obj.boundary_agent.close() if obj.boundary_agent else None,
+    )
     def resource_loader(cls) -> "machine_learning_model":
         from src.agent.boundary_case_agent import BoundaryCaseAgent
         from src.pages.prediction.core.utils import _data_manager

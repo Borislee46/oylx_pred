@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -13,15 +11,12 @@ def get_university_difficulty_order(
     if not config_path.exists():
         return list(default_order)
 
-    try:
-        with open(config_path, encoding="utf-8") as f:
-            cfg = json.load(f) or {}
+    with open(config_path, encoding="utf-8") as f:
+        cfg = json.load(f) or {}
 
-        order = cfg.get("UNIVERSITY_DIFFICULTY_ORDER") or cfg.get("difficulty_order")
+    order = cfg.get("UNIVERSITY_DIFFICULTY_ORDER") or cfg.get("difficulty_order")
 
-        if isinstance(order, list) and all(isinstance(x, str) and x.strip() for x in order):
-            return [x.strip() for x in order]
-    except Exception:
-        pass
+    if isinstance(order, list) and all(isinstance(x, str) and x.strip() for x in order):
+        return [x.strip() for x in order]
 
     return list(default_order)

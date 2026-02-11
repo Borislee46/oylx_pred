@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 import streamlit as st
@@ -7,7 +5,7 @@ import streamlit as st
 from src.utils.ui.ui_utils import load_component_assets
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False, scope="global")
 def _get_hk_shield_component():
     assets_dir = Path("assets/ui/hk_shield")
     _, script_js, _ = load_component_assets(assets_dir)

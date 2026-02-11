@@ -2,7 +2,7 @@ numpy==2.3.1
 pandas==2.3.1
 scikit-learn==1.7.2
 xgboost-cpu==3.0.2
-streamlit==1.52.0
+streamlit==1.53.0
 streamlit-aggrid==1.1.9
 streamlit-elements==0.1.*
 # uvloop>=0.15.1

@@ -103,7 +103,7 @@ def load_model_dependencies(
     return final_model, feature_names, level_fallback_mapping
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False, scope="global")
 def load_model(
     model_name: str = "xgboost",
 ) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:

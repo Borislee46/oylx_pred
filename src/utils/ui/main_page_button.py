@@ -16,7 +16,7 @@ def _get_base_url() -> str:
 
     with open("config/app_config.json", encoding="utf-8") as f:
         all_configs = json.load(f)
-    env = os.environ.get("APP_ENV", "test")
+    env = os.environ.get("APP_ENV", "prod")
     return all_configs[env]["STREAMLIT_APP_BASE_URL"]
 
 
