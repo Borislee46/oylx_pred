@@ -56,10 +56,11 @@
   - 固定参数（默认，业务验证过的一组最佳参数）。
   - 自动调参：Optuna 搜索，随后带入校准。
 - **概率校准 (sigmoid, 单一校准器)**：
-  - 使用 `cv='prefit'` 策略：训练集 80% 拟合基础 XGB，剩余 20% 作为校准集拟合 `CalibratedClassifierCV`。
+  - 使用 `cv='prefit'` 策略：训练集按 8:2 划分，80% 拟合基础 XGB，剩余 20% 作为校准集拟合 `CalibratedClassifierCV`。
   - 训练结束立即提取校准参数 a/b 以便落盘并在部署时还原。
-- **类别不平衡**：自动计算 `scale_pos_weight` 并在训练或调参后的最终参数中应用。
-- **评估指标**：`accuracy`, `precision`, `recall`, `f1`（二分类）。
+- **特征重要度聚合**：
+  - 对于已校准模型，系统会提取各校准子估计器（calibrated classifiers）的基础模型重要度，并取其均值进行聚合展示。
+- **类别不平衡**：自动计算 `scale_pos_weight` 并在训练中应用。
 
 ## 6. 评估与落盘 (`utils.py`)
 
@@ -86,16 +87,19 @@ python -m src.machine_learning_models.train
 目标：为线上 `LogitUpliftProvider` 生成三类产物，用于“文本提升”后处理。
 
 ### 产物
-- `tfidf_vectorizer.joblib`：字符级 TF‑IDF 向量器
-- `tfidf_centroids.npz`：四段文本（科研/获奖/实习/论文）的归一化质心
-- `text_uplift_weights.json`：非负的增益权重（基础项 + 与计数交互项）
+- `tfidf_vectorizer.joblib`：字符级 TF‑IDF 向量器（ngram 为 2-4，特征上限 20000）。
+- `tfidf_centroids.npz`：四段文本（科研/获奖/实习/论文）的归一化质心（Centroids）。
+- `text_uplift_weights.json`：非负的增益权重（基础项 + 与计数交互项）。
 
 ### 流程概览
-1. **输入与预处理**：数据源为 `cases.feather`，对文本列进行归一化清洗。
-2. **向量器参数**：`analyzer='char_wb'`, `ngram_range=(2,4)`, `max_features=20000`。
-3. **质心与相似度**：计算每一类文本的平均 TF-IDF 向量作为质心。
-4. **可选基准概率 (p_base)**：若存在预训练模型，计算基准概率；否则为 None。
-5. **增益权重拟合**：使用非负最小二乘法 (NNLS) 拟合 `delta_logit`。
+1. **输入与预处理**：数据源为 `cases.feather`，对文本列进行归一化清洗。包含 `activity` 在内的 5 类文本用于样本降权判定，但仅前 4 类参与 Uplift 训练。
+2. **向量器训练**：使用 `char_wb` 分析器，学习文本的字符级特征。
+3. **质心计算**：提取录取案例中的背景特征中心点，并进行 L2 归一化。
+4. **有效信息密度 (Entropy)**：计算文本的香农熵以评估丰富度，饱和阈值设为 5.0。
+5. **增益权重拟合**：
+   - 计算真实标签与 XGBoost 基础概率之间的 Logit 残差。
+   - 构造包含“质量得分”与“质量×数量”交互项的特征矩阵。
+   - 使用 **NNLS (非负最小二乘法)** 拟合权重，若结果异常则回退至 **Ridge (positive=True)** 回归。
 6. **落盘**：默认保存至 `src/machine_learning_models/pre-trained_models/`。
 
 ### 运行

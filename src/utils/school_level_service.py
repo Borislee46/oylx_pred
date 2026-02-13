@@ -5,7 +5,10 @@ import streamlit as st
 
 from src.utils.app_data_loader import load_school_base_data
 from src.utils.school_constants import (
-    LANGUAGE_BOOST_MULTIPLIERS, OVERSEAS_SCHOOL_LEVELS, SCHOOL_LEVEL_PRIORITY, SCHOOL_LEVEL_SCORES
+    LANGUAGE_BOOST_MULTIPLIERS,
+    OVERSEAS_SCHOOL_LEVELS,
+    SCHOOL_LEVEL_PRIORITY,
+    SCHOOL_LEVEL_SCORES,
 )
 
 

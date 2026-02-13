@@ -87,6 +87,7 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", False))
+        available_buttons.append(("algorithm_lab", "pages/algorithm_lab.py", False))
 
     if accessible_modules.get("hr_dashboard", False):
         available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", False))

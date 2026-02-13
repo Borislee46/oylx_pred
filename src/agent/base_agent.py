@@ -45,6 +45,10 @@ class BaseAgent:
             "Authorization": f"Bearer {self.api_key}",
         }
 
+    def close(self):
+        if hasattr(self, "_session"):
+            self._session.close()
+
     def _load_persistent_json(self, cache_dir: str, cache_file: str) -> dict[str, Any]:
         file_path = os.path.join(cache_dir, cache_file)
         if not os.path.exists(file_path):

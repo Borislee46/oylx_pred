@@ -89,7 +89,6 @@ class LogitUpliftProvider(TextBoostProvider):
                 lexicon_path=lexicon_path if isinstance(lexicon_path, str) else None,
                 enabled_fields=enabled_fields,
                 per_field_cap=float(hs.get("bonus_cap_per_field", 0.6)),
-                max_reasons=int(hs.get("max_reasons", 3)),
                 lexicon_weight=float(hs.get("lexicon_weight", 1.0)),
             )
             novelty_weight = float(hs.get("novelty_weight", 0.12))
@@ -123,17 +122,15 @@ class LogitUpliftProvider(TextBoostProvider):
             cap_quality_gamma=self._cap_quality_gamma,
         )
 
-    def apply(
-        self, probabilities: list[float], experience_details: dict[str, Any]
-    ) -> tuple[list[float], str]:
+    def apply(self, probabilities: list[float], experience_details: dict[str, Any]) -> list[float]:
         if not probabilities:
-            return probabilities, ""
+            return probabilities
         if not has_any_experience(experience_details):
-            return probabilities, ""
+            return probabilities
 
         sig = self._text_processor.make_signature(experience_details)
         try:
-            delta_logit, sims, reasons = self._delta_calculator.cached_delta_logit(sig)
+            delta_logit, sims, remarks = self._delta_calculator.cached_delta_logit(sig)
         except (
             FileNotFoundError,
             OSError,
@@ -144,20 +141,19 @@ class LogitUpliftProvider(TextBoostProvider):
             ImportError,
             AttributeError,
         ) as e:
-            logger.error(f"LogitUpliftProvider 计算 delta_logit 失败: {str(e)}", exc_info=True)
-            return probabilities, ""
+            logger.error(
+                f"[背提文本加成算法] LogitUpliftProvider 计算 delta_logit 失败: {str(e)}",
+                exc_info=True,
+            )
+            return probabilities
 
         if delta_logit <= 0:
-            return probabilities, ""
+            return probabilities
 
-        updated, boosts = self._probability_applier.apply_probability_boost(
+        updated = self._probability_applier.apply_probability_boost(
             probabilities=probabilities,
             delta_logit=delta_logit,
             sims=sims,
         )
 
-        summary = self._probability_applier.generate_summary(
-            boosts=boosts, sims=sims, reasons=reasons
-        )
-
-        return updated, summary
+        return updated

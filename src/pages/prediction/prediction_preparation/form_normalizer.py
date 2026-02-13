@@ -15,7 +15,6 @@ from src.pages.prediction.input_form_components.form_config import (
 from src.pages.prediction.input_form_components.language_score_processor import (
     apply_overseas_language_boost,
 )
-from src.pages.prediction.user_background_analyzer import find_substitute_university
 from src.utils.school_level_service import get_school_level_service
 
 
@@ -25,7 +24,12 @@ def calculate_gpa_bonus(exam_type: str | None, exam_score: float | None) -> floa
 
     configs = {
         "GRE": (GRE_BONUS_THRESHOLD, GRE_MAX_BONUS, GRE_SIGMOID_STEEPNESS, GRE_SIGMOID_MIDPOINT),
-        "GMAT": (GMAT_BONUS_THRESHOLD, GMAT_MAX_BONUS, GMAT_SIGMOID_STEEPNESS, GMAT_SIGMOID_MIDPOINT)
+        "GMAT": (
+            GMAT_BONUS_THRESHOLD,
+            GMAT_MAX_BONUS,
+            GMAT_SIGMOID_STEEPNESS,
+            GMAT_SIGMOID_MIDPOINT,
+        ),
     }
 
     if exam_type not in configs:
@@ -54,16 +58,18 @@ def calculate_processed_gpa(
 
 
 def calculate_processed_language_score(
-    raw_score: float | None, 
-    language_type: str | None, 
-    background_university: str | None, 
-    is_overseas: bool = False
+    raw_score: float | None,
+    language_type: str | None,
+    background_university: str | None,
+    is_overseas: bool = False,
 ) -> tuple[float | None, float | None]:
     display_score = raw_score
     if (not display_score) and is_overseas:
         display_score = apply_overseas_language_boost(background_university, language_type)
 
-    normalized_score = normalize_language_score(display_score, language_type) if display_score else None
+    normalized_score = (
+        normalize_language_score(display_score, language_type) if display_score else None
+    )
     return display_score, normalized_score
 
 
@@ -72,16 +78,10 @@ def get_background_university_for_model(
     cases_df,
     background_university_set: set[str] | None = None,
 ) -> str | None:
-    if not selected_background_university:
-        return None
-
     if background_university_set is None:
         background_university_set = set(
             cases_df["background_university"].dropna().astype(str).unique()
         )
-
-    if selected_background_university not in background_university_set:
-        return find_substitute_university(selected_background_university, cases_df)
 
     return selected_background_university
 
@@ -91,9 +91,7 @@ def normalize_form_data_for_prediction(
     cases_df,
     gpa_converter: GPAConverter | None,
     background_university_set: set[str] | None = None,
-) -> tuple[dict, list[str]]:
-    warnings = []
-
+) -> dict:
     raw_gpa = form_data.get("gpa_raw")
     gpa_scale = form_data.get("gpa_scale")
     bg_uni = form_data.get("background_university")
@@ -133,4 +131,4 @@ def normalize_form_data_for_prediction(
         "experience_details": form_data.get("experience_details", {}),
     }
 
-    return input_data, warnings
+    return input_data

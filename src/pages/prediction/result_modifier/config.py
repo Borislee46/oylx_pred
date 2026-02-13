@@ -1,8 +1,18 @@
+import json
+from functools import lru_cache
 from pathlib import Path
 
-from src.utils.path_resolver import get_project_root
 
-PROJECT_ROOT: Path = get_project_root()
+@lru_cache(maxsize=1)
+def _get_project_root() -> Path:
+    start = Path(__file__).resolve()
+    for p in (start, *start.parents):
+        if (p / "pyproject.toml").exists():
+            return p
+    return start.parents[2]
+
+
+PROJECT_ROOT: Path = _get_project_root()
 
 DEFAULT_TEXT_BOOST_CONFIG: dict = {
     "enabled": True,
@@ -70,7 +80,26 @@ CROSS_MAJOR_PENALTY_FACTOR: float = 0.5
 FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR: float = 0.3
 COMPREHENSIVE_SCORE_BOOST_THRESHOLD: float = 0.6
 SELECTION_SCORE_BOOST_FACTOR: float = 0.3
-PROFESSIONAL_MAJORS: list[str] = ["Business Administration", "MBA"]
+PROBABILITY_SCALE_FACTOR: float = 2.0
+PREDICTION_RULES_PATH: Path = PROJECT_ROOT / "config" / "prediction_rules.json"
+UNIVERSITY_DIFFICULTY_CONFIG_PATH: Path = PREDICTION_RULES_PATH
+
+
+def load_prediction_rules() -> dict:
+    if PREDICTION_RULES_PATH.exists():
+        try:
+            with open(PREDICTION_RULES_PATH, encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+_rules = load_prediction_rules()
+
+PROFESSIONAL_MAJORS: list[str] = _rules.get(
+    "PROFESSIONAL_MAJORS", ["Business Administration", "MBA"]
+)
 PROFESSIONAL_MAJORS_LOWER: list[str] = [m.lower() for m in PROFESSIONAL_MAJORS]
 PROFESSIONAL_REDUCTION_FACTOR: float = 0.30
 PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR: float = 0.50
@@ -94,31 +123,36 @@ PROBABILITY_BOOST_MIN: float = 0.1
 PROBABILITY_BOOST_MAX: float = 0.9
 PROBABILITY_SCALE_CENTER: float = 0.5
 PROBABILITY_SCALE_FACTOR: float = 2.0
-UNIVERSITY_DIFFICULTY_CONFIG_PATH: Path = PROJECT_ROOT / "config" / "university_difficulty.json"
-DEFAULT_UNIVERSITY_DIFFICULTY_ORDER: tuple[str, ...] = (
-    "新加坡国立大学",
-    "新加坡南洋理工大学",
-    "香港大学",
-    "香港中文大学",
-    "香港科技大学",
-    "新加坡管理大学",
-    "马来亚大学",
-    "香港理工大学",
-    "香港城市大学",
-    "马来西亚理科大学",
-    "马来西亚博特拉大学",
-    "香港浸会大学",
-    "马来西亚国立大学",
-    "澳门大学",
-    "香港中文大学 (深圳校区)",
-    "澳门科技大学",
-    "澳门城市大学",
-    "澳门理工大学",
-    "香港教育大学",
-    "香港岭南大学",
-    "香港都会大学",
-    "香港恒生大学",
-    "香港珠海学院",
+
+DEFAULT_UNIVERSITY_DIFFICULTY_ORDER: tuple[str, ...] = tuple(
+    _rules.get(
+        "UNIVERSITY_DIFFICULTY_ORDER",
+        (
+            "新加坡国立大学",
+            "新加坡南洋理工大学",
+            "香港大学",
+            "香港中文大学",
+            "香港科技大学",
+            "新加坡管理大学",
+            "马来亚大学",
+            "香港理工大学",
+            "香港城市大学",
+            "马来西亚理科大学",
+            "马来西亚博特拉大学",
+            "香港浸会大学",
+            "马来西亚国立大学",
+            "澳门大学",
+            "香港中文大学 (深圳校区)",
+            "澳门科技大学",
+            "澳门城市大学",
+            "澳门理工大学",
+            "香港教育大学",
+            "香港岭南大学",
+            "香港都会大学",
+            "香港恒生大学",
+            "香港珠海学院",
+        ),
+    )
 )
 AGENT_MIN_SAFE_RELAX_THRESHOLD: float = 0.87
 AGENT_BOUNDARY_SIMILARITY_RANGE: float = 0.03
@@ -129,3 +163,8 @@ AGENT_MIN_BALANCE_DIFF_RATIO: float = 0.15
 AGENT_NO_CHANGE_THRESHOLD: int = 3
 LANGUAGE_REQUIREMENT_PENALTY_STEEPNESS: float = 7.0
 LANGUAGE_REQUIREMENT_PENALTY_MIDPOINT: float = 0.5
+MAX_TOTAL_PENALTY_RATIO: float = 0.7
+MAX_TOTAL_BOOST_RATIO: float = 0.3
+PENALTY_DECAY_FACTOR: float = 0.85
+BOOST_DECAY_FACTOR: float = 0.8
+ARBITRATION_MIN_PROBABILITY: float = 0.005

@@ -40,21 +40,30 @@
   - 校验标化成绩输入（当前仅支持 `STANDARDIZED_TEST_TYPES=["GRE","GMAT"]`）。
   - **约定**：
     - `score` 为空：返回 `(True, None, None)`（表示选填且未填写）。
-    - `score` 非整数（包含小数/非数字）：返回 `(False, "<错误信息>", None)`。
-    - 范围校验：GRE `260-340`；GMAT `200-800`。
-    - 返回的 `parsed_score` 为 `float`，但保证是整数值（如 `325.0`）。
+    - `score` 非数字：返回 `(False, "<错误信息>", None)`。
+    - `score` 非整数（小数）：返回 `(False, "<错误信息>", None)`。
+    - 范围校验：基于 `GRE_SCORE_RANGE` (260-340) 与 `GMAT_SCORE_RANGE` (200-800)。
+    - 返回的 `parsed_score` 为 `float`，但其值始终为整数。
 
 - `normalize_gpa(raw_gpa, scale_key, background_university=None, gpa_converter: GPAConverter | None=None) -> float | None`
-  - 优先按 `GPAConverter.convert_gpa_by_rules` 的学校/国家规则换算，否则按 `GPA_SCALES[scale_key].max` 线性缩放到 4.0 制并保留两位小数。
-  - `raw_gpa` 为空或不可解析、`scale_key` 缺失时返回 `None`。
+  - 归一化 GPA 到 4.0 制。
+  - **逻辑**：
+    1. 优先调用 `GPAConverter.convert_gpa_by_rules` 匹配特定院校或国家的转换规则。
+    2. 若规则未命中，则按 `GPA_SCALES[scale_key].max` 进行线性缩放（`raw / max * 4.0`）。
+    3. 结果保留两位小数，并截断在 `[0.0, 4.0]` 区间。
+  - `raw_gpa` 为空或不可解析时返回 `None`。
 
 - `validate_form_data(form_data: dict, gpa_converter: GPAConverter | None=None) -> List[ValidationError]`
-  - 业务校验，返回 `ValidationError` 对象列表，包含：
-    - 背景院校/专业必填，且映射有效。
-    - GPA 不能为空/不为 0，分制有效。
-    - 标化成绩校验（选填）：当 `exam_score` 有值时调用 `validate_standardized_test_score(exam_type, exam_score)`。
-    - 语言分数校验：若 `language_score_input_error=True` 直接报错；雅思在 `>0` 时要求 0.5 步长；非海外院校语言分数不允许为 0（海外院校允许 0/空）。
-    - 经历数量字段非空，经历详情与数量一致性检查。
+  - 全量业务校验，返回 `ValidationError` 列表。
+  - **核心校验项**：
+    - `background_university`、`background_major_original`、`background_major` 必填且有效。
+    - `gpa_raw` 不能为空或 0。
+    - `exam_score`（标化成绩）若填写，则调用 `validate_standardized_test_score` 校验。
+    - `language_score_input_error`（UI 层标记）若为 `True` 则报错。
+    - `language_type` 为雅思时，若分数 > 0，校验 0.5 步长。
+    - `language_score_raw` 为 0 且非海外院校时报错（海外院校允许为 0/空）。
+    - `research_count` 等经历数量字段非空（0-99）。
+    - `experience_details` 与 `count` 的一致性：若数量为 0 但填写了详情，则提示错误。
 
 ---
 
@@ -75,19 +84,24 @@
 ### 主要方法
 
 - `__init__(school_base_df)`
-  - 接收学校基础表（含列 `学校名称`、`国家`）以构建院校→国家映射。
+  - 接收学校基础表，构建 `school_country_map`（院校→国家映射）。
 
 - `get_university_country(university_name) -> str | None`
-  - 返回学校所属国家，内置简单缓存。
+  - 返回学校所属国家（从 `school_country_map` 获取）。
 
-- `load_gpa_conversion_rules(config_path: str, file_mtime: float) -> dict | None`（缓存）
-  - 从 `config/gpa_conversion_rules.json` 读取转换规则，进行结构校验。
+- `load_gpa_conversion_rules(config_path: str, file_mtime: float) -> dict | None`
+  - 从 `config/gpa_conversion_rules.json` 读取转换规则。使用 `@st.cache_data` 缓存。
 
 - `convert_gpa_by_rules(raw_gpa: float, scale_key: str, background_university: str | None=None, country: str | None=None) -> float | None`
-  - 优先匹配“院校规则”（`conversion_rules`），其次“国家规则”（`country_rules`）；规则命中 `trigger_scale` 时应用 `_apply_conversion_rule`。
+  - 规则匹配逻辑：
+    1. 查找“院校规则”（`conversion_rules`），要求 `trigger_scale` 与 `scale_key` 一致。
+    2. 查找“国家规则”（`country_rules`），要求 `trigger_scale` 与 `scale_key` 一致。
+  - 命中规则后调用 `_apply_conversion_rule`。
 
 - `_apply_conversion_rule(raw_value: float, rule: dict) -> float`
-  - 支持区间 `ranges[{min,max,target_gpa | target_min,target_max}]` 与兜底公式（比例/百分制），并进行 [0,4] 截断与四舍五入。
+  - 1. 遍历 `ranges`：匹配 `min <= raw_value < max`，返回 `target_gpa` 或按 `target_min/max` 插值。
+  - 2. 兜底逻辑：应用 `fallback_multiplier`。支持 `is_percentage`（按百分比缩放）。
+  - 结果进行 `[0,4]` 截断并保留两位小数。
 
 ### 规则文件关键结构（节选）
 
@@ -124,16 +138,15 @@
 **类**: `LanguageScoreValidator`
 
 - `validate_ielts_step(score: float) -> bool`
-  - 校验雅思分数是否为 0.5 的倍数（使用浮点数精度容差 `FLOAT_EPSILON = 1e-9`）。
+  - 校验雅思分数是否为 0.5 的倍数（容差 `1e-9`）。
 
 - `validate_score_range(score: float, language_type: str) -> Tuple[bool, Optional[str]]`
-  - 校验语言分数是否在有效范围内，并检查雅思步长。
-  - 返回：`(是否有效, 错误消息)`。
+  - 校验分数是否在 `LANGUAGE_SCORE_RANGES` 范围内，雅思额外校验步长。
 
 - `validate_and_parse_score(score_text: str, language_type: str) -> Tuple[Optional[float], Optional[str], bool]`
-  - 解析并校验语言分数文本输入。
+  - 解析分数文本。
   - 返回：`(解析后的分数, 错误消息, 是否有输入错误)`。
-  - 空输入返回 `(None, None, False)`。
+  - 输入错误 `has_input_error` 用于 UI 层锁定提交按钮。
 
 ### 3.3 语言分数处理 (`language_score_processor.py`)
 
@@ -163,7 +176,7 @@
 - `TARGET_COUNTRIES`：目标国家/地区列表
 - **告警阈值**：
   - `GPA_WARNING_THRESHOLDS`：各分制的 GPA 低分告警阈值
-  - `LANGUAGE_WARNING_THRESHOLDS`：语言成绩低分告警阈值（`{"雅思": 5.5, "托福": 65}`）
+  - `LANGUAGE_WARNING_THRESHOLDS`：语言成绩低分告警阈值（`{"雅思": 5.5, "托福": 72}`）
 - **海外院校相关**：
   - `OVERSEAS_SCHOOL_LEVELS`：海外院校等级列表（`["1-50", "51-100", "101-200", "201-300", "301-500", "500+"]`）
   - `LANGUAGE_BOOST_MULTIPLIERS`：各等级的语言成绩加成倍数
@@ -191,25 +204,29 @@
 ### 主要方法
 
 - `initialize_session_state(session_manager) -> None`
-  - 初始化会话态默认值（本实现仅写入 `SessionManager` 的内存会话态，不做持久化存储），包含：
-    - 目标选择：`selected_target_countries / selected_major_categories / selected_target_universities / selected_target_majors`
-    - 分数相关：`gpa_scale / gpa_raw_input / language_type / language_score_input`
-    - 标化相关：由 `standardized_test_ui` 在首次渲染时写入 `standardized_test_type`，并把解析后的成绩写入 `current_exam_score`
-    - 控制位：`submitted / form_data_changed / prediction_submit_lock / last_*_warning_key` 等
+  - 初始化会话态默认值，关键键包括：
+    - `selected_target_countries / universities / majors / major_categories` (空列表)
+    - `gpa_scale` (`"4.0"`)、`gpa_raw_input` (`None`)
+    - `language_type` (`"雅思"`)、`language_score_input` (`None`)
+    - `submitted` (`False`)、`form_data_changed` (`False`)
+    - 经历类初始值：`research_count_initial` (0) 等。
 
-- `update_form_snapshot_hash_after_prediction(session_manager) -> None`
-  - 预测完成后更新快照 hash 与时间戳（`last_saved_form_snapshot_hash`、`last_auto_save_ts`）。
+- `update_form_snapshot_hash_after_prediction(session_manager)`
+  - 预测后更新快照 Hash，防止由于自动保存逻辑导致的重复计算状态。
 
 - `on_form_change(session_manager, change_type: str | None=None) -> None`
-  - 通用变更入口：重置提交/跨学院确认相关标志位，并按变更类型做节流（文本 4s；其它 1.5s），仅更新：
-    - `last_auto_save_ts`
-    - `last_saved_form_snapshot_hash`
+  - 通用变更入口，重置提交相关位：
+    - `submitted = False`, `form_data_changed = True`, `cross_faculty_confirmed = False` 等。
+    - **自动保存节流**：
+      - `change_type="text"`：4.0 秒。
+      - `change_type="select"` 或默认：1.5 秒。
+      - 默认：2.0 秒。
 
 - **针对字段的专用处理**：
-  - `on_target_country_change(session_manager)`：同步目标国家→筛选院校，并触发变更。
-  - `on_major_category_change(session_manager)`、`on_target_university_change(session_manager)`、`on_target_major_change(session_manager)`：更新选择并触发变更。
-  - `on_language_type_change(session_manager)`：互转雅思/托福分数（带缓存与回填）。
-  - `gpa_scale_changed(session_manager)`：互转 GPA 分制（带缓存与回填）。
+  - `on_target_country_change(session_manager)`：同步更新 `selected_target_countries`，并触发 `_handle_target_cascade_filter`（根据新选国家筛选已选院校中不再合法的项）。
+  - `on_major_category_change`、`on_target_university_change`、`on_target_major_change`：更新选择并触发变更。
+  - `on_language_type_change`：雅思/托福互转（调用 `LanguageScoreConverter`），支持缓存 `lang_conversion_cache`。
+  - `gpa_scale_changed`：GPA 分制互转（基于线性缩放），支持缓存 `gpa_conversion_cache`。
   - `on_submit_click(session_manager)`：标记提交、触发自动保存。
 
 ### 状态键约定（常见）
@@ -273,13 +290,16 @@ def validate_and_prepare(form_data, school_base_df):
 
 - **语言成绩** (`language_ui.render_language_section`)
   - 返回：`(language_type, language_score_raw)`
-  - 说明：
-    - 类型切换、分数输入、阈值与步长校验。
-    - **海外院校处理**：根据背景院校是否为海外院校（通过 `school_level_service` 判断），采用不同的输入方式：
-      - 海外院校：使用文本输入（`text_input`），允许为空，标签显示"（选填）"。
-      - 非海外院校：使用数字输入（`number_input`），必填，当无历史值时默认分数：雅思 6.5、托福 86。
-    - 雅思强制 0.5 步长校验并提示。
-    - 低分告警：当分数低于 `LANGUAGE_WARNING_THRESHOLDS` 时显示 toast 提示。
+  - **逻辑说明**：
+    - 类型切换（雅思/托福）：使用 `st.segmented_control`。
+    - **海外院校背景**：
+      - `st.text_input` 输入。
+      - 标签显示“（选填）”。
+      - 支持为空，调用 `LanguageScoreValidator.validate_and_parse_score` 解析。
+    - **非海外院校背景**：
+      - `st.number_input` 数字输入。
+      - 若无历史值，默认填入 `DEFAULT_LANGUAGE_SCORES`。
+    - **告警**：分数低于 `LANGUAGE_WARNING_THRESHOLDS` 或雅思非 0.5 步长时，显示 `st.toast` 告警。
 
 - **其他经历** (`experience_ui.render_experience_section`)
   - 返回：`(research_count, award_count, internship_count, paper_count, experience_details)`
@@ -294,21 +314,18 @@ def validate_and_prepare(form_data, school_base_df):
 ## 8. 目标筛选服务 (`target_options_service.py`)
 
 - `build_target_base_df(cases_df, details_df) -> tuple[pd.DataFrame, Dict[str, str]]`
-  - 合并 `cases_df` 与 `details_df`，生成基础数据表。
-  - 兼容：`details_df` 无 `专业英文名称_聚合` 时回退为 `专业英文名称`。
+  - 合并案例表与详情表，生成用于联动筛选的 `base_df`。
   - 返回：`(base_df, university_country_map)`。
 
-- `compute_selection_cache_key(...) -> str`
-  - 用于 `target_options_cache` 的稳定键（SHA256 哈希）。
+- `compute_selection_cache_key(...) -> tuple`
+  - 生成用于选项缓存的键（由已选国家、院校、大类、专业的有序元组构成）。
 
-- `compute_options(...) -> tuple[List[str], List[str], List[str], List[str]]`
-  - 返回四级可选项列表：`(国家列表, 院校列表, 专业大类列表, 聚合专业列表)`。
-  - 维持院校排序（`UNIVERSITY_SORT_ORDER`）。
-  - 选项计算基于已选条件的反向筛选。
+- `compute_options(base_df, countries, universities, categories, majors) -> tuple`
+  - 计算四级联动后的可选列表。
+  - 院校排序基于 `UNIVERSITY_SORT_ORDER`。
 
 - `expand_aggregated_majors_for_prediction(...) -> List[str]`
-  - 将选择的聚合专业展开为原始 `target_major` 列表。
-  - 当未选择聚合专业时返回空列表。
+  - 将 UI 选中的“聚合专业名”映射回模型所需的“原始专业名”列表。
 
 ### 行为约定（重要）
 
@@ -408,15 +425,15 @@ if ui.render_submit_button(disabled_status=False):
 
 ### 主要方法
 
-- `check_cross_faculty_situation(background_major, target_majors, target_universities, cases_df) -> (has_cross, background_faculty, target_faculties)`
-  - 基于“院校+原始专业”的精确匹配，判断所选目标是否跨学院。
+- `check_cross_faculty_situation(...)`
+  - 精确匹配模式（基于“院校+原始专业”）。
 
 - `quick_cross_faculty_check(background_major, selected_categories, selected_majors, cases_df=None) -> (has_cross, background_faculty, target_faculties, agent_approved)`
-  - 轻量快速检查：仅依赖“背景专业 + 已选专业大类/聚合专业”。
-  - **v2.5 新增**：支持 `BoundaryCaseAgent` 智能兜底（`agent_approved`）。
+  - 快速检查模式（基于“背景专业 + 已选专业大类/聚合专业”）。
+  - `agent_approved`：智能确认标志位（当前实现中默认为 `False`）。
 
 - `cross_faculty_confirm_dialog(session_manager, background_faculty, target_faculties) -> None`
-  - 使用 `st.dialog` 弹出确认框。
+  - 弹出 `st.dialog` 二次确认框。
 
 ### 最小接入示例
 

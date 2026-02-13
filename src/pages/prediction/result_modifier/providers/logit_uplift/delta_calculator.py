@@ -4,6 +4,8 @@ import json
 import math
 from functools import lru_cache
 
+import numpy as np
+
 from src.pages.prediction.result_modifier.providers.logit_uplift.model_loader import (
     ModelLoader,
 )
@@ -13,7 +15,9 @@ from src.pages.prediction.result_modifier.providers.logit_uplift.similarity_comp
 from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor import (
     TextProcessor,
 )
-from src.pages.prediction.result_modifier.providers.logit_uplift.utils import safe_float
+from src.utils.logger import setup_logger
+
+logger = setup_logger("page3", "prediction")
 
 
 class DeltaCalculator:
@@ -34,47 +38,112 @@ class DeltaCalculator:
 
     def _compute_delta_logit_raw(
         self, sig: str
-    ) -> tuple[float, tuple[tuple[str, float], ...], tuple[str, ...]]:
-        weights_array = self._model_loader.weights_array
+    ) -> tuple[float, tuple[tuple[str, float], ...], tuple[tuple[str, tuple[str, ...]], ...]]:
+        weights = self._model_loader.weights_array
         text_keys = self._text_processor.text_keys
         count_keys = self._text_processor.count_keys
+        compute_sims = self._similarity_computer.compute_similarities
+        sum_min = self._sim_gate_sum_min
+        max_min = self._sim_gate_max_min
+        _log1p = math.log1p
 
-        num_text_features = len(text_keys)
-
-        try:
+        details = {}
+        if sig and sig.startswith("{"):
             details = json.loads(sig)
-        except (json.JSONDecodeError, TypeError, ValueError):
-            details = {}
 
-        sims, reasons = self._similarity_computer.compute_similarities(details)
+        sims, remarks = compute_sims(details)
+        if not sims:
+            return 0.0, (), ()
 
-        s_values = [sims.get(k, 0.0) for k in text_keys]
-        ssum = sum(s_values)
-        smax = max(s_values) if s_values else 0.0
+        n_text = len(text_keys)
+        s_values = [0.0] * n_text
+        ssum = 0.0
+        smax = 0.0
+        sims_get = sims.get
 
-        if ssum < self._sim_gate_sum_min or smax < self._sim_gate_max_min:
-            return 0.0, tuple(sims.items()), reasons
+        for i in range(n_text):
+            val = sims_get(text_keys[i], 0.0)
+            if val:
+                s_values[i] = val
+                ssum += val
+                if val > smax:
+                    smax = val
 
-        log_counts = [math.log1p(safe_float(details.get(k, 0))) for k in count_keys]
+        if ssum < sum_min or smax < max_min:
+            return 0.0, tuple(sims.items()), tuple((k, tuple(v)) for k, v in remarks.items())
 
-        bias_idx = 0
-        text_weights_start = bias_idx + 1
-        text_weights_end = text_weights_start + num_text_features
-        interact_weights_start = text_weights_end
+        delta = float(weights[0])
+        tw_start = 1
 
-        delta = weights_array[bias_idx]
-        for i in range(num_text_features):
-            delta += weights_array[text_weights_start + i] * s_values[i]
+        text_w = weights[tw_start : tw_start + n_text]
+        n_counts = len(count_keys)
+        has_inter = n_counts == n_text and len(weights) >= tw_start + 2 * n_text
+        inter_w = weights[tw_start + n_text : tw_start + 2 * n_text] if has_inter else None
+        details_get = details.get
 
-        if (
-            len(count_keys) == num_text_features
-            and len(weights_array) >= interact_weights_start + num_text_features
-        ):
-            for i in range(num_text_features):
-                delta += weights_array[interact_weights_start + i] * s_values[i] * log_counts[i]
+        sims_adj = {}
+        for i in range(n_text):
+            s = s_values[i]
+            if s <= 0:
+                continue
 
-        return max(0.0, float(delta)), tuple(sims.items()), reasons
+            txt = details_get(text_keys[i], "")
+            richness = _fast_entropy(txt)
 
-    def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float], tuple[str, ...]]:
-        delta, sims_tuple, reasons = self._get_delta_logit_cached(sig)
-        return delta, dict(sims_tuple), reasons
+            s_adj = float(s * richness)
+            sims_adj[text_keys[i]] = s_adj
+            delta += text_w[i] * s_adj
+
+            if has_inter:
+                v = details_get(count_keys[i])
+                if v:
+                    try:
+                        fv = float(v)
+                        if fv > 0:
+                            delta += inter_w[i] * s_adj * _log1p(fv * richness)
+                    except (TypeError, ValueError):
+                        pass
+
+        final_delta = delta if delta > 0.0 else 0.0
+
+        if final_delta > 0 and remarks:
+            flat_remarks = []
+            for field, tags in remarks.items():
+                field_cn = {
+                    "research_details": "科研",
+                    "award_details": "奖项",
+                    "internship_details": "实习",
+                    "paper_details": "论文",
+                }.get(field, field)
+                if tags:
+                    flat_remarks.append(f"{field_cn}: {', '.join(tags)}")
+
+            if flat_remarks:
+                logger.info(
+                    f"[背提文本加成算法] Logit+{final_delta:.3f}: {'; '.join(flat_remarks)}"
+                )
+
+        return (
+            final_delta,
+            tuple(sims_adj.items()),
+            tuple((k, tuple(v)) for k, v in remarks.items()),
+        )
+
+    def cached_delta_logit(self, sig: str) -> tuple[float, dict[str, float], dict[str, list[str]]]:
+        delta, sims_tuple, remarks_tuple = self._get_delta_logit_cached(sig)
+        return delta, dict(sims_tuple), {k: list(v) for k, v in remarks_tuple}
+
+
+def _fast_entropy(text: str) -> float:
+    if not text:
+        return 0.0
+    try:
+        b = text.encode("utf-8")
+    except UnicodeEncodeError:
+        return 0.0
+    if len(b) < 10:
+        return 0.0
+    counts = np.bincount(np.frombuffer(b, dtype=np.uint8), minlength=256)
+    probs = counts[counts > 0] / len(b)
+    entropy = -np.sum(probs * np.log2(probs))
+    return float(np.clip(entropy / 5.0, 0.0, 1.0))

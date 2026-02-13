@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.input_form_components.target_options_service import (
-    build_target_base_df,
     compute_options,
     compute_selection_cache_key,
     expand_aggregated_majors_for_prediction,
@@ -13,27 +12,10 @@ from src.pages.prediction.input_form_components.widget_helpers import SelectBoxH
 
 
 def _build_target_cache(session_manager, cases_df) -> pd.DataFrame:
-    if session_manager.get("target_section_cache") is None:
-        from src.utils.app_data_loader import load_school_major_details_df
+    from src.pages.prediction.page_data_loader import machine_learning_model
 
-        details_df = load_school_major_details_df()
-
-        unique_targets_df = None
-        if cases_df is not None and not cases_df.empty:
-            cols = [c for c in ["target_university", "target_major"] if c in cases_df.columns]
-            if cols:
-                unique_targets_df = cases_df[cols].drop_duplicates()
-
-        base_df, university_country_map = build_target_base_df(unique_targets_df, details_df)
-        session_manager.set(
-            target_section_cache={
-                "base_df": base_df,
-                "university_country_map": university_country_map,
-            }
-        )
-
-    target_section_cache = session_manager.get("target_section_cache", {})
-    return target_section_cache.get("base_df", pd.DataFrame())
+    page_state = machine_learning_model.resource_loader()
+    return page_state.target_base_df
 
 
 def _get_target_options(

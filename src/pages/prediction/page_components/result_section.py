@@ -42,24 +42,19 @@ def display_results_section(
     cases_df: pd.DataFrame,
     submitted: bool = True,
 ) -> None:
-    if all(x is None for x in [sim_results, cross_results, user_specified_results]):
+    if not any([sim_results, cross_results, user_specified_results]):
         return
 
-    session_manager = SessionManager()
-
-    results_display = ResultsDisplay(
+    ResultsDisplay(
         top_similarity_results=sim_results,
         top_cross_major_results=cross_results,
         user_specified_results=user_specified_results,
-    )
+    ).display()
 
-    results_display.display()
+    session_manager = SessionManager()
+    current_hash = _compute_results_hash(sim_results, cross_results, user_specified_results)
 
-    current_results_hash = _compute_results_hash(sim_results, cross_results, user_specified_results)
-    last_saved_hash = session_manager.get("last_saved_results_hash", "")
-    form_data_changed = bool(session_manager.get("form_data_changed", False))
-
-    if current_results_hash and current_results_hash != last_saved_hash and not form_data_changed:
-        session_manager.set(
-            last_saved_results_hash=current_results_hash,
-        )
+    if current_hash != session_manager.get(
+        "last_saved_results_hash", ""
+    ) and not session_manager.get("form_data_changed", False):
+        session_manager.set(last_saved_results_hash=current_hash)

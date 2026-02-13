@@ -1,7 +1,6 @@
 import glob
 import json
 import os
-import warnings
 from typing import Any
 
 import numpy as np
@@ -11,8 +10,6 @@ import xgboost as xgb
 from src.utils.logger import setup_logger
 
 logger = setup_logger("page3", "prediction")
-
-warnings.filterwarnings("ignore")
 
 
 def _load_serialized_xgb(file_path: str) -> xgb.XGBClassifier | None:
@@ -40,18 +37,24 @@ class _CalibratedPredictor:
         base_proba = self.base_model.predict_proba(X)
         if base_proba is None or len(base_proba.shape) != 2 or base_proba.shape[1] < 2:
             return base_proba
+
         p1 = base_proba[:, 1]
         method = self.calibration.get("method")
         params = self.calibration.get("params", {})
+
         if method == "sigmoid":
-            a = float(params.get("a"))
-            b = float(params.get("b"))
-            # 数组用np.exp
+            a, b = float(params.get("a")), float(params.get("b"))
             calibrated_p1 = 1.0 / (1.0 + np.exp(a * p1 + b))
         else:
             return base_proba
-        p0 = 1.0 - calibrated_p1
-        return np.vstack([p0, calibrated_p1]).T
+
+        return np.vstack([1.0 - calibrated_p1, calibrated_p1]).T
+
+    def predict(self, X, threshold: float = 0.24):
+        probas = self.predict_proba(X)
+        if probas is None:
+            return None
+        return (probas[:, 1] >= threshold).astype(int)
 
 
 def _wrap_with_calibration(model: Any, calibration: dict[str, Any]) -> Any:
@@ -100,7 +103,7 @@ def load_model_dependencies(
     return final_model, feature_names, level_fallback_mapping
 
 
-@st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False, scope="global")
 def load_model(
     model_name: str = "xgboost",
 ) -> tuple[Any | None, list[str] | None, dict[str, str] | None]:

@@ -3,12 +3,14 @@ from typing import Any
 import pandas as pd
 
 from src.pages.prediction.core.types import PredictionInput
+from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.processor import (
     generate_prediction_combinations,
     process_prediction_results,
 )
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.modeling.model import PredictionModel
+from src.pages.prediction.page_data_loader import machine_learning_model
 from src.pages.prediction.prediction_execution import PredictionExecutor
 from src.pages.prediction.prediction_preparation import (
     get_user_specified_combinations,
@@ -36,6 +38,9 @@ def run_single_prediction(
     language_type: str | None = None,
     background_university: str | None = None,
     progress_reporter: ProgressReporter | None = None,
+    background_faculty: str | None = None,
+    admitted_combinations: set[tuple[str, str]] | None = None,
+    page_state: machine_learning_model | None = None,
 ) -> tuple[
     list[dict[str, float | str]],
     list[dict[str, float | str]],
@@ -48,15 +53,18 @@ def run_single_prediction(
         else validate_and_clean_input(current_input_data)
     )
 
-    if language_type is None:
-        language_type = prediction_input.get("language_type")
+    bg_major = prediction_input.get("background_major", "")
+    bg_major_orig = str(current_input_data.get("background_major_original") or bg_major)
 
     combinations, meta = generate_prediction_combinations(
-        prediction_input, all_universities_target, all_majors_target
+        input_data=prediction_input,
+        all_universities_target=all_universities_target,
+        all_majors_target=all_majors_target,
+        bg_target_similarity_cache=bg_target_similarity_cache,
+        background_major_original=bg_major_orig,
     )
 
     meta = meta or {}
-
     if not combinations:
         prediction_runner_logger.warning("有效组合为空：请检查候选池或筛选条件。")
         meta["error"] = "no_valid_combinations"
@@ -66,13 +74,15 @@ def run_single_prediction(
         current_input_data, expected_features
     )
     if missing_inputs or prediction_model is None:
-        meta["error"] = "model_unavailable" if prediction_model is None else "missing_features"
-        if missing_inputs:
-            meta["missing_features"] = missing_inputs
+        meta.update(
+            {
+                "error": "model_unavailable" if prediction_model is None else "missing_features",
+                "missing_features": missing_inputs,
+            }
+        )
         return [], [], None, meta
 
-    executor = PredictionExecutor(len(combinations))
-    all_prediction_outputs = executor.execute_parallel(
+    all_prediction_outputs = PredictionExecutor(len(combinations)).execute_parallel(
         prediction_model, combinations, model_input_features, expected_features
     )
 
@@ -84,38 +94,31 @@ def run_single_prediction(
         current_input_data, all_universities_target
     )
 
-    faculty_value = current_input_data.get("faculty")
-    background_faculty = (
-        None
-        if cross_faculty_confirmed
-        else (faculty_value if isinstance(faculty_value, str) else None)
-    )
+    bg_faculty = background_faculty or current_input_data.get("faculty")
+    if bg_faculty is None:
+        bg_faculty = get_background_faculty(bg_major, cases_df)
 
-    background_major = prediction_input.get("background_major", "")
-
-    background_major_original_value = current_input_data.get("background_major_original", "")
-    background_major_original = (
-        str(background_major_original_value)
-        if background_major_original_value
-        else background_major
-    )
+    if page_state is None:
+        page_state = machine_learning_model.resource_loader()
 
     results = process_prediction_results(
         results=all_prediction_outputs,
-        background_major=background_major,
-        background_major_original=background_major_original,
+        background_major=bg_major,
+        background_major_original=bg_major_orig,
         bg_target_similarity_cache=bg_target_similarity_cache,
         num_target_universities=num_target_universities,
         cases_df=cases_df,
         user_specified_combinations=user_specified_combinations,
-        background_faculty=background_faculty,
+        background_faculty=bg_faculty if isinstance(bg_faculty, str) else None,
         allow_degraded_user_specified=cross_faculty_confirmed,
         probability_adjuster=probability_adjuster,
         gpa=gpa,
         language_score=language_score,
-        language_type=language_type,
+        language_type=language_type or prediction_input.get("language_type"),
         background_university=background_university,
         progress_reporter=progress_reporter,
+        agent=page_state.boundary_agent,
+        admitted_combinations=admitted_combinations,
     )
 
     return (*results, meta)

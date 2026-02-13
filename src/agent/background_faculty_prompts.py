@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-
 def build_background_faculty_prompt(
     background_major_original: str,
     base_faculty: str | None,

@@ -1,102 +1,586 @@
 {
   "rules": [
-    {"pattern": "nature", "score": 0.6, "tag": "Nature/Science", "fields": ["paper_details", "research_details"]},
-    {"pattern": "science", "score": 0.6, "tag": "Nature/Science", "fields": ["paper_details", "research_details"]},
-    {"pattern": "cell", "score": 0.58, "tag": "Cell", "fields": ["paper_details", "research_details"]},
-    {"pattern": "neurips", "score": 0.55, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "icml", "score": 0.55, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "iclr", "score": 0.55, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "cvpr", "score": 0.5, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "acl", "score": 0.5, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "kdd", "score": 0.48, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "siggraph", "score": 0.48, "tag": "顶会", "fields": ["paper_details", "research_details"]},
-    {"pattern": "aaai", "score": 0.45, "tag": "顶会/A类", "fields": ["paper_details", "research_details"]},
-    {"pattern": "ijcai", "score": 0.45, "tag": "顶会/A类", "fields": ["paper_details", "research_details"]},
-    {"pattern": "first author", "score": 0.55, "tag": "一作", "fields": ["paper_details", "research_details"]},
-    {"pattern": "第一作者", "score": 0.55, "tag": "一作", "fields": ["paper_details", "research_details"]},
-    {"pattern": "co-first", "score": 0.4, "tag": "共同一作", "fields": ["paper_details", "research_details"]},
-    {"pattern": "acm-icpc", "score": 0.55, "tag": "程序设计竞赛", "fields": ["award_details"]},
-    {"pattern": "icpc", "score": 0.52, "tag": "程序设计竞赛", "fields": ["award_details"]},
-    {"pattern": "ccpc", "score": 0.48, "tag": "程序设计竞赛", "fields": ["award_details"]},
-    {"pattern": "google code jam", "score": 0.5, "tag": "顶级竞赛", "fields": ["award_details"]},
-    {"pattern": "kaggle grandmaster", "score": 0.6, "tag": "数据挖掘", "fields": ["award_details"]},
-    {"pattern": "kaggle master", "score": 0.5, "tag": "数据挖掘", "fields": ["award_details"]},
-    {"pattern": "mcm/icm", "score": 0.4, "tag": "建模美赛", "fields": ["award_details"]},
-    {"pattern": "outstanding winner", "score": 0.55, "tag": "美赛O奖", "fields": ["award_details"]},
-    {"pattern": "mathematical contest in modeling", "score": 0.35, "tag": "建模竞赛", "fields": ["award_details"]},
-    {"pattern": "蓝桥杯全国一等奖", "score": 0.45, "tag": "算法竞赛", "fields": ["award_details"]},
-    {"pattern": "蓝桥杯一等奖", "score": 0.35, "tag": "竞赛", "fields": ["award_details"]},
-    {"pattern": "national scholarship", "score": 0.5, "tag": "国奖", "fields": ["award_details"]},
-    {"pattern": "国家奖学金", "score": 0.5, "tag": "国奖", "fields": ["award_details"]},
-    {"pattern": "dean's list", "score": 0.4, "tag": "院长名单", "fields": ["award_details"]},
-    {"pattern": "优秀毕业生", "score": 0.35, "tag": "荣誉", "fields": ["award_details"]},
-    {"pattern": "msra", "score": 0.55, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "microsoft research", "score": 0.55, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "google internship", "score": 0.6, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "meta internship", "score": 0.6, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "nvidia internship", "score": 0.55, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "tencent ai lab", "score": 0.55, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "alibaba damo academy", "score": 0.55, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "达摩院", "score": 0.55, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "字节跳动", "score": 0.5, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "bytedance", "score": 0.5, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "douyin", "score": 0.45, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "百度", "score": 0.45, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "baidu research", "score": 0.55, "tag": "顶级实验室", "fields": ["internship_details"]},
-    {"pattern": "华为", "score": 0.45, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "huawei", "score": 0.45, "tag": "名企实习", "fields": ["internship_details"]},
-    {"pattern": "2012实验室", "score": 0.55, "tag": "华为核心研究", "fields": ["internship_details"]},
-    {"pattern": "2012 lab", "score": 0.55, "tag": "华为核心研究", "fields": ["internship_details"]},
-    {"pattern": "腾讯", "score": 0.45, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "tencent", "score": 0.45, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "微信", "score": 0.5, "tag": "核心业务实习", "fields": ["internship_details"]},
-    {"pattern": "wechat", "score": 0.5, "tag": "核心业务实习", "fields": ["internship_details"]},
-    {"pattern": "阿里", "score": 0.45, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "alibaba", "score": 0.45, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "美团", "score": 0.4, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "meituan", "score": 0.4, "tag": "大厂实习", "fields": ["internship_details"]},
-    {"pattern": "商汤", "score": 0.45, "tag": "AI独角兽", "fields": ["internship_details"]},
-    {"pattern": "sensetime", "score": 0.45, "tag": "AI独角兽", "fields": ["internship_details"]},
-    {"pattern": "旷视", "score": 0.45, "tag": "AI独角兽", "fields": ["internship_details"]},
-    {"pattern": "megvii", "score": 0.45, "tag": "AI独角兽", "fields": ["internship_details"]},
-    {"pattern": "小红书", "score": 0.35, "tag": "新锐互联网", "fields": ["internship_details"]},
-    {"pattern": "xiaohongshu", "score": 0.35, "tag": "新锐互联网", "fields": ["internship_details"]},
-    {"pattern": "github stars", "score": 0.35, "tag": "开源", "fields": ["research_details"]},
-    {"pattern": "google summer of code", "score": 0.45, "tag": "开源项目", "fields": ["research_details"]},
-    {"pattern": "gsoc", "score": 0.45, "tag": "Google编程之夏", "fields": ["research_details"]},
-    {"pattern": "top 1%", "score": 0.45, "tag": "顶尖排名", "fields": ["award_details"]},
-    {"pattern": "top 5%", "score": 0.3, "tag": "优秀排名", "fields": ["award_details"]},
-    {"pattern": "挑战杯", "score": 0.55, "tag": "国家级竞赛", "fields": ["award_details"]},
-    {"pattern": "互联网+", "score": 0.5, "tag": "国家级竞赛", "fields": ["award_details"]},
-    {"pattern": "internet plus", "score": 0.5, "tag": "国家级竞赛", "fields": ["award_details"]},
-    {"pattern": "特等奖", "score": 0.5, "tag": "顶级荣誉", "fields": ["award_details"]},
-    {"pattern": "金奖", "score": 0.45, "tag": "高等级奖励", "fields": ["award_details"]},
-    {"pattern": "一等奖", "score": 0.35, "tag": "高等级奖励", "fields": ["award_details"]},
-    {"pattern": "数学竞赛", "score": 0.35, "tag": "学科竞赛", "fields": ["award_details"]},
-    {"pattern": "cmc", "score": 0.35, "tag": "数学竞赛", "fields": ["award_details"]},
-    {"pattern": "电子设计大赛", "score": 0.4, "tag": "工程竞赛", "fields": ["award_details"]},
-    {"pattern": "nuedc", "score": 0.4, "tag": "工程竞赛", "fields": ["award_details"]},
-    {"pattern": "robomaster", "score": 0.45, "tag": "机器人大赛", "fields": ["award_details"]},
-    {"pattern": "机甲大师", "score": 0.45, "tag": "机器人大赛", "fields": ["award_details"]},
-    {"pattern": "ccf-csp", "score": 0.35, "tag": "计算机能力认证", "fields": ["award_details"]},
-    {"pattern": "csp 400", "score": 0.5, "tag": "CSP高分", "fields": ["award_details"]},
-    {"pattern": "csp 300", "score": 0.35, "tag": "CSP优秀", "fields": ["award_details"]},
-    {"pattern": "ccf-a", "score": 0.55, "tag": "CCF A类", "fields": ["award_details"]},
-    {"pattern": "ccf-b", "score": 0.4, "tag": "CCF B类", "fields": ["award_details"]},
-    {"pattern": "中科院一区", "score": 0.55, "tag": "CAS Q1", "fields": ["paper_details", "research_details"]},
-    {"pattern": "中科院二区", "score": 0.4, "tag": "CAS Q2", "fields": ["paper_details", "research_details"]},
-    {"pattern": "sci q1", "score": 0.4, "tag": "JCR Q1", "fields": ["paper_details", "research_details"]},
-    {"pattern": "sci一区", "score": 0.45, "tag": "SCI", "fields": ["paper_details", "research_details"]},
-    {"pattern": "ei检索", "score": 0.3, "tag": "EI", "fields": ["paper_details", "research_details"]},
-    {"pattern": "核心期刊", "score": 0.3, "tag": "学术论文", "fields": ["paper_details", "research_details"]},
-    {"pattern": "impact factor", "score": 0.25, "tag": "IF", "fields": ["paper_details", "research_details"]},
-    {"pattern": "影响因子", "score": 0.25, "tag": "IF", "fields": ["paper_details", "research_details"]},
-    {"pattern": "发明专利", "score": 0.45, "tag": "专利", "fields": ["paper_details", "research_details", "award_details"]},
-    {"pattern": "专利授权", "score": 0.5, "tag": "专利", "fields": ["paper_details", "research_details", "award_details"]},
-    {"pattern": "专利", "score": 0.25, "tag": "专利", "fields": ["paper_details", "research_details", "award_details"]},
-    {"pattern": "项目负责人", "score": 0.4, "tag": "领导力", "fields": ["research_details"]},
-    {"pattern": "实验室助研", "score": 0.35, "tag": "科研经历", "fields": ["research_details", "internship_details"]},
-    {"pattern": "research assistant", "score": 0.35, "tag": "科研经历", "fields": ["research_details", "internship_details"]}
+    {
+      "pattern": "nature",
+      "score": 0.6,
+      "tag": "Nature/Science",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "science",
+      "score": 0.6,
+      "tag": "Nature/Science",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "cell",
+      "score": 0.58,
+      "tag": "Cell",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "neurips",
+      "score": 0.55,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "icml",
+      "score": 0.55,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "iclr",
+      "score": 0.55,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "cvpr",
+      "score": 0.5,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "acl",
+      "score": 0.5,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "kdd",
+      "score": 0.48,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "siggraph",
+      "score": 0.48,
+      "tag": "顶会",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "aaai",
+      "score": 0.45,
+      "tag": "顶会/A类",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "ijcai",
+      "score": 0.45,
+      "tag": "顶会/A类",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "first author",
+      "score": 0.55,
+      "tag": "一作",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "第一作者",
+      "score": 0.55,
+      "tag": "一作",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "co-first",
+      "score": 0.4,
+      "tag": "共同一作",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "acm-icpc",
+      "score": 0.55,
+      "tag": "程序设计竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "icpc",
+      "score": 0.52,
+      "tag": "程序设计竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "ccpc",
+      "score": 0.48,
+      "tag": "程序设计竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "google code jam",
+      "score": 0.5,
+      "tag": "顶级竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "kaggle grandmaster",
+      "score": 0.6,
+      "tag": "数据挖掘",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "kaggle master",
+      "score": 0.5,
+      "tag": "数据挖掘",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "mcm/icm",
+      "score": 0.4,
+      "tag": "建模美赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "outstanding winner",
+      "score": 0.55,
+      "tag": "美赛O奖",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "mathematical contest in modeling",
+      "score": 0.35,
+      "tag": "建模竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "蓝桥杯全国一等奖",
+      "score": 0.45,
+      "tag": "算法竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "蓝桥杯一等奖",
+      "score": 0.35,
+      "tag": "竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "national scholarship",
+      "score": 0.5,
+      "tag": "国奖",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "国家奖学金",
+      "score": 0.5,
+      "tag": "国奖",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "dean's list",
+      "score": 0.4,
+      "tag": "院长名单",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "优秀毕业生",
+      "score": 0.35,
+      "tag": "荣誉",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "msra",
+      "score": 0.55,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "microsoft research",
+      "score": 0.55,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "google internship",
+      "score": 0.6,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "meta internship",
+      "score": 0.6,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "nvidia internship",
+      "score": 0.55,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "tencent ai lab",
+      "score": 0.55,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "alibaba damo academy",
+      "score": 0.55,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "达摩院",
+      "score": 0.55,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "字节跳动",
+      "score": 0.5,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "bytedance",
+      "score": 0.5,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "douyin",
+      "score": 0.45,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "百度",
+      "score": 0.45,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "baidu research",
+      "score": 0.55,
+      "tag": "顶级实验室",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "华为",
+      "score": 0.45,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "huawei",
+      "score": 0.45,
+      "tag": "名企实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "2012实验室",
+      "score": 0.55,
+      "tag": "华为核心研究",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "2012 lab",
+      "score": 0.55,
+      "tag": "华为核心研究",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "腾讯",
+      "score": 0.45,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "tencent",
+      "score": 0.45,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "微信",
+      "score": 0.5,
+      "tag": "核心业务实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "wechat",
+      "score": 0.5,
+      "tag": "核心业务实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "阿里",
+      "score": 0.45,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "alibaba",
+      "score": 0.45,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "美团",
+      "score": 0.4,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "meituan",
+      "score": 0.4,
+      "tag": "大厂实习",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "商汤",
+      "score": 0.45,
+      "tag": "AI独角兽",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "sensetime",
+      "score": 0.45,
+      "tag": "AI独角兽",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "旷视",
+      "score": 0.45,
+      "tag": "AI独角兽",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "megvii",
+      "score": 0.45,
+      "tag": "AI独角兽",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "小红书",
+      "score": 0.35,
+      "tag": "新锐互联网",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "xiaohongshu",
+      "score": 0.35,
+      "tag": "新锐互联网",
+      "fields": ["internship_details"]
+    },
+    {
+      "pattern": "github stars",
+      "score": 0.35,
+      "tag": "开源",
+      "fields": ["research_details"]
+    },
+    {
+      "pattern": "google summer of code",
+      "score": 0.45,
+      "tag": "开源项目",
+      "fields": ["research_details"]
+    },
+    {
+      "pattern": "gsoc",
+      "score": 0.45,
+      "tag": "Google编程之夏",
+      "fields": ["research_details"]
+    },
+    {
+      "pattern": "top 1%",
+      "score": 0.45,
+      "tag": "顶尖排名",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "top 5%",
+      "score": 0.3,
+      "tag": "优秀排名",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "挑战杯",
+      "score": 0.55,
+      "tag": "国家级竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "互联网+",
+      "score": 0.5,
+      "tag": "国家级竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "internet plus",
+      "score": 0.5,
+      "tag": "国家级竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "特等奖",
+      "score": 0.5,
+      "tag": "顶级荣誉",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "金奖",
+      "score": 0.45,
+      "tag": "高等级奖励",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "一等奖",
+      "score": 0.35,
+      "tag": "高等级奖励",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "数学竞赛",
+      "score": 0.35,
+      "tag": "学科竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "cmc",
+      "score": 0.35,
+      "tag": "数学竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "电子设计大赛",
+      "score": 0.4,
+      "tag": "工程竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "nuedc",
+      "score": 0.4,
+      "tag": "工程竞赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "robomaster",
+      "score": 0.45,
+      "tag": "机器人大赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "机甲大师",
+      "score": 0.45,
+      "tag": "机器人大赛",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "ccf-csp",
+      "score": 0.35,
+      "tag": "计算机能力认证",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "csp 400",
+      "score": 0.5,
+      "tag": "CSP高分",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "csp 300",
+      "score": 0.35,
+      "tag": "CSP优秀",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "ccf-a",
+      "score": 0.55,
+      "tag": "CCF A类",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "ccf-b",
+      "score": 0.4,
+      "tag": "CCF B类",
+      "fields": ["award_details"]
+    },
+    {
+      "pattern": "中科院一区",
+      "score": 0.55,
+      "tag": "CAS Q1",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "中科院二区",
+      "score": 0.4,
+      "tag": "CAS Q2",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "sci q1",
+      "score": 0.4,
+      "tag": "JCR Q1",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "sci一区",
+      "score": 0.45,
+      "tag": "SCI",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "ei检索",
+      "score": 0.3,
+      "tag": "EI",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "核心期刊",
+      "score": 0.3,
+      "tag": "学术论文",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "impact factor",
+      "score": 0.25,
+      "tag": "IF",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "影响因子",
+      "score": 0.25,
+      "tag": "IF",
+      "fields": ["paper_details", "research_details"]
+    },
+    {
+      "pattern": "发明专利",
+      "score": 0.45,
+      "tag": "专利",
+      "fields": ["paper_details", "research_details", "award_details"]
+    },
+    {
+      "pattern": "专利授权",
+      "score": 0.5,
+      "tag": "专利",
+      "fields": ["paper_details", "research_details", "award_details"]
+    },
+    {
+      "pattern": "专利",
+      "score": 0.25,
+      "tag": "专利",
+      "fields": ["paper_details", "research_details", "award_details"]
+    },
+    {
+      "pattern": "项目负责人",
+      "score": 0.4,
+      "tag": "领导力",
+      "fields": ["research_details"]
+    },
+    {
+      "pattern": "实验室助研",
+      "score": 0.35,
+      "tag": "科研经历",
+      "fields": ["research_details", "internship_details"]
+    },
+    {
+      "pattern": "research assistant",
+      "score": 0.35,
+      "tag": "科研经历",
+      "fields": ["research_details", "internship_details"]
+    }
   ]
 }
-

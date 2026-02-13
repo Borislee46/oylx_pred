@@ -1,4 +1,31 @@
-UNIVERSITY_SORT_ORDER = [
+import json
+from pathlib import Path
+
+
+def _get_project_root() -> Path:
+    start = Path(__file__).resolve()
+    for p in (start, *start.parents):
+        if (p / "pyproject.toml").exists():
+            return p
+    return start.parents[4]
+
+
+PROJECT_ROOT = _get_project_root()
+PREDICTION_RULES_PATH = PROJECT_ROOT / "config" / "prediction_rules.json"
+
+
+def _load_display_order() -> list[str]:
+    if PREDICTION_RULES_PATH.exists():
+        try:
+            with open(PREDICTION_RULES_PATH, encoding="utf-8") as f:
+                rules = json.load(f)
+                return rules.get("UNIVERSITY_DISPLAY_ORDER", [])
+        except Exception:
+            pass
+    return []
+
+
+UNIVERSITY_SORT_ORDER = _load_display_order() or [
     "香港大学",
     "香港中文大学",
     "香港科技大学",

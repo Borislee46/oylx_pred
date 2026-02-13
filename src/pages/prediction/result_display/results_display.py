@@ -59,20 +59,26 @@ class ResultsDisplay:
         self.top_cross_major_results = top_cross_major_results or []
         self.user_specified_results = user_specified_results or []
 
+        session_manager = SessionManager()
+        is_cross_faculty = session_manager.get("cross_faculty_confirmed", False)
+
+        sim_title = "相似（相对）专业" if is_cross_faculty else "相似专业"
+        cross_title = "潜力跨（相对）专业" if is_cross_faculty else "潜力跨专业"
+
         self.result_types = {
             "similarity": {
                 "results": self.top_similarity_results,
-                "title": "相似专业",
+                "title": sim_title,
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
             "cross_major": {
                 "results": self.top_cross_major_results,
-                "title": "潜力跨专业",
+                "title": cross_title,
                 "config": TOP_CROSS_RESULT_UI_CONFIG,
             },
             "user_specified": {
                 "results": self.user_specified_results,
-                "title": "指定专业",
+                "title": "意向专业大类",
                 "config": TOP_SIM_RESULT_UI_CONFIG,
             },
         }
@@ -97,12 +103,11 @@ class ResultsDisplay:
                 subset=[major_col],
             )
 
-        st.data_editor(
+        st.dataframe(
             styled_df,
             hide_index=True,
             column_config=_get_column_config(df, column_widths, label_map=label_map),
-            disabled=True,
-            key=f"prediction_result_editor_{result_type or 'default'}",
+            key=f"prediction_result_df_{result_type or 'default'}",
         )
 
     def _get_result_dataframe(self, result_type: str, max_items: int | None = None) -> pd.DataFrame:
@@ -136,11 +141,7 @@ class ResultsDisplay:
         return pd.DataFrame(data)
 
     def display(self):
-        session_manager = SessionManager()
-        combination_count = session_manager.get("combination_count", 0)
-        pool_is_large = isinstance(combination_count, int) and combination_count > 10
-
-        has_user_specified = (not pool_is_large) and bool(self.user_specified_results)
+        has_user_specified = bool(self.user_specified_results)
         has_similarity = bool(self.top_similarity_results)
         has_cross_major = bool(self.top_cross_major_results)
 

@@ -25,6 +25,8 @@ class FormSubmissionContext:
     all_majors_target: list[str]
     original_form_data: dict | None
     session_keys: SessionKeys
+    background_faculty: str | None = None
+    admitted_combinations: set[tuple[str, str]] | None = None
 
     @classmethod
     def create(
@@ -36,6 +38,8 @@ class FormSubmissionContext:
         all_majors_target: list[str],
         original_form_data: dict | None = None,
         session_keys: SessionKeys | None = None,
+        background_faculty: str | None = None,
+        admitted_combinations: set[tuple[str, str]] | None = None,
     ) -> "FormSubmissionContext":
         return cls(
             session_manager=session_manager,
@@ -45,6 +49,8 @@ class FormSubmissionContext:
             all_majors_target=all_majors_target,
             original_form_data=original_form_data,
             session_keys=session_keys or SessionKeys(),
+            background_faculty=background_faculty,
+            admitted_combinations=admitted_combinations,
         )
 
 

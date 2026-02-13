@@ -24,6 +24,7 @@ def get_similar_major_recommendations(
     gpa: float | None = None,
     language_score: float | None = None,
     background_university: str | None = None,
+    background_major: str | None = None,
 ) -> list[dict[str, Any]]:
     if not results_with_similarity:
         return []
@@ -61,11 +62,31 @@ def get_similar_major_recommendations(
             )
         return similarity
 
-    top_candidates = heapq.nlargest(
-        TOP_N_RECOMMENDATIONS,
-        filtered_by_similarity,
-        key=get_sort_key,
-    )
+    IDENTITY_MIN_SLOT_RATIO = 0.4
+    target_count = TOP_N_RECOMMENDATIONS
+
+    def is_strong_match(res: dict[str, Any]) -> bool:
+        return res.get("_strong_match_score", 0) > 92
+
+    strong_matches = [r for r in filtered_by_similarity if is_strong_match(r)]
+    others = [r for r in filtered_by_similarity if not is_strong_match(r)]
+
+    strong_matches.sort(key=get_sort_key, reverse=True)
+    others.sort(key=get_sort_key, reverse=True)
+
+    min_identity_slots = int(target_count * IDENTITY_MIN_SLOT_RATIO)
+
+    selected = []
+    identity_to_take = min(len(strong_matches), min_identity_slots)
+    selected.extend(strong_matches[:identity_to_take])
+
+    remaining_count = target_count - len(selected)
+    competing_pool = strong_matches[identity_to_take:] + others
+    competing_pool.sort(key=get_sort_key, reverse=True)
+
+    selected.extend(competing_pool[:remaining_count])
+
+    top_candidates = selected
 
     if len(top_candidates) < TOP_N_RECOMMENDATIONS:
         floor_threshold = max(AGENT_MIN_SAFE_RELAX_THRESHOLD, CROSS_MAJOR_SIMILARITY_MIN)
@@ -96,14 +117,19 @@ def get_cross_major_recommendations(
     gpa: float | None = None,
     language_score: float | None = None,
     background_university: str | None = None,
+    admitted_combinations: set[tuple[str, str]] | None = None,
 ) -> list[dict[str, Any]]:
     if not background_major or not results_with_similarity:
         return []
 
     bg_major_clean = str(background_major).strip()
-    admitted_combinations = get_admitted_combinations_from_dataframe(cases_df, bg_major_clean)
+    admitted_combos = (
+        admitted_combinations
+        if admitted_combinations is not None
+        else get_admitted_combinations_from_dataframe(cases_df, bg_major_clean)
+    )
 
-    if not admitted_combinations:
+    if not admitted_combos:
         return []
 
     faculty_filter = _create_faculty_filter(background_faculty)
@@ -111,7 +137,7 @@ def get_cross_major_recommendations(
     admitted_results = [
         res
         for res in results_with_similarity
-        if (res.get("university"), res.get("major")) in admitted_combinations
+        if (res.get("university"), res.get("major")) in admitted_combos
         and CROSS_MAJOR_SIMILARITY_MIN <= res.get("similarity", 0.0) < MIN_SIMILARITY_THRESHOLD
         and faculty_filter(res)
     ]
@@ -132,6 +158,8 @@ def get_cross_major_recommendations(
             admitted_results,
             key=get_sort_key,
         )
+        for res in top_candidates:
+            res["admitted"] = 1
         top_candidates.sort(key=get_sort_key, reverse=True)
         return top_candidates
     return []

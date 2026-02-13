@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import random
 import re
-import time
-from concurrent.futures import ThreadPoolExecutor
 
 from src.agent import TextPreprocessingAgent
-from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.config.ui_messages import (
     EXPERIENCE_ANALYSIS_MESSAGES,
     EXPERIENCE_VALIDATION_TEMPLATE,
     FIELD_NAME_MAP,
 )
+from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data, cache_resource
 from src.pages.prediction.result_modifier.utils import (
     generate_content_hash,
@@ -25,12 +23,9 @@ logger = setup_logger("page3", "prediction")
 
 
 def _get_streamlit():
-    try:
-        import streamlit as st
+    import streamlit as st
 
-        return st
-    except ImportError:
-        return None
+    return st
 
 
 @cache_resource
@@ -74,12 +69,8 @@ def _build_validation_status_message(
     llm_enabled: bool,
 ) -> str:
     method = "LLM校验" if llm_enabled else "本地规则"
-    return EXPERIENCE_VALIDATION_TEMPLATE.format(
-        idx=idx,
-        total=total,
-        field_name=field_name,
-        length=content_len,
-        method=method
+    return random.choice(EXPERIENCE_VALIDATION_TEMPLATE).format(
+        idx=idx, total=total, field_name=field_name, length=content_len, method=method
     )
 
 
@@ -135,12 +126,7 @@ def has_meaningful_experience_text(
         if animator is not None:
             animator.show(msg, force=True)
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_validate_field_with_llm, k, content)
-            while animator is not None and not future.done():
-                animator.tick()
-                time.sleep(0.3)
-            is_valid = future.result()
+        is_valid = _validate_field_with_llm(k, content)
 
         if not is_valid:
             st = _get_streamlit()

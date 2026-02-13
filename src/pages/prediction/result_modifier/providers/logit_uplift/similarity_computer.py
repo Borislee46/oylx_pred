@@ -33,7 +33,6 @@ class SimilarityComputer:
 
     @staticmethod
     def _bounded_fuse(base: float, bonus: float) -> float:
-        # 比np.clip快
         base = clip_probability(base)
         bonus = clip_probability(bonus)
         return 1.0 - (1.0 - base) * (1.0 - bonus)
@@ -45,44 +44,62 @@ class SimilarityComputer:
             return 0.0
         if row is None or getattr(row, "data", None) is None or row.data.size == 0:
             return 0.0
+
         max_val = float(np.max(row.data))
         raw = clip_probability((max_val - 0.18) / 0.35)
         return clip_probability(raw * self._novelty_weight)
 
     def compute_similarities(
         self, details: dict[str, Any]
-    ) -> tuple[dict[str, float], tuple[str, ...]]:
+    ) -> tuple[dict[str, float], dict[str, list[str]]]:
         vectorizer = self._model_loader.vectorizer
         centroids = self._model_loader.centroids
         text_keys = self._text_processor.text_keys
 
         texts = [self._text_processor.prep_text(details.get(k, "")) for k in text_keys]
-
         if all(not t for t in texts):
-            return dict.fromkeys(text_keys, 0.0), ()
+            return dict.fromkeys(text_keys, 0.0), {}
 
         X = vectorizer.transform(texts)
 
         lex_bonuses: dict[str, float] = {}
-        reasons: tuple[str, ...] = ()
+        lex_tags: dict[str, list[str]] = {}
         if self._signal_scorer is not None:
-            lex_bonuses, reasons = self._signal_scorer.score(
+            lex_bonuses, lex_tags = self._signal_scorer.score(
                 {k: texts[idx] for idx, k in enumerate(text_keys)}
             )
 
         sims: dict[str, float] = {}
+        remarks: dict[str, list[str]] = {}
+
         for idx, k in enumerate(text_keys):
             row = X.getrow(idx)
+            current_remarks = []
+
             if row.nnz == 0:
                 sims[k] = 0.0
                 continue
+
             centroid = centroids.get(k)
             if centroid is None or centroid.size == 0:
                 sims[k] = 0.0
                 continue
+
             dot_val = row.dot(centroid)
             dot_scalar = float(np.asarray(dot_val).flat[0])
             s0 = clip_probability(dot_scalar)
-            bonus = float(lex_bonuses.get(k, 0.0)) + self._compute_novelty_bonus(texts[idx], row)
+
+            if k in lex_tags:
+                current_remarks.extend(lex_tags[k])
+
+            novelty_bonus = self._compute_novelty_bonus(texts[idx], row)
+            if novelty_bonus > 0.001:
+                current_remarks.append("content_novelty")
+
+            bonus = float(lex_bonuses.get(k, 0.0)) + novelty_bonus
             sims[k] = self._bounded_fuse(s0, bonus)
-        return sims, reasons
+
+            if current_remarks:
+                remarks[k] = current_remarks
+
+        return sims, remarks

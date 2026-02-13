@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from rapidfuzz import fuzz
+
 from src.pages.prediction.result_modifier.config import (
     AGENT_BOUNDARY_SIMILARITY_RANGE,
     AGENT_MIN_SAFE_RELAX_THRESHOLD,
@@ -34,6 +36,19 @@ class RankerStrategy(ABC):
     @abstractmethod
     def triage_decision(self, case: dict[str, Any]) -> AdjustmentDecision:
         pass
+
+    def check_fuzzy_bypass(self, case: dict[str, Any]) -> bool:
+        if not self.background_major:
+            return False
+
+        bg = str(self.background_major).lower()
+        m_en = str(case.get("major", "")).lower()
+        m_cn = str(case.get("major_cn", "")).lower()
+
+        score_en = fuzz.token_sort_ratio(bg, m_en)
+        score_cn = fuzz.token_sort_ratio(bg, m_cn) if m_cn else 0
+
+        return max(score_en, score_cn) > 92
 
     def update_results(
         self,
@@ -100,26 +115,30 @@ class RelaxStrategy(RankerStrategy):
             CROSS_MAJOR_SIMILARITY_MIN,
         )
 
-        candidates = [
-            r
-            for r in results_for_agent
-            if (k := case_key(r))
-            and k not in top_set
-            and lower_bound <= get_similarity(r) < self.current_threshold
-        ]
-        candidates.sort(key=get_similarity, reverse=True)
+        candidates = []
+        pool = []
 
-        pool = [
-            r
-            for r in results_for_agent
-            if (k := case_key(r))
-            and k not in top_set
-            and CROSS_MAJOR_SIMILARITY_MIN <= get_similarity(r) < self.current_threshold
-        ]
+        for r in results_for_agent:
+            k = case_key(r)
+            if not k or k in top_set:
+                continue
+
+            sim = get_similarity(r)
+            if sim < CROSS_MAJOR_SIMILARITY_MIN or sim >= self.current_threshold:
+                continue
+
+            pool.append(r)
+            if sim >= lower_bound:
+                candidates.append(r)
+
+        candidates.sort(key=get_similarity, reverse=True)
         pool.sort(key=get_similarity, reverse=True)
         return candidates, pool
 
     def triage_decision(self, case: dict[str, Any]) -> AdjustmentDecision:
+        if self.check_fuzzy_bypass(case):
+            return AdjustmentDecision.ADJUST
+
         sim = get_similarity(case)
         lower = max(
             self.current_threshold - (AGENT_BOUNDARY_SIMILARITY_RANGE * 1.5),
@@ -148,6 +167,9 @@ class TightenStrategy(RankerStrategy):
         return candidates_pool[:tail_count], candidates_pool
 
     def triage_decision(self, case: dict[str, Any]) -> AdjustmentDecision:
+        if self.check_fuzzy_bypass(case):
+            return AdjustmentDecision.NO_ADJUST
+
         sim = get_similarity(case)
         if sim >= self.current_threshold:
             return AdjustmentDecision.NO_ADJUST

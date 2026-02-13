@@ -1,6 +1,7 @@
 import math
 from typing import Any
 
+import numba
 import pandas as pd
 
 from src.pages.prediction.result_modifier.admission_cache import (
@@ -38,6 +39,85 @@ from src.utils.school_level_service import get_school_level_service
 from src.utils.university_difficulty_service import get_university_difficulty_order
 
 logger = setup_logger("page3", "prediction")
+
+
+@numba.njit(cache=True)
+def _fast_sigmoid(x: float, k: float, x0: float) -> float:
+    return 1.0 / (1.0 + math.exp(-k * (x - x0)))
+
+
+@numba.njit(cache=True)
+def _compute_gpa_penalty(
+    gpa: float,
+    gpa_minimum: float,
+    gpa_mean: float,
+    gpa_std: float,
+    severe_threshold: float,
+    max_coeff: float,
+    quad_coeff: float,
+) -> float:
+    if gpa < gpa_minimum:
+        return severe_threshold
+    if gpa >= gpa_mean:
+        return 0.0
+    gpa_gap = (gpa_mean - gpa) / gpa_std
+    return min(max_coeff, quad_coeff * (gpa_gap**2))
+
+
+@numba.njit(cache=True)
+def _compute_language_penalty(
+    score: float,
+    minimum: float,
+    pass_line: float,
+    std: float,
+    severe_threshold: float,
+    l1_mult: float,
+    l1_thresh: float,
+    l2_mult: float,
+    l2_thresh: float,
+    l3_thresh: float,
+) -> float:
+    if score < minimum:
+        return severe_threshold
+    if score >= pass_line:
+        return 0.0
+
+    if score < (pass_line - l1_mult * std):
+        return l1_thresh
+    elif score < (pass_line - l2_mult * std):
+        return l2_thresh
+    else:
+        return l3_thresh
+
+
+@numba.njit(cache=True)
+def _compute_adjusted_probability(
+    prob: float,
+    gpa_penalty: float,
+    lang_penalty: float,
+    min_val: float,
+    adj_thresh: float,
+    gpa: float,
+    gpa_mean: float,
+    gpa_std: float,
+    lang_score: float,
+    lang_pass_line: float,
+    lang_std: float,
+    extreme_mult: float,
+) -> float:
+    adjusted = prob
+    if gpa_penalty > 0:
+        adjusted *= 1.0 - gpa_penalty
+    if lang_penalty > 0:
+        adjusted *= 1.0 - lang_penalty
+
+    if adjusted < adj_thresh:
+        is_extreme_gpa = gpa < (gpa_mean - extreme_mult * gpa_std)
+        is_extreme_lang = lang_score < (lang_pass_line - extreme_mult * lang_std)
+        if is_extreme_gpa or is_extreme_lang:
+            return min_val
+
+    return max(min_val, min(adjusted, 1.0))
 
 
 @cache_data(show_spinner=False)
@@ -87,8 +167,10 @@ def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[
 
 
 class ProbabilityAdjuster:
-    def __init__(self, cases_df: pd.DataFrame):
-        self._data_hash = compute_dataframe_hash(cases_df)
+    def __init__(self, cases_df: pd.DataFrame, data_hash: str | int | None = None):
+        self._data_hash = (
+            str(data_hash) if data_hash is not None else compute_dataframe_hash(cases_df)
+        )
         self.stats = _calculate_cases_statistics(cases_df, self._data_hash)
 
         self.gpa_mean = self.stats["gpa_mean"]
@@ -126,19 +208,19 @@ class ProbabilityAdjuster:
 
     @staticmethod
     def _sigmoid_score(x: float, k: float, x0: float) -> float:
-        return 1.0 / (1.0 + math.exp(-k * (x - x0)))
+        return _fast_sigmoid(x, k, x0)
 
     def _gpa_to_score(self, gpa: float) -> float:
-        return self._sigmoid_score(gpa, k=3.0, x0=3.3)
+        return _fast_sigmoid(gpa, 3.0, 3.3)
 
     def _language_to_score(self, language_score: float) -> float:
-        return self._sigmoid_score(language_score, k=15.0, x0=0.72)
+        return _fast_sigmoid(language_score, 15.0, 0.72)
 
     def _calculate_comprehensive_score(
         self, gpa: float, language_score: float, background_university: str | None
     ) -> float:
-        gpa_score = self._gpa_to_score(gpa)
-        lang_score = self._language_to_score(language_score)
+        gpa_score = _fast_sigmoid(gpa, 3.0, 3.3)
+        lang_score = _fast_sigmoid(language_score, 15.0, 0.72)
 
         service = get_school_level_service()
         school_score = service.get_school_score(background_university)
@@ -164,28 +246,35 @@ class ProbabilityAdjuster:
         return similarity * (1.0 + boost)
 
     def _calculate_gpa_penalty(self, gpa: float) -> float:
-        if gpa < self.gpa_minimum:
-            return GPA_PENALTY_SEVERE_THRESHOLD
-        if gpa >= self.gpa_mean:
-            return 0.0
-        gpa_gap = (self.gpa_mean - gpa) / self.gpa_std
-        return min(GPA_PENALTY_MAX_COEFFICIENT, GPA_PENALTY_QUADRATIC_COEFFICIENT * gpa_gap**2)
+        return _compute_gpa_penalty(
+            gpa,
+            self.gpa_minimum,
+            self.gpa_mean,
+            self.gpa_std,
+            GPA_PENALTY_SEVERE_THRESHOLD,
+            GPA_PENALTY_MAX_COEFFICIENT,
+            GPA_PENALTY_QUADRATIC_COEFFICIENT,
+        )
 
     def _calculate_language_penalty(self, language_score: float) -> float:
-        if language_score < self.language_minimum:
-            return LANGUAGE_PENALTY_SEVERE_THRESHOLD
-        if language_score >= self.language_pass_line:
-            return 0.0
-        if language_score < (
-            self.language_pass_line - LANGUAGE_PENALTY_LEVEL_1_MULTIPLIER * self.language_std
-        ):
-            return LANGUAGE_PENALTY_LEVEL_1_THRESHOLD
-        elif language_score < (
-            self.language_pass_line - LANGUAGE_PENALTY_LEVEL_2_MULTIPLIER * self.language_std
-        ):
-            return LANGUAGE_PENALTY_LEVEL_2_THRESHOLD
-        else:
-            return LANGUAGE_PENALTY_LEVEL_3_THRESHOLD
+        return _compute_language_penalty(
+            language_score,
+            self.language_minimum,
+            self.language_pass_line,
+            self.language_std,
+            LANGUAGE_PENALTY_SEVERE_THRESHOLD,
+            LANGUAGE_PENALTY_LEVEL_1_MULTIPLIER,
+            LANGUAGE_PENALTY_LEVEL_1_THRESHOLD,
+            LANGUAGE_PENALTY_LEVEL_2_MULTIPLIER,
+            LANGUAGE_PENALTY_LEVEL_2_THRESHOLD,
+            LANGUAGE_PENALTY_LEVEL_3_THRESHOLD,
+        )
+
+    def get_penalties(self, gpa: float, language_score: float) -> dict[str, float]:
+        return {
+            "gpa": self._calculate_gpa_penalty(gpa),
+            "language": self._calculate_language_penalty(language_score),
+        }
 
     def adjust_probability(
         self,
@@ -200,24 +289,23 @@ class ProbabilityAdjuster:
         if gpa < self.gpa_minimum and language_score < self.language_minimum:
             return PROBABILITY_MIN_VALUE
 
-        adjusted_probability = probability
-
         gpa_penalty = self._calculate_gpa_penalty(gpa)
-        if gpa_penalty > 0:
-            adjusted_probability *= 1 - gpa_penalty
-
         language_penalty = self._calculate_language_penalty(language_score)
-        if language_penalty > 0:
-            adjusted_probability *= 1 - language_penalty
 
-        if adjusted_probability < PROBABILITY_ADJUSTMENT_THRESHOLD and (
-            gpa < self.gpa_mean - PROBABILITY_EXTREME_STD_MULTIPLIER * self.gpa_std
-            or language_score
-            < self.language_pass_line - PROBABILITY_EXTREME_STD_MULTIPLIER * self.language_std
-        ):
-            return PROBABILITY_MIN_VALUE
-
-        return max(PROBABILITY_MIN_VALUE, min(adjusted_probability, 1.0))
+        return _compute_adjusted_probability(
+            probability,
+            gpa_penalty,
+            language_penalty,
+            PROBABILITY_MIN_VALUE,
+            PROBABILITY_ADJUSTMENT_THRESHOLD,
+            gpa,
+            self.gpa_mean,
+            self.gpa_std,
+            language_score,
+            self.language_pass_line,
+            self.language_std,
+            PROBABILITY_EXTREME_STD_MULTIPLIER,
+        )
 
 
 def penalize_cross_major_without_cases(

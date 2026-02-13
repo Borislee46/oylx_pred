@@ -15,6 +15,17 @@ logger = setup_logger("page3", "prediction")
 
 
 class ModelLoader:
+    __slots__ = (
+        "_vectorizer_path",
+        "_centroids_path",
+        "_weights_path",
+        "_vectorizer",
+        "_centroids",
+        "_weights",
+        "_weights_array",
+        "_load_lock",
+    )
+
     def __init__(
         self,
         vectorizer_path: str,
@@ -50,10 +61,10 @@ class ModelLoader:
             try:
                 if self._vectorizer is None:
                     self._vectorizer = joblib.load(self._vectorizer_path)
-                    logger.debug(f"加载向量器: {self._vectorizer_path}")
+                    logger.debug(f"[背提文本加成算法] 加载向量器: {self._vectorizer_path}")
 
                 if self._centroids is None:
-                    data = np.load(self._centroids_path, mmap_mode="r")
+                    data = np.load(self._centroids_path)
                     centroids = {k: data[k] for k in data.files}
                     normed: dict[str, np.ndarray] = {}
                     for k, arr in centroids.items():
@@ -63,12 +74,11 @@ class ModelLoader:
                             v = v / n
                         normed[k] = v
                     self._centroids = normed
-                    logger.debug(f"加载质心: {self._centroids_path}")
+                    logger.debug(f"[背提文本加成算法] 加载质心: {self._centroids_path}")
 
                 if self._weights_array is None:
                     with open(self._weights_path, encoding="utf-8") as f:
                         self._weights = json.load(f) or {}
-                    # 对于极小规模的权重（9个），使用原生 tuple 比 numpy array 更快
                     self._weights_array = (
                         safe_float(self._weights.get("b", 0.0)),
                         safe_float(self._weights.get("w_r", 0.0)),
@@ -80,7 +90,7 @@ class ModelLoader:
                         safe_float(self._weights.get("u_i", 0.0)),
                         safe_float(self._weights.get("u_p", 0.0)),
                     )
-                    logger.debug(f"加载权重: {self._weights_path}")
+                    logger.debug(f"[背提文本加成算法] 加载权重: {self._weights_path}")
             except (
                 FileNotFoundError,
                 OSError,
@@ -91,7 +101,7 @@ class ModelLoader:
                 AttributeError,
                 json.JSONDecodeError,
             ) as e:
-                logger.error(f"延迟加载模型文件失败: {str(e)}", exc_info=True)
+                logger.error(f"[背提文本加成算法] 延迟加载模型文件失败: {str(e)}", exc_info=True)
                 raise
 
     @property

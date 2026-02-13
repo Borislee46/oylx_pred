@@ -1,10 +1,16 @@
-import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any
 
 import pandas as pd
 
+from src.pages.prediction.config.ui_messages import (
+    EXPERIENCE_BOOST_TEMPLATE,
+    EXPERIENCE_ITEM_NAMES,
+)
+from src.pages.prediction.result_modifier.arbitrator import (
+    AdjustmentArbitrator,
+    NormalizationLayer,
+)
 from src.pages.prediction.result_modifier.config import (
     FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR,
     MIN_SIMILARITY_THRESHOLD,
@@ -12,12 +18,14 @@ from src.pages.prediction.result_modifier.config import (
     PROFESSIONAL_REDUCTION_FACTOR,
     PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR,
 )
-from src.pages.prediction.result_modifier.faculty_filters import apply_out_of_scope_faculty_penalty
+from src.pages.prediction.result_modifier.faculty_filters import is_faculty_out_of_scope
 from src.pages.prediction.result_modifier.probability_adjuster import ProbabilityAdjuster
 from src.pages.prediction.result_modifier.text_boost_provider import TextBoostProvider
+from src.pages.prediction.result_modifier.types import AdjustmentFactor, AdjustmentFactorType
+from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
 from src.pages.prediction.result_modifier.utils import (
-    apply_cross_major_penalty_if_needed,
     clip_probability,
+    cross_major_penalty_factor,
     get_probability,
 )
 from src.utils.logger import setup_logger
@@ -55,127 +63,129 @@ class ProbabilityAdjustmentPipeline:
         self,
         result: dict[str, Any],
         ctx: AdjustmentContext,
+        arbitrator: AdjustmentArbitrator | None = None,
     ) -> dict[str, Any]:
-        result_copy = result.copy()
-        current_prob = get_probability(result_copy)
+        current_prob = get_probability(result)
 
-        if self.probability_adjuster and ctx.gpa is not None and ctx.language_score is not None:
-            current_prob = self._apply_gpa_language_adjustment(
-                current_prob, ctx.gpa, ctx.language_score, ctx.background_university
-            )
+        if arbitrator is None:
+            arbitrator = AdjustmentArbitrator()
+        else:
+            arbitrator.reset(keep_static=True)
 
         if self.enable_cross_major_penalty and ctx.background_major:
-            current_prob = self._apply_cross_major_penalty(
-                result_copy, current_prob, ctx.admitted_combinations
-            )
+            similarity = float(result.get("similarity", 1.0))
+            if similarity < MIN_SIMILARITY_THRESHOLD:
+                key = (result.get("university"), result.get("major"))
+                has_admitted = key in ctx.admitted_combinations or result.get("admitted") == 1
+                if not has_admitted:
+                    p_factor = 1.0 - cross_major_penalty_factor(similarity)
+                    if p_factor > 0:
+                        arbitrator.add_factor(
+                            AdjustmentFactor(
+                                name="Cross Major Penalty",
+                                value=p_factor,
+                                factor_type=AdjustmentFactorType.PENALTY,
+                                description=f"背景相似度低 ({similarity:.2f})",
+                            )
+                        )
 
         if ctx.background_faculty:
-            temp = result_copy.copy()
-            temp["probability"] = clip_probability(current_prob)
-            adjusted = apply_out_of_scope_faculty_penalty(
-                [temp], ctx.background_faculty, FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR
-            )
-            if adjusted:
-                current_prob = get_probability(adjusted[0], current_prob)
+            target_faculty = result.get("faculty")
+            if is_faculty_out_of_scope(ctx.background_faculty, target_faculty):
+                arbitrator.add_factor(
+                    AdjustmentFactor(
+                        name="Faculty Out of Scope Penalty",
+                        value=1.0 - FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR,
+                        factor_type=AdjustmentFactorType.PENALTY,
+                        description="申请学部跨度过大",
+                    )
+                )
 
         if ctx.internship_count <= 0:
-            major = str(result_copy.get("major", "")).lower()
+            major = str(result.get("major", "")).lower()
             if any(p in major for p in PROFESSIONAL_MAJORS_LOWER):
                 is_spec = any(s.lower() in major for s in ctx.user_specified_majors)
-                factor = (
+                reduction_ratio = 1.0 - (
                     PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR
                     if is_spec
                     else PROFESSIONAL_REDUCTION_FACTOR
                 )
-                current_prob *= factor
+                if reduction_ratio > 0:
+                    arbitrator.add_factor(
+                        AdjustmentFactor(
+                            name="Professional Major Penalty",
+                            value=reduction_ratio,
+                            factor_type=AdjustmentFactorType.PENALTY,
+                            description="专业项目缺乏实习背景",
+                        )
+                    )
 
-        univ, major = result_copy.get("university"), result_copy.get("major")
-        if univ and major:
-            result_copy["is_new_major"] = ctx.is_new_major_cache.get((univ, major), False)
+        adjusted_prob = arbitrator.arbitrate(current_prob)
 
-        result_copy["probability"] = clip_probability(current_prob)
-        return result_copy
+        res = result.copy()
+        if arbitrator.trace:
+            res["_adjustment_trace"] = arbitrator.trace
+
+        res["probability"] = NormalizationLayer.apply(adjusted_prob)
+
+        univ, major_name = res.get("university"), res.get("major")
+        if univ and major_name:
+            res["is_new_major"] = ctx.is_new_major_cache.get((univ, major_name), False)
+
+        return res
 
     def adjust_batch(
         self,
         results: list[dict[str, Any]],
         ctx: AdjustmentContext,
         progress_reporter: Any | None = None,
+        batch_tag: str = "",
     ) -> list[dict[str, Any]]:
         if not results:
             return results
 
-        def _process():
-            res = [self.adjust_single(r, ctx) for r in results]
-            if self.text_boost_provider and ctx.experience_details:
-                res = self._apply_text_boost(res, ctx.experience_details)
-            return res
+        arbitrator = AdjustmentArbitrator()
 
-        if progress_reporter and self.text_boost_provider and ctx.experience_details:
-            from src.pages.prediction.config.ui_messages import (
-                EXPERIENCE_BOOST_TEMPLATE,
-                EXPERIENCE_DEFAULT_MSG,
-                EXPERIENCE_ITEM_NAMES,
-            )
-            from src.pages.prediction.result_modifier.ui_handler import LoadingMessageAnimator
+        if self.probability_adjuster and ctx.gpa is not None and ctx.language_score is not None:
+            penalties = self.probability_adjuster.get_penalties(ctx.gpa, ctx.language_score)
+            if penalties.get("gpa", 0) > 0:
+                arbitrator.add_factor(
+                    AdjustmentFactor(
+                        name="GPA Penalty",
+                        value=penalties["gpa"],
+                        factor_type=AdjustmentFactorType.PENALTY,
+                        description="GPA成绩影响",
+                    ),
+                    is_static=True,
+                )
+            if penalties.get("language", 0) > 0:
+                arbitrator.add_factor(
+                    AdjustmentFactor(
+                        name="Language Penalty",
+                        value=penalties["language"],
+                        factor_type=AdjustmentFactorType.PENALTY,
+                        description="语言成绩影响",
+                    ),
+                    is_static=True,
+                )
 
+        adjusted_results = [self.adjust_single(r, ctx, arbitrator) for r in results]
+
+        if self.text_boost_provider and ctx.experience_details:
             items = [
                 name for k, name in EXPERIENCE_ITEM_NAMES.items() if ctx.experience_details.get(k)
             ]
-            msg = (
-                EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items))
-                if items
-                else EXPERIENCE_DEFAULT_MSG
-            )
 
-            animator = LoadingMessageAnimator(progress_reporter=progress_reporter)
-            animator.show(msg, force=True)
+            if items:
+                msg = EXPERIENCE_BOOST_TEMPLATE.format(items="、".join(items))
+                animator = LoadingMessageAnimator(progress_reporter=progress_reporter)
+                animator.show(msg, force=True)
 
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_process)
-                while not future.done():
-                    animator.tick()
-                    time.sleep(0.3)
-                final_res = future.result()
-            animator.clear()
-            return final_res
+                adjusted_results = self._apply_text_boost(adjusted_results, ctx.experience_details)
 
-        return _process()
+                animator.clear()
 
-    def _apply_gpa_language_adjustment(
-        self,
-        probability: float,
-        gpa: float,
-        language_score: float,
-        background_university: str | None,
-    ) -> float:
-        if self.probability_adjuster is None:
-            return probability
-        try:
-            return self.probability_adjuster.adjust_probability(
-                probability, gpa, language_score, background_university_name=background_university
-            )
-        except (TypeError, ValueError, OverflowError) as e:
-            logger.warning(f"GPA/语言成绩调整失败: {e}")
-            return probability
-        except (AttributeError, KeyError, RuntimeError) as e:
-            logger.error(f"GPA/语言成绩调整发生未知错误: {e}", exc_info=True)
-            return probability
-
-    def _apply_cross_major_penalty(
-        self,
-        result: dict,
-        probability: float,
-        admitted_combinations: set[tuple[str, str]],
-    ) -> float:
-        if result.get("similarity", 1.0) >= MIN_SIMILARITY_THRESHOLD:
-            return probability
-        return apply_cross_major_penalty_if_needed(
-            result=result,
-            probability=probability,
-            admitted_combinations=admitted_combinations,
-            check_admitted_field=True,
-        )
+        return adjusted_results
 
     def _apply_text_boost(
         self,
@@ -185,20 +195,23 @@ class ProbabilityAdjustmentPipeline:
         if not self.text_boost_provider:
             return results
 
-        probabilities = [get_probability(r) for r in results]
+        probabilities = [r.get("probability", 0.0) for r in results]
 
-        try:
-            apply_result = self.text_boost_provider.apply(probabilities, experience_details)
-            if apply_result:
-                boosted_probs, boost_info = apply_result
-                if boost_info:
-                    logger.debug(f"文本增强应用成功: {boost_info}")
-                for i, prob in enumerate(boosted_probs):
-                    if i < len(results):
-                        results[i]["probability"] = clip_probability(prob)
-        except (TypeError, ValueError) as e:
-            logger.warning(f"文本增强失败: {e}")
-        except (AttributeError, KeyError, RuntimeError) as e:
-            logger.error(f"文本增强发生未知错误: {e}", exc_info=True)
+        boosted_probs = self.text_boost_provider.apply(probabilities, experience_details)
+
+        if boosted_probs:
+            for i, prob in enumerate(boosted_probs):
+                if i < len(results):
+                    new_prob = clip_probability(prob)
+                    if abs(new_prob - probabilities[i]) < 1e-6:
+                        continue
+
+                    res = results[i]
+                    old_prob = probabilities[i]
+                    res["probability"] = new_prob
+
+                    trace = res.get("_adjustment_trace", {})
+                    trace["boost_NLP_Text"] = new_prob - old_prob
+                    res["_adjustment_trace"] = trace
 
         return results

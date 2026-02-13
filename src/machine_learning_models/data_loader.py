@@ -7,7 +7,7 @@ from data_config import (
     TEXT_COLUMNS,
     TEXT_EMPTY_SAMPLE_WEIGHT,
 )
-from feature_engineer import FeatureEngineer, engineer_features
+from feature_engineer import FeatureEngineer
 from sampling_methods import apply_sampling
 from school_level_mapper import build_school_level_fallback_mapping
 from sklearn.model_selection import train_test_split
@@ -29,26 +29,24 @@ def load_data(data_path, sampling_method=None):
 
 
 def load_and_preprocess_data(data_path, sampling_method=None):
-    data = None
     try:
         data = pd.read_feather(data_path)
-    except Exception:
-        data = None
+    except Exception as e:
+        raise FileNotFoundError(f"加载数据文件失败 {data_path}: {e}")
 
-    level_fallback_mapping = {}
-    if data is not None and not data.empty:
-        level_fallback_mapping = build_school_level_fallback_mapping(data)
+    if data is None or data.empty:
+        raise ValueError(f"数据文件为空: {data_path}")
 
-    data = engineer_features(data)
+    level_fallback_mapping = build_school_level_fallback_mapping(data)
+
+    if TARGET_COLUMN not in data.columns:
+        raise ValueError(f"目标列 '{TARGET_COLUMN}' 未找到，请检查原始数据。")
+
+    if data[TARGET_COLUMN].isnull().any():
+        raise ValueError(f"目标列 '{TARGET_COLUMN}' 中存在 NaN 值，请检查数据。")
 
     X = data.drop(columns=[TARGET_COLUMN], errors="ignore")
-    if TARGET_COLUMN not in data.columns:
-        raise ValueError(
-            f"目标列 '{TARGET_COLUMN}' 在特征工程处理后未找到，请检查数据和特征工程步骤。"
-        )
     y = data[TARGET_COLUMN]
-    if y.isnull().any():
-        raise ValueError(f"目标列 '{TARGET_COLUMN}' 中存在 NaN 值，请检查数据。")
 
     def is_all_text_empty(row):
         empties = []

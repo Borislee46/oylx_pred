@@ -11,21 +11,17 @@ logger = setup_logger("page3", "prediction")
 def get_admitted_combinations_cached(
     df_hash: str, cases_df: pd.DataFrame, background_major: str
 ) -> set[tuple[str, str]]:
-    try:
-        bg_major_clean = str(background_major).strip()
-        mask = (cases_df["admitted"] == 1) & (cases_df["background_major"] == bg_major_clean)
-        admitted = cases_df[mask][["target_university", "target_major"]]
+    bg_major_clean = str(background_major).strip()
+    mask = (cases_df["admitted"] == 1) & (cases_df["background_major"] == bg_major_clean)
+    admitted = cases_df[mask][["target_university", "target_major"]]
 
-        return set(
-            zip(
-                admitted["target_university"].astype(str),
-                admitted["target_major"].astype(str),
-                strict=True,
-            )
+    return set(
+        zip(
+            admitted["target_university"].astype(str),
+            admitted["target_major"].astype(str),
+            strict=True,
         )
-    except Exception as e:
-        logger.error(f"获取录取组合失败: {str(e)}")
-        return set()
+    )
 
 
 def get_admitted_combinations_from_dataframe(

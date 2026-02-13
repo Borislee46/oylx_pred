@@ -27,18 +27,21 @@
 - 若详情表同时包含“专业英文名称/专业中文名称”，会把英文专业映射为中文名作为 embedding 输入；无法映射时使用原字符串。
 - embedding 会对“去重后的表示名集合”计算一次向量，并通过相似度矩阵查表复用（同一表示名共享 embedding）。
 
-### 提示词
-- 仅当 `MODEL_NAME` 包含 `e5`（不区分大小写）时，输入会自动加 `query: ` 前缀；否则直接使用原文本。
+### 提示词与指令 (Instruction)
+- 系统使用 **Instruct** 模式提升匹配精度。
+- **背景专业 (Query Side)**：增加指令前缀 `Instruct: Given an academic major, retrieve the most relevant target major for university admission\nQuery: {专业名称}`。
+- **目标专业 (Candidate Side)**：直接使用专业名称，不添加前缀。
+- 若 `eng_to_chi_map` 存在映射，则使用中文专业名进行 Embedding 计算，但缓存 Key 仍保留为原始字符串（通常为英文）。
 
-### 相似度
-- 编码阶段已做 L2 归一化（`normalize_embeddings=True`），相似度使用向量点积（等价于余弦）。
+### 相似度计算
+- 编码阶段已做 L2 归一化（`normalize_embeddings=True`），相似度使用向量点积（等价于余弦相似度）。
 
-### 缓存键与存储
-- **键规则**：按字母序排序后拼接为 `major1|major2`（参考 `src/pages/prediction/prediction_utils.py`）。
-- **注意**：key 使用的是**原始专业名字符串**（`cases.feather` 里的 `background_major/target_major`），不是 embedding 的中文表示名。
-- **输出文件** (feather)：
-  - `cache/background_target_similarity.feather`
-- **文件结构**：两列 `key`、`similarity`；线上由 `utils.app_data_loader.load_bg_target_similarity_cache` 读取为字典。
+### 存储规范与检索
+- **存储格式**：使用 Feather 格式，包含 `bg_major`、`target_major`、`similarity` 三列。
+- **检索逻辑**：线上由 `src/pages/prediction/core/utils.py::get_cached_major_similarity` 执行。
+- **一致性保证**：为了保证匹配成功率，所有的专业名在存储和检索前都会进行 **`.strip().lower()`** 处理（包括 Embedding 计算时的中文映射查找）。
+- **检索顺序**：检索 Key 顺序为 `(background_major, target_major)`。
+- **输出文件**：`cache/background_target_similarity.feather`。
 - **兼容性**：
   - 脚本里仍保留了历史路径常量，但当前版本不会写入该文件。
   - 当前脚本不做旧缓存自动清理。

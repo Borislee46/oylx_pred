@@ -63,9 +63,9 @@ class FormStateManager:
             "current_user_id": user_id,
         }
 
-        for key, default_value in default_states.items():
-            if session_manager.get(key) is None:
-                session_manager.set(**{key: default_value})
+        updates = {k: v for k, v in default_states.items() if session_manager.get(k) is None}
+        if updates:
+            session_manager.set(**updates)
 
         if not session_manager.get("current_user_id") and user_id:
             session_manager.set(current_user_id=user_id)

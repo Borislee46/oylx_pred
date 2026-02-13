@@ -4,6 +4,9 @@ from src.pages.prediction.result_modifier.engine import (
     AgentAdjustmentEngine,
     AgentAdjustmentSession,
 )
+from src.pages.prediction.result_modifier.faculty_filters import (
+    filter_schools_by_faculty_rules,
+)
 from src.pages.prediction.result_modifier.strategies import (
     RankerStrategy,
     RelaxStrategy,
@@ -18,7 +21,6 @@ from src.pages.prediction.result_modifier.utils import (
 )
 
 
-# 当前场景heapq未必比sorted快, candidate多（十万级？）的话可换heapq
 def _pick_supplement_cases_by_probability(
     candidates: list[dict[str, Any]],
     top_set: set[tuple[Any, Any]],
@@ -74,6 +76,7 @@ def adjust_similarity_results_with_agent(
     agent: Any,
     background_faculty: str | None = None,
     progress_reporter: Any | None = None,
+    is_cross_faculty: bool = False,
 ) -> list[dict[str, Any]]:
     if not top_similarity_results or not agent or balance_diff == 0:
         return top_similarity_results
@@ -87,22 +90,14 @@ def adjust_similarity_results_with_agent(
     else:
         strategy = TightenStrategy(results_with_similarity, current_threshold, background_major)
 
-    if background_faculty:
-        from src.pages.prediction.result_modifier.faculty_filters import (
-            filter_schools_by_faculty_rules,
-        )
-
+    if background_faculty and not is_cross_faculty:
         results_for_agent = filter_schools_by_faculty_rules(
             results_with_similarity, background_faculty
         )
     else:
         results_for_agent = results_with_similarity
 
-    top_set: set[CaseKey] = set()
-    for r in top_similarity_results:
-        k = case_key(r)
-        if k:
-            top_set.add(k)
+    top_set: set[CaseKey] = {case_key(r) for r in top_similarity_results if case_key(r)}
 
     bg_faculties: list[str] = []
     if str(background_major or "").strip():

@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from categorical_features_processor import prepare_categorical_columns
 from data_config import (
     CATEGORICAL_COLUMNS,
     COUNT_COLUMNS_FOR_LOG_TRANSFORM,
@@ -14,6 +13,7 @@ class FeatureEngineer:
         self.numeric_medians = {}
         self.cap_values = {}
         self.existing_categorical_columns = []
+        self.categorical_levels = {}
 
     def _preprocess_data(self, df: pd.DataFrame) -> pd.DataFrame:
         data = df.copy()
@@ -36,6 +36,23 @@ class FeatureEngineer:
             if col in self.numeric_medians and data[col].isnull().any():
                 data[col] = data[col].fillna(self.numeric_medians[col])
 
+        return data
+
+    def _handle_categorical_alignment(
+        self, data: pd.DataFrame, is_fit: bool = False
+    ) -> pd.DataFrame:
+        for col in self.existing_categorical_columns:
+            if col not in data.columns:
+                continue
+
+            if is_fit:
+                if not pd.api.types.is_categorical_dtype(data[col]):
+                    data[col] = data[col].astype("category")
+                self.categorical_levels[col] = data[col].cat.categories
+            else:
+                data[col] = pd.Categorical(
+                    data[col], categories=self.categorical_levels.get(col), ordered=False
+                )
         return data
 
     def _handle_count_columns(self, data: pd.DataFrame, is_fit: bool = False) -> pd.DataFrame:
@@ -82,13 +99,13 @@ class FeatureEngineer:
         self.existing_categorical_columns = [
             col for col in CATEGORICAL_COLUMNS if col in data.columns
         ]
+        self._handle_categorical_alignment(data, is_fit=True)
         return self
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         data = self._preprocess_data(df)
         data = self._handle_numeric_missing(data, is_fit=False)
-        if self.existing_categorical_columns:
-            data = prepare_categorical_columns(data, self.existing_categorical_columns)
+        data = self._handle_categorical_alignment(data, is_fit=False)
         data = self._handle_count_columns(data, is_fit=False)
         data = self._handle_language_scores(data)
         return data

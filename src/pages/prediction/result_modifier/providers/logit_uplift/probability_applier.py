@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import numpy as np
+
 from src.pages.prediction.result_modifier.config import (
     PROBABILITY_BOOST_MAX,
     PROBABILITY_BOOST_MIN,
@@ -7,16 +11,12 @@ from src.pages.prediction.result_modifier.config import (
     PROBABILITY_SCALE_FACTOR,
     QUALITY_SCORE_MAX_WEIGHT,
     QUALITY_SCORE_MEAN_WEIGHT,
-    QUALITY_SCORE_THRESHOLD,
 )
-from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor import (
-    TextProcessor,
-)
-from src.pages.prediction.result_modifier.providers.logit_uplift.utils import (
-    logit,
-    safe_float,
-    sigmoid,
-)
+
+if TYPE_CHECKING:
+    from src.pages.prediction.result_modifier.providers.logit_uplift.text_processor import (
+        TextProcessor,
+    )
 
 
 class ProbabilityApplier:
@@ -39,62 +39,34 @@ class ProbabilityApplier:
         probabilities: list[float],
         delta_logit: float,
         sims: dict[str, float],
-    ) -> tuple[list[float], list[float]]:
-        s_values = [sims.get(k, 0.0) for k in self._text_processor.text_keys]
-        q_raw = QUALITY_SCORE_MAX_WEIGHT * max(s_values) + QUALITY_SCORE_MEAN_WEIGHT * (
-            sum(s_values) / len(s_values)
-        )
-        q_adj = q_raw ** max(1.0, self._cap_quality_gamma)
-        cap_factor = min(1.0, max(self._cap_min_factor, q_adj))
+    ) -> list[float]:
+        probs = np.array(probabilities, dtype=np.float64)
+
+        s_values = np.array([sims.get(k, 0.0) for k in self._text_processor.text_keys])
+        if s_values.size > 0:
+            q_raw = QUALITY_SCORE_MAX_WEIGHT * np.max(
+                s_values
+            ) + QUALITY_SCORE_MEAN_WEIGHT * np.mean(s_values)
+            q_adj = q_raw ** max(1.0, self._cap_quality_gamma)
+            cap_factor = min(1.0, max(self._cap_min_factor, q_adj))
+        else:
+            cap_factor = self._cap_min_factor
 
         effective_delta = delta_logit * self._smoothing
 
-        updated: list[float] = []
-        boosts: list[float] = []
+        mask = (probs >= PROBABILITY_BOOST_MIN) & (probs <= PROBABILITY_BOOST_MAX)
+        if not np.any(mask):
+            return probabilities
 
-        for p in probabilities:
-            p0 = safe_float(p, 0.0)
-            if PROBABILITY_BOOST_MIN <= p0 <= PROBABILITY_BOOST_MAX:
-                new_p = sigmoid(logit(p0) + effective_delta)
-                scale = 1.0 - PROBABILITY_SCALE_FACTOR * abs(p0 - PROBABILITY_SCALE_CENTER)
-                cap_boost = self._max_total_boost * cap_factor * scale
-                cap = p0 * (1.0 + cap_boost)
-                new_p = min(new_p, cap, 1.0)
-                updated.append(new_p)
-                boosts.append((new_p / p0) - 1.0)
-            else:
-                updated.append(p0)
+        updated = probs.copy()
+        p_masked = probs[mask]
 
-        return updated, boosts
+        logit_p = np.log(p_masked / (1.0 - p_masked))
+        new_p = 1.0 / (1.0 + np.exp(-(logit_p + effective_delta)))
 
-    def generate_summary(
-        self, boosts: list[float], sims: dict[str, float], reasons: tuple[str, ...] | None = None
-    ) -> str:
-        if not boosts:
-            return ""
+        scale = 1.0 - PROBABILITY_SCALE_FACTOR * np.abs(p_masked - PROBABILITY_SCALE_CENTER)
+        cap = p_masked * (1.0 + self._max_total_boost * cap_factor * scale)
 
-        parts: list[str] = []
-        name_map = {
-            "research_details": "科研项目",
-            "award_details": "获奖情况",
-            "internship_details": "实习经历",
-            "paper_details": "论文发表",
-        }
-        for k in self._text_processor.text_keys:
-            s = sims.get(k, 0.0)
-            if s > QUALITY_SCORE_THRESHOLD:
-                parts.append(f"{name_map[k]}: {s:.2f}")
+        updated[mask] = np.minimum(np.minimum(new_p, cap), 1.0)
 
-        avg_boost = sum(boosts) / len(boosts) if boosts else 0.0
-        detail = ", ".join(parts)
-        if reasons:
-            r = ", ".join(reasons)
-            detail = f"{detail}; {r}" if detail else r
-
-        summary = (
-            f"+{avg_boost:.1%} ({detail})"
-            if avg_boost > 0 and detail
-            else (f"+{avg_boost:.1%}" if avg_boost > 0 else "")
-        )
-
-        return summary
+        return updated.tolist()

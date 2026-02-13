@@ -4,8 +4,5 @@
     "teste2api.test.xdf.cn",
     "e2api.staff.xdf.cn"
   ],
-  "allowed_urls": [
-    "https://qtpbi.staff.xdf.cn/powerbi/index.html#/home"
-  ]
+  "allowed_urls": ["https://qtpbi.staff.xdf.cn/powerbi/index.html#/home"]
 }
-

@@ -20,13 +20,11 @@ class SignalScorer:
         lexicon_path: str | None,
         enabled_fields: tuple[str, ...] | None,
         per_field_cap: float,
-        max_reasons: int,
         lexicon_weight: float,
     ) -> None:
         self._lexicon_path = lexicon_path
         self._enabled_fields = enabled_fields
         self._per_field_cap = float(per_field_cap)
-        self._max_reasons = int(max_reasons)
         self._lexicon_weight = float(lexicon_weight)
         self._rules_by_field: dict[str, list[_Rule]] = {}
         self._global_rules: list[_Rule] = []
@@ -43,10 +41,7 @@ class SignalScorer:
 
     @staticmethod
     def _safe_float(x: Any, default: float = 0.0) -> float:
-        try:
-            return float(x)
-        except (TypeError, ValueError):
-            return default
+        return float(x)
 
     def _load_rules(self, lexicon_path: str | None) -> tuple[_Rule, ...]:
         if not lexicon_path:
@@ -54,11 +49,8 @@ class SignalScorer:
         path = Path(lexicon_path)
         if not path.exists():
             return ()
-        try:
-            with open(path, encoding="utf-8") as f:
-                obj = json.load(f) or {}
-        except (FileNotFoundError, OSError, json.JSONDecodeError, TypeError, ValueError):
-            return ()
+        with open(path, encoding="utf-8") as f:
+            obj = json.load(f) or {}
 
         rules_raw = obj.get("rules")
         if not isinstance(rules_raw, list):
@@ -89,14 +81,15 @@ class SignalScorer:
             )
         return tuple(out)
 
-    def score(self, texts_by_field: dict[str, str]) -> tuple[dict[str, float], tuple[str, ...]]:
+    def score(
+        self, texts_by_field: dict[str, str]
+    ) -> tuple[dict[str, float], dict[str, list[str]]]:
         if not texts_by_field or self._lexicon_weight <= 0:
-            return {}, ()
+            return {}, {}
 
         enabled = set(self._enabled_fields) if self._enabled_fields else None
-
         bonuses: dict[str, float] = {}
-        reasons: list[tuple[float, str]] = []
+        tags_found: dict[str, list[str]] = {}
 
         for field, text in texts_by_field.items():
             if enabled is not None and field not in enabled:
@@ -106,6 +99,7 @@ class SignalScorer:
 
             t = text.lower()
             best = 0.0
+            matched_tags: list[str] = []
 
             target_rules = self._rules_by_field.get(field, []) + self._global_rules
             if not target_rules:
@@ -113,25 +107,12 @@ class SignalScorer:
 
             for rule in target_rules:
                 if rule.pattern in t:
-                    w = rule.score
-                    if w > best:
-                        best = w
-                    reasons.append((w, rule.tag))
+                    matched_tags.append(rule.tag)
+                    if rule.score > best:
+                        best = rule.score
 
             if best > 0:
                 bonuses[field] = min(self._per_field_cap, best * self._lexicon_weight)
+                tags_found[field] = list(set(matched_tags))
 
-        if not reasons:
-            return bonuses, ()
-
-        reasons.sort(key=lambda x: x[0], reverse=True)
-        seen: set[str] = set()
-        picked: list[str] = []
-        for _, tag in reasons:
-            if tag in seen:
-                continue
-            seen.add(tag)
-            picked.append(tag)
-            if len(picked) >= self._max_reasons:
-                break
-        return bonuses, tuple(picked)
+        return bonuses, tags_found
