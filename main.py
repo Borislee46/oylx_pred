@@ -107,7 +107,9 @@ def main() -> None:
     render_header(user_nickname)
 
     scroll_to = st.query_params.get("scroll_to")
-    if scroll_to:
+    import re
+
+    if scroll_to and re.match(r"^[A-Za-z0-9_\-]+$", scroll_to):
         components.html(
             f"""
             <script>

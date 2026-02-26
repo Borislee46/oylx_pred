@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from rapidfuzz import fuzz
-
 from src.pages.prediction.result_modifier.config import (
     AGENT_BOUNDARY_SIMILARITY_RANGE,
     AGENT_MIN_SAFE_RELAX_THRESHOLD,
@@ -41,14 +39,7 @@ class RankerStrategy(ABC):
         if not self.background_major:
             return False
 
-        bg = str(self.background_major).lower()
-        m_en = str(case.get("major", "")).lower()
-        m_cn = str(case.get("major_cn", "")).lower()
-
-        score_en = fuzz.token_sort_ratio(bg, m_en)
-        score_cn = fuzz.token_sort_ratio(bg, m_cn) if m_cn else 0
-
-        return max(score_en, score_cn) > 92
+        return case.get("_strong_match_score", 0) > 92
 
     def update_results(
         self,
