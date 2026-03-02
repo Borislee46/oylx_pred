@@ -2,10 +2,11 @@ numpy==2.3.1
 pandas==2.3.1
 scikit-learn==1.7.2
 xgboost-cpu==3.0.2
-streamlit==1.53.0
+streamlit==1.54.0
 streamlit-aggrid==1.1.9
 streamlit-elements==0.1.*
 # uvloop>=0.15.1
 openpyxl==3.1.5
 rapidfuzz==3.14.3
 numba==0.63.1
+filelock==3.20.0

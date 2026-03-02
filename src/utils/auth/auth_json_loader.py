@@ -5,7 +5,7 @@ import streamlit as st
 
 
 @st.cache_data(show_spinner=False)
-def load_auth_config(path="auth_config.json"):
+def load_auth_config(path="config/auth_config.json"):
     if os.path.exists(path):
         with open(path) as f:
             config = json.load(f)

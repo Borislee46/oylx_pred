@@ -7,6 +7,7 @@ from data_config import (
     N_ITER,
 )
 from hyperparameter_tuning import tune_hyperparameters
+from sampling_methods import apply_sampling
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -142,7 +143,7 @@ def _prepare_sample_weight(sample_weight, indices):
         return {"sample_weight": sample_weight}
 
 
-def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None):
+def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None, sampling_method=None):
     categorical_feature_names = [col for col in CATEGORICAL_COLUMNS if col in X_train.columns]
 
     monotone_constraints = (
@@ -162,6 +163,7 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
             n_iter=N_ITER,
             n_jobs=-1,
             monotone_constraints=monotone_constraints,
+            sampling_method=sampling_method,
         )
     else:
         model_params = {
@@ -201,8 +203,13 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
     X_tr, X_cal = X_train.iloc[train_idx], X_train.iloc[calib_idx]
     y_tr, y_cal = y_train.iloc[train_idx], y_train.iloc[calib_idx]
 
-    fit_params = _prepare_sample_weight(sample_weight, train_idx)
-    base_estimator.fit(X_tr, y_tr, **fit_params)
+    sw_tr_raw = _prepare_sample_weight(sample_weight, train_idx).get("sample_weight", None)
+    X_tr_res, y_tr_res, sw_tr_res = apply_sampling(
+        X_tr, y_tr, sampling_method, sample_weight=sw_tr_raw
+    )
+
+    fit_params = {"sample_weight": sw_tr_res} if sw_tr_res is not None else {}
+    base_estimator.fit(X_tr_res, y_tr_res, **fit_params)
 
     calibrated_model = CalibratedClassifierCV(
         base_estimator, method=CALIBRATION_METHOD, cv="prefit"

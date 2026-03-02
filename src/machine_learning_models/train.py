@@ -10,7 +10,7 @@ from model_trainer import evaluate_model, train_model
 
 import utils
 
-os.environ["LOKY_MAX_CPU_COUNT"] = "4"
+os.environ["LOKY_MAX_CPU_COUNT"] = "2"
 
 
 def get_package_versions():
@@ -37,11 +37,11 @@ def main():
     data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "cases.feather")
 
     X_train, X_test, y_train, y_test, feature_names, sample_weight_train, level_fallback_mapping = (
-        load_data(data_path, sampling_method=args.sampling_method)
+        load_data(data_path)
     )
 
     model, model_params, calibration_method, calibration_params = train_model(
-        X_train, y_train, args.model, auto_tune=args.auto_tune, sample_weight=sample_weight_train
+        X_train, y_train, args.model, auto_tune=args.auto_tune, sample_weight=sample_weight_train, sampling_method=args.sampling_method
     )
 
     metrics, feature_importance = evaluate_model(model, X_test, y_test, feature_names)

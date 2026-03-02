@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import optuna
 from optuna.pruners import MedianPruner
+from sampling_methods import apply_sampling
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
 from xgboost import XGBClassifier
@@ -11,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 
 def tune_hyperparameters(
-    X_train, y_train, model_name, cv=3, n_iter=100, n_jobs=-1, monotone_constraints=None
+    X_train, y_train, model_name, cv=3, n_iter=100, n_jobs=-1, monotone_constraints=None, sampling_method=None
 ):
     stratified_kfold = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
 
@@ -36,13 +37,17 @@ def tune_hyperparameters(
             X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
             y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
 
+            X_fold_train_res, y_fold_train_res, _ = apply_sampling(
+                X_fold_train, y_fold_train, sampling_method
+            )
+
             model = XGBClassifier(
                 **params,
                 random_state=42,
                 enable_categorical=True,
                 monotone_constraints=monotone_constraints,
             )
-            model.fit(X_fold_train, y_fold_train)
+            model.fit(X_fold_train_res, y_fold_train_res)
 
             score = f1_score(y_fold_val, model.predict(X_fold_val), average="binary")
             intermediate_scores.append(score)

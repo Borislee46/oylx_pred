@@ -105,9 +105,9 @@ class FeatureEngineer:
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         data = self._preprocess_data(df)
         data = self._handle_numeric_missing(data, is_fit=False)
-        data = self._handle_categorical_alignment(data, is_fit=False)
         data = self._handle_count_columns(data, is_fit=False)
         data = self._handle_language_scores(data)
+        data = self._handle_categorical_alignment(data, is_fit=False)
         return data
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
