@@ -91,6 +91,7 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hr_dashboard", False):
         available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", False))
+        available_buttons.append(("人力绩效数据看板测试", "pages/hr_profile.py", False))
 
     if accessible_modules.get("hr_structure_dashboard", False):
         available_buttons.append(("人力结构数据看板", "pages/hr_structure_dashboard.py", False))

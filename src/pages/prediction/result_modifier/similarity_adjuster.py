@@ -4,7 +4,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from src.pages.prediction.result_modifier.config import SIMILARITY_ADJUSTMENT_RULES_PATH
+from src.pages.prediction.result_modifier.config import (
+    FUZZY_BIAS_MULTIPLIER_HIGH,
+    FUZZY_BIAS_MULTIPLIER_LOW,
+    FUZZY_BIAS_MULTIPLIER_MID,
+    FUZZY_BIAS_THRESHOLD_HIGH,
+    FUZZY_BIAS_THRESHOLD_LOW,
+    FUZZY_BIAS_THRESHOLD_MID,
+    SIMILARITY_ADJUSTMENT_RULES_PATH,
+)
 from src.pages.prediction.result_modifier.streamlit_cache import cache_resource
 from src.utils.logger import setup_logger
 
@@ -36,12 +44,12 @@ def calculate_fuzzy_bias(
             score_cn = fuzz.token_sort_ratio(bg, tgt_cn)
         best_score = max(score_en, score_cn)
 
-    if best_score > 92:
-        return 1.5
-    if best_score > 82:
-        return 1.2
-    if best_score > 72:
-        return 1.1
+    if best_score > FUZZY_BIAS_THRESHOLD_HIGH:
+        return FUZZY_BIAS_MULTIPLIER_HIGH
+    if best_score > FUZZY_BIAS_THRESHOLD_MID:
+        return FUZZY_BIAS_MULTIPLIER_MID
+    if best_score > FUZZY_BIAS_THRESHOLD_LOW:
+        return FUZZY_BIAS_MULTIPLIER_LOW
     return 1.0
 
 

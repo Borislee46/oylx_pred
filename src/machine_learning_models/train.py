@@ -10,7 +10,7 @@ from model_trainer import evaluate_model, train_model
 
 import utils
 
-os.environ["LOKY_MAX_CPU_COUNT"] = "2"
+os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 
 
 def get_package_versions():
@@ -30,7 +30,6 @@ def get_package_versions():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="xgboost", choices=["xgboost"])
-    parser.add_argument("--sampling_method", type=str, default="smote")
     parser.add_argument("--auto_tune", action="store_true")
     args = parser.parse_args()
 
@@ -41,7 +40,7 @@ def main():
     )
 
     model, model_params, calibration_method, calibration_params = train_model(
-        X_train, y_train, args.model, auto_tune=args.auto_tune, sample_weight=sample_weight_train, sampling_method=args.sampling_method
+        X_train, y_train, args.model, auto_tune=args.auto_tune, sample_weight=sample_weight_train
     )
 
     metrics, feature_importance = evaluate_model(model, X_test, y_test, feature_names)
@@ -61,7 +60,6 @@ def main():
         feature_importance=feature_importance,
         auto_tune_method="optuna" if args.auto_tune else None,
         model_params=model_params,
-        sampling_method=args.sampling_method,
         calibration_method=calibration_method,
         package_versions=get_package_versions(),
     )

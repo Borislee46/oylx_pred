@@ -75,7 +75,6 @@ def save_evaluation_results(
     feature_importance=None,
     auto_tune_method=None,
     model_params=None,
-    sampling_method=None,
     calibration_method=None,
     package_versions=None,
 ):
@@ -96,7 +95,6 @@ def save_evaluation_results(
         "feature_importance": feature_importance,
         "auto_tune_method": auto_tune_method,
         "model_params": model_params,
-        "sampling_method": sampling_method,
         "calibration_method": calibration_method,
         "package_versions": package_versions,
     }
