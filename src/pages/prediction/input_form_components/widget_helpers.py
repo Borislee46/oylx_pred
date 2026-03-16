@@ -85,5 +85,5 @@ class SelectBoxHelper:
             default=default_selections,
             key=widget_key,
             on_change=on_change_callback,
-            placeholder="不填默认全选",
+            placeholder="",
         )

@@ -1,3 +1,5 @@
+import time
+
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -8,7 +10,6 @@ from src.utils.auth.permission_checker import (
 )
 from src.utils.logger import setup_logger
 from src.utils.page_init import init_page
-from src.utils.session_manager import SessionManager
 from src.utils.ui.main_page_button import render_buttons_grid
 from src.utils.ui.main_page_header import render_header
 
@@ -41,8 +42,6 @@ def _initialize_page_and_state():
     )
 
     user_nickname = user_info["user_nickname"]
-
-    SessionManager()
 
     if "logged_in_user" not in st.session_state:
         st.session_state.logged_in_user = None
@@ -91,7 +90,9 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hr_dashboard", False):
         available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", False))
-        available_buttons.append(("人力绩效数据看板测试", "pages/hr_profile.py", False))
+
+    if accessible_modules.get("hr_profile", False):
+        available_buttons.append(("人力绩效数据看板", "pages/hr_profile.py", False))
 
     if accessible_modules.get("hr_structure_dashboard", False):
         available_buttons.append(("人力结构数据看板", "pages/hr_structure_dashboard.py", False))
@@ -132,9 +133,11 @@ def main() -> None:
 
     if len(available_buttons) > 0:
         render_buttons_grid(available_buttons)
-        if not st.session_state.get("modules_access_logged", False):
+        last_log = st.session_state.get("modules_access_last_log", (None, 0))
+        now = time.time()
+        if last_log[0] != user_email or (now - last_log[1]) > 60:
             main_logger.info(f"用户 {user_email} 具有以下模块的访问权限: {button_names}")
-            st.session_state.modules_access_logged = True
+            st.session_state.modules_access_last_log = (user_email, now)
     else:
         st.info("暂无可用模块，请联系管理员开通权限。")
         main_logger.info(f"用户 {user_email} 暂无可用模块。")

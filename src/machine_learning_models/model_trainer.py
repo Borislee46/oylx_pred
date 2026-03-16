@@ -2,13 +2,26 @@ import numpy as np
 from data_config import (
     CALIBRATION_METHOD,
     CATEGORICAL_COLUMNS,
+    DEFAULT_PREDICTION_THRESHOLD,
     MONOTONE_DECREASING_WHITELIST,
     MONOTONE_INCREASING_WHITELIST,
     N_ITER,
+    THRESHOLD_SCAN_STEPS,
 )
 from hyperparameter_tuning import tune_hyperparameters
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.frozen import FrozenEstimator
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
+    confusion_matrix,
+    f1_score,
+    log_loss,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import StratifiedShuffleSplit
 from xgboost import XGBClassifier
 
@@ -51,13 +64,72 @@ def extract_calibration_params(model):
     return None
 
 
-def evaluate_model(model, X_test, y_test, feature_names=None):
-    y_pred = model.predict(X_test)
+def _predict_positive_class_proba(model, X):
+    probas = model.predict_proba(X)
+    if probas is None:
+        raise ValueError("模型未返回有效概率")
+    if probas.ndim == 1:
+        return probas.astype(float)
+    return probas[:, 1].astype(float)
+
+
+def _safe_probability_metric(metric_fn, y_true, y_score):
+    try:
+        return float(metric_fn(y_true, y_score))
+    except ValueError:
+        return None
+
+
+def _build_threshold_scan(y_true, y_score):
+    thresholds = np.linspace(0.0, 1.0, THRESHOLD_SCAN_STEPS)
+    best = None
+
+    for threshold in thresholds:
+        y_pred = (y_score >= threshold).astype(int)
+        score = float(f1_score(y_true, y_pred, average="binary", zero_division=0))
+        candidate = {
+            "threshold": float(threshold),
+            "f1": score,
+            "precision": float(
+                precision_score(y_true, y_pred, average="binary", zero_division=0)
+            ),
+            "recall": float(recall_score(y_true, y_pred, average="binary", zero_division=0)),
+        }
+        if best is None or candidate["f1"] > best["f1"]:
+            best = candidate
+
+    return best
+
+
+def evaluate_model(
+    model,
+    X_test,
+    y_test,
+    feature_names=None,
+    prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
+):
+    y_score = _predict_positive_class_proba(model, X_test)
+    y_pred = (y_score >= prediction_threshold).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred, labels=[0, 1]).ravel()
     metrics = {
+        "prediction_threshold": float(prediction_threshold),
         "accuracy": float(accuracy_score(y_test, y_pred)),
-        "precision": float(precision_score(y_test, y_pred, average="binary")),
-        "recall": float(recall_score(y_test, y_pred, average="binary")),
-        "f1": float(f1_score(y_test, y_pred, average="binary")),
+        "precision": float(precision_score(y_test, y_pred, average="binary", zero_division=0)),
+        "recall": float(recall_score(y_test, y_pred, average="binary", zero_division=0)),
+        "f1": float(f1_score(y_test, y_pred, average="binary", zero_division=0)),
+        "roc_auc": _safe_probability_metric(roc_auc_score, y_test, y_score),
+        "average_precision": _safe_probability_metric(average_precision_score, y_test, y_score),
+        "log_loss": _safe_probability_metric(log_loss, y_test, y_score),
+        "brier_score": _safe_probability_metric(brier_score_loss, y_test, y_score),
+        "positive_rate_predicted": float(np.mean(y_pred)),
+        "positive_rate_actual": float(np.mean(y_test)),
+        "confusion_matrix": {
+            "tn": int(tn),
+            "fp": int(fp),
+            "fn": int(fn),
+            "tp": int(tp),
+        },
+        "best_f1_threshold_scan": _build_threshold_scan(y_test, y_score),
     }
 
     feature_importance = _extract_feature_importance(model, feature_names)
@@ -142,7 +214,14 @@ def _prepare_sample_weight(sample_weight, indices):
         return {"sample_weight": sample_weight}
 
 
-def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None):
+def train_model(
+    X_train,
+    y_train,
+    model_name,
+    auto_tune=None,
+    sample_weight=None,
+    prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
+):
     categorical_feature_names = [col for col in CATEGORICAL_COLUMNS if col in X_train.columns]
 
     monotone_constraints = (
@@ -162,12 +241,16 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
             n_iter=N_ITER,
             n_jobs=-1,
             monotone_constraints=monotone_constraints,
+            sample_weight=sample_weight,
+            scale_pos_weight=scale_pos_weight,
+            prediction_threshold=prediction_threshold,
         )
     else:
         model_params = {
             "objective": "binary:logistic",
             "random_state": 42,
             "enable_categorical": True,
+            "tree_method": "hist",
             "n_estimators": 375,
             "max_depth": 10,
             "learning_rate": 0.16804401335949273,
@@ -186,6 +269,7 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
                     "objective": "binary:logistic",
                     "random_state": 42,
                     "enable_categorical": True,
+                    "tree_method": "hist",
                 }
             )
         model_params["scale_pos_weight"] = scale_pos_weight
@@ -206,7 +290,7 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
     base_estimator.fit(X_tr, y_tr, **fit_params)
 
     calibrated_model = CalibratedClassifierCV(
-        base_estimator, method=CALIBRATION_METHOD, cv="prefit"
+        FrozenEstimator(base_estimator), method=CALIBRATION_METHOD
     )
     cal_fit_params = _prepare_sample_weight(sample_weight, calib_idx)
     calibrated_model.fit(X_cal, y_cal, **cal_fit_params)

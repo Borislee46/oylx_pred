@@ -3,6 +3,7 @@ import streamlit as st
 from src.utils.data_safety.watermark import generate_watermark_css
 from src.utils.logger import setup_logger
 from src.utils.page_auth import handle_e2_login
+from src.utils.session_manager import SessionManager
 
 page_init_logger = setup_logger("page3", "prediction")
 
@@ -50,6 +51,8 @@ def init_page(
 
     if not skip_auth:
         handle_e2_login(current_page_path, module_name=module_name, admin_only=admin_only)
+
+    SessionManager()
 
     user_nickname = st.session_state.get("e2_user_nickname", default_nickname)
     user_email = st.session_state.get("e2_user_email", "E2_USER_NOT_LOGGED_IN")

@@ -13,9 +13,16 @@ from sklearn.model_selection import train_test_split
 
 
 def load_data(data_path):
-    X_train, X_test, y_train, y_test, feature_names, sample_weight_train, level_fallback_mapping = (
-        load_and_preprocess_data(data_path)
-    )
+    (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        feature_names,
+        sample_weight_train,
+        level_fallback_mapping,
+        feature_engineer_state,
+    ) = load_and_preprocess_data(data_path)
     return (
         X_train,
         X_test,
@@ -24,6 +31,7 @@ def load_data(data_path):
         feature_names,
         sample_weight_train,
         level_fallback_mapping,
+        feature_engineer_state,
     )
 
 
@@ -74,5 +82,15 @@ def load_and_preprocess_data(data_path):
     X_train = fe.fit_transform(X_train_raw)
     X_test = fe.transform(X_test_raw)
     feature_names = X_train.columns.tolist()
+    feature_engineer_state = fe.get_state()
 
-    return X_train, X_test, y_train, y_test, feature_names, sw_train, level_fallback_mapping
+    return (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        feature_names,
+        sw_train,
+        level_fallback_mapping,
+        feature_engineer_state,
+    )

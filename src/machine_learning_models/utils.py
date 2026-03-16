@@ -2,9 +2,11 @@ import json
 import math
 import os
 from datetime import datetime
+from typing import Any
 
 import xgboost as xgb
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.frozen import FrozenEstimator
 
 
 def _extract_xgb_model(model):
@@ -18,6 +20,8 @@ def _extract_xgb_model(model):
                 inner_cc, "base_estimator", None
             )
             if inner_model:
+                if isinstance(inner_model, FrozenEstimator):
+                    inner_model = inner_model.estimator
                 return inner_model
         return getattr(model, "base_estimator", None)
 
@@ -25,7 +29,15 @@ def _extract_xgb_model(model):
 
 
 def save_model(
-    model, model_name, feature_names, x_test, calibration_params=None, level_fallback_mapping=None
+    model,
+    model_name,
+    feature_names,
+    x_test,
+    calibration_params=None,
+    level_fallback_mapping=None,
+    prediction_threshold=None,
+    feature_engineer_state=None,
+    model_metadata: dict[str, Any] | None = None,
 ):
     if model_name != "xgboost":
         return []
@@ -52,8 +64,28 @@ def save_model(
             level_fallback_mapping=json.dumps(level_fallback_mapping, ensure_ascii=False)
         )
 
+    if prediction_threshold is not None:
+        booster.set_attr(prediction_threshold=json.dumps(float(prediction_threshold)))
+
+    if feature_engineer_state:
+        booster.set_attr(
+            feature_engineer_state=json.dumps(feature_engineer_state, ensure_ascii=False)
+        )
+
+    artifact_metadata = {
+        "schema_version": 2,
+        "model_name": model_name,
+        "feature_names": feature_names,
+        "calibration_params": calibration_params,
+        "level_fallback_mapping": level_fallback_mapping,
+        "prediction_threshold": prediction_threshold,
+        "feature_engineer_state": feature_engineer_state,
+        "training_summary": model_metadata or {},
+    }
+    booster.set_attr(model_metadata=json.dumps(artifact_metadata, ensure_ascii=False))
+
     model_filename = os.path.join(model_dir, f"{model_name}_{timestamp}.ubj")
-    xgb_model.save_model(model_filename)
+    booster.save_model(model_filename)
 
     return [model_filename]
 
