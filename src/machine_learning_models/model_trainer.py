@@ -90,9 +90,7 @@ def _build_threshold_scan(y_true, y_score):
         candidate = {
             "threshold": float(threshold),
             "f1": score,
-            "precision": float(
-                precision_score(y_true, y_pred, average="binary", zero_division=0)
-            ),
+            "precision": float(precision_score(y_true, y_pred, average="binary", zero_division=0)),
             "recall": float(recall_score(y_true, y_pred, average="binary", zero_division=0)),
         }
         if best is None or candidate["f1"] > best["f1"]:

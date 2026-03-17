@@ -6,7 +6,7 @@ streamlit==1.55.0
 streamlit-aggrid==1.2.1.post2
 streamlit-elements==0.1.*
 streamlit-echarts
-# uvloop>=0.15.1
+uvloop>=0.15.1
 openpyxl==3.1.5
 rapidfuzz==3.14.3
 numba==0.64.0
