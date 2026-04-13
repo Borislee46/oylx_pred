@@ -588,3 +588,38 @@ div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
   background: var(--hk-cyan-alpha-30);
   color: var(--hk-cyan-dark);
 }
+
+@keyframes hk-thought-wait-blink {
+  0%,
+  20%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.stApp .hk-thought-wait {
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.stApp .hk-thought-wait-d1,
+.stApp .hk-thought-wait-d2,
+.stApp .hk-thought-wait-d3 {
+  display: inline-block;
+  animation: hk-thought-wait-blink 1.05s ease-in-out infinite;
+}
+
+.stApp .hk-thought-wait-d1 {
+  animation-delay: 0s;
+}
+
+.stApp .hk-thought-wait-d2 {
+  animation-delay: 0.22s;
+}
+
+.stApp .hk-thought-wait-d3 {
+  animation-delay: 0.44s;
+}

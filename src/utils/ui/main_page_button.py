@@ -5,16 +5,19 @@ import uuid
 import streamlit as st
 import streamlit.components.v1 as components
 
+from src.utils.config_local_paths import resolve_app_config_path, resolve_dev_config_path
+
 
 def _get_base_url() -> str:
-    dev_config_path = "config/dev_config.json"
+    dev_config_path = resolve_dev_config_path()
     if os.path.exists(dev_config_path):
         with open(dev_config_path, encoding="utf-8") as f:
             dev_config = json.load(f)
         if dev_config.get("DEBUG_MODE", False):
             return "http://localhost:80/"
 
-    with open("config/app_config.json", encoding="utf-8") as f:
+    app_path = resolve_app_config_path()
+    with open(app_path, encoding="utf-8") as f:
         all_configs = json.load(f)
     env = os.environ.get("APP_ENV", "test")
     return all_configs[env]["STREAMLIT_APP_BASE_URL"]
@@ -32,7 +35,7 @@ def _generate_card_html(available_buttons: list, base_url: str, trace_id: str) -
     for idx, (button_text, path_or_url, is_link) in enumerate(available_buttons):
         if is_link:
             redirect_url = (
-                f"{base_url}redirect?url={quote(path_or_url, safe='')}"
+                f"{base_url}redirect?target={quote(path_or_url, safe='')}"
                 f"&source={quote(button_text, safe='')}"
                 f"&user={quote(user, safe='')}"
                 f"&email={quote(email, safe='')}"

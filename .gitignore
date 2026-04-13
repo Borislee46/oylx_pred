@@ -45,6 +45,12 @@ test.py
 venv312/
 
 cache/hrdata/
+cache/*.feather
+cache/**/*.feather
+config/auth_config.json
+config/app_config.json
+config/hr_permissions.json
+config/dev_config.json
 .ruff_cache/
 cookie.txt
 

@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import time
+from collections import OrderedDict
 from typing import Any
 
 import requests
@@ -35,7 +36,7 @@ class BaseAgent:
         self.cache_ttl = cache_ttl
         self.logger = setup_logger("page3", "prediction")
         self._session = requests.Session()
-        self._memory_cache: dict[str, dict[str, Any]] = {}
+        self._memory_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
         if not self.api_url or not self.api_key:
             self.logger.error(f"[{self.agent_name}] API URL 或 API Key 未在配置中找到。")
@@ -117,7 +118,8 @@ class BaseAgent:
             key_data["max_tokens"] = max_tokens
         elif self.max_tokens is not None:
             key_data["max_tokens"] = self.max_tokens
-        key_str = f"{cache_prefix}:{key_data}" if cache_prefix else str(key_data)
+        payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
+        key_str = f"{cache_prefix}:{payload}" if cache_prefix else payload
         return hashlib.md5(key_str.encode("utf-8")).hexdigest()
 
     def _get_from_cache(self, key: str) -> str | None:
@@ -129,6 +131,7 @@ class BaseAgent:
             del self._memory_cache[key]
             return None
 
+        self._memory_cache.move_to_end(key)
         return cache_entry["value"]
 
     def _extract_text_content(self, content: Any) -> str:
@@ -154,12 +157,12 @@ class BaseAgent:
         return ""
 
     def _save_to_cache(self, key: str, value: str) -> None:
-        if len(self._memory_cache) > 1000:
-            sorted_items = sorted(self._memory_cache.items(), key=lambda x: x[1]["timestamp"])
-            for k, _ in sorted_items[:200]:
-                del self._memory_cache[k]
-
+        if key in self._memory_cache:
+            del self._memory_cache[key]
         self._memory_cache[key] = {"value": value, "timestamp": time.time()}
+        self._memory_cache.move_to_end(key)
+        while len(self._memory_cache) > 1000:
+            self._memory_cache.popitem(last=False)
 
     def _estimate_tokens(self, text: str) -> float:
         if not text:
@@ -204,6 +207,7 @@ class BaseAgent:
         schema_hint: str,
         cache_prefix: str = "json_repair",
         thinking_type: str | None = None,
+        max_tokens: int | None = None,
     ) -> str | None:
         raw_text = str(raw_text or "").strip()
         if not raw_text:
@@ -220,7 +224,11 @@ class BaseAgent:
             f"{raw_text}\n"
         )
         fixed = self._call_api(
-            prompt, cache_prefix=cache_prefix, use_cache=True, thinking_type=thinking_type
+            prompt,
+            cache_prefix=cache_prefix,
+            use_cache=True,
+            thinking_type=thinking_type,
+            max_tokens=max_tokens,
         )
         if not fixed:
             return None
@@ -258,7 +266,6 @@ class BaseAgent:
                     f"[{self.agent_name}] 命中缓存: {cache_key[:8]}... "
                     f"Token估算 - 输入: {input_tokens}, 输出: {output_tokens}, 总计: {round(input_tokens + output_tokens, 2)}"
                 )
-                self.logger.debug(f"[{self.agent_name}] 命中缓存: {cache_key[:8]}...")
                 return cached_result
 
         data = self._build_request_data(prompt, thinking_type=thinking_type, max_tokens=max_tokens)

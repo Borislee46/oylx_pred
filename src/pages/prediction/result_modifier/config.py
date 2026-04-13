@@ -1,6 +1,9 @@
 import json
+import logging
 from functools import lru_cache
 from pathlib import Path
+
+_logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -90,8 +93,13 @@ def load_prediction_rules() -> dict:
         try:
             with open(PREDICTION_RULES_PATH, encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            pass
+        except Exception as e:
+            _logger.warning(
+                "Failed to load prediction rules from %s, using defaults: %s",
+                PREDICTION_RULES_PATH,
+                e,
+                exc_info=True,
+            )
     return {}
 
 
@@ -113,6 +121,8 @@ FUZZY_BIAS_MULTIPLIER_MID: float = 1.15
 FUZZY_BIAS_MULTIPLIER_LOW: float = 1.05
 UNIVERSITY_COUNT_THRESHOLD: int = 2
 CROSS_MAJOR_SIMILARITY_MIN: float = 0.8
+COMBINATION_POOL_SEMANTIC_MIN: float = 0.6
+COMBINATION_POOL_FUZZY_MIN: int = 90
 TOP_N_RECOMMENDATIONS: int = 30
 USER_SPECIFIED_SMALL_RANGE_THRESHOLD: int = 20
 USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD: int = 100

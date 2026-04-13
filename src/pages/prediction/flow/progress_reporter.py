@@ -18,13 +18,18 @@ class ProgressReporter:
         self._min_interval = float(min_interval)
         self._last_emit_at = 0.0
         self._last_text = ""
+        self.current_phase: str = ""
 
     def emit(
         self,
         text: str | list[str],
         *,
         force: bool = False,
+        phase: str = "",
     ) -> None:
+        if phase:
+            self.current_phase = phase
+
         if self._progress_cb is None:
             return
 

@@ -1,4 +1,5 @@
 import base64
+import html
 from pathlib import Path
 
 import streamlit as st
@@ -81,4 +82,23 @@ def render_thought_bubble(logs: list[str], placeholder: st.delta_generator.Delta
         {"<br>".join(logs)}
     </div>
     """
+    placeholder.markdown(thought_content, unsafe_allow_html=True)
+
+
+def render_thought_bubble_with_wait_pulse(
+    logs: list[str], placeholder: st.delta_generator.DeltaGenerator
+) -> None:
+    if not logs:
+        return
+    escaped = [html.escape(x) for x in logs]
+    pulse = (
+        ' <span class="hk-thought-wait">处理中'
+        '<span class="hk-thought-wait-d1">.</span>'
+        '<span class="hk-thought-wait-d2">.</span>'
+        '<span class="hk-thought-wait-d3">.</span>'
+        "</span>"
+    )
+    escaped[-1] = escaped[-1] + pulse
+    inner = "<br>".join(escaped)
+    thought_content = f'<div style="{THOUGHT_BUBBLE_STYLE}">{inner}</div>'
     placeholder.markdown(thought_content, unsafe_allow_html=True)

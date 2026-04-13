@@ -1,73 +1,60 @@
-# 专业相似度预计算 (E5 Embedding)
+# 专业相似度离线预计算（E5）
 
-参考模型：
-- **Multilingual E5 Instruct**: [https://huggingface.co/intfloat/multilingual-e5-large-instruct](https://huggingface.co/intfloat/multilingual-e5-large-instruct)
+| 项 | 说明 |
+|----|------|
+| 脚本 | `scripts/precompute_similarities.py` |
+| 模型加载 | `scripts/model_utils.py`（优先本地目录，否则 Hugging Face `intfloat/multilingual-e5-large-instruct`） |
+| 输出文件 | 仓库根目录 `cache/background_target_similarity.feather` |
+| 线上读取 | `src/utils/app_data_loader.load_bg_target_similarity_cache`；检索辅助函数 `src/pages/prediction/core/utils.py::get_cached_major_similarity` |
 
-本说明描述如何使用 E5 嵌入模型预计算“背景专业-目标专业”的相似度缓存，以加速预测/推荐阶段的相似度查询。
+## 1. 目的
 
-## 1. 模型与加载 (`scripts/model_utils.py`)
+对「背景专业 × 目标专业」批量预计算嵌入相似度，避免在线对每个组合实时编码，缩短预测路径延迟。
 
-- **优先本地加载**：`src/services/multilingual-e5-large-instruct`
-- 本地不存在时回退到在线模型 `intfloat/multilingual-e5-large-instruct`。
-- 支持 GPU/CPU，CPU 可选动态量化（线性层）。
-- 批量大小：`compute_embeddings_batch_local(..., batch_size=64)` 可按机器性能调整（默认值在脚本中配置）。
-- 编码阶段开启 `normalize_embeddings=True`，直接返回单位向量，便于后续用点积计算相似度。
+## 2. 输入数据
 
-## 2. 预计算脚本 (`scripts/precompute_similarities.py`)
+| 路径 | 用途 |
+|------|------|
+| `src/machine_learning_models/data/cases.feather` | 汇总 `background_major`、`target_major` 去重集合 |
+| `src/machine_learning_models/data/school_major_details.feather` | 补充目标侧专业英文名集合；构建英→中映射 |
 
-### 输入数据路径
-- **案例库**：`src/machine_learning_models/data/cases.feather`
-- **学校专业详情**：`src/machine_learning_models/data/school_major_details.feather`
+## 3. 编码与指令格式
 
-### 目标缓存
-- **背景专业-目标专业 (BG-Target)**：预测流水线使用（脚本当前仅生成这一份）
+- 背景与目标专业名字符串经 `strip().lower()` 去重；嵌入输入可使用映射后的中文显示名（`eng_to_chi_map`），**缓存列仍存原始小写键**（与线上一致）。
+- 背景侧 query 格式（与脚本一致）：
 
-### 表示名选择
-用于 embedding 输入，而非缓存 key：
-- 若详情表同时包含“专业英文名称/专业中文名称”，会把英文专业映射为中文名作为 embedding 输入；无法映射时使用原字符串。
-- embedding 会对“去重后的表示名集合”计算一次向量，并通过相似度矩阵查表复用（同一表示名共享 embedding）。
+  `Instruct: {task}\nQuery: {text}`
 
-### 提示词与指令 (Instruction)
-- 系统使用 **Instruct** 模式提升匹配精度。
-- **背景专业 (Query Side)**：增加指令前缀 `Instruct: Given an academic major, retrieve the most relevant target major for university admission\nQuery: {专业名称}`。
-- **目标专业 (Candidate Side)**：直接使用专业名称，不添加前缀。
-- 若 `eng_to_chi_map` 存在映射，则使用中文专业名进行 Embedding 计算，但缓存 Key 仍保留为原始字符串（通常为英文）。
+  其中 `task` 为固定英文任务句：`Given an academic major, retrieve the most relevant target major for university admission`。
 
-### 相似度计算
-- 编码阶段已做 L2 归一化（`normalize_embeddings=True`），相似度使用向量点积（等价于余弦相似度）。
+- 目标侧：直接使用表示名 `text`，无 Instruct 前缀。
+- `model_utils` 中编码开启 `normalize_embeddings=True`，相似度矩阵为归一化向量点积（等价余弦）。
 
-### 存储规范与检索
-- **存储格式**：使用 Feather 格式，包含 `bg_major`、`target_major`、`similarity` 三列。
-- **检索逻辑**：线上由 `src/pages/prediction/core/utils.py::get_cached_major_similarity` 执行。
-- **一致性保证**：为了保证匹配成功率，所有的专业名在存储和检索前都会进行 **`.strip().lower()`** 处理（包括 Embedding 计算时的中文映射查找）。
-- **检索顺序**：检索 Key 顺序为 `(background_major, target_major)`。
-- **输出文件**：`cache/background_target_similarity.feather`。
-- **兼容性**：
-  - 脚本里仍保留了历史路径常量，但当前版本不会写入该文件。
-  - 当前脚本不做旧缓存自动清理。
+## 4. 输出 Schema
 
-## 3. 常见问题排查
+Feather 三列：
 
-- **相似度异常偏高（跨学科被错判为高相似）**：
-  - 确保使用 E5 并采用 `query:` 提示词风格。
-  - 重新运行预计算脚本生成新缓存后再观察推荐结果。
+- `bg_major`、`target_major`：小写字符串
+- `similarity`：`float`，范围 \([-1, 1]\)（点积）
 
-- **相似度列表偏少/偏多**：
-  - 可调 `batch_size` 提升吞吐；阈值在业务层（如 `result_modifier`）调节，不影响缓存本身。
+脚本将笛卡尔积写入 `BG_TARGET_CACHE_PATH`；目录不存在时自动创建。
 
-## 4. 路径配置与运行
-
-运行脚本将缓存写入仓库根目录下的 `cache/`（线上加载函数默认从该目录读取：`cache/background_target_similarity.feather`）。
-
-### 运行
+## 5. 运行
 
 ```bash
 python scripts/precompute_similarities.py
 ```
 
-完成后，缓存将被写入根目录 `cache/`，供线上 `utils.app_data_loader.load_bg_target_similarity_cache` 加载使用。
+可调参数：`scripts/precompute_similarities.py` 内 `BATCH_SIZE`（默认 64）、`MODEL_NAME`。大批量时主要受 GPU/内存与 PyTorch 设备影响。
+
+## 6. 运维与排障
+
+| 现象 | 建议 |
+|------|------|
+| 跨学科相似度异常偏高 | 核对是否使用 Instruct 模板与同一模型版本；清空缓存后全量重算 |
+| 键匹配失败 | 线上检索前对 major 做与离线一致的 `strip().lower()`；检查中英映射表是否覆盖 |
+| 缓存体积过大 | 源数据去重后仍可能为 \|Bg\|×\|Target\| 行数；仅在业务层截断或阈值过滤，不改变缓存生成逻辑 |
 
 ---
 
-> **维护人**: lijiapeng8@xdf.cn
-> **版本**: v2.8
+维护：与 `scripts/precompute_similarities.py`、`scripts/model_utils.py` 同步更新。

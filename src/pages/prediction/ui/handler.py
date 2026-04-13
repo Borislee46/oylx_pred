@@ -17,10 +17,7 @@ from src.pages.prediction.input_form_components.cross_faculty_guard import (
 from src.pages.prediction.page_components.submission_logger import (
     log_first_submission_if_needed,
 )
-from src.pages.prediction.prediction_preparation import (
-    compute_list_fingerprint,
-    prepare_input_data,
-)
+from src.pages.prediction.prediction_preparation import prepare_input_data
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
@@ -87,16 +84,12 @@ def run_prediction_with_guard(
     input_data_with_lists["_has_valid_experience"] = has_valid_experience
 
     cases_df_fingerprint = page_state.cases_df_fingerprint
-    all_universities_fingerprint = compute_list_fingerprint(all_universities_target)
-    all_majors_fingerprint = compute_list_fingerprint(all_majors_target)
 
     prediction_result_model = run_prediction_pipeline_with_progress(
         input_data_with_lists,
         "xgboost",
         cases_df_fingerprint,
         page_state.loaded_feature_names,
-        all_universities_fingerprint,
-        all_majors_fingerprint,
         progress_cb=progress_cb,
         background_faculty=background_faculty,
         admitted_combinations=admitted_combinations,

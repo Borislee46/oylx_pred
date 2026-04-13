@@ -27,7 +27,7 @@ class AgentAdjustmentSession:
     def record_evaluation(self, cases: list[dict]):
         for case in cases:
             k = case_key(case)
-            if k:
+            if k is not None:
                 self.evaluated_cases.add(k)
 
     def should_stop(self) -> bool:
@@ -104,8 +104,15 @@ class AgentAdjustmentEngine:
             evaluation = self._evaluate_with_agent(agent_cases)
             if evaluation:
                 agent_decisions = evaluation.get("decisions", [])
+                evaluated_flags = evaluation.get("evaluated")
                 for j, idx in enumerate(agent_indices):
                     if j < len(agent_decisions):
+                        if (
+                            evaluated_flags is not None
+                            and j < len(evaluated_flags)
+                            and not evaluated_flags[j]
+                        ):
+                            continue
                         decisions[idx] = bool(agent_decisions[j])
 
         return decisions

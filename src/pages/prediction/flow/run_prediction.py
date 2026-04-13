@@ -2,6 +2,10 @@ from typing import Any
 
 import pandas as pd
 
+from src.pages.prediction.config.ui_messages import (
+    PIPELINE_PHASE_MAP,
+    format_pipeline_compute_progress,
+)
 from src.pages.prediction.core.types import PredictionInput
 from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.processor import (
@@ -69,6 +73,14 @@ def run_single_prediction(
         prediction_runner_logger.warning("有效组合为空：请检查候选池或筛选条件。")
         meta["error"] = "no_valid_combinations"
         return [], [], None, meta
+
+    if progress_reporter is not None:
+        hints = meta.get("progress_hints") or {}
+        progress_reporter.emit(
+            format_pipeline_compute_progress(combinations, hints),
+            force=True,
+            phase=PIPELINE_PHASE_MAP["running_calc"],
+        )
 
     model_input_features, missing_inputs = prepare_model_inputs(
         current_input_data, expected_features

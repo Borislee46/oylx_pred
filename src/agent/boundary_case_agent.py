@@ -46,9 +46,10 @@ class BoundaryCaseAgent(BaseAgent):
     ) -> dict[str, Any]:
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
-            return {"decisions": [], "needs_adjustment": False}
+            return {"decisions": [], "needs_adjustment": False, "evaluated": []}
 
         final_decisions = [False] * len(boundary_cases)
+        evaluated = [False] * len(boundary_cases)
 
         pending_indices = []
         for i, case in enumerate(boundary_cases):
@@ -60,15 +61,21 @@ class BoundaryCaseAgent(BaseAgent):
                 cached = self._persistent_cache.get(cache_key)
                 if isinstance(cached, bool):
                     final_decisions[i] = cached
+                    evaluated[i] = True
                     continue
                 if isinstance(cached, dict) and isinstance(cached.get("decision"), bool):
                     final_decisions[i] = bool(cached["decision"])
+                    evaluated[i] = True
                     continue
 
             pending_indices.append(i)
 
         if not pending_indices:
-            return {"decisions": final_decisions, "needs_adjustment": any(final_decisions)}
+            return {
+                "decisions": final_decisions,
+                "needs_adjustment": any(final_decisions),
+                "evaluated": evaluated,
+            }
 
         self.logger.info(
             f"[{self.agent_name}] 开始评估 - 模式: {mode}, 背景专业: {background_major}, "
@@ -98,6 +105,7 @@ class BoundaryCaseAgent(BaseAgent):
                     content,
                     schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
                     cache_prefix="boundary_json_repair",
+                    max_tokens=256,
                 )
                 if not repaired:
                     continue
@@ -115,6 +123,7 @@ class BoundaryCaseAgent(BaseAgent):
                     json.dumps(result, ensure_ascii=False),
                     schema_hint=f'{{"decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
                     cache_prefix="boundary_json_repair_len",
+                    max_tokens=256,
                 )
                 if repaired:
                     try:
@@ -125,6 +134,7 @@ class BoundaryCaseAgent(BaseAgent):
                         pass
 
             for j, idx in enumerate(current_batch_indices):
+                evaluated[idx] = True
                 d = False
                 if j < len(agent_decisions):
                     d = parse_bool(agent_decisions[j])
@@ -145,4 +155,8 @@ class BoundaryCaseAgent(BaseAgent):
         self.logger.info(
             f"[{self.agent_name}] 评估完成 - 需要调整: {needs_adjustment}, 通过数: {sum(final_decisions)}"
         )
-        return {"decisions": final_decisions, "needs_adjustment": needs_adjustment}
+        return {
+            "decisions": final_decisions,
+            "needs_adjustment": needs_adjustment,
+            "evaluated": evaluated,
+        }

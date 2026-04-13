@@ -111,7 +111,7 @@ class FormStateManager:
         }
 
     @staticmethod
-    def _auto_save_form_data(
+    def _touch_form_snapshot(
         session_manager: SessionManager, throttle_seconds: float = None
     ) -> None:
         current_form_data = FormStateManager._get_current_form_snapshot(session_manager)
@@ -153,7 +153,7 @@ class FormStateManager:
         )
 
         throttle = AUTO_SAVE_THROTTLE_TEXT if change_type == "text" else AUTO_SAVE_THROTTLE_SELECT
-        FormStateManager._auto_save_form_data(session_manager, throttle_seconds=throttle)
+        FormStateManager._touch_form_snapshot(session_manager, throttle_seconds=throttle)
 
     @staticmethod
     def _on_target_selection_change(
@@ -285,7 +285,7 @@ class FormStateManager:
     @staticmethod
     def on_submit_click(session_manager: SessionManager) -> None:
         session_manager.set(submitted=True, form_data_changed=False, last_submission_logged=False)
-        FormStateManager._auto_save_form_data(session_manager)
+        FormStateManager._touch_form_snapshot(session_manager)
 
     @staticmethod
     def _convert_language_score(old_type: str, new_type: str, score: float) -> float | None:

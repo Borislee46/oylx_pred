@@ -1,116 +1,76 @@
-# 结果修正模块 API
+# 结果修正模块（Result Modifier）
 
-**路径**: `src/pages/prediction/result_modifier`
+| 项 | 说明 |
+|----|------|
+| 源码路径 | `src/pages/prediction/result_modifier/` |
+| 作用域 | 主模型输出的概率在交付前的可控后处理（统计惩罚、业务规则、文本 Logit uplift） |
+| 文本 uplift 细节 | [text_uplift_api.md](text_uplift_api.md) |
 
-本模块用于在主模型输出基础概率后，做可控的后处理：GPA/语言惩罚、职业型专业降权、跨专业无录取惩罚、以及基于文本质量的 Logit 增量加成。
+`AdjustmentContext` 字段表、仲裁公式、`RelaxStrategy`/`TightenStrategy` 行为及测试路径等更细的实现说明见 [src/pages/prediction/result_modifier/README.md](../src/pages/prediction/result_modifier/README.md)。
 
-## 1. 结构概览
+## 1. 组件索引
 
-- **配置**：`config.py`
-- **调整管线**：`adjustment_pipeline.py`
-- **概率调整**：`probability_adjuster.py`（统计 + 分段惩罚）
-- **文本加成入口**：`text_boost_provider.py`
-- **文本加成实现**：详见 [文本加成 API (Text Uplift)](text_uplift_api.md)
-- **推荐筛选**：`filters.py`
-- **学院过滤器**：`faculty_filters.py` (处理跨学院惩罚)
-- **语言惩罚辅助**：`language_penalty.py`
-- **相似度规则微调**：`similarity_adjuster.py`
-- **Agent 排序调整**：`ranker.py` / `engine.py` / `strategies.py`
-- **录取组合缓存**：`admission_cache.py`
-- **工具函数**：`utils.py`
+| 模块 | 职责 |
+|------|------|
+| `config.py` | 阈值、惩罚系数、文本加成默认配置与路径 |
+| `adjustment_pipeline.py` | `ProbabilityAdjustmentPipeline` 批量修正入口 |
+| `probability_adjuster.py` | GPA/语言等分段惩罚 |
+| `text_boost_provider.py` | 文本加成提供者装配 |
+| `filters.py` | 相似/跨专业推荐筛选与排序辅助 |
+| `faculty_filters.py` | 跨学部兼容与惩罚 |
+| `language_penalty.py` | 目标专业语言要求相关惩罚 |
+| `similarity_adjuster.py` | 相似度规则与模糊偏置 |
+| `ranker.py` / `engine.py` / `strategies.py` | Agent 侧排序策略 |
+| `admission_cache.py` | 历史录取组合缓存 |
+| `experience_text_validator.py` | 文本参与 uplift 前的有效性检查（可选 LLM，失败则本地规则） |
+| `utils.py` | 共用工具函数 |
 
-## 2. 配置 (`config.py`)
+## 2. 配置要点（`config.py`）
 
-### 文本加成配置 (`DEFAULT_TEXT_BOOST_CONFIG`)
+默认值以源码为准；文档仅列概念：
 
-- `enabled: bool`
-- `max_total_boost`: 概率上限的最大相对提升幅度
-- `sim_gate_*`: 相似度门控阈值
-- `cap_min_factor / cap_quality_gamma`: 封顶因子
-- `high_signal`: 可选的高信号词典/新颖度加分配置
-- `model_paths`: 指向 TF-IDF 相关模型文件
+- **文本加成**：`DEFAULT_TEXT_BOOST_CONFIG`（`enabled`、`max_total_boost`、相似度门控、`model_paths` 指向 TF-IDF 产物等）。
+- **硬阈值示例**：`GPA_MINIMUM`、`LANGUAGE_MINIMUM`、`PROBABILITY_MIN_VALUE` 及仲裁后下限。
+- **惩罚/加成上限**：总惩罚率上限、总加成率上限（防止数值发散）。
+- **跨专业/学部**：`CROSS_MAJOR_PENALTY_FACTOR`、`FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR` 等。
+- **相似度**：`MIN_SIMILARITY_THRESHOLD`、`HIGHER_SIMILARITY_THRESHOLD`（院校数量较少时可用更高阈值，见 `filters.py`）。
 
-### 常用阈值/系数
-- **GPA/语言极低阈值**：`GPA_MINIMUM=2.0`, `LANGUAGE_MINIMUM=0.6`
-- **最小概率截断**：`PROBABILITY_MIN_VALUE=0.001` (仲裁后强制最低 `0.005`)
-- **衰减系数**：惩罚项 `0.85`，加成项 `0.8`
-- **安全封顶**：总惩罚率上限 `0.7`，总加成率上限 `0.3`
-- **跨专业惩罚**：`CROSS_MAJOR_PENALTY_FACTOR=0.5`
-- **跨学院惩罚**：`FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR=0.3`
-- **职业型专业**：`["Business Administration","MBA"]`
-- **相似度阈值**：`MIN_SIMILARITY_THRESHOLD=0.89`, `HIGHER_SIMILARITY_THRESHOLD=0.92`
+## 3. 处理阶段
 
-## 3. 调整流程
+### 3.1 列表生成阶段（与 `flow/processor.py`、筛选器协同）
 
-整个调整分为两个阶段：
+- **单项处理**：专业详情中的 IELTS/TOEFL 门槛 vs 用户分数 → 目标相关语言惩罚；注入 `faculty`、中文名等元数据。
+- **相似度**：`SimilarityAdjuster` 结合规则文件 `config/similarity_adjustment_rules.json` 与模糊偏置。
+- **槽位**：`filters.py` 中 `IDENTITY_MIN_SLOT_RATIO`（如 0.4）保障强匹配比例下限。
+- **排序**：综合相似度与 boost（具体公式见代码内注释与 `Selection Score` 实现）。
+- **边界探索**：`BoundaryCaseAgent` 调节推荐条数平衡。
 
-### 第一阶段：单项处理与筛选 (`flow/processor.py` & `filters.py`)
-在生成推荐列表时，系统会执行以下逻辑：
-1.  **单项处理 (SingleResultProcessor)**：
-    - **目标特定语言要求惩罚**：从专业详情中提取 IELTS/TOEFL 录取门槛，若用户分数低于门槛，应用惩罚。
-    - **元数据注入**：附加学部 (`faculty`)、专业中文名等。
-2.  **相似度偏置修正**：调用 `SimilarityAdjuster` 根据背景专业微调原始相似度。
-    - **模糊偏移 (Fuzzy Bias)**：基于字符重合度施加乘法增益。
-    - **规则修正**：基于 `similarity_adjustment_rules.json` 进行微调。
-3.  **槽位保障 (Identity Slot)**：在推荐相似专业时，保留至少 40% (`IDENTITY_MIN_SLOT_RATIO`) 的名额给强匹配专业。
-4.  **推荐分值计算 (Selection Score)**：推荐列表的排序并非纯相似度，而是综合了 `similarity * (1 + boost)`。
-    - **Boost 条件**：当用户的综合背景分 (GPA+语言+背景院校) > 0.6 且目标院校难度已知时触发。
-5.  **Agent 平衡**：调用 `BoundaryCaseAgent` 进行边界探索，动态平衡推荐项数量。
+### 3.2 批量修正（`ProbabilityAdjustmentPipeline.adjust_batch`）
 
-### 第二阶段：批量修正流水线 (`adjustment_pipeline.py`)
-**类**: `src/pages/prediction/result_modifier/adjustment_pipeline.py::ProbabilityAdjustmentPipeline`
+对每个结果项顺序执行：
 
-`adjust_batch(results, ctx)` 会对每个结果按顺序执行：
-1.  **通用 GPA/语言惩罚**：根据用户 GPA 和语言分与历史录取的偏差施加惩罚（含二次项惩罚）。
-2.  **动态惩罚项**：
-    - **跨专业惩罚 (`CrossMajorPenalty`)**: 若相似度低且无历史录取，施加惩罚。
-    - **跨学部惩罚**：若目标专业不在背景学部的兼容矩阵范围内，施加惩罚。
-    - **职业型专业降权**：若缺乏实习背景且目标为职业型专业，乘以降权因子。
-3.  **文本加成 (`TextBoostProvider`)**：基于 Logit Uplift 模型计算 NLP 经验带来的概率增量。
-4.  **仲裁与归一化**：
-    - 所有因子通过 `AdjustmentArbitrator` 融合，并执行**因子衰减**和**总偏移约束**。
-    - 最终通过 `NormalizationLayer` 保证概率在 `[0.005, 1.0]` 区间。
+1. 通用 GPA/语言惩罚（`ProbabilityAdjuster`）。
+2. 动态项：`CrossMajorPenalty`、跨学部惩罚、职业型专业降权（配置中的专业名单与实习条件）。
+3. 文本加成：`TextBoostProvider`（Logit 空间增量，见 [text_uplift_api.md](text_uplift_api.md)）。
+4. 仲裁与归一化：`AdjustmentArbitrator` 融合与衰减；`NormalizationLayer` 将概率限制在配置区间内（如 `[0.005, 1.0]`）。
 
-## 4. 核心配置项 (`config.py`)
+### 3.3 文本预检（`experience_text_validator.py`）
 
-- **相似度阈值**：院校数 <= 2 时用 `0.92`，否则用 `0.89`。
-- **跨专业范围**：`0.8 <= similarity < 0.89`。
-- **职业型专业**：`["Business Administration", "MBA"]`。
-- **惩罚因子**：
-    - 跨专业：`CROSS_MAJOR_PENALTY_FACTOR = 0.5`
-    - 跨学院：`FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR = 0.3`
-    - 职业型（普通）：`PROFESSIONAL_REDUCTION_FACTOR = 0.3`
-    - 职业型（用户指定）：`PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR = 0.5`
+在参与 Logit uplift 前：
 
-## 5. 文本内容预核验 (`experience_text_validator.py`)
+1. 若配置 OpenAI，可调用 `TextPreprocessingAgent` 做语义有效性判断。
+2. 否则本地清洗非中英字符并校验有效长度下限。
+3. 未通过预检的字段不参与 uplift 计算。
 
-在触发文本加成模型前，系统会进行**有效性检查**：
-1.  **LLM 校验**：若配置了 OpenAI 接口，调用 `TextPreprocessingAgent` 识别输入文本是否为真实的科研、实习、获奖描述（防止乱填或凑字数）。
-2.  **本地兜底**：若 LLM 未启用或调用失败，通过正则表达式清洗非中英文字符，并校验清洗后的有效字符长度是否 $\ge 3$。
-3.  **门控效应**：只有核验通过的字段才会参与后续的 Logit Uplift 计算。
+## 4. 学院兼容（`faculty_filters.py`）
 
-## 6. 文本加成 (`text_boost_provider.py`)
+`CROSS_FACULTY_RULES` 定义背景学部与目标学部的允许组合；目标学部不在允许集合时施加惩罚。具体矩阵以源码为准。
 
-该功能已解耦至独立文档，请参阅：[**文本加成 API 文档**](text_uplift_api.md)。
+## 5. 推荐筛选（`filters.py`）
 
-### 快速要点：
-- **核心逻辑**：基于增量建模（Uplift Modeling）计算 Logit 偏移。
-- **防作弊**：内置香农熵（Shannon Entropy）检测，自动压制重复、注水文本的加成。
-- **可解释性**：日志会自动输出加成原因（如命中的关键词标签）。
-- **性能**：极致优化的字节级计算，处理速度比调用 LLM 快数万倍。
+- **相似专业**：相似度阈值随候选院校数量切换（高/低两档）；`TOP_N_RECOMMENDATIONS` 限制条数；按概率排序。
+- **跨专业**：相似度落在配置区间内且历史存在录取组合时入选；跨专业结果需带 `admitted` 标记方可进入 `unified_results`（与 [prediction_api.md](prediction_api.md) 一致）。
 
-## 6. 学院兼容矩阵 (`faculty_filters.py`)
+---
 
-系统内置了 `CROSS_FACULTY_RULES` 矩阵，定义了各学部之间的申请兼容性。若目标专业所属学部不在背景学部的兼容列表中，将触发惩罚。部分典型规则：
-- **商学院**：兼容【社会科学院、文学院】。
-- **理学院/工程学院**：兼容【商学院、计算机学院、建筑/设计学院】。
-- **法学院/医学院**：通常仅兼容自身。
-
-## 7. 推荐筛选与排序 (`filters.py`)
-
-- `get_similar_major_recommendations(...)`
-  - 相似度阈值：院校数少时用 `0.92`，否则用 `0.89`。
-  - 取 `TOP_N_RECOMMENDATIONS=30`，按概率降序。
-
-- `get_cross_major_recommendations(...)`
-  - 仅在“历史存在录取组合”的跨专业范围内选：`0.8 <= similarity < 0.89`。
+维护：与 `src/pages/prediction/result_modifier/` 同步更新。

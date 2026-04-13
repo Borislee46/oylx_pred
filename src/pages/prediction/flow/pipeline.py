@@ -5,7 +5,14 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from src.pages.prediction.config.ui_messages import PIPELINE_MESSAGES
+from src.pages.prediction.config.ui_messages import (
+    PIPELINE_MESSAGES,
+    PIPELINE_PHASE_MAP,
+    format_pipeline_done_progress,
+    format_pipeline_empty_progress,
+    format_pipeline_prep_progress,
+    format_pipeline_refine_progress,
+)
 from src.pages.prediction.core.utils import get_background_faculty, is_new_major
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.flow.run_prediction import run_single_prediction
@@ -50,7 +57,6 @@ def _execute_prediction_pipeline(
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
 ) -> PredictionResultModel:
-    reporter.emit(PIPELINE_MESSAGES["wake_model"])
     prediction_model = cached_get_prediction_model(model_name)
 
     if prediction_model is None:
@@ -59,8 +65,6 @@ def _execute_prediction_pipeline(
     if page_state is None:
         page_state = machine_learning_model.resource_loader()
     cases_df = page_state.cases_df
-
-    reporter.emit(PIPELINE_MESSAGES["check_consistency"])
 
     if cases_df_fingerprint != page_state.cases_df_fingerprint:
         prediction_handler_logger.warning(
@@ -74,13 +78,23 @@ def _execute_prediction_pipeline(
             }
         )
 
-    reporter.emit(PIPELINE_MESSAGES["build_features"])
     cleaned_input = validate_and_clean_input(input_data)
     current_input_data = {**input_data, **cleaned_input}
 
-    reporter.emit(PIPELINE_MESSAGES["prepare_pool"])
     bg_target_similarity_cache = load_bg_target_similarity_cache()
-    reporter.emit(PIPELINE_MESSAGES["load_similarity"], force=False)
+
+    reporter.emit(
+        format_pipeline_prep_progress(
+            bg_university=cleaned_input.get("background_university"),
+            bg_major=cleaned_input.get("background_major"),
+            language_type=cleaned_input.get("language_type"),
+            language_score=cleaned_input.get("language_score"),
+            target_universities=cleaned_input.get("target_universities"),
+            similarity_cache_loaded=bool(bg_target_similarity_cache),
+        ),
+        force=True,
+        phase=PIPELINE_PHASE_MAP["init_engine"],
+    )
 
     num_target_universities = len(cleaned_input.get("target_universities", []))
     cross_faculty_confirmed = input_data.get("_cross_faculty_confirmed", False)
@@ -89,8 +103,6 @@ def _execute_prediction_pipeline(
     language_score = cleaned_input.get("language_score")
     background_university = cleaned_input.get("background_university")
     background_major = cleaned_input.get("background_major", "")
-
-    reporter.emit(PIPELINE_MESSAGES["extract_profile"])
 
     probability_adjuster = (
         ProbabilityAdjuster(
@@ -101,7 +113,6 @@ def _execute_prediction_pipeline(
         else None
     )
 
-    reporter.emit(PIPELINE_MESSAGES["running_calc"])
     sim_results, cross_results, user_specified_results, meta = run_single_prediction(
         current_input_data=current_input_data,
         prediction_model=prediction_model,
@@ -127,9 +138,6 @@ def _execute_prediction_pipeline(
         prediction_handler_logger.info(f"预测未生成有效结果: {meta.get('error')}")
         return PredictionResultModel(meta=meta)
 
-    reporter.emit(PIPELINE_MESSAGES["initial_filter"])
-    reporter.emit(PIPELINE_MESSAGES["analyze_text"])
-
     admitted_combos = (
         admitted_combinations
         if admitted_combinations is not None
@@ -149,6 +157,24 @@ def _execute_prediction_pipeline(
         else (
             current_input_data.get("faculty") or get_background_faculty(background_major, cases_df)
         )
+    )
+
+    route_labels: list[str] = []
+    if sim_results:
+        route_labels.append("相似专业")
+    if cross_results:
+        route_labels.append("跨专业")
+    if user_specified_results:
+        route_labels.append("用户指定")
+
+    reporter.emit(
+        format_pipeline_refine_progress(
+            route_labels=route_labels,
+            bg_faculty=bg_faculty if isinstance(bg_faculty, str) else None,
+            soft_background_on=bool(input_data.get("_has_valid_experience")),
+        ),
+        force=True,
+        phase=PIPELINE_PHASE_MAP["initial_filter"],
     )
 
     adj_ctx = AdjustmentContext(
@@ -185,7 +211,6 @@ def _execute_prediction_pipeline(
             user_specified_results, adj_ctx, progress_reporter=reporter, batch_tag="用户指定"
         )
 
-    reporter.emit(PIPELINE_MESSAGES["merging"])
     unique_results = combine_and_deduplicate_results(
         sim_results, cross_results, user_specified_results
     )
@@ -199,10 +224,21 @@ def _execute_prediction_pipeline(
             random.choice(empty_msg) if isinstance(empty_msg, list) else empty_msg,
         )
         prediction_handler_logger.info("预测结果为空")
-        reporter.emit("分析结束", force=True)
+        reporter.emit(
+            format_pipeline_empty_progress(
+                bg_major=background_major,
+                target_universities=cleaned_input.get("target_universities"),
+            ),
+            force=True,
+            phase=PIPELINE_PHASE_MAP["empty_results"],
+        )
         return PredictionResultModel(meta=meta)
 
-    reporter.emit(PIPELINE_MESSAGES["done"], force=True)
+    reporter.emit(
+        format_pipeline_done_progress(),
+        force=True,
+        phase=PIPELINE_PHASE_MAP["done"],
+    )
 
     return PredictionResultModel(
         similarity_results=sim_results,
@@ -227,8 +263,6 @@ def run_prediction_pipeline(
     model_name: str,
     cases_df_fingerprint: int,
     loaded_feature_names: list[str],
-    all_universities_fingerprint: tuple[int, int],
-    all_majors_fingerprint: tuple[int, int],
     background_faculty: str | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
@@ -255,8 +289,6 @@ def run_prediction_pipeline_with_progress(
     model_name: str,
     cases_df_fingerprint: int,
     loaded_feature_names: list[str],
-    all_universities_fingerprint: tuple[int, int],
-    all_majors_fingerprint: tuple[int, int],
     *,
     progress_cb: ProgressCallback | None = None,
     background_faculty: str | None = None,

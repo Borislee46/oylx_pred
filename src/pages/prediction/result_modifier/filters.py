@@ -9,6 +9,7 @@ from src.pages.prediction.result_modifier.admission_cache import (
 from src.pages.prediction.result_modifier.config import (
     AGENT_MIN_SAFE_RELAX_THRESHOLD,
     CROSS_MAJOR_SIMILARITY_MIN,
+    FUZZY_BIAS_THRESHOLD_HIGH,
     HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
     TOP_N_RECOMMENDATIONS,
@@ -66,7 +67,7 @@ def get_similar_major_recommendations(
     target_count = TOP_N_RECOMMENDATIONS
 
     def is_strong_match(res: dict[str, Any]) -> bool:
-        return res.get("_strong_match_score", 0) > 92
+        return res.get("_strong_match_score", 0) > FUZZY_BIAS_THRESHOLD_HIGH
 
     strong_matches = [r for r in filtered_by_similarity if is_strong_match(r)]
     others = [r for r in filtered_by_similarity if not is_strong_match(r)]

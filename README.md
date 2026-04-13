@@ -1,149 +1,87 @@
-# EasyApply 留学择校系统
+# 前途欧亚留学数据科学平台
 
-本数据产品提供一套从“模型训练 → 表单校验与归一 → 预测编排 → 结果调整”的端到端解决方案。
+基于 Streamlit 的多页 Web 应用：入口为根目录 [main.py](main.py)，门户页标题与 `init_page` 中一致。经 E2 OAuth 登录后，按邮箱白名单与模块权限（见 [src/utils/auth/permission_checker.py](src/utils/auth/permission_checker.py)）展示可用入口；维护模式由 `config/auth_config.json` 中的 `MAINTENANCE_MODE` 控制（管理员除外）。
 
-**核心亮点**：
-1.  **极致性能**：极低的 I/O 和开销，几乎 0 成本实现秒级推理。
-2.  **专家级效果**：预测结果与业务专家对齐，逼近人工选校水平。
-3.  **灵活扩展**：部分边界 Case 可用 Agent 解决，或在资源充足时完全替换为 Agent。
+**主要功能入口（与 `main.py` 中按钮一致）**
 
-## 架构流程
+- EasyApply 留学择校（`pages/hk.py`，模块 `hk`）：录取概率预测与相关编排逻辑。
+- 人力数据中心（`pages/hr_hub.py`）：在具备 `hr_dashboard`、`hr_profile` 或 `hr_structure_dashboard` 任一权限时可见，分别进入成本/人力看板、绩效档案、结构分析。
+- 管理员：`pages/admin.py`（权限管理）、`pages/algorithm_lab.py`（算法实验）。
+- 外链：Power BI 案例库（需 `hk` 权限时与 EasyApply 一并展示）。
 
-1.  **模型训练 (Offline)**: `src/machine_learning_models/`
-    *   **核心**: 使用 XGBoost 结合 SMOTE/SMOTENC 处理不平衡数据，并进行概率 Sigmoid 校准。
-    *   **产物**: XGBoost 主模型 (`.ubj`)、TF-IDF 文本相似度模型。
+其他 `pages/` 下的脚本（如 `guide.py`、`redirect.py`）由 Streamlit 自动注册为独立页面，是否从门户进入取决于部署与书签。
 
-2.  **专业相似度预计算 (Offline)**: `scripts/precompute_similarities.py`
-    *   **核心**: 使用 E5 Embedding 模型预计算背景专业-目标专业相似度缓存。
-    *   **产物**: `cache/background_target_similarity.feather`。
+## 架构分层
 
-3.  **用户表单 (Online)**: `src/pages/prediction/input_form_components/`
-    *   **核心**: `FormStateManager` 管理状态（自动保存/去重），`FormValidator` 进行严格校验与智能转换。
-    *   **特色**: 跨学院拦截、目标自动扩展、海外院校语言成绩处理。
+| 层级 | 说明 |
+|------|------|
+| `pages/*.py` | Streamlit 页面路由，宜保持薄，调用 `src/pages/` |
+| `src/pages/` | 业务实现：预测在 `prediction/`，人力在 `hr_dashboard/`、`hr_profile/`、`hr_structure_dashboard/` 等 |
+| `src/utils/` | 认证（`page_init`、`auth/`）、数据与模型加载、通用 UI |
+| `src/machine_learning_models/` | 离线训练与特征配置 |
+| `src/agent/` | 边界场景等辅助逻辑（如与预测流水线配合的 Agent） |
 
-4.  **预测编排 (Online)**: `src/pages/prediction/`
-    *   **入口**: 页面管线 (`src/pages/prediction/flow/pipeline.py`) 与 JSON API (`src/pages/prediction/api/json_api.py`)。
-    *   **核心**: 组合生成 → 并行推理 → 推荐生成 → 后处理 → 合并去重。
-    *   **结果**: 相似专业推荐、跨专业推荐、用户指定结果。
+预测子系统在线流程可概括为：表单校验与归一（`input_form_components/`）→ 编排与推理（`flow/pipeline.py`、`prediction_execution/executor.py`）→ 结果合并与后处理（`result_modifier/`，含 TF-IDF 文本 logit uplift 等）。进程内预测封装见 `src/pages/prediction/api/json_api.py`（模块注释标明非生产级、与 Streamlit 同进程，独立部署需另行设计服务层）。
 
-5.  **结果调整 (Online)**: `src/pages/prediction/result_modifier/`
-    *   **核心**: 可控后处理（GPA/语言惩罚、职业型降权、跨专业惩罚、TF-IDF 文本加成）。
+## 机器学习与数据
 
----
+- **训练目标**：`src/machine_learning_models/data_config.py` 中 `TARGET_COLUMN = "admitted"`，二分类；训练入口见 `train.py` / `model_trainer.py`（XGBoost、采样与校准等逻辑以代码为准）。
+- **线上推理**：页面侧通过 `page_data_loader` 等加载预训练模型与案例数据；批量推理并发行为见 `prediction_execution/executor.py`（如 `PREDICTION_USE_PROCESS_POOL`、`PREDICTION_SINGLE_THREAD_THRESHOLD`、`PREDICTION_MIN_CHUNK_SIZE`、`PREDICTION_OVERALL_TIMEOUT_SEC`）。
+- **数据与缓存**：案例与院校/专业表多为 Feather（如 `cases.feather`、`school_base.feather`、`school_major_details.feather`）；专业相似度等缓存见 `cache/` 下文件。具体默认路径以 `app_data_loader` 与训练脚本为准。
 
-## 1. 训练模块
+## 配置
 
-**路径**: `src/machine_learning_models`
+常用文件包括：`config/app_config.json`、`config/dev_config.json`、`config/auth_config.json`、`config/hr_permissions.json`、`config/gpa_conversion_rules.json`、`config/similarity_adjustment_rules.json`、`config/prediction_rules.json` 等。仓库中提供若干 `*.example.json` 供复制后本地填写。敏感项勿提交版本库。
 
-*   **数据与特征**:
-    *   目标列: `admitted` (二分类)
-    *   特征: 分类列 (`category` 编码)、计数列 (截尾+log1p)、语言分 (归一化)。
-*   **采样**: SMOTE/SMOTENC 动态采样，异常回退。
-*   **样本权重**: 文本为空样本降权、最近样本加权、采样权重对齐。
-*   **训练与校准**: XGBoost + 单调约束 + `CalibratedClassifierCV` (sigmoid, prefit)。
-*   **文本加成训练**: 生成 TF-IDF 向量器、质心和权重文件。
+## 本地运行
 
-**详细文档**: [机器学习训练管线文档](docs/ml_training_api.md)
+```bash
+python -m venv .venv
+# Windows PowerShell:
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+streamlit run main.py
+```
 
-## 2. 表单校验与归一
+依赖见 [requirements.txt](requirements.txt)（如 Streamlit、pandas、scikit-learn、xgboost-cpu 等）。
 
-**路径**: `src/pages/prediction/input_form_components`
+## 仓库结构（摘要）
 
-*   **校验器**: `FormValidator` 提供详细的中文错误提示。
-*   **状态管理**: `FormStateManager` 实现自动保存（节流 + 快照 hash）。
-*   **跨学院拦截**: `src/pages/prediction/cross_faculty_guard.py` 风险识别与弹窗确认。
-*   **GPA 转换**: 优先按院校/国家规则 (`config/gpa_conversion_rules.json`)，否则线性缩放。
-*   **语言分数**: 托福/雅思互转与归一化；海外院校选填处理。
-*   **组件服务**: 四级联动筛选 (`target_options_service.py`)。
+```
+config/          应用与权限、业务规则 JSON
+pages/           Streamlit 多页入口
+src/pages/       各业务模块实现
+src/utils/       认证、加载器、UI 组件
+src/machine_learning_models/  训练与模型产物路径相关逻辑
+src/agent/       Agent 辅助逻辑
+scripts/         离线脚本（如相似度预计算等）
+tests/           pytest
+docs/            模块级说明（预测、表单、训练、结果修正等）
+```
 
-**详细文档**: [表单组件与校验 API 文档](docs/input_form_components_api.md)
+## 测试
 
-## 3. 核心预测流程 (Online)
+```bash
+pytest tests
+```
 
-**路径**: `src/pages/prediction`
+（`requirements.txt` 中 pytest 为注释状态时，需自行安装 pytest 后再运行。）
 
-*   **流程编排与预警 (Flow Control)**:
-    *   入口管线: `flow/pipeline.py`
-    *   风险守卫: `cross_faculty_guard.py` (拦截异常跨学院申请)
-*   **数据准备与召回 (Preparation)**:
-    *   数据归一化: `form_normalizer.py`
-    *   混合召回: `preparer.py` 实现 E5 Embedding 向量召回与 Fuzzy 模糊匹配。
-*   **核心推理与平准 (Execution)**:
-    *   精排推理: `prediction_execution/executor.py` 驱动并行 XGBoost 推理。
-    *   结果平准: `flow/processor.py` 结合 `BoundaryCaseAgent` 进行相似推荐与边界探索。
-*   **接口方式**: 
-    *   Streamlit UI 交互: `src/pages/prediction/flow/pipeline.py`
-    *   解耦 JSON 接口: `src/pages/prediction/api/json_api.py`
+## 延伸阅读
 
-**详细文档**: [预测模块 API 文档](docs/prediction_api.md)
+- [docs/ml_training_api.md](docs/ml_training_api.md)
+- [docs/prediction_api.md](docs/prediction_api.md)
+- [docs/input_form_components_api.md](docs/input_form_components_api.md)
+- [docs/result_modifier_api.md](docs/result_modifier_api.md)
+- [docs/major_similarity_precompute.md](docs/major_similarity_precompute.md)
+- 预测子系统源码旁说明（与 docs 互补）：[src/pages/prediction/README.md](src/pages/prediction/README.md)，[flow/README.md](src/pages/prediction/flow/README.md)，[result_modifier/README.md](src/pages/prediction/result_modifier/README.md)
 
-## 4. 概率修正流水线 (Modification)
+## 常见问题（运维）
 
-**路径**: `src/pages/prediction/result_modifier`
-
-*   **调整驱动**: 基于 `adjustment_pipeline.py` 的二级修正流水线。
-*   **概率修正因子 (Arbitration)**:
-    *   **基础修正**: `ProbabilityAdjuster` 处理 GPA/语言惩罚、院校降权。
-    *   **业务逻辑**: `CrossMajorPenalty` 处理跨专业惩罚。
-    *   **NLP 提升**: `TextBoostProvider` 实现基于 TF-IDF 的文本 Logit Uplift。
-*   **文本加成机制**:
-    *   包含门控、平滑、动态封顶机制，防止加成过度。
-
-**详细文档**: [结果修正模块文档](docs/result_modifier_api.md)
-
-## 5. 专业相似度预计算
-
-**脚本**: `scripts/precompute_similarities.py`
-
-*   **模型**: Multilingual E5 Instruct。
-*   **功能**: 预计算背景专业-目标专业相似度，加速线上查询。
-*   **缓存**: 生成 `cache/background_target_similarity.feather`。
-
-**详细文档**: [专业相似度预计算文档](docs/major_similarity_precompute.md)
+- 模型无法加载：检查预训练文件路径与 `feature_names` 是否与线上一致。
+- 文本加成不生效：核对 TF-IDF 相关产物路径及 `result_modifier` 与 `config` 中的门控与规则。
+- 相似度异常：核对缓存键格式与列名（如 `major1|major2` 等）是否与加载逻辑一致。
 
 ---
 
-## 配置清单
-
-*   `config/app_config.json`: 应用级配置。
-*   `config/dev_config.json`: 开发环境配置。
-*   `config/gpa_conversion_rules.json`: GPA 分制规则。
-*   `config/similarity_adjustment_rules.json`: 相似度微调规则。
-*   `config/university_difficulty.json`: 院校难度分级。
-*   `src/pages/prediction/result_modifier/config.py`: 结果调整配置。
-
-## 数据规范
-
-*   **训练主表** (`cases.feather`): `admitted`, `background_*`, `target_*`, `toefl/ielts`, counts, text details。
-*   **学校基础表** (`school_base.feather`): 院校名称、国家、等级。
-*   **专业详情表** (`school_major_details.feather`): 专业中英文名、聚合名、大类。
-*   **相似度缓存** (`cache/*.feather`): `key` (`major1|major2`), `similarity`。
-
-## 运行与调试
-
-*   **安装依赖**: `pip install -r requirements.txt`
-*   **启动应用**: `streamlit run main.py`
-*   **环境变量**:
-    *   `PREDICTION_USE_PROCESS_POOL=1`: 启用预测进程池。
-    *   `PREDICTION_MAX_WORKERS`: 限制并发数。
-*   **测试**: `pytest tests`: 包含单元测试，压测等
-
-## 缓存与持久化
-
-*   **预测缓存**: `st.cache_data(ttl=600)`。
-*   **数据缓存**: `st.cache_data(ttl=3600)` (案例数据)。
-*   **资源缓存**: `st.cache_resource` (模型加载)。
-*   **文本加成**: 内存级 LRU 缓存。
-*   **用户表单**: 会话态自动保存 (无落盘)。
-
-## 常见问题排查
-
-*   **模型无法加载**: 检查 `.ubj` 文件及 Booster 属性；缺失属性时检查同名 JSON。
-*   **特征不对齐**: 确保线上与训练的 `feature_names` 一致；分类特征需统一编码。
-*   **文本加成无效**: 检查产物文件 (`.joblib`, `.npz`, `.json`) 及门控阈值配置。
-*   **相似度为 0**: 检查缓存文件及键名格式 (`major1|major2` 字母序)。
-
----
-
-> **维护人**: lijiapeng8@xdf.cn
-> **版本**: v3.0
+维护人：lijiapeng8@xdf.cn · 文档版本随仓库演进

@@ -82,3 +82,11 @@ def get_user_accessible_modules(user_email: str) -> dict:
                 result[mid] = user_email_lower in perms if perms else False
 
     return result
+
+
+def can_view_headcount_trend(user_email: str) -> bool:
+    if not user_email:
+        return False
+    processed_config = get_processed_auth_config()
+    allowed = processed_config.get("HR_STRUCTURE_HEADCOUNT_TREND_LOWER") or set()
+    return str(user_email).strip().lower() in allowed

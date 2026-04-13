@@ -1,0 +1,13 @@
+{
+  "EMAIL_WHITELIST": ["user@example.com"],
+  "ADMIN_EMAILS": ["admin@example.com"],
+  "HR_STRUCTURE_HEADCOUNT_TREND_EMAILS": [],
+  "MODULE_PERMISSIONS": {
+    "admin": ["admin@example.com"],
+    "hr_dashboard": [],
+    "hr_profile": [],
+    "hr_structure_dashboard": [],
+    "hk": ["user@example.com"]
+  },
+  "MAINTENANCE_MODE": false
+}

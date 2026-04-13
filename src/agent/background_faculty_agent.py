@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 from functools import lru_cache
 from typing import Any
 
@@ -12,16 +13,23 @@ from src.utils.app_data_loader import load_school_major_details_df
 CACHE_DIR = "cache/agent_cache"
 CACHE_FILE = "background_faculty_candidates.json"
 PROMPT_VERSION = 2
+_SCHOOL_MAJOR_DETAILS_PATH = "src/machine_learning_models/data/school_major_details.feather"
 
 
-@lru_cache(maxsize=1)
-def _get_valid_faculties() -> list[str]:
-    df = load_school_major_details_df()
+@lru_cache(maxsize=4)
+def _get_valid_faculties_cached(path: str, mtime_key: int) -> list[str]:
+    df = load_school_major_details_df(path=path)
     if df is None or df.empty or "专业大类" not in df.columns:
         return []
     series = df["专业大类"].dropna().astype(str).map(str.strip)
     values = [x for x in series.tolist() if x and x.lower() not in {"nan", "none"}]
     return sorted(set(values))
+
+
+def _get_valid_faculties() -> list[str]:
+    path = _SCHOOL_MAJOR_DETAILS_PATH
+    mtime_key = int(os.path.getmtime(path)) if os.path.isfile(path) else 0
+    return _get_valid_faculties_cached(path, mtime_key)
 
 
 class BackgroundFacultyAgent(BaseAgent):
@@ -100,14 +108,25 @@ class BackgroundFacultyAgent(BaseAgent):
             return []
 
         content = self._clean_json_content(content)
+        result: dict[str, Any] | None = None
         try:
-            result = json.loads(content)
+            parsed = json.loads(content)
+            result = parsed if isinstance(parsed, dict) else None
         except json.JSONDecodeError:
-            if base:
-                return [base]
-            return []
+            repaired = self._repair_json_once(
+                content,
+                schema_hint='{"extra_faculties": [string, ...]}',
+                cache_prefix="bg_faculty_json_repair",
+                max_tokens=256,
+            )
+            if repaired:
+                try:
+                    parsed = json.loads(repaired)
+                    result = parsed if isinstance(parsed, dict) else None
+                except json.JSONDecodeError:
+                    result = None
 
-        if not isinstance(result, dict):
+        if result is None:
             if base:
                 return [base]
             return []

@@ -1,126 +1,85 @@
-# 机器学习训练管线文档
+# 机器学习训练管线
 
-**路径**: `src/machine_learning_models`
+| 项 | 说明 |
+|----|------|
+| 源码路径 | `src/machine_learning_models/` |
+| 训练入口 | `python -m src.machine_learning_models.train`（见 `train.py`） |
+| 目标变量 | 二分类列 `admitted`（`data_config.TARGET_COLUMN`） |
+| 主模型 | XGBoost + 概率校准（`CalibratedClassifierCV`，sigmoid，`cv='prefit'`） |
 
-本模块提供从数据加载、特征工程、采样、训练与校准、评估与落盘的一整套训练流水线（以 XGBoost 为主）。
+本文档描述离线训练流水线的模块职责、数据契约与产物格式，与仓库内实现一致；行为细节以源码为准。
 
-> （脚本暂不公开训练流水线，有需要请联系 lijiapeng8@xdf.cn）
+## 1. 模块映射
 
-## 1. 目录结构与职责
+| 文件 | 职责 |
+|------|------|
+| `data_loader.py` | 读取 `cases.feather`，特征工程入口，训练/测试划分与采样 |
+| `feature_engineer.py` | 缺失值、分类编码、计数列截尾与 `log1p`、语言成绩合并为 `language_score` |
+| `sampling_methods.py` | SMOTE/SMOTENC，`k_neighbors` 随少数类规模调整；合成样本的 `sample_weight` 对齐 |
+| `model_trainer.py` | XGBoost 训练、单调约束、校准、评估与特征重要度聚合 |
+| `hyperparameter_tuning.py` | Optuna 超参搜索（CV 指标为 F1） |
+| `data_config.py` | 列集合、校准方式、单调白名单、默认阈值等常量 |
+| `utils.py` | 模型 `.ubj` 落盘；向 Booster 写入 `feature_names`、`calibration_params`、`level_fallback_mapping`；评估 JSON |
+| `train.py` | CLI：`--model` / `--sampling_method` / `--auto_tune` 等 |
 
-- `data_loader.py`：加载 cases.feather，特征工程，划分训练/测试，按需采样。
-- `feature_engineer.py`：缺失值处理、分类特征编码、计数字段截尾与对数化、语言成绩统一为 `language_score`。
-- `sampling_methods.py`：不平衡采样（SMOTE/SMOTENC，动态 k_neighbors），并对采样后的 `sample_weight` 做对齐与新增样本权重填充。
-- `model_trainer.py`：模型训练（XGBoost）、单调约束、`CalibratedClassifierCV` 概率校准（cv='prefit' 单一校准器）、评估与特征重要度聚合。
-- `hyperparameter_tuning.py`：Optuna 超参搜索（CV 内部使用 F1）。
-- `data_config.py`：列名与常量（目标列、分类列、计数列、校准方式、单调约束白名单等）。
-- `utils.py`：模型与评估结果落盘（.ubj；将特征名/校准参数/学校层级回退映射写入 Booster 属性；评估 JSON）。
-- `train.py`：命令行入口（--model/--sampling_method/--auto_tune）。
+文本加成（TF-IDF + Logit uplift）离线训练见 `scripts/train_text_tfidf.py`，产物默认写入 `src/machine_learning_models/pre-trained_models/`。
 
-## 2. 数据与特征
+## 2. 特征与数据契约
 
-- **目标列**：`admitted`（二分类）。
-- **分类列**：`background_university`, `background_major`, `target_university`, `target_major` → 转为 pandas `category`。
-- **文本列**：仅参与清洗与填补，不直接入模（训练侧）。
-  - 同时用于样本权重判定：当所有 detail 文本列均为空时，该样本在训练中会被轻度降权。
-- **计数字段**：`research_count`, `award_count`, `internship_count`, `paper_count`
-  - 处理：99 分位截尾 → `log1p` 对数变换。
-- **语言成绩统一**：
-  - 若同时有 `toefl/ielts`：各自归一化后取 max，落地为 `language_score`；原列删除。
-  - 仅存在其一时按比例归一化。
-  - 训练/测试一致性：特征工程在训练集拟合，测试集仅做变换；使用训练集统计。
+- **分类特征**：`background_university`、`background_major`、`target_university`、`target_major` → `pandas.category`。
+- **文本列**：训练阶段用于清洗与缺失处理，不直接作为树模型输入；全空 detail 文本会触发样本降权（见 `data_config` 与 `sampling_methods` 中的权重逻辑）。
+- **计数特征**：`research_count`、`award_count`、`internship_count`、`paper_count` — 分位数截尾后 `log1p`。
+- **语言成绩**：托福/雅思在特征工程中归一并为单列 `language_score`（训练集拟合统计量，测试集仅变换）。
 
-## 3. 采样 (`sampling_methods.py`)
+## 3. 采样与样本权重
 
-- 自动识别分类特征索引用于 SMOTENC。
-- 使用 SMOTE/SMOTENC，`k_neighbors` 基于少数类样本量动态设置。
-- **权重对齐**：
-  - 若采样器提供 `sample_indices_` 则按索引对齐；
-  - 对新合成的少数类样本，以该类样本权重均值填充。
-- 异常时回退到原始数据与原始权重，保证训练可用性。
+- SMOTENC 使用分类列索引；失败时回退未采样数据与原权重。
+- 文本全空样本：`TEXT_EMPTY_SAMPLE_WEIGHT` 折减。
+- 最近样本：`RECENT_SAMPLE_BOOST_COUNT` / `RECENT_SAMPLE_BOOST_WEIGHT` 对尾部行加权。
+- `sample_weight` 在训练链路中统一为 `float32`，避免校准阶段 dtype 不一致。
 
-## 4. 样本权重与最近样本加权
+## 4. 训练与校准
 
-- **样本权重来源**：
-  - `TEXT_EMPTY_SAMPLE_WEIGHT`：当一条样本的所有 detail 文本列均为空时，训练样本权重设为折减系数（默认 0.85），其余为 1.0。
-  - **最近样本加权**：从数据集最后一行往上数 `RECENT_SAMPLE_BOOST_COUNT` 条样本，乘以 `RECENT_SAMPLE_BOOST_WEIGHT`（默认 10000 条、1.1）。
-- **类型与稳定性**：
-  - 训练阶段将 `sample_weight` 转为 float32，避免校准阶段的 dtype mismatch 问题。
-  - 所有策略在异常时均回退到原始数据与原始权重。
+- **单调约束**：分类列为 0；数值列由 `MONOTONE_INCREASING_WHITELIST` / `MONOTONE_DECREASING_WHITELIST` 指定 ±1，其余为 0。
+- **校准**：训练集 80% 拟合基分类器，20% 拟合校准器；校准参数抽取后写入 Booster 属性供线上读取。
+- **不平衡**：`scale_pos_weight` 按类频自动计算。
+- **已校准模型的重要度**：从各子估计器基模型提取重要度再聚合（见 `model_trainer.py` 实现）。
 
-## 5. 训练与校准 (`model_trainer.py`)
+## 5. 产物
 
-- **单调约束 (XGBoost)**：
-  - 分类特征约束 0；其余特征通过白名单控制：`MONOTONE_INCREASING_WHITELIST` (+1), `MONOTONE_DECREASING_WHITELIST` (-1)，未列入者为 0。
-- **两种模式**：
-  - 固定参数（默认，业务验证过的一组最佳参数）。
-  - 自动调参：Optuna 搜索，随后带入校准。
-- **概率校准 (sigmoid, 单一校准器)**：
-  - 使用 `cv='prefit'` 策略：训练集按 8:2 划分，80% 拟合基础 XGB，剩余 20% 作为校准集拟合 `CalibratedClassifierCV`。
-  - 训练结束立即提取校准参数 a/b 以便落盘并在部署时还原。
-- **特征重要度聚合**：
-  - 对于已校准模型，系统会提取各校准子估计器（calibrated classifiers）的基础模型重要度，并取其均值进行聚合展示。
-- **类别不平衡**：自动计算 `scale_pos_weight` 并在训练中应用。
+- **模型**：`src/machine_learning_models/pre-trained_models/` 下 `{model}_{timestamp}.ubj`（见 `utils.py`）。
+- **评估**：`evaluation_results/{model}_evaluation_{timestamp}.json`（metrics、feature_importance、model_params 等）。
 
-## 6. 评估与落盘 (`utils.py`)
+## 6. 运行参数
 
-- **模型保存 (.ubj)**：
-  - `pre-trained_models/{model}_{timestamp}.ubj`（XGBoost 序列化权重）。
-  - 将以下信息写入 Booster 属性：`feature_names`, `calibration_params`, `level_fallback_mapping`。
-- **评估结果**：
-  - `evaluation_results/{model}_evaluation_{timestamp}.json`，包含：metrics, feature_importance, model_params 等。
+- 默认数据：`src/machine_learning_models/data/cases.feather`（以 `train.py` 为准）。
+- 并行：`train.py` 设置 `LOKY_MAX_CPU_COUNT=4` 限制 joblib/loky 线程数。
 
-## 7. 训练入口 (`train.py`)
+## 7. TF-IDF 与文本 Uplift 训练（`scripts/train_text_tfidf.py`）
 
-```bash
-python -m src.machine_learning_models.train
-```
+流程概要：
 
-流程：数据加载 → 特征工程 → 划分/采样 → 训练+校准 → 评估 → 保存模型与评估报告。
-- 默认数据路径：`src/machine_learning_models/data/cases.feather`。
-- 并行限制：训练脚本内部设置 `LOKY_MAX_CPU_COUNT=4` 以限制并行线程数。
-
-## 8. 文本加成 (TF‑IDF + Logit Uplift) 训练
-
-脚本：`scripts/train_text_tfidf.py`
-
-目标：为线上 `LogitUpliftProvider` 生成三类产物，用于“文本提升”后处理。
-
-### 产物
-- `tfidf_vectorizer.joblib`：字符级 TF‑IDF 向量器（ngram 为 2-4，特征上限 20000）。
-- `tfidf_centroids.npz`：四段文本（科研/获奖/实习/论文）的归一化质心（Centroids）。
-- `text_uplift_weights.json`：非负的增益权重（基础项 + 与计数交互项）。
-
-### 流程概览
-1. **输入与预处理**：数据源为 `cases.feather`，对文本列进行归一化清洗。包含 `activity` 在内的 5 类文本用于样本降权判定，但仅前 4 类参与 Uplift 训练。
-2. **向量器训练**：使用 `char_wb` 分析器，学习文本的字符级特征。
-3. **质心计算**：提取录取案例中的背景特征中心点，并进行 L2 归一化。
-4. **有效信息密度 (Entropy)**：计算文本的香农熵以评估丰富度，饱和阈值设为 5.0。
-5. **增益权重拟合**：
-   - 计算真实标签与 XGBoost 基础概率之间的 Logit 残差。
-   - 构造包含“质量得分”与“质量×数量”交互项的特征矩阵。
-   - 使用 **NNLS (非负最小二乘法)** 拟合权重，若结果异常则回退至 **Ridge (positive=True)** 回归。
-6. **落盘**：默认保存至 `src/machine_learning_models/pre-trained_models/`。
-
-### 运行
+1. 从 `cases.feather` 读取并清洗文本列；五类 detail 中用于“空文本降权”判定，Uplift 训练使用前四类（与脚本内注释一致）。
+2. 训练字符级 TF-IDF（ngram、特征上限等见脚本）。
+3. 计算录取子集上的文本质心并 L2 归一化。
+4. 基于香农熵等信息量指标构造特征；用 XGBoost 基模型 logit 与标签的残差拟合权重（NNLS，失败则 Ridge `positive=True`）。
+5. 输出：`tfidf_vectorizer.joblib`、`tfidf_centroids.npz`、`text_uplift_weights.json`。
 
 ```bash
 python scripts/train_text_tfidf.py
 ```
 
-### 与线上预测的契合点
-- 线上会加载同一套 `feature_names` 并在推理时对输入进行相同的列对齐与类别编码。
-- 线上优先加载 `.ubj`，并从 Booster 属性读取 `feature_names/calibration_params`。
-- 线上页面已有额外后处理（结果修正/文本加成/跨专业惩罚），与训练管线解耦。
+线上推理需与训练使用相同的特征列约定；录取预测主流程的后处理见 `src/pages/prediction/result_modifier/`。
 
-## 9. 常见问题
+## 8. 故障排查
 
-- **目标列缺失/NaN**：确认 `data_config.TARGET_COLUMN` 与特征工程步骤对齐。
-- **分类特征新类别导致编码不一致**：训练/推理统一将分类列转为 pandas `category` 并对齐特征列。
-- **正负样本极度不均衡**：优先使用 SMOTENC（含分类索引）；异常时回退到原始数据。
-- **需要同时使用采样与样本权重**：已支持。使用 SMOTE/SMOTENC 时，会对新增少数类样本以该类样本权重均值填充。
+| 现象 | 检查项 |
+|------|--------|
+| 目标列缺失 | `data_config.TARGET_COLUMN` 与 Feather 列名一致 |
+| 推理编码不一致 | 分类列 `category` 与 `feature_names` 顺序与训练一致 |
+| 极不均衡 | 优先 SMOTENC；查看采样回退日志 |
+| 采样与权重并用 | 合成少数类样本权重按类内均值填充（见 `sampling_methods.py`） |
 
 ---
 
-> **维护人**: lijiapeng8@xdf.cn
-> **版本**: v2.7
+维护：与 `src/machine_learning_models/` 同步更新。

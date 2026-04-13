@@ -1,3 +1,4 @@
+import re
 import time
 
 import streamlit as st
@@ -82,20 +83,15 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
             )
         )
 
-    available_buttons.append(("平台使用指南", "pages/guide.py", False))
-
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", False))
         available_buttons.append(("algorithm_lab", "pages/algorithm_lab.py", False))
 
-    if accessible_modules.get("hr_dashboard", False):
-        available_buttons.append(("人力薪资数据看板", "pages/hr_dashboard.py", False))
-
-    if accessible_modules.get("hr_profile", False):
-        available_buttons.append(("人力绩效数据看板", "pages/hr_profile.py", False))
-
-    if accessible_modules.get("hr_structure_dashboard", False):
-        available_buttons.append(("人力结构数据看板", "pages/hr_structure_dashboard.py", False))
+    if any(
+        accessible_modules.get(k, False)
+        for k in ("hr_dashboard", "hr_profile", "hr_structure_dashboard")
+    ):
+        available_buttons.append(("人力数据中心", "pages/hr_hub.py", False))
 
     return available_buttons
 
@@ -108,25 +104,27 @@ def main() -> None:
 
     render_header(user_nickname)
 
-    scroll_to = st.query_params.get("scroll_to")
-    import re
-
-    if scroll_to and re.match(r"^[A-Za-z0-9_\-]+$", scroll_to):
-        components.html(
-            f"""
-            <script>
-            setTimeout(() => {{
-                const el = window.parent.document.getElementById("{scroll_to}");
-                if (el) {{
-                    el.scrollIntoView({{behavior: "smooth", block: "start"}});
-                }}
-            }}, 50);
-           </script>
-            """,
-            height=0,
-            width=0,
-        )
-    st.query_params.clear()
+    if "scroll_to" in st.query_params:
+        scroll_to = st.query_params.get("scroll_to")
+        if scroll_to and re.match(r"^[A-Za-z0-9_\-]+$", scroll_to):
+            components.html(
+                f"""
+                <script>
+                setTimeout(() => {{
+                    const el = window.parent.document.getElementById("{scroll_to}");
+                    if (el) {{
+                        el.scrollIntoView({{behavior: "smooth", block: "start"}});
+                    }}
+                }}, 50);
+               </script>
+                """,
+                height=0,
+                width=0,
+            )
+        new_params = {k: v for k, v in st.query_params.items() if k != "scroll_to"}
+        st.query_params.clear()
+        if new_params:
+            st.query_params.update(new_params)
 
     available_buttons = _collect_available_buttons(accessible_modules, is_user_admin, user_email)
     button_names = [name for name, _, _ in available_buttons]

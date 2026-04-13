@@ -6,6 +6,7 @@ from src.pages.prediction.result_modifier.config import (
     AGENT_MIN_SAFE_RELAX_THRESHOLD,
     AGENT_TAIL_PERCENTAGE,
     CROSS_MAJOR_SIMILARITY_MIN,
+    FUZZY_BIAS_THRESHOLD_HIGH,
     HIGHER_SIMILARITY_THRESHOLD,
 )
 from src.pages.prediction.result_modifier.types import (
@@ -39,7 +40,7 @@ class RankerStrategy(ABC):
         if not self.background_major:
             return False
 
-        return case.get("_strong_match_score", 0) > 92
+        return case.get("_strong_match_score", 0) > FUZZY_BIAS_THRESHOLD_HIGH
 
     def update_results(
         self,
@@ -59,7 +60,7 @@ class RankerStrategy(ABC):
         ]
         selected.sort(key=lambda x: x[1], reverse=reverse_sort)
 
-        existing_keys = {case_key(r) for r in adjusted_results if case_key(r)}
+        existing_keys = {k for r in adjusted_results if (k := case_key(r)) is not None}
         new_results = adjusted_results.copy()
         added_count = 0
         remove_keys = set()
@@ -82,15 +83,27 @@ class RankerStrategy(ABC):
                 added_count += 1
 
         if not reverse_sort and remove_keys:
-            new_results = [r for r in adjusted_results if case_key(r) not in remove_keys]
+            new_results = [
+                r for r in adjusted_results if (k := case_key(r)) is None or k not in remove_keys
+            ]
 
         return added_count, new_results
 
     def update_boundary_cases(self, boundary_candidates, evaluated_cases, adjusted_results):
-        return [c for c in boundary_candidates if case_key(c) not in evaluated_cases]
+        """Reserved for multi-round agent loops; single-round engine uses engine.run only."""
+        return [
+            c
+            for c in boundary_candidates
+            if (k := case_key(c)) is not None and k not in evaluated_cases
+        ]
 
     def get_exploration_candidates(self, adjusted_results, pool_for_exploration, evaluated_cases):
-        return [c for c in pool_for_exploration if case_key(c) not in evaluated_cases]
+        """Reserved for multi-round agent loops; single-round engine uses engine.run only."""
+        return [
+            c
+            for c in pool_for_exploration
+            if (k := case_key(c)) is not None and k not in evaluated_cases
+        ]
 
 
 class RelaxStrategy(RankerStrategy):
@@ -176,7 +189,12 @@ class TightenStrategy(RankerStrategy):
 
     def update_boundary_cases(self, boundary_candidates, evaluated_cases, adjusted_results):
         remaining = sorted(
-            [r for r in adjusted_results if case_key(r) not in evaluated_cases], key=get_similarity
+            [
+                r
+                for r in adjusted_results
+                if (k := case_key(r)) is not None and k not in evaluated_cases
+            ],
+            key=get_similarity,
         )
         tail_count = max(1, int(len(remaining) * AGENT_TAIL_PERCENTAGE))
         return remaining[:tail_count]
