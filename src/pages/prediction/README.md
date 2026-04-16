@@ -1,14 +1,5 @@
 # Prediction 模块技术文档
 
-与仓库根目录 [docs/](../../../docs/) 的关系：**本文件**描述 `prediction/` 包内目录、端到端调用链与组件职责；契约级说明（JSON API、`PredictionInput`、合并规则等）以 [prediction_api.md](../../../docs/prediction_api.md) 为准；表单校验见 [input_form_components_api.md](../../../docs/input_form_components_api.md)；训练见 [ml_training_api.md](../../../docs/ml_training_api.md)。
-
-| 主题 | 源码旁文档（本目录） | 仓库 docs（契约/运维） |
-|------|----------------------|-------------------------|
-| 整包流程与文件索引 | 本文 | [prediction_api.md](../../../docs/prediction_api.md) |
-| `flow/` 步骤与错误码 | [flow/README.md](flow/README.md) | 同上 §4 |
-| 结果后处理 | [result_modifier/README.md](result_modifier/README.md) | [result_modifier_api.md](../../../docs/result_modifier_api.md)、[text_uplift_api.md](../../../docs/text_uplift_api.md) |
-| 专业相似度离线缓存 | — | [major_similarity_precompute.md](../../../docs/major_similarity_precompute.md) |
-
 ## 1. 模块概述
 
 `prediction` 是录取概率预测页面的完整实现，涵盖表单输入、数据校验、模型推理、结果修饰、跨学部确认、结果展示等全流程。用户填写背景信息与目标选择后，系统基于 XGBoost 模型与历史案例，输出相似专业、跨专业、用户指定三类推荐结果，并应用 GPA/语言惩罚、背提文本加成、Agent 边界微调等多维度调整。

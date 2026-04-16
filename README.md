@@ -1,4 +1,4 @@
-# 前途欧亚留学数据科学平台
+# [company]留学数据科学平台
 
 基于 Streamlit 的多页 Web 应用：入口为根目录 [main.py](main.py)，门户页标题与 `init_page` 中一致。经 E2 OAuth 登录后，按邮箱白名单与模块权限（见 [src/utils/auth/permission_checker.py](src/utils/auth/permission_checker.py)）展示可用入口；维护模式由 `config/auth_config.json` 中的 `MAINTENANCE_MODE` 控制（管理员除外）。
 

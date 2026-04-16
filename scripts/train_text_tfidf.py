@@ -203,6 +203,7 @@ def _fit_uplift_weights(
     sims_df: pd.DataFrame,
     p_base: np.ndarray | None,
 ) -> dict[str, float]:
+
     def _clip01(x: np.ndarray) -> np.ndarray:
         return np.clip(x, PROB_CLIP_MIN, PROB_CLIP_MAX)
 

@@ -8,9 +8,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from data_config import DEFAULT_PREDICTION_THRESHOLD
 from data_loader import load_data
 from model_trainer import evaluate_model, train_model
+from src.utils.model_loader import load_model_dependencies
 
 import utils
-from src.utils.model_loader import load_model_dependencies
 
 os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 

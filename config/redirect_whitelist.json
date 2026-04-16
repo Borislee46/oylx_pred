@@ -1,8 +1,6 @@
 {
   "allowed_domains": [
-    "qtpbi.staff.xdf.cn",
-    "teste2api.test.xdf.cn",
-    "e2api.staff.xdf.cn"
+    "www.baidu.com"
   ],
-  "allowed_urls": ["https://qtpbi.staff.xdf.cn/powerbi/index.html#/home"]
+  "allowed_urls": ["https://www.baidu.com"]
 }

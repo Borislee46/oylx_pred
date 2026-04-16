@@ -1,7 +1,5 @@
 # Prediction Flow 技术文档
 
-仓库级契约与 JSON 入口说明见 [prediction_api.md](../../../../docs/prediction_api.md)（§3–4）。本文聚焦 `flow/` 目录内函数、缓存与 `meta.error` 等实现细节；上层包结构见 [../README.md](../README.md)。
-
 ## 1. 模块概述
 
 `flow` 是预测页面的执行流程模块，负责从输入数据到最终推荐结果的完整流水线：组合生成、模型推理、结果处理、过滤排序、概率调整、Agent 微调等，并通过 `ProgressReporter` 向 UI 反馈进度。

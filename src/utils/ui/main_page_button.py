@@ -5,19 +5,16 @@ import uuid
 import streamlit as st
 import streamlit.components.v1 as components
 
-from src.utils.config_local_paths import resolve_app_config_path, resolve_dev_config_path
-
 
 def _get_base_url() -> str:
-    dev_config_path = resolve_dev_config_path()
+    dev_config_path = "config/dev_config.json"
     if os.path.exists(dev_config_path):
         with open(dev_config_path, encoding="utf-8") as f:
             dev_config = json.load(f)
         if dev_config.get("DEBUG_MODE", False):
             return "http://localhost:80/"
 
-    app_path = resolve_app_config_path()
-    with open(app_path, encoding="utf-8") as f:
+    with open("config/app_config.json", encoding="utf-8") as f:
         all_configs = json.load(f)
     env = os.environ.get("APP_ENV", "test")
     return all_configs[env]["STREAMLIT_APP_BASE_URL"]

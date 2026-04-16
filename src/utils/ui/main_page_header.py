@@ -28,7 +28,7 @@ def render_header(
         with col2:
             st.image(LOGO_PATH, width="stretch")
 
-    title = page_title or "欧亚数据科学平台"
+    title = page_title or "[company]数据科学平台"
     subtitle = page_subtitle or "AI驱动的智能决策与个性化数据服务"
     header_html = template_html.replace("{{PAGE_TITLE}}", html.escape(title)).replace(
         "{{PAGE_SUBTITLE}}", html.escape(subtitle)

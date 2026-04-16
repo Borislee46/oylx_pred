@@ -36,7 +36,7 @@ def _handle_oauth_callback_if_present() -> None:
 
 def _initialize_page_and_state():
     user_info = init_page(
-        page_title="前途欧亚留学数据科学平台",
+        page_title="[company]留学数据科学平台",
         current_page_path="main.py",
         layout="wide",
         hide_sidebar=True,
@@ -77,8 +77,8 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
         available_buttons.append(("EasyApply 留学择校系统", "pages/hk.py", False))
         available_buttons.append(
             (
-                "Power BI 完整版案例库",
-                "https://qtpbi.staff.xdf.cn/powerbi/index.html#/home",
+                "redirect",
+                "https://www.baidu.com",
                 True,
             )
         )

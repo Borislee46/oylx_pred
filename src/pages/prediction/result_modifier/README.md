@@ -1,7 +1,5 @@
 # Result Modifier 技术文档
 
-对外模块说明与组件索引见 [result_modifier_api.md](../../../../docs/result_modifier_api.md)；文本 Logit uplift 理论与训练产物见 [text_uplift_api.md](../../../../docs/text_uplift_api.md)。本文保留目录内类型、仲裁公式、`AdjustmentContext` 等与代码逐行对照的细节；预测全链路见 [../README.md](../README.md)。
-
 ## 1. 模块概述
 
 `result_modifier` 是预测页面的结果修饰模块，负责对模型输出的录取概率进行多维度调整，包括 GPA/语言惩罚、跨专业惩罚、学部过滤、背提文本加成、相似度调整等，并支持基于 Agent 的边界案例微调。

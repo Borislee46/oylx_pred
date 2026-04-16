@@ -62,9 +62,7 @@ def tune_hyperparameters(
             fit_params = {"sample_weight": sw_fold_train} if sw_fold_train is not None else {}
             model.fit(X_fold_train, y_fold_train, **fit_params)
 
-            y_fold_pred = (model.predict_proba(X_fold_val)[:, 1] >= prediction_threshold).astype(
-                int
-            )
+            y_fold_pred = (model.predict_proba(X_fold_val)[:, 1] >= prediction_threshold).astype(int)
             score = f1_score(y_fold_val, y_fold_pred, average="binary", zero_division=0)
             intermediate_scores.append(score)
             trial.report(score, step)
