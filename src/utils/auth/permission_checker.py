@@ -3,6 +3,7 @@ from src.utils.auth.config_processor import get_processed_auth_config
 MODULE_IDS = (
     "hk",
     "admin",
+    "cs_survey",
     "hr_dashboard",
     "hr_profile",
     "hr_structure_dashboard",

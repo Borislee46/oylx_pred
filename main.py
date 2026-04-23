@@ -2,7 +2,6 @@ import re
 import time
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from src.utils.auth.auth_json_loader import load_auth_config
 from src.utils.auth.permission_checker import (
@@ -36,7 +35,7 @@ def _handle_oauth_callback_if_present() -> None:
 
 def _initialize_page_and_state():
     user_info = init_page(
-        page_title="[company]留学数据科学平台",
+        page_title="前途欧亚留学数据科学平台",
         current_page_path="main.py",
         layout="wide",
         hide_sidebar=True,
@@ -77,15 +76,19 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
         available_buttons.append(("EasyApply 留学择校系统", "pages/hk.py", False))
         available_buttons.append(
             (
-                "redirect",
-                "https://www.baidu.com",
+                "Power BI 完整版案例库",
+                "https://qtpbi.staff.xdf.cn/powerbi/index.html#/home",
                 True,
             )
         )
 
+    if accessible_modules.get("cs_survey", False):
+        available_buttons.append(("客服调研数据", "pages/cs_survey.py", False))
+
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", False))
         available_buttons.append(("algorithm_lab", "pages/algorithm_lab.py", False))
+        available_buttons.append(("Streamlit 组件试验", "pages/widget_lab.py", False))
 
     if any(
         accessible_modules.get(k, False)
@@ -107,7 +110,7 @@ def main() -> None:
     if "scroll_to" in st.query_params:
         scroll_to = st.query_params.get("scroll_to")
         if scroll_to and re.match(r"^[A-Za-z0-9_\-]+$", scroll_to):
-            components.html(
+            st.iframe(
                 f"""
                 <script>
                 setTimeout(() => {{
@@ -118,8 +121,9 @@ def main() -> None:
                 }}, 50);
                </script>
                 """,
-                height=0,
-                width=0,
+                width=1,
+                height=1,
+                tab_index=-1,
             )
         new_params = {k: v for k, v in st.query_params.items() if k != "scroll_to"}
         st.query_params.clear()

@@ -11,6 +11,23 @@ def reset_prediction_results(session_manager: SessionManager):
     )
 
 
+def clear_pending_prediction_state(
+    session_manager: SessionManager,
+    *,
+    reset_cross_faculty_confirmed: bool = False,
+    reset_cross_faculty_cancelled: bool = False,
+):
+    updates = {
+        "pending_cross_faculty_prediction": False,
+        "pending_prediction_data": None,
+    }
+    if reset_cross_faculty_confirmed:
+        updates["cross_faculty_confirmed"] = False
+    if reset_cross_faculty_cancelled:
+        updates["cross_faculty_cancelled"] = False
+    session_manager.set(**updates)
+
+
 def combine_and_deduplicate_results(sim_results, cross_results, user_specified_results):
     sources = [
         (sim_results, "similarity", 1, None),

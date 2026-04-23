@@ -56,11 +56,14 @@ class PredictionExecutor:
         chunks = [combinations[i : i + chunk_size] for i in range(0, len(combinations), chunk_size)]
 
         if self.use_process_pool:
-            return self._execute_with_pool(
-                ProcessPoolExecutor, chunks, model, model_input, features, num_workers
-            ) or self._execute_with_pool(
-                ThreadPoolExecutor, chunks, model, model_input, features, num_workers
-            )
+            try:
+                result = self._execute_with_pool(
+                    ProcessPoolExecutor, chunks, model, model_input, features, num_workers
+                )
+                if result:
+                    return result
+            except Exception as e:
+                logger.warning(f"ProcessPool 执行失败，降级到 ThreadPool: {e}")
 
         return self._execute_with_pool(
             ThreadPoolExecutor, chunks, model, model_input, features, num_workers

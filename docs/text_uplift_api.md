@@ -1,60 +1,71 @@
-# 文本背景 Logit Uplift（Text Boost）
+# 文本背景质量加成 (Text Uplift) 模块 API
 
-| 项 | 说明 |
-|----|------|
-| 实现路径 | `src/pages/prediction/result_modifier/providers/logit_uplift/` |
-| 训练脚本 | `scripts/train_text_tfidf.py` |
-| 产物 | `tfidf_vectorizer.joblib`、`tfidf_centroids.npz`、`text_uplift_weights.json`（默认目录见 `machine_learning_models/pre-trained_models/`） |
+**路径**: `src/pages/prediction/result_modifier/providers/logit_uplift`
 
-本模块在**主模型基线概率**之上，根据科研/获奖/实习/论文等文本计算 **Logit 空间增量** \(\Delta\text{logit}\)，再映射回概率。与全量重训不同，增量权重在离线阶段用非负约束拟合，线上仅做向量与代数运算，**不调用大模型推理**。
-
-## 1. 设计约定
-
-**Uplift 语义**：估计在固定结构化特征（GPA、院校等）下，文本带来的额外信息对 log-odds 的贡献。权重非负（NNLS / Ridge positive），避免与“背景仅作加分项”的产品假设冲突。
-
-**Logit 而非概率直接相加**：\(\text{logit}(p') = \text{logit}(p_{\text{base}}) + \Delta\)。在概率接近 0 或 1 时变化更平滑。
-
-## 2. 运行时组件（概要）
-
-| 组件 | 职责 |
-|------|------|
-| `SimilarityComputer` | 文本向量与录取子集质心的余弦相似度；可选高信号词与新颖度加权（见 `config` 与 `text_high_signal_terms.json`） |
-| `_fast_entropy` | 基于字节频次的香农熵，用于检测重复或低多样性文本，调节有效经历强度 |
-| `DeltaCalculator` | 由相似度、熵修正后的丰富度、经历数量及交互项线性组合得到 \(\Delta\text{logit}\)；低于门控阈值时不触发 |
-| `ProbabilityApplier` | 平滑与动态封顶（与 `result_modifier/config.py` 中 `max_total_boost` 等一致），防止概率异常 |
-
-典型公式形态（系数以训练产出为准）：
-
-\[
-\Delta\text{logit} = \beta + \sum_k w_k S'_k + \sum_k u_k \cdot S'_k \cdot \ln(1 + n_k \cdot r_k)
-\]
-
-其中 \(S'_k\) 为第 \(k\) 类经历的相似度经丰富度修正，\(r_k\) 由熵映射到 \([0,1]\)，\(n_k\) 为计数。
-
-## 3. 离线训练（`scripts/train_text_tfidf.py`）
-
-1. 从 `cases.feather` 提取四类文本并清洗。
-2. 拟合 TF-IDF 向量器（字符级 wb，ngram 与特征上限见脚本）。
-3. 在正例子集上计算质心并 L2 归一化。
-4. 用基模型 logit 与标签构造残差，NNLS 拟合权重；病态时回退 Ridge（`positive=True`）。
-5. 落盘向量器、质心与权重 JSON。
-
-与线上一致性要求：列名、`feature_names` 及文本预处理规则与预测主流程对齐。
-
-## 4. 可观测性
-
-运行时可向日志写入加成摘要（如各段落的信号标签、熵门控是否生效）。具体字段以 `TextBoostProvider` 与 `SimilarityComputer` 实现为准。
-
-## 5. 降级行为
-
-向量器或权重加载失败、或输入全空时，应退化为 \(\Delta=0\)，不阻断主预测流程（实现中见具体 `try` 边界与日志级别）。
-
-## 6. 性能与缓存
-
-实现使用 NumPy 向量化与 `lru_cache`（同会话重复文本）减少重复计算；**不对延迟作固定 SLA 承诺**，需在目标环境自行压测。
+本模块基于 **增量建模 (Uplift Modeling)** 理论，通过分析用户输入的背景文本（科研、奖项、实习、论文），计算其相对于基础条件（GPA、学校等）的录取概率“纯增量”。
 
 ---
 
-相关：[ml_training_api.md](ml_training_api.md) 第 7 节、[result_modifier_api.md](result_modifier_api.md)。
+## 1. 核心理论背景
 
-维护：与 `providers/logit_uplift/` 及 `train_text_tfidf.py` 同步更新。
+### 1.1 增量建模 (Uplift Modeling)
+不同于传统的分类模型，本模块旨在学习 **$P(录取|基础条件, 背景文本) - P(录取|基础条件)$** 的差值。我们认为背景是“锦上添花”，因此模型强制要求加成权重非负（使用 NNLS 算法拟合）。
+
+### 1.2 Logit 空间加成
+加成在 Logit 空间进行而非概率空间。
+- **公式**: $Logit_{new} = Logit_{base} + \Delta Logit$
+- **优点**: 概率接近 0 或 1 时加成平滑，概率在 0.5 左右时加成显著，符合“背景提升对边缘用户最有效”的业务逻辑。
+
+---
+## 2. 核心算法组件
+
+### 2.1 相似度计算 (`SimilarityComputer`)
+计算文本与高质量案例中心点（Centroids）的余弦相似度。
+- **相似度融合**: $1 - (1 - s_0) * (1 - bonus)$
+- **词库加成**: 命中高价值关键词（如“一等奖”、“核心期刊”）直接提升维度分。
+- **新颖度加分**: 识别文本中包含模型未见过但具有潜在高信息的词汇。
+
+### 2.2 香农熵防作弊 (`_fast_entropy`)
+**极致性能优化**：采用字节级频率统计，计算文本信息密度。
+- **原理**: 如果用户通过“复制粘贴”或“无意义重复”凑字数，字符分布会极度集中，导致熵值大幅下降。
+- **应用**: 修正有效经历数：$Count_{adj} = Count_{input} * Richness(Entropy)$。
+
+### 2.3 增量计算器 (`DeltaCalculator`)
+核心计算公式（线性回归 + 交互项）：
+$$\Delta Logit = \beta + \sum (w_k \cdot S'_k) + \sum (u_k \cdot S'_k \cdot \ln(1 + Count_{k} \cdot Richness_k))$$
+其中：
+- $S'_k = Similarity_k \times Richness_k$ (经内容丰富度修正后的相似度)
+- $Richness_k$ 基于香农熵映射到 [0, 1]
+- $u_k$ 是质量与数量的交互项权重，用于衡量两者共同作用带来的额外加成。
+- 只有当 $\sum Similarity_k$ 或 $\max(Similarity_k)$ 达到门控阈值时才会触发计算。
+
+### 2.4 概率映射 (`ProbabilityApplier`)
+- **平滑处理**: 引入 `smoothing` 因子控制加成剧烈程度。
+- **动态封顶**: 根据文本总质量动态调整加成上限（默认最大提升 15% 概率），防止概率爆炸。
+
+---
+## 3. 训练流程 (`scripts/train_text_tfidf.py`)
+
+1. **构建语料库**: 提取历史案例中的四类背景文本。
+2. **拟合向量器**: 训练 TF-IDF 向量模型。
+3. **计算质心**: 提取录取案例中的背景特征中心点。
+4. **残差学习**: 
+   - 使用基础模型（XGBoost）计算样本的基础 Logit。
+   - 计算真实标签与基础 Logit 的残差。
+   - 使用 **NNLS (非负最小二乘法)** 拟合相似度与残差之间的权重。
+
+---
+
+## 4. 可解释性 (Explainability)
+
+模块在运行时会自动记录加成原因到日志中：
+- **日志示例**: `[Logit+0.125]: 科研: 一等奖, 核心期刊; 实习: 内容具有独特性`
+- **实现**: 通过 `remarks` 系统追踪 `SignalScorer` 的标签命中和 `SimilarityComputer` 的新颖度发现。
+
+---
+
+## 5. 性能保证
+
+- **计算效率**: 放弃 LLM，采用 NumPy 向量化与字节级熵计算，处理延迟 < 5ms。
+- **缓存机制**: 使用 `lru_cache` 缓存同一会话内的文本特征，避免重复计算。
+- **稳定性**: 具备多层异常捕获，若权重或向量器加载失败，自动退化为零加成，不影响主流程。

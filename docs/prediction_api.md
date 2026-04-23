@@ -1,83 +1,134 @@
-# 预测流水线 API
+# 预测模块 API
 
-| 项 | 说明 |
-|----|------|
-| 源码路径 | `src/pages/prediction/` |
-| UI 管线 | `flow/pipeline.py`：`run_prediction_pipeline`、`run_prediction_pipeline_with_progress` |
-| JSON 入口 | `api/json_api.py`（与 Streamlit **同进程**，模块 docstring 标明非生产用途；独立部署需另起服务层） |
+**路径**: `src/pages/prediction`
 
-实现细节与调用链（`run_prediction_pipeline_with_progress`、`meta.error` 枚举等）见源码旁 [src/pages/prediction/README.md](../src/pages/prediction/README.md)、[src/pages/prediction/flow/README.md](../src/pages/prediction/flow/README.md)。
+此模块存在两条入口：
+- **Streamlit 页面预测管线**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline`
+- **JSON 形态预测入口**（用于前后端解耦实验）：`src/pages/prediction/api/json_api.py::predict`
 
-## 1. 输入类型 `PredictionInput`
+## 1. 内部输入类型 (`PredictionInput`)
 
-定义位置：`src/pages/prediction/core/types.py`（`TypedDict`，`total=False`）。
+代码定义：`src/pages/prediction/core/types.py`（由 `src/pages/prediction/prediction_preparation/preparer.py::validate_and_clean_input` 产出）
 
-由 `prediction_preparation/preparer.py::validate_and_clean_input` 从运行期字典清洗得到。常用键包括：
+- `background_university: str`
+- `background_major: str`
+- `target_universities: list[str]`
+- `target_majors: list[str]`
+- `gpa: float`（可空）
+- `language_score: float`（可空，归一化到 0~1）
+- `language_type: str`（可选）
+- `internship_count / research_count / award_count / paper_count: int`
+- `school_level: str`（可选；由 `src/pages/prediction/prediction_preparation/preparer.py::prepare_input_data` 注入）
+- `experience_details: dict[str, str]`
 
-- `background_university`、`background_major`（字符串）
-- `target_universities`、`target_majors`（字符串列表）
-- `gpa`、`language_score`（可选浮点；`language_score` 为归一化到 [0,1] 后的值）
-- `language_type`、`internship_count`、`research_count`、`award_count`、`paper_count`
-- `experience_details`（`dict[str, str]`）
-- `school_level` 等可由 `prepare_input_data` 注入
+**注意**：`faculty`、`background_major_original` 等字段会存在于“运行期输入 dict”中，但不属于 `PredictionInput` 数据类。
 
-运行期 dict 中可能存在 `faculty`、`background_major_original` 等辅助字段，它们**不属于** `PredictionInput` 类型本身，供后续步骤使用。
+## 2. 结果项结构（运行期字典）
 
-## 2. 结果项（运行期字典）
+结果不是严格 schema，会在不同阶段补齐字段：
 
-单条推荐在流水线各阶段逐步补全，**无单一 Pydantic schema**。常见字段：
+- **基本字段**：`university: str`, `major: str`, `probability: float`
+- **预处理注入**：`similarity: float`, `faculty: str`
+- **结果自动注入**：`is_new_major: bool` (所有预测路径均会通过 `adjustment_pipeline` 注入)
+- **学部标记**：`faculty: str` (由 `processor.py` 的 metadata 附加阶段注入)
 
-| 字段 | 说明 |
-|------|------|
-| `university`、`major` | 院校与专业 |
-| `probability` | 模型或后处理后的概率 |
-| `similarity` | 专业相似度（准备阶段注入） |
-| `faculty` | 学部（处理阶段 metadata） |
-| `is_new_major` | 经 `adjustment_pipeline` 注入 |
+内部合并去重会使用 `_source/_priority` 元数据，但最终会剔除。
 
-合并去重使用内部 `_source` / `_priority`，交付前会剥离。
+## 3. JSON 入口 (`src/pages/prediction/api/json_api.py`)
 
-## 3. JSON API（`api/json_api.py`）
+### 3.1 校验与归一化
 
-### 3.1 `validate_and_normalize(payload, cases_df=None, school_base_df=None)`
+`validate_and_normalize(payload, cases_df=None, school_base_df=None) -> dict`
 
-将表单型 payload 校验并归一化为模型可用字段（GPA/语言、海外院校默认语言等）。失败返回：
+- **作用**：把“表单式 payload”校验并归一化成模型可用字段（含 GPA/语言归一化、海外默认语言加成、标化加成等）。
+- **校验失败返回**：`{"ok": false, "errors": [...], "warnings": []}`。
+- `errors` 元素结构：`{"field": str, "message": str, "severity": "error"|"warning"}`。
 
-```json
-{"ok": false, "errors": [{"field": "...", "message": "...", "severity": "error"}], "warnings": []}
-```
+### 3.2 预测
 
-### 3.2 `predict(payload, confirm_cross_faculty=False)`
+`predict(payload, confirm_cross_faculty=False) -> dict`
 
-**请求**：含 `background_university`、`background_major`、`gpa_raw`、`language_score_raw` 等；跨院系相关：`selected_major_categories`、`selected_target_majors`；候选池可选：`all_universities_target`、`all_majors_target`。
+**请求 payload 字段**：
+- **表单数据**：`background_university`, `background_major`, `gpa_raw`, `language_score_raw` 等。
+- **跨院系检查**：`selected_major_categories`, `selected_target_majors`。
+- **候选池**：`all_universities_target`, `all_majors_target`（可选）。
 
-**响应形态**：
+**返回结构（3 种典型形态）**：
 
-1. 校验失败：同 `validate_and_normalize` 错误结构。
-2. 需跨院系确认（未确认且守卫未自动放行）：`ok: true`，`needs_confirmation: true`，`confirmation` 含 `background_faculty`、`target_faculties`、`agent_approved` 等，`result` 可为 `null`。
-3. 成功：`result` 内含 `similarity_results`、`cross_major_results`、`user_specified_results`、`unified_results`、`meta`（如 `combination_count`）。
+1.  **校验失败**
+    ```json
+    {
+      "ok": false,
+      "errors": [{"field": "...", "message": "...", "severity": "error"}],
+      "warnings": []
+    }
+    ```
 
-### 3.3 `unified_results` 合并规则
+2.  **需要跨院系确认（不是错误）**
+    当检测到跨院系、且 Agent 未自动放行、且 `confirm_cross_faculty=false`：
+    ```json
+    {
+      "ok": true,
+      "needs_confirmation": true,
+      "confirmation": {
+        "background_faculty": "...",
+        "target_faculties": ["..."],
+        "agent_approved": false
+      },
+      "normalized_input": {...},
+      "result": null
+    }
+    ```
 
-按 (院校, 专业) 去重时：
+3.  **预测成功**
+    ```json
+    {
+      "ok": true,
+      "needs_confirmation": false,
+      "warnings": ["..."],
+      "normalized_input": {...},
+      "result": {
+        "similarity_results": [...],
+        "cross_major_results": [...],
+        "user_specified_results": [...],
+        "unified_results": [...],
+        "meta": {"combination_count": ...}
+      }
+    }
+    ```
 
-1. **优先级 3**：用户指定（`user_specified_results`）
-2. **优先级 2**：跨专业推荐（`cross_major_results`）— 仅当条目带 `admitted == 1` 时参与合并（与 `result_modifier/filters.py` 行为一致）
-3. **优先级 1**：相似专业推荐（`similarity_results`）
+### 3.3 关于 `unified_results` 的合并策略
 
-同键多条时，高优先级覆盖低优先级；同优先级取 `probability` 较大者。
+`unified_results` 会合并以下来源的结果，并根据优先级进行去重（院校+专业）：
+1.  **优先级 3**：用户指定结果 (`user_specified_results`) —— 最高优先级。
+2.  **优先级 2**：跨专业推荐 (`cross_major_results`) —— 仅当样本标记为 `admitted == 1` 时参与合并。
+3.  **优先级 1**：相似专业推荐 (`similarity_results`) —— 基础推荐。
 
-## 4. Streamlit 管线步骤（逻辑顺序）
+当同一 (院校, 专业) 组合在多个来源中出现时，高优先级来源将覆盖低优先级来源；若优先级相同，则录取概率（`probability`）更高者获胜。
 
-1. **跨院系守卫**：`cross_faculty_guard.py`（与 JSON 路径的 `confirm_cross_faculty` 协同）。
-2. **准备**：`prediction_preparation/preparer.py`、`form_normalizer.py`。
-3. **召回与推理**：`flow/run_prediction.py::run_single_prediction`（含 E5/Fuzzy 等召回逻辑，以源码为准）；`prediction_execution/executor.py` 批量 `predict_proba`。
-4. **处理**：`flow/processor.py`（元数据、目标专业语言门槛惩罚、相似度偏置、`BoundaryCaseAgent` 等）。
-5. **后处理**：`result_modifier/adjustment_pipeline.py`（GPA/语言、跨专业/学部、文本 uplift 等）。
-6. **合并**：`results_handler.py::combine_and_deduplicate_results`。
+> **注意**：跨专业推荐生成器（`result_modifier/filters.py`）现在会自动为符合历史录取的推荐项标记 `admitted: 1`，因此它们会出现在 `unified_results` 中。
 
----
+## 4. Streamlit 页面预测管线 (Flow Control)
 
-相关文档：[input_form_components_api.md](input_form_components_api.md)、[result_modifier_api.md](result_modifier_api.md)。
+**入口**：`src/pages/prediction/flow/pipeline.py::run_prediction_pipeline_with_progress`
 
-维护：与 `src/pages/prediction/` 同步更新。
+页面管线负责串联资源加载、并行推理、推荐生成与后处理：
+
+1.  **风险预警**: 通过 `cross_faculty_guard.py` 识别潜在的跨学院申请风险。
+2.  **准备输入 (Preparation)**：`src/pages/prediction/prediction_preparation/preparer.py`（含 `form_normalizer.py` 归一化）。
+3.  **核心推理 (Recall & Execution)**：
+    - 在 `flow/run_prediction.py::run_single_prediction` 中进行 **混合召回 (Recall)**（E5 语义 + Fuzz 字符匹配）。
+    - 之后调用 `prediction_execution.executor.PredictionExecutor` 进行 **精排推理**。
+4.  **结果平衡与初筛 (Processing)**：
+    - 在 `flow/processor.py` 中通过 `SingleResultProcessor` 完成元数据注入、**目标特定语言惩罚**、相似度偏置修正。
+    - 利用 `BoundaryCaseAgent` 对相似推荐与跨专业推荐进行数量平衡。
+5.  **批量修正 (Modification)**：通过 `src/pages/prediction/result_modifier/adjustment_pipeline.py` 进行 GPA/语言、跨专业、跨学部及文本加成的统一修正。
+6.  **结果交付**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`。
+
+### 关于 `unified_results` 的合并优先级
+合并过程基于优先级覆盖逻辑：
+- **优先级 3**：用户指定结果 (`user_specified`) —— 最高优先级。
+- **优先级 2**：跨专业推荐 (`cross_major`) —— 仅当样本标记为 `admitted == 1` 时参与合并。
+- **优先级 1**：相似专业推荐 (`similarity`) —— 基础推荐。
+
+当 (院校, 专业) 组合在多个来源中出现时，高优先级来源将覆盖低优先级来源；若优先级相同，则录取概率（`probability`）更高者获胜。

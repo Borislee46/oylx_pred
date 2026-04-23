@@ -3,7 +3,6 @@ import os
 import uuid
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 
 def _get_base_url() -> str:
@@ -109,4 +108,4 @@ def render_buttons_grid(available_buttons: list) -> None:
     else:
         height = 480 + (num_cards - 6) * 12
 
-    components.html(component_html, height=height, scrolling=False)
+    st.iframe(component_html, height=height)

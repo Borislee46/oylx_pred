@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import pandas as pd
@@ -35,6 +36,18 @@ from src.utils.logger import setup_logger
 boundary_processor_logger = setup_logger("page3", "prediction")
 
 
+def _is_major_match(
+    m_lower: str,
+    bg_mapped: str,
+    bg_orig: str,
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None,
+) -> bool:
+    sim = float((bg_target_similarity_cache or {}).get((bg_mapped, m_lower), 0.0))
+    if sim >= COMBINATION_POOL_SEMANTIC_MIN:
+        return True
+    return fuzz.token_sort_ratio(bg_orig, m_lower) > COMBINATION_POOL_FUZZY_MIN
+
+
 def _resolve_prediction_target_lists(
     input_data: PredictionInput,
     all_universities_target: list[str],
@@ -55,17 +68,7 @@ def _resolve_prediction_target_lists(
             m_str = str(m).strip()
             if not m_str:
                 continue
-            m_lower = m_str.lower()
-
-            sim_score = 0.0
-            if bg_target_similarity_cache is not None and bg_mapped:
-                sim_score = float(bg_target_similarity_cache.get((bg_mapped, m_lower), 0.0))
-
-            if sim_score >= COMBINATION_POOL_SEMANTIC_MIN:
-                target_majors.append(m)
-                continue
-
-            if fuzz.token_sort_ratio(bg_orig, m_lower) > COMBINATION_POOL_FUZZY_MIN:
+            if _is_major_match(m_str.lower(), bg_mapped, bg_orig, bg_target_similarity_cache):
                 target_majors.append(m)
 
         if not target_majors:
@@ -97,12 +100,7 @@ def _count_fuzz_passing_majors(
         m_lower = m_str.lower()
         if m_lower in seen:
             continue
-        sim_score = 0.0
-        if bg_target_similarity_cache is not None and bg_mapped:
-            sim_score = float(bg_target_similarity_cache.get((bg_mapped, m_lower), 0.0))
-        if sim_score >= COMBINATION_POOL_SEMANTIC_MIN or (
-            fuzz.token_sort_ratio(bg_orig, m_lower) > COMBINATION_POOL_FUZZY_MIN
-        ):
+        if _is_major_match(m_lower, bg_mapped, bg_orig, bg_target_similarity_cache):
             seen.add(m_lower)
             n += 1
     return n
@@ -348,7 +346,7 @@ def _apply_agent_balance_adjustment_flat(
     diff = len(cross_rec) - len(sim_rec)
     max_len = max(len(sim_rec), len(cross_rec))
     value = AGENT_MIN_BALANCE_DIFF_RATIO * max_len
-    threshold = max(AGENT_MIN_BALANCE_DIFF_MIN, int(-(-value // 1)) if value >= 0 else int(value))
+    threshold = max(AGENT_MIN_BALANCE_DIFF_MIN, math.ceil(value))
 
     if abs(diff) < threshold or cases_df is None or not background_major:
         return sim_rec, cross_rec

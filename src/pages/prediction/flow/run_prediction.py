@@ -19,7 +19,6 @@ from src.pages.prediction.prediction_execution import PredictionExecutor
 from src.pages.prediction.prediction_preparation import (
     get_user_specified_combinations,
     prepare_model_inputs,
-    validate_and_clean_input,
 )
 from src.utils.logger import setup_logger
 
@@ -51,11 +50,7 @@ def run_single_prediction(
     list[dict[str, float | str]] | None,
     dict[str, Any] | None,
 ]:
-    prediction_input: PredictionInput = (
-        current_input_data
-        if "background_major" in current_input_data
-        else validate_and_clean_input(current_input_data)
-    )
+    prediction_input: PredictionInput = current_input_data
 
     bg_major = prediction_input.get("background_major", "")
     bg_major_orig = str(current_input_data.get("background_major_original") or bg_major)
