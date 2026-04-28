@@ -18,7 +18,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         st.html("<h3>月度现金收入</h3>")
         monthly = cash_income_monthly(revenue)
         if not monthly.empty:
-            monthly_trend_line(monthly, "月份", "现金收入")
+            monthly_trend_line(monthly, "月份", "现金收入", currency=True)
     with c2:
         st.html("<h3>资源渠道分布</h3>")
         ch = channel_breakdown(kehu)
@@ -35,4 +35,4 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         st.html("<h3>现金收入 — 产品品类</h3>")
         by_proj = cash_income_by_project(revenue)
         if not by_proj.empty:
-            simple_bar(by_proj, "产品品类", "现金收入")
+            simple_bar(by_proj, "产品品类", "现金收入", fmt=",.0f")

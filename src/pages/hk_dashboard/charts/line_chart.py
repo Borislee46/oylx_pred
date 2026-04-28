@@ -1,4 +1,4 @@
-"""Altair line chart — clean monthly trend."""
+"""Altair line chart — clean monthly trend with formatted tooltips."""
 
 import altair as alt
 import pandas as pd
@@ -8,9 +8,17 @@ import streamlit as st
 def monthly_trend_line(
     df: pd.DataFrame, date_col: str, value_col: str,
     title: str = "", color: str = "#2563eb", height: int = 240,
+    currency: bool = False,
 ) -> None:
     if df.empty or date_col not in df.columns or value_col not in df.columns:
         return
+    fmt = ",.0f"
+    tooltip_title = value_col
+    if currency:
+        df = df.copy()
+        df[value_col] = df[value_col] / 1e4
+        tooltip_title = f"{value_col} (万)"
+        fmt = ",.1f"
     chart = (
         alt.Chart(df)
         .mark_line(point=False, color=color, strokeWidth=1.8)
@@ -20,7 +28,7 @@ def monthly_trend_line(
             y=alt.Y(f"{value_col}:Q", title=None,
                     axis=alt.Axis(grid=True, gridColor="#f1f5f9", labelFontSize=11, tickCount=5)),
             tooltip=[alt.Tooltip(f"{date_col}:T", title="日期", format="%Y-%m"),
-                     alt.Tooltip(f"{value_col}:Q", format=",.0f")],
+                     alt.Tooltip(f"{value_col}:Q", title=tooltip_title, format=fmt)],
         )
         .properties(height=height)
         .configure_view(strokeWidth=0)

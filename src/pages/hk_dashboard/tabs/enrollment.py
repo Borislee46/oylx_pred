@@ -1,10 +1,10 @@
-"""Tab 3: 招生转化 — funnel, consultant, channels."""
+"""Tab 3: 招生转化 — two-pipeline view, consultant, channels."""
 
 import pandas as pd
 import streamlit as st
 
 from src.pages.hk_dashboard.charts import simple_bar, donut_chart
-from src.pages.hk_dashboard.components.kpi_cards import render_metric_grid
+from src.pages.hk_dashboard.components.kpi_cards import render_kpi_row, render_metric_grid
 from src.pages.hk_dashboard.components.data_table import render_filterable_table
 from src.pages.hk_dashboard.metrics.funnel_metrics import (
     calculate_funnel, consultant_ranking, class_capacity_metrics,
@@ -12,33 +12,81 @@ from src.pages.hk_dashboard.metrics.funnel_metrics import (
 )
 
 
-def _render_funnel(stages: dict) -> None:
-    items = [
-        ("总资源", stages["总资源数"], "#2563eb"),
-        ("已外呼", stages["已外呼"], "#0d9488"),
-        ("有工单", stages["有工单"], "#d97706"),
-        ("已签约", stages["已签约"], "#7c3aed"),
-    ]
-    max_w = stages["总资源数"] or 1
-    html = '<div style="padding:0.25rem 0 0.5rem 0">'
-    for label, val, color in items:
-        pct = val / max_w * 100 if max_w else 0
-        html += (
-            f'<div style="margin-bottom:4px;display:flex;align-items:center">'
-            f'<span style="width:60px;font-size:0.78rem;font-weight:600;color:#475569">{label}</span>'
-            f'<span style="width:55px;font-size:0.82rem;font-weight:700;color:{color}">{val:,}</span>'
-            f'<span style="flex:1;margin-left:6px;background:{color};height:18px;'
-            f'border-radius:3px;width:{max(pct * 0.5, 1.5)}%;min-width:{max(pct * 0.5, 1.5)}%"></span>'
-            f'</div>'
-        )
-    html += "</div>"
-    st.html(html)
+def _render_pipeline(kehu, tmk, qianyue) -> None:
+    """Two-pipeline view: TMK outbound + overall conversion."""
+    c1, c2 = st.columns(2)
 
+    # ── TMK pipeline ──
+    with c1:
+        st.html("<h3>TMK 外呼管道</h3>")
+        total_tmk = len(tmk)
+        called = tmk["外呼次数"].notna().sum()
+        work_orders = tmk["工单ID"].notna().sum()
+        normal_wo = (tmk["工单状态"] == "正常").sum()
+
+        items = [
+            ("TMK 资源", total_tmk, "#2563eb"),
+            ("已外呼", called, "#0d9488"),
+            ("有工单", work_orders, "#d97706"),
+            ("工单正常", normal_wo, "#7c3aed"),
+        ]
+        max_w = total_tmk or 1
+        html = '<div style="padding:0.25rem 0">'
+        for label, val, color in items:
+            pct = val / max_w * 100
+            prev = items[0][1]
+            ratio = f"{(val / (items[items.index((label, val, color)) - 1][1]) * 100):.0f}%" if items.index((label, val, color)) > 0 else ""
+            html += (
+                f'<div style="margin-bottom:4px;display:flex;align-items:center">'
+                f'<span style="width:55px;font-size:0.76rem;font-weight:600;color:#475569">{label}</span>'
+                f'<span style="width:55px;font-size:0.8rem;font-weight:700;color:{color}">{val:,}</span>'
+                f'<span style="width:35px;font-size:0.68rem;color:#94a3b8">{ratio}</span>'
+                f'<span style="flex:1;margin-left:4px;background:{color};height:16px;'
+                f'border-radius:2px;width:{max(pct * 0.45, 1)}%;min-width:{max(pct * 0.45, 1)}%"></span>'
+                f'</div>'
+            )
+        html += "</div>"
+        st.html(html)
+
+    # ── Contract pipeline ──
+    with c2:
+        st.html("<h3>签约转化</h3>")
+        kehu_ids = set(kehu["资源id"].dropna())
+        signed_ids = set(qianyue["资源id"].dropna())
+        matched = len(kehu_ids & signed_ids)
+
+        contract_items = [
+            ("总资源", len(kehu), "#2563eb"),
+            ("有资源ID匹配", matched, "#0d9488"),
+            ("签单数", qianyue["签约单id"].notna().sum(), "#7c3aed"),
+        ]
+        max_w2 = len(kehu) or 1
+        html2 = '<div style="padding:0.25rem 0">'
+        for label, val, color in contract_items:
+            pct = val / max_w2 * 100
+            html2 += (
+                f'<div style="margin-bottom:4px;display:flex;align-items:center">'
+                f'<span style="width:70px;font-size:0.76rem;font-weight:600;color:#475569">{label}</span>'
+                f'<span style="width:55px;font-size:0.8rem;font-weight:700;color:{color}">{val:,}</span>'
+                f'<span style="flex:1;margin-left:4px;background:{color};height:16px;'
+                f'border-radius:2px;width:{max(pct * 0.45, 1)}%;min-width:{max(pct * 0.45, 1)}%"></span>'
+                f'</div>'
+            )
+        html2 += "</div>"
+        st.html(html2)
+        matched_pct = f"{matched / len(signed_ids) * 100:.0f}%" if signed_ids else "-"
+        st.caption(f"{qianyue['签约单id'].notna().sum()} 单签约，其中 {matched}/{len(signed_ids)} ({matched_pct}) 个资源 ID 匹配资源池")
+
+    # TMK stats below
+    st.html("<h3>TMK 处理统计</h3>")
+    tstats = tmk_processing_stats(tmk)
     render_metric_grid([
-        {"label": "外呼率", "value": stages["外呼率"]},
-        {"label": "外呼 — 工单", "value": stages["外呼→工单率"]},
-        {"label": "工单 — 签约", "value": stages["工单→签约率"]},
-    ], columns=3)
+        {"label": "已外呼", "value": str(tstats["已外呼"])},
+        {"label": "已处理", "value": str(tstats["已处理"])},
+        {"label": "待处理", "value": str(tstats["待处理"])},
+        {"label": "1 天内处理", "value": str(tstats["1天内处理"])},
+        {"label": "平均处理时延", "value": f'{tstats["平均处理时延(天)"]} 天'},
+    ], columns=5)
 
 
 def render(data: dict[str, pd.DataFrame]) -> None:
@@ -65,20 +113,9 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         tbl = cm[["班级编码", "班级名称", "班级状态", "当前人数", "标准人数", "最大人数", "满班率", "开课日期"]]
         render_filterable_table(tbl[tbl["班级状态"] == "正常"].head(100), key="capacity_detail")
 
-    # ── Funnel ──
-    st.html("<h2>资源转化漏斗</h2>")
-    funnel = calculate_funnel(kehu, tmk, qianyue)
-    _render_funnel(funnel)
-
-    st.html("<h3>TMK 处理统计</h3>")
-    tstats = tmk_processing_stats(tmk)
-    render_metric_grid([
-        {"label": "已外呼", "value": str(tstats["已外呼"])},
-        {"label": "已处理", "value": str(tstats["已处理"])},
-        {"label": "待处理", "value": str(tstats["待处理"])},
-        {"label": "1 天内处理", "value": str(tstats["1天内处理"])},
-        {"label": "平均处理时延", "value": f'{tstats["平均处理时延(天)"]} 天'},
-    ], columns=5)
+    # ── Pipeline (two columns: TMK + Contract) ──
+    st.html("<h2>资源管道</h2>")
+    _render_pipeline(kehu, tmk, qianyue)
 
     # ── Channels ──
     st.html("<h2>渠道分析</h2>")
