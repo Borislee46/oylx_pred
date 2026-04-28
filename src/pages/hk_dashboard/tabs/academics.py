@@ -14,12 +14,10 @@ def _teacher_workload(class_master: pd.DataFrame) -> pd.DataFrame:
     hours_col = "实际上课时长（去除赠课）" if "实际上课时长（去除赠课）" in cm.columns else "课次"
     cm[hours_col] = pd.to_numeric(cm[hours_col], errors="coerce")
     cm["课次_n"] = pd.to_numeric(cm["课次"], errors="coerce")
-
     teacher_data = []
     for _, row in cm.iterrows():
         raw = row.get("教师", "")
-        if pd.isna(raw):
-            continue
+        if pd.isna(raw): continue
         names = [t.strip().split("(")[0] for t in str(raw).split(",") if t.strip()]
         for name in names:
             teacher_data.append({
@@ -28,22 +26,17 @@ def _teacher_workload(class_master: pd.DataFrame) -> pd.DataFrame:
                 "课次": row["课次_n"] if pd.notna(row["课次_n"]) else 0,
                 "班级编码": row["班级编码"],
             })
-
     df = pd.DataFrame(teacher_data)
-    if df.empty:
-        return df
-    return (
-        df.groupby("教师", as_index=False)
-        .agg(课次=("课次", "sum"), 课时=("课时", "sum"), 班级数=("班级编码", "nunique"))
-        .sort_values("课时", ascending=False)
-    )
+    if df.empty: return df
+    return (df.groupby("教师", as_index=False)
+            .agg(课次=("课次", "sum"), 课时=("课时", "sum"), 班级数=("班级编码", "nunique"))
+            .sort_values("课时", ascending=False))
 
 
 def render(data: dict[str, pd.DataFrame]) -> None:
     roster = data["roster"]
     class_master = data["class_master"]
 
-    # ── Roster ──
     st.html("<h2>学员名册</h2>")
     valid_count = (roster["有效状态"] == "有效").sum()
     invalid_count = (roster["有效状态"] == "无效").sum()
@@ -54,11 +47,11 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         {"label": "在读", "value": str(valid_count)},
         {"label": "离班", "value": str(invalid_count)},
     ], columns=3)
+    st.html('<div class="hk-note">花名册 | NUNIQUE(学员编号) | COUNT(有效状态 = 有效|无效)</div>')
 
-    status_filter = category_filter(roster, "有效状态", label="学员状态", key="roster_status")
+    status_filter = category_filter(roster, "有效状态", label="状态", key="roster_status")
     r = roster.copy()
-    if status_filter:
-        r = r[r["有效状态"] == status_filter]
+    if status_filter: r = r[r["有效状态"] == status_filter]
 
     c1, c2 = st.columns([2, 1])
     with c1:
@@ -73,39 +66,35 @@ def render(data: dict[str, pd.DataFrame]) -> None:
             grade_cnt = r["学员年级(自动更新)"].value_counts().reset_index(name="count")
             grade_cnt.columns = ["年级", "count"]
             if not grade_cnt.empty:
-                simple_bar(grade_cnt.head(10), "年级", "count", horizontal=True, color="#7c3aed")
+                simple_bar(grade_cnt.head(10), "年级", "count", horizontal=True, color="#7c3aed", height=200)
 
-    # ── Attendance ──
     st.html("<h2>考勤</h2>")
     r["打卡_n"] = pd.to_numeric(r["打卡次数"], errors="coerce")
     avg_att = r["打卡_n"].mean()
     total_att = r["打卡_n"].sum()
     max_att = r["打卡_n"].max()
-
     render_metric_grid([
         {"label": "总打卡次数", "value": f"{total_att:,.0f}"},
         {"label": "人均打卡", "value": f"{avg_att:.1f}"},
         {"label": "最高打卡", "value": f"{max_att:,.0f}"},
     ], columns=3)
+    st.html('<div class="hk-note">花名册 | SUM(打卡次数) | AVG(打卡次数)</div>')
 
     with st.expander("班级打卡统计"):
-        att_cls = (
-            r.groupby("班级编码", as_index=False)
-            .agg(学员数=("学员编号", "nunique"), 总打卡=("打卡_n", "sum"),
-                 人均打卡=("打卡_n", "mean"))
-        )
+        att_cls = (r.groupby("班级编码", as_index=False)
+                   .agg(学员数=("学员编号", "nunique"), 总打卡=("打卡_n", "sum"), 人均打卡=("打卡_n", "mean")))
         att_cls["人均打卡"] = att_cls["人均打卡"].round(1)
         if not att_cls.empty:
             names = class_master[["班级编码", "班级名称"]].drop_duplicates()
             att_cls = att_cls.merge(names, on="班级编码", how="left")
             render_filterable_table(att_cls, key="attendance_table")
 
-    # ── Teacher workload ──
     st.html("<h2>教师课量</h2>")
     workload = _teacher_workload(class_master)
     c1, c2 = st.columns([2, 3])
     with c1:
         if not workload.empty:
-            simple_bar(workload.head(15), "教师", "课时", horizontal=True, color="#2563eb")
+            simple_bar(workload.head(15), "教师", "课时", horizontal=True, color="#2563eb", height=260)
     with c2:
         render_filterable_table(workload, key="workload_table")
+    st.html('<div class="hk-note">维表.教师 | SPLIT co-teachers | 每人按班级计课时 | SUM(实际上课时长)</div>')

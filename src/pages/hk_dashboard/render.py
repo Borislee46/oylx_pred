@@ -25,11 +25,15 @@ def _summary_ribbon(data: dict) -> None:
 
     render_kpi_row([
         {"value": f"{net / 1e4:.0f} 万", "label": "现金收入 (净额)", "accent": "green",
-         "sub": f"流水 {gross / 1e4:.0f} 万"},
-        {"value": str(students), "label": "总学员", "accent": "blue"},
-        {"value": str(classes), "label": "行课班级", "accent": "blue"},
+         "sub": f"流水 {gross / 1e4:.0f} 万  |  退费 {abs(amt[amt < 0].sum()) / 1e4:.0f} 万",
+         "formula": "SUM(收入人次.现金收入)"},
+        {"value": str(students), "label": "总学员", "accent": "blue",
+         "formula": "NUNIQUE(花名册.学员编号)"},
+        {"value": str(classes), "label": "行课班级", "accent": "blue",
+         "formula": "COUNT(维表 WHERE 班级状态 = 正常)"},
         {"value": str(signed), "label": "累计签约", "accent": "slate",
-         "sub": f"待处理资源 {pending}"},
+         "sub": f"待处理资源 {pending}",
+         "formula": "COUNT(签约列表.签约单id IS NOT NULL)"},
     ])
 
 
@@ -58,13 +62,8 @@ def render() -> None:
     from src.pages.hk_dashboard.tabs.academics import render as tab_academics
     from src.pages.hk_dashboard.tabs.renewal import render as tab_renewal
 
-    with t1:
-        tab_overview(data)
-    with t2:
-        tab_revenue(data)
-    with t3:
-        tab_enrollment(data)
-    with t4:
-        tab_academics(data)
-    with t5:
-        tab_renewal(data)
+    with t1: tab_overview(data)
+    with t2: tab_revenue(data)
+    with t3: tab_enrollment(data)
+    with t4: tab_academics(data)
+    with t5: tab_renewal(data)

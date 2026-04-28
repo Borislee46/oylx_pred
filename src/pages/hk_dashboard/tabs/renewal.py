@@ -1,4 +1,4 @@
-"""Tab 5: 续费看板 — per-teacher renewal rate + bonus calculation."""
+"""Tab 5: 续费看板 — per-teacher renewal rate + bonus."""
 
 import pandas as pd
 import streamlit as st
@@ -14,8 +14,7 @@ from src.pages.hk_dashboard.metrics.renewal_metrics import (
 
 def _available_months(roster: pd.DataFrame) -> list[str]:
     dates = pd.to_datetime(roster["进班日期"], errors="coerce").dropna()
-    if dates.empty:
-        return []
+    if dates.empty: return []
     months = sorted(dates.dt.to_period("M").unique().astype(str))
     return months[:-2] if len(months) > 2 else []
 
@@ -33,7 +32,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     if not selected:
         selected = [m for m in months if m == "2026-02"][0] if "2026-02" in months else months[-1]
 
-    st.caption(f"当前计算月份: {selected} (队列法: {selected} — 次月)")
+    st.caption(f"计算月份: {selected} | 队列法: {selected} 学员 → {selected} 次月在班 → 续费率")
 
     renewal_df = calculate_renewal_rate(roster, class_master, month=selected)
     bonus_df = calculate_bonus(renewal_df, class_master, month=selected)
@@ -49,18 +48,23 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         overall_rate = 0; total_bonus = 0; total_students = 0; retained = 0; teacher_count = 0
 
     render_kpi_row([
-        {"value": f"{overall_rate:.0%}", "label": "整体续费率", "accent": "green"},
-        {"value": str(total_students), "label": "当月学员数", "accent": "blue"},
+        {"value": f"{overall_rate:.0%}", "label": "整体续费率", "accent": "green",
+         "formula": "次月在班数 / 当月学员数"},
+        {"value": str(total_students), "label": "当月学员数", "accent": "blue",
+         "formula": "COUNT(进班 <= 月底 AND (离班 >= 月初 OR 离班 IS NULL))"},
         {"value": str(retained), "label": "次月在班数", "accent": "blue",
-         "sub": f"{teacher_count} 位教师"},
-        {"value": f"{total_bonus / 1e4:.0f} 万", "label": "应发奖金 (HKD)", "accent": "amber"},
+         "sub": f"{teacher_count} 位教师",
+         "formula": "上述学员中 次月仍在班的人数"},
+        {"value": f"{total_bonus / 1e4:.0f} 万", "label": "应发奖金 (HKD)", "accent": "amber",
+         "formula": "SUM(单价 × 当月课时) | 单价 = LOOKUP(续费率, 班型人数)"},
     ])
 
     st.html("<h3>教师续费率</h3>")
     c1, c2 = st.columns([2, 3])
     with c1:
         if not renewal_df.empty:
-            simple_bar(renewal_df.head(15), "教师", "续费率", horizontal=True, color="#2563eb")
+            simple_bar(renewal_df.head(15), "教师", "续费率", horizontal=True, color="#2563eb", height=240, fmt=".0%")
+        st.html('<div class="hk-note">主带课教师 | GROUP BY 教师 | 续费率 = 次月在班 / 当月学员</div>')
     with c2:
         st.html("<h3>奖金明细</h3>")
         if not bonus_df.empty:
@@ -68,6 +72,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
                                 "单价(HKD/课时)", "当月课时", "应发奖金(HKD)"]].copy()
             display["续费率"] = display["续费率"].apply(lambda x: f"{x:.0%}")
             render_filterable_table(display, key="bonus_table")
+        st.html('<div class="hk-note">奖金阶梯: 续费率[50%,75%)/[75%,85%)/[85%,100%] × 班型[1-24]/[25-49]/[50+] 人</div>')
 
     st.html("<h3>续费率区间分布</h3>")
     if not renewal_df.empty:
@@ -76,4 +81,4 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         renewal_df["续费率区间"] = pd.cut(renewal_df["续费率"], bins=bins, labels=labels, right=False)
         dist = renewal_df["续费率区间"].value_counts().reset_index(name="count")
         dist.columns = ["区间", "count"]
-        simple_bar(dist, "区间", "count", color="#0d9488")
+        simple_bar(dist, "区间", "count", color="#0d9488", height=200)
