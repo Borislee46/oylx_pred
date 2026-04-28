@@ -93,6 +93,9 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
     ):
         available_buttons.append(("人力数据中心", "pages/hr_hub.py", False))
 
+    if accessible_modules.get("hk", False):
+        available_buttons.append(("香港运营数据看板", "pages/hk_dashboard.py", False))
+
     return available_buttons
 
 

@@ -7,6 +7,7 @@ MODULE_IDS = (
     "hr_dashboard",
     "hr_profile",
     "hr_structure_dashboard",
+    "hk_dashboard",
 )
 
 
