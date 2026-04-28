@@ -1,30 +1,22 @@
-"""KPI metric cards — clean HTML cards with optional accent bars."""
+"""KPI metric cards — premium HTML cards with color accent bars."""
 
 import streamlit as st
 
 
 def render_kpi_row(cards: list[dict]) -> None:
-    """Render a row of custom KPI cards.
+    """Render a row of KPI cards.
 
-    Each dict: {
-        "value": str,     # large number
-        "label": str,     # small label below
-        "delta": str | None,  # optional delta text
-        "accent": str | None, # "accent" | "positive" | "warning"
-    }
+    Each dict: {"value": str, "label": str, "accent": "blue"|"green"|"amber"|"slate", "sub": str|None}
     """
     html = '<div class="hk-kpi-row">'
     for c in cards:
-        accent_cls = c.get("accent", "")
-        delta_html = ""
-        if c.get("delta"):
-            color = {"positive": "#059669", "warning": "#d97706"}.get(c.get("delta_color", ""), "#64748b")
-            delta_html = f'<div class="kpi-delta" style="color:{color}">{c["delta"]}</div>'
+        accent = c.get("accent", "slate")
+        sub_html = f'<div class="kpi-sub">{c["sub"]}</div>' if c.get("sub") else ""
         html += (
-            f'<div class="hk-kpi-card {accent_cls}">'
+            f'<div class="hk-kpi-card t-{accent}">'
             f'<div class="kpi-value">{c["value"]}</div>'
             f'<div class="kpi-label">{c["label"]}</div>'
-            f'{delta_html}'
+            f'{sub_html}'
             f'</div>'
         )
     html += "</div>"
@@ -32,7 +24,7 @@ def render_kpi_row(cards: list[dict]) -> None:
 
 
 def render_metric_grid(metrics: list[dict], columns: int = 4) -> None:
-    """Thin wrapper over st.metric with consistent styling."""
+    """st.metric grid — used for detail sections."""
     cols = st.columns(min(columns, len(metrics)))
     for i, m in enumerate(metrics):
         with cols[i]:

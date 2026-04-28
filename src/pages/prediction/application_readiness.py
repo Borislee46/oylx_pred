@@ -11,13 +11,11 @@ import streamlit as st
 def build_readiness_profile(
     input_data: dict[str, Any],
     prediction_results: Any,
-    writing_profile: dict[str, Any] | None,
 ) -> dict[str, Any]:
     results = _all_results(prediction_results)
     selection = _selection_factor(results)
     background = _background_factor(input_data, results)
-    writing = _writing_factor(writing_profile)
-    factors = [selection, background, writing]
+    factors = [selection, background]
 
     available = [f for f in factors if f["score"] is not None]
     overall = round(
@@ -31,7 +29,7 @@ def build_readiness_profile(
         "score": overall,
         "label": _overall_label(overall),
         "factors": factors,
-        "next_action": _next_action(weakest, writing_profile),
+        "next_action": _next_action(weakest),
     }
 
 
@@ -47,7 +45,7 @@ def render_readiness_card(profile: dict[str, Any]) -> None:
         'font-weight:800;color:var(--hk-slate-900);line-height:1}'
         '.hk-ready-label{font-size:.78rem;color:var(--hk-slate-400);margin-top:.2rem}'
         '.hk-ready-action{font-size:.86rem;color:var(--hk-slate-600);line-height:1.55;max-width:520px}'
-        '.hk-ready-factors{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));'
+        '.hk-ready-factors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));'
         'gap:.6rem;margin-top:.85rem}'
         '.hk-ready-factor{border-radius:14px;background:var(--hk-slate-50);padding:.65rem .75rem}'
         '.hk-ready-factor-name{font-size:.72rem;color:var(--hk-slate-400);margin-bottom:.2rem}'
@@ -103,22 +101,6 @@ def _background_factor(
     return {"name": "背景风险", "score": round(score, 1), "note": note, "weight": 0.35}
 
 
-def _writing_factor(writing_profile: dict[str, Any] | None) -> dict[str, Any]:
-    if not writing_profile:
-        return {
-            "name": "文书风险",
-            "score": None,
-            "note": "未接入 WritePrint",
-            "weight": 0.2,
-        }
-    ai_score = float(writing_profile.get("score", 0) or 0)
-    score = max(0, 100 - ai_score)
-    note = f'AI 风格风险 {ai_score:.0f}%'
-    if writing_profile.get("after_rewrite_score") is not None:
-        note += f'，改写后 {writing_profile["after_rewrite_score"]:.0f}%'
-    return {"name": "文书风险", "score": round(score, 1), "note": note, "weight": 0.2}
-
-
 def _trace_penalty_count(results: list[dict[str, Any]]) -> int:
     count = 0
     for result in results[:8]:
@@ -138,12 +120,8 @@ def _overall_label(score: float) -> str:
     return "建议先调整后再提交"
 
 
-def _next_action(factor: dict[str, Any], writing_profile: dict[str, Any] | None) -> str:
+def _next_action(factor: dict[str, Any]) -> str:
     name = factor["name"]
-    if name == "文书风险" and writing_profile:
-        return "下一步先处理文书节奏和模板表达，再回看目标组合。"
-    if name == "文书风险":
-        return "下一步把 PS 放入 WritePrint，补齐材料风险画像。"
     if name == "背景风险":
         return "下一步优先确认语言、经历和跨专业跨度，避免概率被结构性扣分。"
     return "下一步调整目标梯度，保留冲刺项，同时补足更稳的相似专业。"

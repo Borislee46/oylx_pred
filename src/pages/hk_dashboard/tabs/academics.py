@@ -17,10 +17,10 @@ def _teacher_workload(class_master: pd.DataFrame) -> pd.DataFrame:
 
     teacher_data = []
     for _, row in cm.iterrows():
-        teachers_raw = row.get("教师", "")
-        if pd.isna(teachers_raw):
+        raw = row.get("教师", "")
+        if pd.isna(raw):
             continue
-        names = [t.strip().split("(")[0] for t in str(teachers_raw).split(",") if t.strip()]
+        names = [t.strip().split("(")[0] for t in str(raw).split(",") if t.strip()]
         for name in names:
             teacher_data.append({
                 "教师": name,
@@ -50,7 +50,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     total_students = roster["学员编号"].nunique()
 
     render_metric_grid([
-        {"label": "总学员数", "value": str(total_students)},
+        {"label": "总学员", "value": str(total_students)},
         {"label": "在读", "value": str(valid_count)},
         {"label": "离班", "value": str(invalid_count)},
     ], columns=3)
@@ -62,13 +62,13 @@ def render(data: dict[str, pd.DataFrame]) -> None:
 
     c1, c2 = st.columns([2, 1])
     with c1:
-        with st.expander("学员花名册", expanded=False):
+        with st.expander("学员花名册"):
             display_cols = ["学员编号", "学员姓名", "班级编码", "进班日期", "有效状态",
                             "打卡次数", "离班方式", "实缴金额"]
             avail = [c for c in display_cols if c in r.columns]
             render_filterable_table(r[avail].head(300), key="roster_table")
     with c2:
-        st.html("<h3>学员年级分布</h3>")
+        st.html("<h3>年级分布</h3>")
         if "学员年级(自动更新)" in r.columns:
             grade_cnt = r["学员年级(自动更新)"].value_counts().reset_index(name="count")
             grade_cnt.columns = ["年级", "count"]
@@ -76,7 +76,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
                 simple_bar(grade_cnt.head(10), "年级", "count", horizontal=True, color="#7c3aed")
 
     # ── Attendance ──
-    st.html("<h2>考勤统计</h2>")
+    st.html("<h2>考勤</h2>")
     r["打卡_n"] = pd.to_numeric(r["打卡次数"], errors="coerce")
     avg_att = r["打卡_n"].mean()
     total_att = r["打卡_n"].sum()

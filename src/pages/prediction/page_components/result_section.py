@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from src.pages.prediction.result_display import ResultsDisplay
+from src.utils import log_interaction_event
 from src.utils.session_manager import SessionManager
 
 PROBABILITY_PRECISION = 6
@@ -96,3 +97,21 @@ def display_results_section(
         "last_saved_results_hash", ""
     ) and not session_manager.get("form_data_changed", False):
         session_manager.set(last_saved_results_hash=current_hash)
+        log_interaction_event(
+            "prediction_results",
+            {
+                "results_hash": current_hash,
+                "similarity_count": len(sim_results or []),
+                "cross_count": len(cross_results or []),
+                "user_specified_count": len(user_specified_results or []),
+                "best_probability": _best_probability(all_results),
+                "target_universities": len(input_data.get("target_universities", [])),
+                "target_majors": len(input_data.get("target_majors", [])),
+            },
+        )
+
+
+def _best_probability(results: list[dict[str, Any]]) -> float:
+    if not results:
+        return 0.0
+    return round(max(float(r.get("probability", 0) or 0) for r in results), PROBABILITY_PRECISION)

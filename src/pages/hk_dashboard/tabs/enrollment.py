@@ -1,4 +1,4 @@
-"""Tab 3: 招生转化 — funnel, consultant ranking, channel analysis."""
+"""Tab 3: 招生转化 — funnel, consultant, channels."""
 
 import pandas as pd
 import streamlit as st
@@ -13,23 +13,22 @@ from src.pages.hk_dashboard.metrics.funnel_metrics import (
 
 
 def _render_funnel(stages: dict) -> None:
-    """Horizontal bar funnel visualization."""
     items = [
         ("总资源", stages["总资源数"], "#2563eb"),
-        ("已外呼", stages["已外呼"], "#059669"),
+        ("已外呼", stages["已外呼"], "#0d9488"),
         ("有工单", stages["有工单"], "#d97706"),
         ("已签约", stages["已签约"], "#7c3aed"),
     ]
     max_w = stages["总资源数"] or 1
-    html = '<div style="padding:0.5rem 0 1rem 0">'
+    html = '<div style="padding:0.25rem 0 0.5rem 0">'
     for label, val, color in items:
         pct = val / max_w * 100 if max_w else 0
         html += (
-            f'<div style="margin-bottom:6px;display:flex;align-items:center">'
-            f'<span style="width:70px;font-size:0.82rem;font-weight:600;color:#334155">{label}</span>'
-            f'<span style="width:60px;font-size:0.85rem;font-weight:700;color:{color}">{val:,}</span>'
-            f'<span style="flex:1;margin-left:8px;background:{color};height:22px;'
-            f'border-radius:3px;width:{max(pct * 0.55, 2)}%;min-width:{max(pct * 0.55, 2)}%"></span>'
+            f'<div style="margin-bottom:4px;display:flex;align-items:center">'
+            f'<span style="width:60px;font-size:0.78rem;font-weight:600;color:#475569">{label}</span>'
+            f'<span style="width:55px;font-size:0.82rem;font-weight:700;color:{color}">{val:,}</span>'
+            f'<span style="flex:1;margin-left:6px;background:{color};height:18px;'
+            f'border-radius:3px;width:{max(pct * 0.5, 1.5)}%;min-width:{max(pct * 0.5, 1.5)}%"></span>'
             f'</div>'
         )
     html += "</div>"
@@ -37,8 +36,8 @@ def _render_funnel(stages: dict) -> None:
 
     render_metric_grid([
         {"label": "外呼率", "value": stages["外呼率"]},
-        {"label": "外呼 → 工单", "value": stages["外呼→工单率"]},
-        {"label": "工单 → 签约", "value": stages["工单→签约率"]},
+        {"label": "外呼 — 工单", "value": stages["外呼→工单率"]},
+        {"label": "工单 — 签约", "value": stages["工单→签约率"]},
     ], columns=3)
 
 
@@ -49,7 +48,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     class_master = data["class_master"]
 
     # ── Capacity ──
-    st.html("<h2>班级容量指标</h2>")
+    st.html("<h2>班级容量</h2>")
     cap = class_capacity_metrics(class_master)
     render_metric_grid([
         {"label": "行课班级", "value": str(cap["行课班级数"])},
@@ -71,35 +70,34 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     funnel = calculate_funnel(kehu, tmk, qianyue)
     _render_funnel(funnel)
 
-    # TMK stats
     st.html("<h3>TMK 处理统计</h3>")
     tstats = tmk_processing_stats(tmk)
     render_metric_grid([
         {"label": "已外呼", "value": str(tstats["已外呼"])},
         {"label": "已处理", "value": str(tstats["已处理"])},
         {"label": "待处理", "value": str(tstats["待处理"])},
-        {"label": "1天内处理", "value": str(tstats["1天内处理"])},
-        {"label": "平均处理时延", "value": f'{tstats["平均处理时延(天)"]}天'},
+        {"label": "1 天内处理", "value": str(tstats["1天内处理"])},
+        {"label": "平均处理时延", "value": f'{tstats["平均处理时延(天)"]} 天'},
     ], columns=5)
 
     # ── Channels ──
     st.html("<h2>渠道分析</h2>")
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>一级渠道分布</h3>")
+        st.html("<h3>资源渠道</h3>")
         ch = channel_breakdown(kehu)
         if not ch.empty:
             donut_chart(ch, "渠道", "count", max_categories=6)
     with c2:
-        st.html("<h3>签约二级渠道</h3>")
+        st.html("<h3>签约渠道</h3>")
         if "二级获取渠道" in qianyue.columns:
             ch2 = qianyue["二级获取渠道"].value_counts().reset_index(name="count")
             ch2.columns = ["渠道", "count"]
             if not ch2.empty:
-                simple_bar(ch2.head(10), "渠道", "count", horizontal=True, color="#059669")
+                simple_bar(ch2.head(10), "渠道", "count", horizontal=True, color="#0d9488")
 
-    # ── Consultant ranking ──
-    st.html("<h2>顾问业绩排名</h2>")
+    # ── Consultant ──
+    st.html("<h2>顾问业绩</h2>")
     ranking = consultant_ranking(qianyue)
     c1, c2 = st.columns([2, 3])
     with c1:

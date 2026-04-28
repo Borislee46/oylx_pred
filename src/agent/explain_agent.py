@@ -21,7 +21,7 @@ tier说明：高概率(≥60%)=保底，中等(30-60%)=适中，低(<30%)=冲刺
 2. recommendations：选3-5个最优推荐，每个说明推荐理由
 3. strengths：学生的竞争优势（2-4条）
 4. concerns：需要关注的风险点（2-4条），如涉及跨专业/跨学部/语言等调整必须提及
-5. summary：40-60字总结建议
+5. summary：40-60字总结建议，给出最值得优先处理的下一步动作
 
 严格输出JSON，无其他内容：
 {"overview":"...","recommendations":[{"school":"","major":"","probability":0,"tier":"冲刺|适中|保底","reason":""}],"strengths":[""],"concerns":[""],"summary":"..."}

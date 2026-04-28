@@ -30,7 +30,6 @@ def _render_ai_explanation(
     language_score: float,
     language_type: str,
     experience_details: dict | None,
-    writing_profile: dict | None,
 ) -> None:
     sim = prediction_results.similarity_results or []
     cross = prediction_results.cross_major_results or []
@@ -69,7 +68,6 @@ def _render_ai_explanation(
         language_score=language_score,
         language_type=language_type or "",
         experience_details=experience_details or {},
-        writing_profile=writing_profile or {},
         prediction_results={
             "similarity_results": sim,
             "cross_major_results": cross,
@@ -145,9 +143,6 @@ def display_content(
         st.caption("您的输入已更改，当前显示的是先前输入的预测结果。请点击预测按钮获取最新结果。")
 
     res_model = session_manager.get("prediction_results")
-    writing_profile = session_manager.get("writing_profile") or st.session_state.get(
-        "writing_profile"
-    )
     display_results_section(
         current_input_data,
         res_model.similarity_results,
@@ -156,9 +151,9 @@ def display_content(
         page_state.cases_df,
         submitted=submitted,
     )
-    readiness = build_readiness_profile(current_input_data, res_model, writing_profile)
+    readiness = build_readiness_profile(current_input_data, res_model)
     render_readiness_card(readiness)
-    _log_readiness_once(session_manager, readiness, writing_profile)
+    _log_readiness_once(session_manager, readiness)
 
     if submitted and res_model and (res_model.similarity_results or res_model.cross_major_results):
         st.html('<hr class="hk-section-divider">')
@@ -170,7 +165,6 @@ def display_content(
             current_input_data.get("language_score", 0),
             current_input_data.get("language_type", ""),
             current_input_data.get("experience_details"),
-            writing_profile,
         )
 
     if not submitted and form_changed:
@@ -180,11 +174,9 @@ def display_content(
 def _log_readiness_once(
     session_manager: SessionManager,
     readiness: dict[str, Any],
-    writing_profile: dict | None,
 ) -> None:
     key_data = {
         "score": readiness.get("score"),
-        "writing_hash": (writing_profile or {}).get("text_hash"),
     }
     key = hashlib.md5(json.dumps(key_data, sort_keys=True).encode()).hexdigest()
     if session_manager.get("last_readiness_event_hash") == key:
@@ -198,6 +190,5 @@ def _log_readiness_once(
             "factor_scores": {
                 f["name"]: f.get("score") for f in readiness.get("factors", [])
             },
-            "has_writing_profile": bool(writing_profile),
         },
     )

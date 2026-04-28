@@ -43,22 +43,21 @@ def channel_breakdown(kehu: pd.DataFrame) -> pd.DataFrame:
 
 
 def class_capacity_metrics(class_master: pd.DataFrame) -> dict:
+    """班级容量指标。仅统计当前人数 > 0 的正常班级。"""
     cm = class_master.copy()
-    cm["标准人数_n"] = pd.to_numeric(cm["标准人数"], errors="coerce")
-    cm["当前人数_n"] = pd.to_numeric(cm["当前人数"], errors="coerce")
-    cm["最大人数_n"] = pd.to_numeric(cm["最大人数"], errors="coerce")
-    total = len(cm[cm["班级状态"] == "正常"])
-    full = len(cm[(cm["班级状态"] == "正常") & (cm["当前人数_n"] >= cm["标准人数_n"])])
-    avg_ratio = (
-        (cm.loc[cm["班级状态"] == "正常", "当前人数_n"] /
-         cm.loc[cm["班级状态"] == "正常", "标准人数_n"].replace(0, pd.NA))
-        .mean()
-    )
+    cm["标准_n"] = pd.to_numeric(cm["标准人数"], errors="coerce")
+    cm["当前_n"] = pd.to_numeric(cm["当前人数"], errors="coerce")
+    active = cm[(cm["班级状态"] == "正常") & (cm["当前_n"] > 0)]
+    total = len(active)
+    full = len(active[active["当前_n"] >= active["标准_n"]])
+    avg_ratio = (active["当前_n"] / active["标准_n"].replace(0, pd.NA)).mean()
+    avg_current = active["当前_n"].mean()
     return {
         "行课班级数": total,
         "满班班级数": full,
-        "满班率": f"{full / total * 100:.0f}%" if total else "0%",
-        "平均满班率": f"{avg_ratio * 100:.0f}%" if pd.notna(avg_ratio) else "0%",
+        "满班率": f"{full / total * 100:.0f}%" if total else "-",
+        "平均满班率": f"{avg_ratio * 100:.0f}%" if pd.notna(avg_ratio) else "-",
+        "平均班容": f"{avg_current:.0f} 人" if pd.notna(avg_current) else "-",
     }
 
 

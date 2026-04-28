@@ -1,4 +1,4 @@
-"""HK Dashboard — professional CSS theme."""
+"""HK Dashboard — premium styling for startup ops dashboard."""
 
 import streamlit as st
 
@@ -6,156 +6,113 @@ import streamlit as st
 def inject_hk_dashboard_styles() -> None:
     st.html("""
     <style>
-    /* ── Root / page ── */
-    .stMainBlockContainer {
-        padding: 0.5rem 1.5rem 2rem 1.5rem;
-    }
-    section[data-testid="stSidebar"] { display: none; }
+    /* ── Root ── */
+    .stMainBlockContainer { padding: 0.75rem 2rem 2.5rem 2rem; }
+    .stApp { background: #f8fafc; }
 
-    /* ── Typography ── */
+    /* ── Title ── */
     h1 {
-        font-size: 1.6rem;
-        font-weight: 600;
-        color: #1e293b;
-        padding: 0.5rem 0 0.75rem 0;
-        margin: 0 0 1.25rem 0;
-        border-bottom: 1px solid #e2e8f0;
-        letter-spacing: 0.02em;
+        font-size: 1.4rem; font-weight: 600; color: #0f172a;
+        padding: 0.25rem 0 0.5rem 0; margin: 0 0 0.75rem 0;
+        border-bottom: 1px solid #e2e8f0; letter-spacing: 0.01em;
     }
+
+    /* ── Section headers ── */
     h2 {
-        font-size: 1.15rem;
-        font-weight: 600;
-        color: #334155;
-        margin: 1.25rem 0 0.75rem 0;
-        padding-left: 0.6rem;
-        border-left: 3px solid #2563eb;
+        font-size: 0.95rem; font-weight: 600; color: #334155;
+        margin: 1.5rem 0 0.6rem 0; padding: 0;
+        text-transform: uppercase; letter-spacing: 0.06em;
     }
     h3 {
-        font-size: 0.95rem;
-        font-weight: 600;
-        color: #475569;
-        margin: 0.75rem 0 0.5rem 0;
+        font-size: 0.82rem; font-weight: 600; color: #64748b;
+        margin: 0.6rem 0 0.4rem 0; text-transform: uppercase; letter-spacing: 0.05em;
     }
 
-    /* ── Metric cards ── */
-    [data-testid="stMetric"] {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: #64748b;
-        letter-spacing: 0.03em;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    /* ── Custom KPI cards ── */
+    /* ── KPI row ── */
     .hk-kpi-row {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin: 0.5rem 0 1rem 0;
+        display: flex; gap: 14px; flex-wrap: wrap; margin: 0 0 0.5rem 0;
     }
     .hk-kpi-card {
-        flex: 1 1 180px;
-        min-width: 150px;
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1rem 1.2rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        transition: box-shadow 0.15s;
+        flex: 1 1 170px; min-width: 140px;
+        background: #fff; border: 1px solid #f1f5f9;
+        border-radius: 8px; padding: 0.9rem 1.1rem;
     }
-    .hk-kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .hk-kpi-card .kpi-value {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
+        font-size: 1.5rem; font-weight: 700; color: #0f172a; line-height: 1.2;
     }
     .hk-kpi-card .kpi-label {
-        font-size: 0.72rem;
-        font-weight: 500;
-        color: #64748b;
-        letter-spacing: 0.04em;
-        margin-top: 0.3rem;
+        font-size: 0.7rem; font-weight: 500; color: #94a3b8;
+        letter-spacing: 0.05em; margin-top: 0.25rem; text-transform: uppercase;
     }
-    .hk-kpi-card .kpi-delta {
-        font-size: 0.75rem;
-        font-weight: 600;
-        margin-top: 0.2rem;
+    .hk-kpi-card .kpi-sub {
+        font-size: 0.72rem; color: #64748b; margin-top: 0.2rem;
     }
-    .hk-kpi-card.accent { border-top: 3px solid #2563eb; }
-    .hk-kpi-card.positive { border-top: 3px solid #059669; }
-    .hk-kpi-card.warning { border-top: 3px solid #d97706; }
 
-    /* ── Section cards ── */
-    .hk-section {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1rem 1.25rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    /* ── KPI colors ── */
+    .hk-kpi-card.t-blue  { border-left: 3px solid #2563eb; }
+    .hk-kpi-card.t-green { border-left: 3px solid #0d9488; }
+    .hk-kpi-card.t-amber { border-left: 3px solid #d97706; }
+    .hk-kpi-card.t-slate { border-left: 3px solid #64748b; }
+
+    /* ── Metric cards (st.metric) ── */
+    [data-testid="stMetric"] {
+        background: #fff; border: 1px solid #f1f5f9; border-radius: 8px;
+        padding: 0.6rem 0.9rem;
     }
-    .hk-section h3 { margin-top: 0; border: none; padding: 0; }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.7rem; font-weight: 500; color: #94a3b8; letter-spacing: 0.04em;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.2rem; font-weight: 700; color: #0f172a;
+    }
 
     /* ── Tabs ── */
+    .stTabs [data-baseweb="tab-list"] { gap: 0; border-bottom: 1px solid #e2e8f0; }
     .stTabs [data-baseweb="tab"] {
-        font-size: 0.9rem;
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        color: #64748b;
+        font-size: 0.85rem; font-weight: 500; padding: 0.4rem 1rem;
+        color: #64748b; border-radius: 0; margin-right: 0;
     }
     .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #2563eb;
-        font-weight: 600;
+        color: #2563eb; font-weight: 600;
+        border-bottom: 2px solid #2563eb;
     }
-    .stTabs [data-baseweb="tab-highlight"] {
-        background: #2563eb;
-    }
+    .stTabs [data-baseweb="tab-highlight"] { background: transparent; }
 
     /* ── DataFrames ── */
     .stDataFrame {
-        font-size: 0.8rem;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        font-size: 0.78rem; border: 1px solid #f1f5f9; border-radius: 6px;
     }
     .stDataFrame thead th {
-        background: #f8fafc;
-        color: #475569;
-        font-weight: 600;
-        font-size: 0.75rem;
+        background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.72rem;
+        text-transform: uppercase; letter-spacing: 0.03em;
     }
 
     /* ── Expanders ── */
     [data-testid="stExpander"] {
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        margin: 0.5rem 0;
+        border: 1px solid #f1f5f9; border-radius: 8px; margin: 0.4rem 0;
+        background: #fff;
     }
 
-    /* ── Containers ── */
+    /* ── Containers with border ── */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        padding: 1rem;
-        margin-bottom: 0.75rem;
+        background: #fff; border-radius: 8px; border: 1px solid #f1f5f9;
+        padding: 1rem; margin-bottom: 0.5rem;
+    }
+
+    /* ── Select boxes ── */
+    .stSelectbox [data-baseweb="select"] {
+        border: 1px solid #e2e8f0; border-radius: 6px;
+    }
+
+    /* ── Inputs ── */
+    input[data-baseweb="input"] {
+        border: 1px solid #e2e8f0; border-radius: 6px;
     }
 
     /* ── Chart captions ── */
-    .stCaption { color: #94a3b8; font-size: 0.72rem; }
+    .stCaption { color: #94a3b8; font-size: 0.7rem; }
 
-    /* ── Search inputs ── */
-    input[type="text"] { border: 1px solid #e2e8f0; border-radius: 6px; }
+    /* ── Dividers ── */
+    hr { border-color: #f1f5f9; margin: 1rem 0; }
     </style>
     """)

@@ -9,22 +9,27 @@ from src.pages.hk_dashboard.components.kpi_cards import render_kpi_row
 
 
 def _summary_ribbon(data: dict) -> None:
-    """Top-level KPI ribbon shown before tabs."""
     revenue = data["revenue"]
     roster = data["roster"]
     class_master = data["class_master"]
     qianyue = data["qianyue"]
+    tmk = data["tmk"]
 
-    cash = pd.to_numeric(revenue["现金收入"], errors="coerce").sum()
+    amt = pd.to_numeric(revenue["现金收入"], errors="coerce")
+    net = amt.sum()
+    gross = amt[amt > 0].sum()
     students = roster["学员编号"].nunique()
     classes = (class_master["班级状态"] == "正常").sum()
     signed = qianyue["签约单id"].notna().sum()
+    pending = (tmk["资源状态"] == "待处理").sum()
 
     render_kpi_row([
-        {"value": f"HK$ {cash / 1e4:.0f}万", "label": "累计现金收入", "accent": "positive"},
-        {"value": str(students), "label": "总学员数", "accent": "accent"},
-        {"value": str(classes), "label": "行课班级", "accent": "accent"},
-        {"value": str(signed), "label": "签约数", "accent": "accent"},
+        {"value": f"{net / 1e4:.0f} 万", "label": "现金收入 (净额)", "accent": "green",
+         "sub": f"流水 {gross / 1e4:.0f} 万"},
+        {"value": str(students), "label": "总学员", "accent": "blue"},
+        {"value": str(classes), "label": "行课班级", "accent": "blue"},
+        {"value": str(signed), "label": "累计签约", "accent": "slate",
+         "sub": f"待处理资源 {pending}"},
     ])
 
 

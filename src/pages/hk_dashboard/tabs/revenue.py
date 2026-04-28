@@ -1,4 +1,4 @@
-"""Tab 2: 营收分析 — cash income + deferred revenue breakdown."""
+"""Tab 2: 营收分析."""
 
 import pandas as pd
 import streamlit as st
@@ -17,29 +17,37 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     deferred = data["deferred_revenue"]
     class_master = data["class_master"]
 
-    # ═══ Cash income ═══
-    st.html("<h2>现金收入分析</h2>")
-    proj_filter = category_filter(revenue, "产品品类", label="产品品类", key="rev_proj")
-    filtered = revenue.copy()
-    if proj_filter:
-        filtered = filtered[filtered["产品品类"] == proj_filter]
+    # ── Cash income ──
+    st.html("<h2>现金收入</h2>")
 
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>收入 by 产品品类</h3>")
+        proj_filter = category_filter(revenue, "产品品类", label="产品品类", key="rev_proj")
+    with c2:
+        biz_filter = category_filter(revenue, "业务类型", label="业务类型", key="rev_biz") if "业务类型" in revenue.columns else None
+
+    filtered = revenue.copy()
+    if proj_filter:
+        filtered = filtered[filtered["产品品类"] == proj_filter]
+    if biz_filter:
+        filtered = filtered[filtered["业务类型"] == biz_filter]
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.html("<h3>by 产品品类</h3>")
         by_proj = cash_income_by_project(filtered)
         simple_bar(by_proj, "产品品类", "现金收入")
     with c2:
-        st.html("<h3>收入 by 季度</h3>")
+        st.html("<h3>by 季度</h3>")
         by_q = cash_income_by_quarter(filtered)
         if not by_q.empty:
             grouped_bar(by_q, "季度", "现金收入", "业务归属年")
 
-    st.html("<h3>月度收入趋势</h3>")
+    st.html("<h3>月度趋势</h3>")
     monthly = cash_income_monthly(filtered)
     monthly_trend_line(monthly, "月份", "现金收入")
 
-    with st.expander("收入明细表"):
+    with st.expander("收入明细"):
         detail = (
             filtered.assign(_amt=pd.to_numeric(filtered["现金收入"], errors="coerce"))
             .groupby(["产品品类", "科目", "季度"], as_index=False)["_amt"]
@@ -49,18 +57,18 @@ def render(data: dict[str, pd.DataFrame]) -> None:
         )
         render_filterable_table(detail, key="revenue_detail")
 
-    # ═══ Deferred revenue ═══
+    # ── Deferred revenue ──
     st.html("<h2>结转收入</h2>")
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>月度结转收入趋势</h3>")
+        st.html("<h3>月度趋势</h3>")
         def_monthly = monthly_deferred_revenue(deferred)
         monthly_trend_line(def_monthly, "月份", "结转收入", color="#d97706")
     with c2:
         st.html("<h3>教师结转产能 Top 10</h3>")
-        tch_df = deferred_by_teacher(deferred, class_master)
-        if not tch_df.empty:
-            simple_bar(tch_df.head(10), "主带课教师", "结转收入", color="#d97706", horizontal=True)
+        tch = deferred_by_teacher(deferred, class_master)
+        if not tch.empty:
+            simple_bar(tch.head(10), "主带课教师", "结转收入", color="#d97706", horizontal=True)
 
     with st.expander("结转收入明细"):
         def_detail = deferred[["班级编号", "月份", "结转收入(含税)", "累计结转收入(含税)",

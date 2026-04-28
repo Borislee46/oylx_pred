@@ -1,23 +1,18 @@
-"""Altair donut / ring chart for categorical breakdowns."""
+"""Altair donut chart — clean categorical breakdown."""
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from src.pages.hk_dashboard.config import PALETTE
+PALETTE = ["#2563eb", "#0d9488", "#d97706", "#7c3aed", "#64748b", "#94a3b8", "#cbd5e1"]
 
 
 def donut_chart(
-    df: pd.DataFrame,
-    category_col: str,
-    value_col: str = "count",
-    title: str = "",
-    max_categories: int = 7,
-    height: int = 300,
+    df: pd.DataFrame, category_col: str, value_col: str = "count",
+    title: str = "", max_categories: int = 6, height: int = 260,
 ) -> None:
     if df.empty or category_col not in df.columns:
         return
-    # Roll up small slices
     if value_col not in df.columns:
         cnt = df.groupby(category_col).size().reset_index(name=value_col)
     else:
@@ -25,20 +20,18 @@ def donut_chart(
     cnt = cnt.sort_values(value_col, ascending=False)
     if len(cnt) > max_categories:
         top = cnt.head(max_categories)
-        other_sum = cnt.iloc[max_categories:][value_col].sum()
-        other_row = pd.DataFrame([{category_col: "其他", value_col: other_sum}])
-        cnt = pd.concat([top, other_row], ignore_index=True)
+        other = pd.DataFrame([{category_col: "其他", value_col: cnt.iloc[max_categories:][value_col].sum()}])
+        cnt = pd.concat([top, other], ignore_index=True)
 
     chart = (
         alt.Chart(cnt)
-        .mark_arc(innerRadius=50, outerRadius=100)
+        .mark_arc(innerRadius=45, outerRadius=90, padAngle=1)
         .encode(
             theta=alt.Theta(f"{value_col}:Q", stack=True),
             color=alt.Color(f"{category_col}:N", title=None, scale=alt.Scale(range=PALETTE)),
             tooltip=[alt.Tooltip(f"{category_col}:N"), alt.Tooltip(f"{value_col}:Q", format=",.0f")],
         )
         .properties(height=height)
+        .configure_view(strokeWidth=0)
     )
-    if title:
-        st.caption(title)
     st.altair_chart(chart, use_container_width=True)
