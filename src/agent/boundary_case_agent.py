@@ -14,7 +14,7 @@ PROMPT_VERSION = 2
 
 
 class BoundaryCaseAgent(BaseAgent):
-    def __init__(self, cases_df: pd.DataFrame, config: dict[str, Any] | None = None):
+    def __init__(self, cases_df: pd.DataFrame | None = None, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="边界CaseAgent")
         self.cases_df = cases_df
         self._persistent_cache = self._load_persistent_json(CACHE_DIR, CACHE_FILE)
@@ -46,9 +46,10 @@ class BoundaryCaseAgent(BaseAgent):
     ) -> dict[str, Any]:
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
-            return {"decisions": [], "needs_adjustment": False}
+            return {"decisions": [], "needs_adjustment": False, "evaluated": [], "api_errors": 0}
 
         final_decisions = [False] * len(boundary_cases)
+        evaluated = [False] * len(boundary_cases)
 
         pending_indices = []
         for i, case in enumerate(boundary_cases):
@@ -60,15 +61,22 @@ class BoundaryCaseAgent(BaseAgent):
                 cached = self._persistent_cache.get(cache_key)
                 if isinstance(cached, bool):
                     final_decisions[i] = cached
+                    evaluated[i] = True
                     continue
                 if isinstance(cached, dict) and isinstance(cached.get("decision"), bool):
                     final_decisions[i] = bool(cached["decision"])
+                    evaluated[i] = True
                     continue
 
             pending_indices.append(i)
 
         if not pending_indices:
-            return {"decisions": final_decisions, "needs_adjustment": any(final_decisions)}
+            return {
+                "decisions": final_decisions,
+                "needs_adjustment": any(final_decisions),
+                "evaluated": evaluated,
+                "api_errors": 0,
+            }
 
         self.logger.info(
             f"[{self.agent_name}] 开始评估 - 模式: {mode}, 背景专业: {background_major}, "
@@ -76,6 +84,7 @@ class BoundaryCaseAgent(BaseAgent):
         )
 
         new_cache_entries = 0
+        api_errors = 0
         for start_idx in range(0, len(pending_indices), chunk_size):
             current_batch_indices = pending_indices[start_idx : start_idx + chunk_size]
             current_batch_cases = [boundary_cases[idx] for idx in current_batch_indices]
@@ -85,28 +94,19 @@ class BoundaryCaseAgent(BaseAgent):
             )
 
             prompt = build_boundary_evaluation_prompt(background_major, current_batch_cases, mode)
-            content = self._call_api(prompt, max_tokens=256)
-
-            if content is None:
+            raw = self._call_api(prompt, max_tokens=256)
+            if raw is None:
+                api_errors += 1
                 continue
 
-            content = self._clean_json_content(content)
-            try:
-                result = json.loads(content)
-            except json.JSONDecodeError:
-                repaired = self._repair_json_once(
-                    content,
-                    schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
-                    cache_prefix="boundary_json_repair",
-                )
-                if not repaired:
-                    continue
-                try:
-                    result = json.loads(repaired)
-                except json.JSONDecodeError:
-                    continue
-
-            if not isinstance(result, dict):
+            result = self._parse_json_response(
+                raw,
+                schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
+                cache_prefix="boundary_json_repair",
+                max_tokens=256,
+            )
+            if result is None or not isinstance(result, dict):
+                api_errors += 1
                 continue
 
             agent_decisions = result.get("decisions", [])
@@ -115,6 +115,7 @@ class BoundaryCaseAgent(BaseAgent):
                     json.dumps(result, ensure_ascii=False),
                     schema_hint=f'{{"decisions": [bool, ... (len={len(current_batch_cases)})], "needs_adjustment": bool}}',
                     cache_prefix="boundary_json_repair_len",
+                    max_tokens=256,
                 )
                 if repaired:
                     try:
@@ -125,6 +126,7 @@ class BoundaryCaseAgent(BaseAgent):
                         pass
 
             for j, idx in enumerate(current_batch_indices):
+                evaluated[idx] = True
                 d = False
                 if j < len(agent_decisions):
                     d = parse_bool(agent_decisions[j])
@@ -145,4 +147,33 @@ class BoundaryCaseAgent(BaseAgent):
         self.logger.info(
             f"[{self.agent_name}] 评估完成 - 需要调整: {needs_adjustment}, 通过数: {sum(final_decisions)}"
         )
-        return {"decisions": final_decisions, "needs_adjustment": needs_adjustment}
+        return {
+            "decisions": final_decisions,
+            "needs_adjustment": needs_adjustment,
+            "evaluated": evaluated,
+            "api_errors": api_errors,
+        }
+
+    def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
+        """Orchestrator-compatible entry point.
+
+        Expects kwargs:
+            background_major: str
+            boundary_cases: list[dict]
+            mode: str ("similarity" | "cross_major")
+            use_persistent_cache: bool = True
+            chunk_size: int = 40
+        """
+        from src.agent.context import StudentContext
+
+        bg_major = kwargs.get("background_major", "")
+        if not bg_major and isinstance(context, StudentContext):
+            bg_major = context.background_major or context.extracted_background.get("major", "")
+
+        return self.evaluate_boundary_cases(
+            background_major=str(bg_major),
+            boundary_cases=kwargs.get("boundary_cases", []),
+            mode=str(kwargs.get("mode", "similarity")),
+            use_persistent_cache=bool(kwargs.get("use_persistent_cache", True)),
+            chunk_size=int(kwargs.get("chunk_size", 40)),
+        )

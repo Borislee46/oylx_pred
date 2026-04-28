@@ -2,6 +2,8 @@ import random
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+import streamlit as st
+
 from src.pages.prediction.config.ui_messages import PIPELINE_MESSAGES
 from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.pipeline import run_prediction_pipeline_with_progress
@@ -17,10 +19,7 @@ from src.pages.prediction.input_form_components.cross_faculty_guard import (
 from src.pages.prediction.page_components.submission_logger import (
     log_first_submission_if_needed,
 )
-from src.pages.prediction.prediction_preparation import (
-    compute_list_fingerprint,
-    prepare_input_data,
-)
+from src.pages.prediction.prediction_preparation import prepare_input_data
 from src.pages.prediction.result_modifier.admission_cache import (
     get_admitted_combinations_from_dataframe,
 )
@@ -87,16 +86,12 @@ def run_prediction_with_guard(
     input_data_with_lists["_has_valid_experience"] = has_valid_experience
 
     cases_df_fingerprint = page_state.cases_df_fingerprint
-    all_universities_fingerprint = compute_list_fingerprint(all_universities_target)
-    all_majors_fingerprint = compute_list_fingerprint(all_majors_target)
 
     prediction_result_model = run_prediction_pipeline_with_progress(
         input_data_with_lists,
         "xgboost",
         cases_df_fingerprint,
         page_state.loaded_feature_names,
-        all_universities_fingerprint,
-        all_majors_fingerprint,
         progress_cb=progress_cb,
         background_faculty=background_faculty,
         admitted_combinations=admitted_combinations,
@@ -138,6 +133,8 @@ def handle_form_submission(
         reset_prediction_results(session_manager)
         session_manager.delete(session_keys.input_data)
         return
+
+    _run_form_validation_quick_check(session_manager, input_data_from_form)
 
     if not ctx.background_faculty:
         ctx.background_faculty = get_background_faculty(bg_major, page_state.cases_df)
@@ -197,3 +194,21 @@ def handle_form_submission(
         background_faculty=ctx.background_faculty,
         admitted_combinations=ctx.admitted_combinations,
     )
+
+
+def _run_form_validation_quick_check(session_manager: "SessionManager", form_data: dict) -> None:
+    """Run rule-based form validation and show warnings. Non-blocking."""
+    from src.agent.form_validation_agent import FormValidationAgent
+
+    issues = FormValidationAgent.quick_check(form_data)
+
+    errors = [i for i in issues if i["severity"] == "error"]
+    warnings = [i for i in issues if i["severity"] == "warn"]
+
+    if errors:
+        for e in errors:
+            st.error(e["message"])
+
+    if warnings:
+        for w in warnings:
+            st.warning(w["message"])

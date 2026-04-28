@@ -25,3 +25,32 @@ class TextPreprocessingAgent(BaseAgent):
             f"[{self.agent_name}] 字段验证完成 - 字段类型: {field_type}, 验证结果: {is_valid}"
         )
         return is_valid
+
+    def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
+        """Orchestrator-compatible entry point.
+
+        Expects kwargs:
+            field_type: str  ("research" | "internship" | "paper" | "award")
+            content: str
+        Or reads from context.experience_details by field_type.
+        """
+        from src.agent.context import StudentContext
+
+        field_type = str(kwargs.get("field_type", ""))
+        content = kwargs.get("content", "")
+        if not content and isinstance(context, StudentContext):
+            exp = context.experience_details or {}
+            content = exp.get(field_type, "")
+        if not content and isinstance(context, StudentContext):
+            content = context.extracted_background.get(field_type, "")
+        content = str(content or "")
+
+        is_valid = self.validate_field(
+            field_type=field_type,
+            content=content,
+            default_on_error=bool(kwargs.get("default_on_error", False)),
+        )
+        result: dict[str, Any] = {"field_type": field_type, "is_valid": is_valid}
+        if not is_valid and content:
+            result["_error"] = "api_failed_or_invalid"
+        return result

@@ -137,7 +137,7 @@ def deduplicate_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped = []
     for r in results:
         k = case_key(r)
-        if k and k not in seen:
+        if k is not None and k not in seen:
             seen.add(k)
             deduped.append(r)
     return deduped

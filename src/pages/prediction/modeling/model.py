@@ -5,6 +5,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from src.machine_learning_models.data_config import (
+    COUNT_COLUMNS_FOR_LOG_TRANSFORM,
+    DEFAULT_PREDICTION_THRESHOLD,
+)
 from src.utils.logger import setup_logger
 from src.utils.model_loader import load_model
 from src.utils.school_level_service import get_school_level_service
@@ -29,7 +33,13 @@ def validate_model_and_features(prediction_model: Optional["PredictionModel"]) -
 class PredictionModel:
     def __init__(self, model_type: str, global_categories_df: pd.DataFrame | None = None):
         self.model_type = model_type
-        self.model, self.feature_names, self.level_fallback_mapping = load_model(model_type)
+        (
+            self.model,
+            self.feature_names,
+            self.level_fallback_mapping,
+            self.feature_engineer_state,
+            self.prediction_threshold,
+        ) = load_model(model_type)
 
         if self.model is None:
             raise ValueError(f"加载模型 '{model_type}' 失败")
@@ -40,6 +50,14 @@ class PredictionModel:
 
         self.school_level_service = get_school_level_service()
         self.level_fallback_mapping = self.level_fallback_mapping or {}
+        self.feature_engineer_state = self.feature_engineer_state or {}
+        self.prediction_threshold = float(
+            getattr(self.model, "prediction_threshold", self.prediction_threshold)
+            or DEFAULT_PREDICTION_THRESHOLD
+        )
+        self.numeric_medians = self.feature_engineer_state.get("numeric_medians", {})
+        self.cap_values = self.feature_engineer_state.get("cap_values", {})
+        self.saved_categorical_levels = self.feature_engineer_state.get("categorical_levels", {})
 
         self._setup_global_categories(global_categories_df)
         self._enable_categorical = self._check_categorical_support()
@@ -56,9 +74,33 @@ class PredictionModel:
             "background_university",
             "background_major",
         ]:
-            categories = global_categories_df[col].cat.categories.tolist()
+            categories = self.saved_categorical_levels.get(col)
+            if (
+                categories is None
+                and global_categories_df is not None
+                and col in global_categories_df.columns
+            ):
+                categories = global_categories_df[col].cat.categories.tolist()
+            categories = list(categories or [])
             self.global_categories[col] = categories
             self.global_category_index[col] = {str(cat): idx for idx, cat in enumerate(categories)}
+
+    def _resolve_background_university_value(self, value: Any) -> str:
+        str_val = str(value) if value is not None else ""
+        if str_val in self.global_category_index.get("background_university", {}):
+            return str_val
+        if not self.level_fallback_mapping:
+            return str_val
+
+        level = self.school_level_service.get_school_level(str_val)
+        fallback = self.level_fallback_mapping.get(level)
+        return str(fallback) if fallback else str_val
+
+    def _preprocess_numeric_value(self, col: str, value: Any) -> float:
+        num = pd.to_numeric(value, errors="coerce")
+        if pd.isna(num):
+            num = self.numeric_medians.get(col, 0.0)
+        return float(num)
 
     def _check_categorical_support(self) -> bool:
         if hasattr(self.model, "get_booster"):
@@ -72,9 +114,12 @@ class PredictionModel:
         return False
 
     def _preprocess_single_value(self, col: str, value: Any) -> Any:
-        if col in ["research_count", "award_count", "internship_count", "paper_count"]:
-            num = pd.to_numeric(value, errors="coerce")
-            return float(np.log1p(max(0, num if not pd.isna(num) else 0)))
+        if col in COUNT_COLUMNS_FOR_LOG_TRANSFORM:
+            num = self._preprocess_numeric_value(col, value)
+            cap_value = self.cap_values.get(col)
+            if cap_value is not None:
+                num = min(num, float(cap_value))
+            return float(np.log1p(max(0.0, num)))
 
         if col in [
             "target_university",
@@ -82,25 +127,18 @@ class PredictionModel:
             "background_university",
             "background_major",
         ]:
+            str_val = str(value) if value is not None else ""
+            if col == "background_university":
+                str_val = self._resolve_background_university_value(value)
+
             if self._enable_categorical:
-                return (
-                    str(value)
-                    if value is not None and not (isinstance(value, float) and np.isnan(value))
-                    else ""
-                )
+                return str_val if str_val in self.global_category_index.get(col, {}) else ""
 
             idx_map = self.global_category_index.get(col, {})
-            str_val = str(value)
             code = idx_map.get(str_val, -1)
-
-            if code == -1 and col == "background_university" and self.level_fallback_mapping:
-                level = self.school_level_service.get_school_level(str_val)
-                fallback = self.level_fallback_mapping.get(level)
-                if fallback:
-                    code = idx_map.get(str(fallback), -1)
             return float(code)
 
-        return float(value)
+        return self._preprocess_numeric_value(col, value)
 
     def _preprocess_base_features_raw(
         self, input_tuple: tuple, features_to_use: tuple
@@ -177,10 +215,7 @@ class PredictionModel:
         if probas.ndim == 2 and probas.shape[1] > 1:
             probas = probas[:, 1]
 
-        if hasattr(self.model, "predict"):
-            predictions = self.model.predict(df)
-        else:
-            predictions = (probas >= 0.24).astype(int)
+        predictions = (probas >= self.prediction_threshold).astype(int)
 
         return [
             {"university": u, "major": m, "probability": float(p), "prediction": int(pred)}

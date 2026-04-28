@@ -35,7 +35,7 @@ def _pick_supplement_cases_by_probability(
     with_prob = []
     for r in candidates:
         k = case_key(r)
-        if k and k not in top_set:
+        if k is not None and k not in top_set:
             with_prob.append((r, get_probability(r), k))
 
     if not with_prob:
@@ -97,7 +97,7 @@ def adjust_similarity_results_with_agent(
     else:
         results_for_agent = results_with_similarity
 
-    top_set: set[CaseKey] = {case_key(r) for r in top_similarity_results if case_key(r)}
+    top_set: set[CaseKey] = {k for r in top_similarity_results if (k := case_key(r)) is not None}
 
     bg_faculties: list[str] = []
     if str(background_major or "").strip():

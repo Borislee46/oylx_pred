@@ -5,6 +5,7 @@ import uuid
 import streamlit as st
 
 from src.utils.auth.dev_config_loader import load_dev_config
+from src.utils.auth.e2_query_preservation import next_path_for_e2_return
 from src.utils.auth.permission_checker import (
     check_module_permission,
     check_user_access_permission,
@@ -50,7 +51,7 @@ def handle_e2_login(
 
                 params_for_return_url = {
                     "our_app_state_check": app_generated_state,
-                    "next": current_page_path,
+                    "next": next_path_for_e2_return(current_page_path),
                 }
                 query_string_for_return_url = urllib.parse.urlencode(params_for_return_url)
                 raw_return_url_for_e2_param = f"{base_return_url}?{query_string_for_return_url}"

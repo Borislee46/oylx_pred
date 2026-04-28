@@ -8,15 +8,21 @@ from data_config import (
     TEXT_EMPTY_SAMPLE_WEIGHT,
 )
 from feature_engineer import FeatureEngineer
-from sampling_methods import apply_sampling
 from school_level_mapper import build_school_level_fallback_mapping
 from sklearn.model_selection import train_test_split
 
 
-def load_data(data_path, sampling_method=None):
-    X_train, X_test, y_train, y_test, feature_names, sample_weight_train, level_fallback_mapping = (
-        load_and_preprocess_data(data_path, sampling_method)
-    )
+def load_data(data_path):
+    (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        feature_names,
+        sample_weight_train,
+        level_fallback_mapping,
+        feature_engineer_state,
+    ) = load_and_preprocess_data(data_path)
     return (
         X_train,
         X_test,
@@ -25,10 +31,11 @@ def load_data(data_path, sampling_method=None):
         feature_names,
         sample_weight_train,
         level_fallback_mapping,
+        feature_engineer_state,
     )
 
 
-def load_and_preprocess_data(data_path, sampling_method=None):
+def load_and_preprocess_data(data_path):
     try:
         data = pd.read_feather(data_path)
     except Exception as e:
@@ -75,11 +82,15 @@ def load_and_preprocess_data(data_path, sampling_method=None):
     X_train = fe.fit_transform(X_train_raw)
     X_test = fe.transform(X_test_raw)
     feature_names = X_train.columns.tolist()
+    feature_engineer_state = fe.get_state()
 
-    if sampling_method is not None:
-        X_train_res, y_train_res, sw_train_res = apply_sampling(
-            X_train, y_train, sampling_method, sample_weight=sw_train
-        )
-        X_train, y_train, sw_train = X_train_res, y_train_res, sw_train_res
-
-    return X_train, X_test, y_train, y_test, feature_names, sw_train, level_fallback_mapping
+    return (
+        X_train,
+        X_test,
+        y_train,
+        y_test,
+        feature_names,
+        sw_train,
+        level_fallback_mapping,
+        feature_engineer_state,
+    )

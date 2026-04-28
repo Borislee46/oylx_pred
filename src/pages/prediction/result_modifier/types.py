@@ -44,6 +44,8 @@ def is_case_with_key(x: Any) -> TypeGuard[CaseWithKey]:
 
 
 def case_key(case: Any) -> CaseKey | None:
+    if not is_case_with_key(case):
+        return None
     return case["university"], case["major"]
 
 

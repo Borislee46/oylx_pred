@@ -1,0 +1,26 @@
+{
+  "test": {
+    "E2_X3ID_CONFIG": "<your-test-e2-x3id>",
+    "E2_X3KEY_CONFIG": "<your-test-e2-x3key>",
+    "E2_VERIFY_CODE_API_URL": "https://teste2api.test.xdf.cn/x3mf/X3OAuthVerifyCode",
+    "STREAMLIT_APP_BASE_URL": "<your-test-app-base-url>",
+    "E2_LOGIN_URL_TEMPLATE": "https://teste2api.test.xdf.cn/e2/x3qr",
+    "CALLBACK_PAGE_PATH": "<your-callback-path>",
+    "E2_CALLBACK_BASE_URL": "<your-test-callback-base-url>",
+    "OPEN_AI_API_KEY": "<your-openai-api-key>",
+    "OPEN_AI_BASE_URL": "<your-llm-api-endpoint>",
+    "OPEN_AI_MODEL": "deepseek-v3.2"
+  },
+  "prod": {
+    "E2_X3ID_CONFIG": "<your-prod-e2-x3id>",
+    "E2_X3KEY_CONFIG": "<your-prod-e2-x3key>",
+    "E2_VERIFY_CODE_API_URL": "https://e2api.staff.xdf.cn/x3mf/X3OAuthVerifyCode",
+    "STREAMLIT_APP_BASE_URL": "<your-prod-app-base-url>",
+    "E2_LOGIN_URL_TEMPLATE": "https://e2api.staff.xdf.cn/e2/x3qr",
+    "CALLBACK_PAGE_PATH": "<your-callback-path>",
+    "E2_CALLBACK_BASE_URL": "<your-prod-callback-base-url>",
+    "OPEN_AI_API_KEY": "<your-openai-api-key>",
+    "OPEN_AI_BASE_URL": "<your-llm-api-endpoint>",
+    "OPEN_AI_MODEL": "deepseek-v3.2"
+  }
+}

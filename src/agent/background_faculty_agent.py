@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 from functools import lru_cache
 from typing import Any
 
@@ -12,16 +13,23 @@ from src.utils.app_data_loader import load_school_major_details_df
 CACHE_DIR = "cache/agent_cache"
 CACHE_FILE = "background_faculty_candidates.json"
 PROMPT_VERSION = 2
+_SCHOOL_MAJOR_DETAILS_PATH = "src/machine_learning_models/data/school_major_details.feather"
 
 
-@lru_cache(maxsize=1)
-def _get_valid_faculties() -> list[str]:
-    df = load_school_major_details_df()
+@lru_cache(maxsize=4)
+def _get_valid_faculties_cached(path: str, mtime_key: int) -> list[str]:
+    df = load_school_major_details_df(path=path)
     if df is None or df.empty or "专业大类" not in df.columns:
         return []
     series = df["专业大类"].dropna().astype(str).map(str.strip)
     values = [x for x in series.tolist() if x and x.lower() not in {"nan", "none"}]
     return sorted(set(values))
+
+
+def _get_valid_faculties() -> list[str]:
+    path = _SCHOOL_MAJOR_DETAILS_PATH
+    mtime_key = int(os.path.getmtime(path)) if os.path.isfile(path) else 0
+    return _get_valid_faculties_cached(path, mtime_key)
 
 
 class BackgroundFacultyAgent(BaseAgent):
@@ -93,21 +101,20 @@ class BackgroundFacultyAgent(BaseAgent):
             valid_faculties=valid_faculties,
             max_extra=max_extra,
         )
-        content = self._call_api(prompt, cache_prefix="bg_faculty", use_cache=True)
-        if not content:
+        raw = self._call_api(prompt, cache_prefix="bg_faculty", use_cache=True)
+        if not raw:
             if base:
                 return [base]
             return []
 
-        content = self._clean_json_content(content)
-        try:
-            result = json.loads(content)
-        except json.JSONDecodeError:
-            if base:
-                return [base]
-            return []
+        result = self._parse_json_response(
+            raw,
+            schema_hint='{"extra_faculties": [string, ...]}',
+            cache_prefix="bg_faculty_json_repair",
+            max_tokens=256,
+        )
 
-        if not isinstance(result, dict):
+        if result is None:
             if base:
                 return [base]
             return []
@@ -140,6 +147,38 @@ class BackgroundFacultyAgent(BaseAgent):
                 pass
 
         return out[:max_total]
+
+    def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
+        """Orchestrator-compatible entry point.
+
+        Reads background_major from StudentContext or kwargs.
+        Writes resolved faculties back to context.
+        """
+        from src.agent.context import StudentContext
+
+        bg_major = kwargs.get("background_major_original", "")
+        if not bg_major and isinstance(context, StudentContext):
+            bg_major = context.background_major or context.extracted_background.get("major", "")
+
+        base_faculty = kwargs.get("base_faculty") or (
+            context.background_faculty if isinstance(context, StudentContext) else None
+        )
+
+        faculties = self.resolve_background_faculties(
+            background_major_original=str(bg_major),
+            base_faculty=base_faculty,
+            max_total=int(kwargs.get("max_total", 3)),
+            max_extra=int(kwargs.get("max_extra", 2)),
+            use_persistent_cache=bool(kwargs.get("use_persistent_cache", True)),
+        )
+
+        result: dict[str, Any] = {
+            "faculties": faculties,
+            "primary": faculties[0] if faculties else None,
+        }
+        if bg_major and not faculties:
+            result["_error"] = "no_faculties_resolved"
+        return result
 
 
 def get_background_faculty_from_cases_df(

@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import time
+from collections import OrderedDict
 from typing import Any
 
 import requests
@@ -34,8 +35,8 @@ class BaseAgent:
         self.agent_name = agent_name
         self.cache_ttl = cache_ttl
         self.logger = setup_logger("page3", "prediction")
-        self._session = requests.Session()
-        self._memory_cache: dict[str, dict[str, Any]] = {}
+        self._session: requests.Session | None = None
+        self._memory_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
 
         if not self.api_url or not self.api_key:
             self.logger.error(f"[{self.agent_name}] API URL 或 API Key 未在配置中找到。")
@@ -45,9 +46,16 @@ class BaseAgent:
             "Authorization": f"Bearer {self.api_key}",
         }
 
+    @property
+    def session(self) -> requests.Session:
+        if self._session is None:
+            self._session = requests.Session()
+        return self._session
+
     def close(self):
-        if hasattr(self, "_session"):
+        if self._session is not None:
             self._session.close()
+            self._session = None
 
     def _load_persistent_json(self, cache_dir: str, cache_file: str) -> dict[str, Any]:
         file_path = os.path.join(cache_dir, cache_file)
@@ -117,7 +125,8 @@ class BaseAgent:
             key_data["max_tokens"] = max_tokens
         elif self.max_tokens is not None:
             key_data["max_tokens"] = self.max_tokens
-        key_str = f"{cache_prefix}:{key_data}" if cache_prefix else str(key_data)
+        payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
+        key_str = f"{cache_prefix}:{payload}" if cache_prefix else payload
         return hashlib.md5(key_str.encode("utf-8")).hexdigest()
 
     def _get_from_cache(self, key: str) -> str | None:
@@ -129,6 +138,7 @@ class BaseAgent:
             del self._memory_cache[key]
             return None
 
+        self._memory_cache.move_to_end(key)
         return cache_entry["value"]
 
     def _extract_text_content(self, content: Any) -> str:
@@ -154,12 +164,12 @@ class BaseAgent:
         return ""
 
     def _save_to_cache(self, key: str, value: str) -> None:
-        if len(self._memory_cache) > 1000:
-            sorted_items = sorted(self._memory_cache.items(), key=lambda x: x[1]["timestamp"])
-            for k, _ in sorted_items[:200]:
-                del self._memory_cache[k]
-
+        if key in self._memory_cache:
+            del self._memory_cache[key]
         self._memory_cache[key] = {"value": value, "timestamp": time.time()}
+        self._memory_cache.move_to_end(key)
+        while len(self._memory_cache) > 1000:
+            self._memory_cache.popitem(last=False)
 
     def _estimate_tokens(self, text: str) -> float:
         if not text:
@@ -198,12 +208,89 @@ class BaseAgent:
 
         return content.strip()
 
+    def _fix_json_lightweight(self, content: str) -> str | None:
+        """Fix common LLM JSON formatting without an API call.
+
+        Handles: missing commas between fields, trailing commas, extra text.
+        Returns fixed JSON string or None if unfixable.
+        """
+        import re
+
+        if not content or not content.strip():
+            return None
+
+        s = content.strip()
+
+        # 1. Missing comma after string value, before next key (any whitespace including newlines)
+        # Lookahead ensures the second quote starts a key (letter/underscore), avoiding
+        # false matches on empty string values like "key": ""
+        s = re.sub(r'("\s*)(?="\s*[a-zA-Z_])', r"\1,", s)
+
+        # 2. Missing comma after } or ] before next key
+        s = re.sub(r'([}\]]\s*)(")', r"\1,\2", s)
+
+        # 3. Missing comma after number/true/false/null before next key
+        s = re.sub(r'(\d|true|false|null)(\s+)(")', r"\1, \3", s)
+
+        # 4. Trailing comma before } or ]
+        s = re.sub(r",(\s*[}\]])", r"\1", s)
+
+        # 5. Double commas
+        s = re.sub(r",\s*,", ",", s)
+
+        if s == content.strip():
+            return None  # no changes made
+        return s
+
+    def _parse_json_response(
+        self,
+        raw: str | None,
+        schema_hint: str,
+        cache_prefix: str = "json_repair",
+        max_tokens: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Three-tier JSON parsing: direct → lightweight regex → API repair."""
+        if not raw:
+            self.logger.warning(f"[{self.agent_name}] PARSE: empty raw response")
+            return None
+
+        content = self._clean_json_content(raw)
+
+        # Tier 1: direct parse
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            self.logger.warning(f"[{self.agent_name}] PARSE: JSON decode failed | error={e}")
+
+        # Tier 2: lightweight regex fix (no API call)
+        fixed = self._fix_json_lightweight(content)
+        if fixed:
+            try:
+                result = json.loads(fixed)
+                self.logger.info(f"[{self.agent_name}] PARSE: lightweight fix succeeded")
+                return result
+            except json.JSONDecodeError:
+                pass
+
+        # Tier 3: API repair
+        self.logger.info(f"[{self.agent_name}] PARSE: lightweight fix failed, trying API repair")
+        repaired = self._repair_json_once(content, schema_hint, cache_prefix, max_tokens=max_tokens)
+        if not repaired:
+            self.logger.warning(f"[{self.agent_name}] PARSE: API repair returned empty")
+            return None
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError as e2:
+            self.logger.warning(f"[{self.agent_name}] PARSE: API repair still invalid | error={e2}")
+            return None
+
     def _repair_json_once(
         self,
         raw_text: str,
         schema_hint: str,
         cache_prefix: str = "json_repair",
         thinking_type: str | None = None,
+        max_tokens: int | None = None,
     ) -> str | None:
         raw_text = str(raw_text or "").strip()
         if not raw_text:
@@ -220,12 +307,107 @@ class BaseAgent:
             f"{raw_text}\n"
         )
         fixed = self._call_api(
-            prompt, cache_prefix=cache_prefix, use_cache=True, thinking_type=thinking_type
+            prompt,
+            cache_prefix=cache_prefix,
+            use_cache=True,
+            thinking_type=thinking_type,
+            max_tokens=max_tokens,
         )
         if not fixed:
             return None
         fixed = self._clean_json_content(fixed)
         return fixed if fixed else None
+
+    def _call_api_streaming(
+        self,
+        prompt: str,
+        thinking_type: str | None = None,
+        max_tokens: int | None = None,
+        max_retries: int = 1,
+    ):
+        """Stream API response, yielding text chunks. Use as generator for st.write_stream.
+
+        Yields str chunks. The caller should collect them and parse the full response.
+        Retries once on timeout / connection errors.
+        """
+        if not self.api_url or not self.api_key:
+            self.logger.warning(f"[{self.agent_name}] 流式API未配置")
+            return
+
+        thinking = thinking_type or self.thinking_type or "disabled"
+        input_tokens = self._estimate_tokens(prompt)
+        self.logger.info(
+            f"[{self.agent_name}] STREAM START | prompt={len(prompt)}chars ~{input_tokens}tk | "
+            f"max_tokens={max_tokens}"
+        )
+
+        data = self._build_request_data(prompt, thinking_type=thinking_type, max_tokens=max_tokens)
+        data["stream"] = True
+
+        t_start = time.perf_counter()
+        for attempt in range(max_retries + 1):
+            t_attempt = time.perf_counter()
+            try:
+                response = self.session.post(
+                    self.api_url,
+                    headers=self.headers,
+                    json=data,
+                    timeout=self.timeout,
+                    stream=True,
+                )
+                response.raise_for_status()
+
+                chunk_count = 0
+                for line in response.iter_lines(decode_unicode=True):
+                    if not line or not line.startswith("data:"):
+                        continue
+                    payload = line[5:].strip()
+                    if payload == "[DONE]":
+                        break
+                    if not payload:
+                        continue
+                    try:
+                        chunk = json.loads(payload)
+                        choices = chunk.get("choices")
+                        if choices and isinstance(choices, list):
+                            delta = choices[0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                chunk_count += 1
+                                yield content
+                    except json.JSONDecodeError:
+                        continue
+
+                elapsed_ms = (time.perf_counter() - t_start) * 1000
+                self.logger.info(
+                    f"[{self.agent_name}] STREAM OK | total={elapsed_ms:.0f}ms | "
+                    f"chunks={chunk_count}"
+                )
+                return  # success, exit retry loop
+
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                elapsed_ms = (time.perf_counter() - t_attempt) * 1000
+                if attempt < max_retries:
+                    self.logger.warning(
+                        f"[{self.agent_name}] STREAM RETRY {attempt + 1}/{max_retries} | "
+                        f"elapsed={elapsed_ms:.0f}ms | type={type(e).__name__} | error={e}"
+                    )
+                    time.sleep(1)
+                    continue
+                total_ms = (time.perf_counter() - t_start) * 1000
+                self.logger.error(
+                    f"[{self.agent_name}] STREAM ERROR | "
+                    f"total={total_ms:.0f}ms | type={type(e).__name__} | error={e}"
+                )
+                return
+
+            except Exception as e:
+                total_ms = (time.perf_counter() - t_start) * 1000
+                self.logger.error(
+                    f"[{self.agent_name}] STREAM ERROR | "
+                    f"total={total_ms:.0f}ms | type={type(e).__name__} | error={e}"
+                )
+                return
 
     def _call_api(
         self,
@@ -249,32 +431,52 @@ class BaseAgent:
         )
 
         input_tokens = self._estimate_tokens(prompt)
+        prompt_chars = len(prompt)
 
         if use_cache:
             cached_result = self._get_from_cache(cache_key)
             if cached_result is not None:
                 output_tokens = self._estimate_tokens(cached_result)
                 self.logger.info(
-                    f"[{self.agent_name}] 命中缓存: {cache_key[:8]}... "
-                    f"Token估算 - 输入: {input_tokens}, 输出: {output_tokens}, 总计: {round(input_tokens + output_tokens, 2)}"
+                    f"[{self.agent_name}] CACHE HIT | key={cache_key[:12]}... | "
+                    f"prompt={prompt_chars}chars ~{input_tokens}tk | "
+                    f"output ~{output_tokens}tk"
                 )
-                self.logger.debug(f"[{self.agent_name}] 命中缓存: {cache_key[:8]}...")
                 return cached_result
 
+        thinking = thinking_type or self.thinking_type or "disabled"
+        self.logger.info(
+            f"[{self.agent_name}] REQ START | prompt={prompt_chars}chars ~{input_tokens}tk | "
+            f"max_tokens={max_tokens} | thinking={thinking} | timeout={self.timeout}s | "
+            f"url={self.api_url[:60]}..."
+        )
+
+        t_start = time.perf_counter()
         data = self._build_request_data(prompt, thinking_type=thinking_type, max_tokens=max_tokens)
 
+        last_error: str | None = None
         for attempt in range(max_retries + 1):
+            t_attempt = time.perf_counter()
             try:
-                response = self._session.post(
+                self.logger.info(f"[{self.agent_name}] → attempt {attempt + 1}/{max_retries + 1}")
+                response = self.session.post(
                     self.api_url, headers=self.headers, json=data, timeout=self.timeout
                 )
+                elapsed_ms = (time.perf_counter() - t_attempt) * 1000
+
+                if not response.ok:
+                    self.logger.warning(
+                        f"[{self.agent_name}] HTTP {response.status_code} | "
+                        f"elapsed={elapsed_ms:.0f}ms | body={response.text[:300]}"
+                    )
                 response.raise_for_status()
 
                 try:
                     response_json = response.json()
                 except ValueError as e:
                     self.logger.error(
-                        f"[{self.agent_name}] JSON解析失败: {e}, 响应内容: {response.text[:200]}"
+                        f"[{self.agent_name}] JSON解析失败 | elapsed={elapsed_ms:.0f}ms | "
+                        f"error={e} | body={response.text[:300]}"
                     )
                     return None
 
@@ -285,31 +487,39 @@ class BaseAgent:
                         raw_content = message.get("content", "")
                         result = self._extract_text_content(raw_content).strip()
                         if result:
+                            total_elapsed_ms = (time.perf_counter() - t_start) * 1000
                             output_tokens = self._estimate_tokens(result)
+                            output_chars = len(result)
                             real_usage = response_json.get("usage", {})
-                            usage_info = ""
+                            usage_str = ""
                             if real_usage:
-                                usage_info = (
-                                    f", API返回Usage - Prompt: {real_usage.get('prompt_tokens', 0)}, "
-                                    f"Completion: {real_usage.get('completion_tokens', 0)}, "
-                                    f"Total: {real_usage.get('total_tokens', 0)}"
+                                usage_str = (
+                                    f" | usage: prompt={real_usage.get('prompt_tokens', '?')} "
+                                    f"completion={real_usage.get('completion_tokens', '?')} "
+                                    f"total={real_usage.get('total_tokens', '?')}"
                                 )
 
                             self.logger.info(
-                                f"[{self.agent_name}] API调用成功. "
-                                f"Token估算 - 输入: {input_tokens}, 输出: {output_tokens}, "
-                                f"总计: {round(input_tokens + output_tokens, 2)}{usage_info}"
+                                f"[{self.agent_name}] REQ OK | "
+                                f"total={total_elapsed_ms:.0f}ms | "
+                                f"attempts={attempt + 1} | "
+                                f"prompt={prompt_chars}chars ~{input_tokens}tk | "
+                                f"output={output_chars}chars ~{output_tokens}tk"
+                                f"{usage_str}"
                             )
 
                             if use_cache:
                                 self._save_to_cache(cache_key, result)
                             return result
                         else:
-                            self.logger.warning(f"[{self.agent_name}] API返回的content为空")
+                            self.logger.warning(
+                                f"[{self.agent_name}] API返回content为空 | "
+                                f"elapsed={elapsed_ms:.0f}ms"
+                            )
                             return None
                     else:
                         self.logger.error(
-                            f"[{self.agent_name}] API返回的message格式不正确: {type(message)}"
+                            f"[{self.agent_name}] message格式异常 | type={type(message).__name__}"
                         )
                         return None
                 else:
@@ -320,33 +530,74 @@ class BaseAgent:
                             if isinstance(error_info, dict)
                             else str(error_info)
                         )
-                        self.logger.error(f"[{self.agent_name}] API返回错误: {error_message}")
+                        self.logger.error(
+                            f"[{self.agent_name}] API错误 | "
+                            f"code={error_info.get('code', '?') if isinstance(error_info, dict) else '?'} | "
+                            f"message={error_message}"
+                        )
                     else:
-                        self.logger.error(f"[{self.agent_name}] API响应格式异常，未找到choices字段")
+                        self.logger.error(
+                            f"[{self.agent_name}] 响应无choices | "
+                            f"keys={list(response_json.keys())} | "
+                            f"body={str(response_json)[:300]}"
+                        )
                     return None
 
             except requests.exceptions.Timeout:
+                elapsed_ms = (time.perf_counter() - t_attempt) * 1000
                 if attempt < max_retries:
                     self.logger.warning(
-                        f"[{self.agent_name}] 请求超时，正在进行第 {attempt + 1} 次重试..."
+                        f"[{self.agent_name}] TIMEOUT retry={attempt + 1}/{max_retries} | "
+                        f"elapsed={elapsed_ms:.0f}ms (limit={self.timeout}s) | "
+                        f"sleeping 1s before retry..."
                     )
                     time.sleep(1)
                     continue
                 self.logger.warning(
-                    f"[{self.agent_name}] 请求超时（{self.timeout}秒），已达最大重试次数"
+                    f"[{self.agent_name}] TIMEOUT exhausted | "
+                    f"total_attempts={max_retries + 1} | timeout={self.timeout}s | "
+                    f"last_elapsed={elapsed_ms:.0f}ms"
                 )
                 return None
-            except requests.exceptions.RequestException as e:
+            except requests.exceptions.ConnectionError as e:
+                elapsed_ms = (time.perf_counter() - t_attempt) * 1000
+                last_error = f"ConnectionError: {e}"
                 if attempt < max_retries:
-                    self.logger.warning(f"[{self.agent_name}] 网络请求失败: {e}，正在重试...")
+                    self.logger.warning(
+                        f"[{self.agent_name}] CONNECTION ERROR retry={attempt + 1}/{max_retries} | "
+                        f"elapsed={elapsed_ms:.0f}ms | error={e}"
+                    )
                     time.sleep(1)
                     continue
-                self.logger.error(f"[{self.agent_name}] 网络请求失败: {e}")
+                self.logger.error(f"[{self.agent_name}] CONNECTION ERROR exhausted | error={e}")
+                return None
+            except requests.exceptions.RequestException as e:
+                elapsed_ms = (time.perf_counter() - t_attempt) * 1000
+                last_error = f"RequestException: {e}"
+                if attempt < max_retries:
+                    self.logger.warning(
+                        f"[{self.agent_name}] HTTP ERROR retry={attempt + 1}/{max_retries} | "
+                        f"elapsed={elapsed_ms:.0f}ms | type={type(e).__name__} | error={e}"
+                    )
+                    time.sleep(1)
+                    continue
+                self.logger.error(
+                    f"[{self.agent_name}] HTTP ERROR exhausted | "
+                    f"type={type(e).__name__} | error={e}"
+                )
                 return None
             except Exception as e:
+                elapsed_ms = (time.perf_counter() - t_attempt) * 1000
                 self.logger.error(
-                    f"[{self.agent_name}] 未知错误 - 错误类型: {type(e).__name__}, 错误信息: {e}",
+                    f"[{self.agent_name}] UNKNOWN ERROR | "
+                    f"elapsed={elapsed_ms:.0f}ms | type={type(e).__name__} | error={e}",
                     exc_info=True,
                 )
                 return None
+
+        total_elapsed_ms = (time.perf_counter() - t_start) * 1000
+        self.logger.error(
+            f"[{self.agent_name}] REQ FAILED | "
+            f"total={total_elapsed_ms:.0f}ms | last_error={last_error}"
+        )
         return None

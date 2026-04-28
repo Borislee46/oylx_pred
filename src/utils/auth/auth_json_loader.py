@@ -1,20 +1,52 @@
+import copy
 import json
 import os
 
 import streamlit as st
 
+from src.utils.logger import setup_logger
+
+_auth_logger = setup_logger("page3", "prediction")
+
+_DEFAULT_AUTH_CONFIG = {
+    "EMAIL_WHITELIST": [],
+    "ADMIN_EMAILS": [],
+    "MODULE_PERMISSIONS": {},
+}
+
+
+def _default_auth_config(broken: bool = False, reason: str = "") -> dict:
+    config = copy.deepcopy(_DEFAULT_AUTH_CONFIG)
+    config["__AUTH_CONFIG_BROKEN__"] = broken
+    if reason:
+        config["__AUTH_CONFIG_ERROR__"] = reason
+    return config
+
 
 @st.cache_data(show_spinner=False)
-def load_auth_config(path="auth_config.json"):
-    if os.path.exists(path):
-        with open(path) as f:
-            config = json.load(f)
-            config.setdefault("EMAIL_WHITELIST", [])
-            config.setdefault("ADMIN_EMAILS", [])
-            config.setdefault("MODULE_PERMISSIONS", {})
-            return config
-    return {
-        "EMAIL_WHITELIST": [],
-        "ADMIN_EMAILS": [],
-        "MODULE_PERMISSIONS": {},
-    }
+def load_auth_config(path="config/auth_config.json"):
+    if not os.path.exists(path):
+        reason = "auth_config 不存在"
+        _auth_logger.warning("%s，拒绝访问", reason)
+        return _default_auth_config(broken=True, reason=reason)
+
+    with open(path, encoding="utf-8") as f:
+        raw = f.read()
+
+    try:
+        config = json.loads(raw)
+    except json.JSONDecodeError as e:
+        reason = f"auth_config JSON 解析失败: {e}"
+        _auth_logger.warning("%s，拒绝访问", reason)
+        return _default_auth_config(broken=True, reason=reason)
+
+    if not isinstance(config, dict):
+        reason = "auth_config 顶层必须是对象"
+        _auth_logger.warning("%s，拒绝访问", reason)
+        return _default_auth_config(broken=True, reason=reason)
+
+    config.setdefault("EMAIL_WHITELIST", [])
+    config.setdefault("ADMIN_EMAILS", [])
+    config.setdefault("MODULE_PERMISSIONS", {})
+    config["__AUTH_CONFIG_BROKEN__"] = False
+    return config

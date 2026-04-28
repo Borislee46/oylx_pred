@@ -1,4 +1,15 @@
 (function () {
+  const fe = window.frameElement;
+  if (fe) {
+    fe.style.cssText =
+      "position:absolute!important;left:-9999px!important;width:0!important;height:0!important;border:0!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;";
+    const shell = fe.closest('[data-testid="stElementContainer"]');
+    if (shell) {
+      shell.style.cssText =
+        "display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;";
+    }
+  }
+
   const PARENT_DOC =
     window.parent && window.parent.document ? window.parent.document : document;
 

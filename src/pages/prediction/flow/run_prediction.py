@@ -2,6 +2,10 @@ from typing import Any
 
 import pandas as pd
 
+from src.pages.prediction.config.ui_messages import (
+    PIPELINE_PHASE_MAP,
+    format_pipeline_compute_progress,
+)
 from src.pages.prediction.core.types import PredictionInput
 from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.processor import (
@@ -15,7 +19,6 @@ from src.pages.prediction.prediction_execution import PredictionExecutor
 from src.pages.prediction.prediction_preparation import (
     get_user_specified_combinations,
     prepare_model_inputs,
-    validate_and_clean_input,
 )
 from src.utils.logger import setup_logger
 
@@ -47,11 +50,7 @@ def run_single_prediction(
     list[dict[str, float | str]] | None,
     dict[str, Any] | None,
 ]:
-    prediction_input: PredictionInput = (
-        current_input_data
-        if "background_major" in current_input_data
-        else validate_and_clean_input(current_input_data)
-    )
+    prediction_input: PredictionInput = current_input_data
 
     bg_major = prediction_input.get("background_major", "")
     bg_major_orig = str(current_input_data.get("background_major_original") or bg_major)
@@ -69,6 +68,14 @@ def run_single_prediction(
         prediction_runner_logger.warning("有效组合为空：请检查候选池或筛选条件。")
         meta["error"] = "no_valid_combinations"
         return [], [], None, meta
+
+    if progress_reporter is not None:
+        hints = meta.get("progress_hints") or {}
+        progress_reporter.emit(
+            format_pipeline_compute_progress(combinations, hints),
+            force=True,
+            phase=PIPELINE_PHASE_MAP["running_calc"],
+        )
 
     model_input_features, missing_inputs = prepare_model_inputs(
         current_input_data, expected_features

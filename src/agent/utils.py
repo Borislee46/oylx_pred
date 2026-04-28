@@ -33,9 +33,16 @@ def parse_bool(x: Any, default: bool = False) -> bool:
     if isinstance(x, (int, float)):
         return bool(x)
     if isinstance(x, str):
-        s = x.strip().lower()
-        if any(word in s for word in {"true", "1", "yes", "y", "是", "对", "正确"}):
+        raw = x.strip()
+        if not raw:
+            return False
+        s = raw.lower()
+        if s in {"true", "1", "yes", "y"}:
             return True
-        if any(word in s for word in {"false", "0", "no", "n", "否", "错", "错误", ""}):
+        if s in {"false", "0", "no", "n"}:
+            return False
+        if raw in {"是", "对", "正确"}:
+            return True
+        if raw in {"否", "错", "错误"}:
             return False
     return bool(default)

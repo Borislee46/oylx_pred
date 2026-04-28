@@ -1,0 +1,11 @@
+{
+  "hr_profile_upload_emails": ["user1@example.com"],
+  "hr_profile_full_access_emails": ["admin@example.com"],
+  "hr_profile_department_permissions": {
+    "Department A": ["manager1@example.com"],
+    "Department B": ["manager2@example.com"]
+  },
+  "manager_map": {
+    "Manager Name": ["manager@example.com"]
+  }
+}

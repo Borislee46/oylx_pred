@@ -146,4 +146,12 @@ def _fast_entropy(text: str) -> float:
     counts = np.bincount(np.frombuffer(b, dtype=np.uint8), minlength=256)
     probs = counts[counts > 0] / len(b)
     entropy = -np.sum(probs * np.log2(probs))
-    return float(np.clip(entropy / 5.0, 0.0, 1.0))
+    byte_rich = float(np.clip(entropy / 5.0, 0.0, 1.0))
+
+    n = len(text)
+    if n >= 12:
+        span = max(12.0, float(n**0.55))
+        char_f = float(np.clip(len(set(text)) / span, 0.0, 1.0))
+        byte_rich *= 0.35 + 0.65 * char_f
+
+    return float(np.clip(byte_rich, 0.0, 1.0))

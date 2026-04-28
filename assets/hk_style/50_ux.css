@@ -1,0 +1,558 @@
+/* ============================================================
+   50_ux — Premium UI Components for Signals Prediction
+   Leverages tokens from 00_tokens.css
+   ============================================================ */
+
+/* ── Field Chip ───────────────────────────────────────────── */
+.hk-field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: var(--hk-text-xs);
+  font-weight: 500;
+  font-family: var(--hk-font-sans);
+  background: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.06),
+    rgba(6, 182, 212, 0.02)
+  );
+  border: 1px solid rgba(6, 182, 212, 0.15);
+  color: var(--hk-slate-600);
+  white-space: nowrap;
+  transition: all var(--hk-transition-fast);
+}
+.hk-field-chip .hk-chip-label {
+  color: var(--hk-slate-400);
+  font-weight: 400;
+  font-size: 0.7rem;
+}
+.hk-field-chip .hk-chip-value {
+  color: var(--hk-slate-800);
+  font-weight: 600;
+}
+.hk-field-chip:hover {
+  border-color: var(--hk-cyan-alpha-30);
+  background: rgba(6, 182, 212, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.08);
+}
+.hk-field-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+}
+
+/* ── Insight Card ─────────────────────────────────────────── */
+.hk-insight-card {
+  padding: 0.75rem 1rem;
+  border-radius: var(--hk-radius-md);
+  border: 1px solid var(--hk-slate-200);
+  background: var(--hk-surface-elevated);
+  margin-bottom: 0.65rem;
+  transition: all var(--hk-transition);
+}
+.hk-insight-card.hk-insight-positive {
+  border-left: 3px solid #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.03), var(--hk-surface-elevated));
+}
+.hk-insight-card.hk-insight-caution {
+  border-left: 3px solid var(--hk-amber);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.03), var(--hk-surface-elevated));
+}
+.hk-insight-card.hk-insight-accent {
+  border-left: 3px solid var(--hk-cyan);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.04), var(--hk-surface-elevated));
+}
+.hk-insight-card p {
+  margin: 0;
+  font-size: var(--hk-text-sm);
+  line-height: var(--hk-leading-relaxed);
+  color: var(--hk-slate-600);
+}
+.hk-insight-card ul {
+  margin: 0.3rem 0 0 0;
+  padding-left: 1.2rem;
+  list-style: none;
+}
+.hk-insight-card li {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--hk-slate-600);
+  line-height: 1.55;
+  position: relative;
+  letter-spacing: 0.01em;
+}
+.hk-insight-card li::before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hk-slate-300);
+}
+
+/* ── Tier Badge ───────────────────────────────────────────── */
+.hk-tier-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--hk-font-sans);
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}
+.hk-tier-reach {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.hk-tier-match {
+  background: rgba(245, 158, 11, 0.08);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.hk-tier-safety {
+  background: rgba(6, 182, 212, 0.08);
+  color: var(--hk-cyan-dark);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+.hk-tier-importance-high {
+  background: rgba(239, 68, 68, 0.06);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+.hk-tier-importance-mid {
+  background: rgba(245, 158, 11, 0.06);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+}
+.hk-tier-importance-low {
+  background: rgba(100, 116, 139, 0.06);
+  color: var(--hk-slate-500);
+  border: 1px solid rgba(100, 116, 139, 0.15);
+}
+
+/* ── Stat Row ─────────────────────────────────────────────── */
+.hk-stat-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.hk-stat-card {
+  flex: 1;
+  min-width: 100px;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--hk-radius-md);
+  background: var(--hk-surface-elevated);
+  border: 1px solid var(--hk-slate-200);
+  text-align: center;
+  transition: all var(--hk-transition);
+}
+.hk-stat-card:hover {
+  border-color: var(--hk-cyan-alpha-20);
+  box-shadow: var(--hk-shadow-sm);
+}
+.hk-stat-value {
+  font-family: var(--hk-font-display);
+  font-size: var(--hk-text-2xl);
+  font-weight: 700;
+  color: var(--hk-slate-900);
+  line-height: 1.2;
+}
+.hk-stat-label {
+  font-size: var(--hk-text-xs);
+  font-weight: 500;
+  color: var(--hk-slate-400);
+  margin-top: 0.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Question Pill ────────────────────────────────────────── */
+.hk-question-pill {
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: var(--hk-text-xs);
+  font-weight: 500;
+  font-family: var(--hk-font-sans);
+  color: var(--hk-slate-500);
+  background: var(--hk-surface-elevated);
+  border: 1px solid var(--hk-slate-200);
+  margin: 0.15rem 0.3rem 0.15rem 0;
+  transition: all var(--hk-transition-fast);
+  cursor: default;
+}
+.hk-question-pill:hover {
+  border-color: var(--hk-cyan);
+  color: var(--hk-cyan-dark);
+  background: rgba(6, 182, 212, 0.04);
+  transform: translateY(-1px);
+}
+
+/* ── Section Divider ──────────────────────────────────────── */
+.hk-section-divider {
+  height: 1px;
+  margin: 1rem 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--hk-slate-200) 20%,
+    var(--hk-slate-200) 80%,
+    transparent
+  );
+  border: none;
+}
+
+/* ── Timeline ─────────────────────────────────────────────── */
+.hk-timeline {
+  position: relative;
+  padding-left: 1.25rem;
+}
+.hk-timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.35rem;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  width: 1.5px;
+  background: linear-gradient(
+    180deg,
+    var(--hk-cyan-alpha-40),
+    var(--hk-cyan-alpha-10)
+  );
+  border-radius: 1px;
+}
+.hk-timeline-item {
+  position: relative;
+  padding: 0.2rem 0 0.65rem 0;
+  font-size: var(--hk-text-sm);
+  color: var(--hk-slate-600);
+  line-height: 1.5;
+}
+.hk-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -1.05rem;
+  top: 0.45em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hk-cyan);
+  box-shadow: 0 0 4px var(--hk-cyan-alpha-30);
+}
+
+/* ── Checklist Item ───────────────────────────────────────── */
+.hk-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: var(--hk-text-sm);
+  color: var(--hk-slate-600);
+}
+
+/* ── Assessment Block ─────────────────────────────────────── */
+.hk-assessment {
+  padding: 0.8rem 1rem;
+  border-radius: var(--hk-radius-md);
+  background: linear-gradient(
+    135deg,
+    rgba(6, 182, 212, 0.04),
+    rgba(6, 182, 212, 0.01)
+  );
+  border: 1px solid rgba(6, 182, 212, 0.12);
+  line-height: var(--hk-leading-relaxed);
+  margin-bottom: 0.75rem;
+}
+.hk-assessment p {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--hk-slate-600);
+  letter-spacing: 0.01em;
+}
+.hk-insight-card p {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--hk-slate-600);
+  letter-spacing: 0.01em;
+}
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes hkFadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hk-fade-in {
+  animation: hkFadeSlideIn 0.45s ease-out both;
+}
+.hk-stagger > * {
+  opacity: 0;
+  animation: hkFadeSlideIn 0.45s ease-out forwards;
+}
+.hk-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.hk-stagger > *:nth-child(2) { animation-delay: 0.12s; }
+.hk-stagger > *:nth-child(3) { animation-delay: 0.19s; }
+.hk-stagger > *:nth-child(4) { animation-delay: 0.26s; }
+.hk-stagger > *:nth-child(5) { animation-delay: 0.33s; }
+.hk-stagger > *:nth-child(6) { animation-delay: 0.40s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-fade-in,
+  .hk-stagger > * {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ── LeadIn Result Card ───────────────────────────────────── */
+.hk-leadin-result {
+  padding: 1rem;
+  border-radius: var(--hk-radius-lg);
+  border: 1px solid var(--hk-slate-200);
+  background: var(--hk-surface-bg);
+  margin-bottom: 0.75rem;
+  transition: all var(--hk-transition);
+}
+.hk-leadin-label {
+  font-family: var(--hk-font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--hk-slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.3rem;
+}
+.hk-leadin-result .hk-leadin-label {
+  font-size: var(--hk-text-xs);
+  font-weight: 600;
+  color: var(--hk-slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
+
+/* ── Tilt Card — reusable glass card with hover effect ───── */
+.hk-ux-card {
+  border-radius: var(--hk-radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+  padding: 1rem;
+  transition:
+    transform var(--hk-transition),
+    box-shadow var(--hk-transition),
+    border-color var(--hk-transition);
+}
+.hk-ux-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.06),
+    0 8px 20px rgba(15, 23, 42, 0.1);
+  border-color: rgba(6, 182, 212, 0.18);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .hk-ux-card {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+  }
+}
+
+/* ── Step Indicator ───────────────────────────────────────── */
+@keyframes hkStepGlow {
+  0%, 100% { box-shadow: 0 0 8px var(--hk-cyan-alpha-30); }
+  50% { box-shadow: 0 0 16px var(--hk-cyan-alpha-40), 0 0 24px var(--hk-cyan-alpha-15); }
+}
+.hk-step-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+}
+.hk-step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  position: relative;
+}
+.hk-step-num {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--hk-font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--hk-slate-400);
+  background: var(--hk-surface-elevated);
+  border: 2px solid var(--hk-slate-200);
+  flex-shrink: 0;
+  transition: all var(--hk-transition-smooth);
+}
+.hk-step-item.hk-step-active .hk-step-num {
+  color: #fff;
+  background: linear-gradient(135deg, var(--hk-cyan), var(--hk-cyan-dark));
+  border-color: var(--hk-cyan);
+  box-shadow: 0 0 12px var(--hk-cyan-alpha-30);
+  animation: hkStepGlow 3s ease-in-out infinite;
+}
+.hk-step-item.hk-step-done .hk-step-num {
+  color: var(--hk-cyan-dark);
+  background: linear-gradient(135deg, var(--hk-cyan-alpha-15), var(--hk-cyan-alpha-10));
+  border-color: var(--hk-cyan-alpha-30);
+}
+.hk-step-label {
+  font-size: var(--hk-text-sm);
+  font-weight: 500;
+  color: var(--hk-slate-400);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.hk-step-item.hk-step-active .hk-step-label {
+  color: var(--hk-slate-800);
+  font-weight: 600;
+}
+.hk-step-item.hk-step-done .hk-step-label {
+  color: var(--hk-slate-600);
+}
+.hk-step-connector {
+  flex: 1;
+  height: 1px;
+  background: var(--hk-slate-200);
+  margin: 0 0.25rem;
+  min-width: 16px;
+  transition: background var(--hk-transition-smooth);
+}
+.hk-step-item.hk-step-done + .hk-step-connector {
+  background: linear-gradient(90deg, var(--hk-cyan-alpha-30), var(--hk-cyan-alpha-10));
+}
+.hk-step-item.hk-step-active + .hk-step-connector {
+  background: var(--hk-cyan-alpha-15);
+}
+
+/* ── Gradient Section Label ───────────────────────────────── */
+.hk-section-label {
+  font-family: var(--hk-font-display);
+  font-size: var(--hk-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: linear-gradient(135deg, var(--hk-slate-700), var(--hk-cyan-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Result Card Grid ─────────────────────────────────────── */
+.hk-result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+.hk-result-card {
+  padding: 0.85rem;
+  border-radius: var(--hk-radius-lg);
+  border: 1px solid var(--hk-slate-200);
+  background: var(--hk-surface-bg);
+  transition: all var(--hk-transition);
+}
+.hk-result-card:hover {
+  border-color: var(--hk-cyan-alpha-20);
+  box-shadow: var(--hk-shadow-sm);
+  transform: translateY(-1px);
+}
+.hk-result-school {
+  font-family: var(--hk-font-display);
+  font-size: var(--hk-text-sm);
+  font-weight: 600;
+  color: var(--hk-slate-800);
+  margin-bottom: 0.15rem;
+}
+.hk-result-major {
+  font-size: var(--hk-text-xs);
+  color: var(--hk-slate-500);
+  margin-bottom: 0.5rem;
+}
+.hk-result-prob-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--hk-slate-100);
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+}
+.hk-result-prob-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease-out;
+}
+.hk-result-prob-text {
+  font-family: var(--hk-font-display);
+  font-size: var(--hk-text-xs);
+  font-weight: 700;
+  color: var(--hk-slate-600);
+}
+
+/* ── LeadIn Section ───────────────────────────────────────── */
+.hk-leadin-section {
+  padding: 1rem 0 0.5rem 0;
+}
+.hk-leadin-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.hk-leadin-input-row > :first-child {
+  flex: 1;
+}
+
+/* ── Footer / Back Link ───────────────────────────────────── */
+.hk-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 0 0 0;
+  margin-top: 2rem;
+  border-top: 1px solid var(--hk-slate-100);
+}
+.hk-footer a {
+  font-size: 0.8rem;
+  color: var(--hk-slate-400);
+  text-decoration: none;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  transition: color var(--hk-transition-fast);
+}
+.hk-footer a:hover {
+  color: var(--hk-cyan);
+  text-decoration: none;
+}
+.hk-footer-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--hk-slate-200);
+}
+

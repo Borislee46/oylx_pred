@@ -55,7 +55,7 @@ def run_qmc_efficiency_test():
                 else:
                     try:
                         sample = engine.random(n=n_points)
-                    except:
+                    except Exception:
                         sample = np.random.uniform(0, 1, size=(n_points, 2))
 
                 df = pd.DataFrame(sample, columns=["x", "y"])

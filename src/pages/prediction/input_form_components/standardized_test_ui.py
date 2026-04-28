@@ -44,7 +44,6 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
 
     score_input = st.text_input(
         f"{exam_type} 总分",
-        value=st.session_state[score_key],
         placeholder="无",
         key=score_key,
         on_change=on_score_change,

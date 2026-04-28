@@ -36,7 +36,7 @@ class machine_learning_model:
     @classmethod
     @st.cache_resource(
         show_spinner=False,
-        scope="session",
+        scope="global",
         on_release=lambda obj: obj.boundary_agent.close() if obj.boundary_agent else None,
     )
     def resource_loader(cls) -> "machine_learning_model":

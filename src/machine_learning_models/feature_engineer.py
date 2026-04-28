@@ -105,13 +105,24 @@ class FeatureEngineer:
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
         data = self._preprocess_data(df)
         data = self._handle_numeric_missing(data, is_fit=False)
-        data = self._handle_categorical_alignment(data, is_fit=False)
         data = self._handle_count_columns(data, is_fit=False)
         data = self._handle_language_scores(data)
+        data = self._handle_categorical_alignment(data, is_fit=False)
         return data
 
     def fit_transform(self, df: pd.DataFrame) -> pd.DataFrame:
         return self.fit(df).transform(df)
+
+    def get_state(self) -> dict:
+        return {
+            "numeric_medians": {k: float(v) for k, v in self.numeric_medians.items()},
+            "cap_values": {k: float(v) for k, v in self.cap_values.items()},
+            "existing_categorical_columns": list(self.existing_categorical_columns),
+            "categorical_levels": {
+                col: [str(level) for level in levels.tolist()]
+                for col, levels in self.categorical_levels.items()
+            },
+        }
 
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:

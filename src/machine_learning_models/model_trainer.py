@@ -1,15 +1,28 @@
 import numpy as np
-from data_config import (
+from sklearn.calibration import CalibratedClassifierCV
+from .data_config import (
     CALIBRATION_METHOD,
     CATEGORICAL_COLUMNS,
+    DEFAULT_PREDICTION_THRESHOLD,
     MONOTONE_DECREASING_WHITELIST,
     MONOTONE_INCREASING_WHITELIST,
     N_ITER,
+    THRESHOLD_SCAN_STEPS,
 )
-from hyperparameter_tuning import tune_hyperparameters
-from sklearn.calibration import CalibratedClassifierCV
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sklearn.model_selection import StratifiedShuffleSplit
+from .hyperparameter_tuning import tune_hyperparameters
+from sklearn.frozen import FrozenEstimator
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    brier_score_loss,
+    confusion_matrix,
+    f1_score,
+    log_loss,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
+from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedShuffleSplit
 from xgboost import XGBClassifier
 
 
@@ -51,17 +64,141 @@ def extract_calibration_params(model):
     return None
 
 
-def evaluate_model(model, X_test, y_test, feature_names=None):
-    y_pred = model.predict(X_test)
+def _predict_positive_class_proba(model, X):
+    probas = model.predict_proba(X)
+    if probas is None:
+        raise ValueError("模型未返回有效概率")
+    if probas.ndim == 1:
+        return probas.astype(float)
+    return probas[:, 1].astype(float)
+
+
+def _safe_probability_metric(metric_fn, y_true, y_score):
+    try:
+        return float(metric_fn(y_true, y_score))
+    except ValueError:
+        return None
+
+
+def _build_threshold_scan(y_true, y_score):
+    thresholds = np.linspace(0.0, 1.0, THRESHOLD_SCAN_STEPS)
+    best = None
+
+    for threshold in thresholds:
+        y_pred = (y_score >= threshold).astype(int)
+        score = float(f1_score(y_true, y_pred, average="binary", zero_division=0))
+        candidate = {
+            "threshold": float(threshold),
+            "f1": score,
+            "precision": float(precision_score(y_true, y_pred, average="binary", zero_division=0)),
+            "recall": float(recall_score(y_true, y_pred, average="binary", zero_division=0)),
+        }
+        if best is None or candidate["f1"] > best["f1"]:
+            best = candidate
+
+    return best
+
+
+def evaluate_model(
+    model,
+    X_test,
+    y_test,
+    feature_names=None,
+    prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
+):
+    y_score = _predict_positive_class_proba(model, X_test)
+    y_pred = (y_score >= prediction_threshold).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_test, y_pred, labels=[0, 1]).ravel()
     metrics = {
+        "prediction_threshold": float(prediction_threshold),
         "accuracy": float(accuracy_score(y_test, y_pred)),
-        "precision": float(precision_score(y_test, y_pred, average="binary")),
-        "recall": float(recall_score(y_test, y_pred, average="binary")),
-        "f1": float(f1_score(y_test, y_pred, average="binary")),
+        "precision": float(precision_score(y_test, y_pred, average="binary", zero_division=0)),
+        "recall": float(recall_score(y_test, y_pred, average="binary", zero_division=0)),
+        "f1": float(f1_score(y_test, y_pred, average="binary", zero_division=0)),
+        "roc_auc": _safe_probability_metric(roc_auc_score, y_test, y_score),
+        "average_precision": _safe_probability_metric(average_precision_score, y_test, y_score),
+        "log_loss": _safe_probability_metric(log_loss, y_test, y_score),
+        "brier_score": _safe_probability_metric(brier_score_loss, y_test, y_score),
+        "positive_rate_predicted": float(np.mean(y_pred)),
+        "positive_rate_actual": float(np.mean(y_test)),
+        "confusion_matrix": {
+            "tn": int(tn),
+            "fp": int(fp),
+            "fn": int(fn),
+            "tp": int(tp),
+        },
+        "best_f1_threshold_scan": _build_threshold_scan(y_test, y_score),
     }
 
     feature_importance = _extract_feature_importance(model, feature_names)
     return metrics, feature_importance
+
+
+_CV_METRIC_KEYS = [
+    "accuracy", "precision", "recall", "f1", "roc_auc",
+    "average_precision", "log_loss", "brier_score",
+]
+
+
+def cross_validate_model(
+    X,
+    y,
+    model_name="xgboost",
+    cv=5,
+    n_repeats=3,
+    sample_weight=None,
+    prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
+):
+    """Repeated stratified K-fold CV with per-fold calibration.
+
+    Each fold independently runs the full train→calibrate→evaluate pipeline,
+    so the reported std accounts for both model variance and calibration variance.
+
+    Returns:
+        dict[str, dict]: metric_name → {mean, std, values}
+    """
+    rskf = RepeatedStratifiedKFold(n_splits=cv, n_repeats=n_repeats, random_state=2025)
+
+    all_metrics: list[dict] = []
+    for train_idx, test_idx in rskf.split(X, y):
+        X_tr, X_te = X.iloc[train_idx], X.iloc[test_idx]
+        y_tr, y_te = y.iloc[train_idx], y.iloc[test_idx]
+
+        sw_tr = None
+        if sample_weight is not None:
+            try:
+                sw_tr = sample_weight.iloc[train_idx]
+            except AttributeError:
+                sw_tr = sample_weight[train_idx]
+
+        calibrated_model, _, _, _ = train_model(
+            X_tr, y_tr, model_name, auto_tune=False,
+            sample_weight=sw_tr,
+            prediction_threshold=prediction_threshold,
+        )
+
+        fold_metrics, _ = evaluate_model(
+            calibrated_model, X_te, y_te,
+            prediction_threshold=prediction_threshold,
+        )
+        all_metrics.append(fold_metrics)
+
+    cv_results: dict[str, dict] = {}
+    for key in _CV_METRIC_KEYS:
+        values = [m[key] for m in all_metrics if m.get(key) is not None]
+        if values:
+            cv_results[key] = {
+                "mean": float(np.mean(values)),
+                "std": float(np.std(values, ddof=1)),
+                "n_folds": len(values),
+            }
+
+    cv_results["_meta"] = {
+        "cv": cv,
+        "n_repeats": n_repeats,
+        "total_folds": len(all_metrics),
+    }
+    return cv_results
 
 
 def _extract_feature_importance(model, feature_names):
@@ -142,7 +279,14 @@ def _prepare_sample_weight(sample_weight, indices):
         return {"sample_weight": sample_weight}
 
 
-def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None):
+def train_model(
+    X_train,
+    y_train,
+    model_name,
+    auto_tune=None,
+    sample_weight=None,
+    prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
+):
     categorical_feature_names = [col for col in CATEGORICAL_COLUMNS if col in X_train.columns]
 
     monotone_constraints = (
@@ -162,12 +306,16 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
             n_iter=N_ITER,
             n_jobs=-1,
             monotone_constraints=monotone_constraints,
+            sample_weight=sample_weight,
+            scale_pos_weight=scale_pos_weight,
+            prediction_threshold=prediction_threshold,
         )
     else:
         model_params = {
             "objective": "binary:logistic",
             "random_state": 42,
             "enable_categorical": True,
+            "tree_method": "hist",
             "n_estimators": 375,
             "max_depth": 10,
             "learning_rate": 0.16804401335949273,
@@ -186,6 +334,7 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
                     "objective": "binary:logistic",
                     "random_state": 42,
                     "enable_categorical": True,
+                    "tree_method": "hist",
                 }
             )
         model_params["scale_pos_weight"] = scale_pos_weight
@@ -201,11 +350,12 @@ def train_model(X_train, y_train, model_name, auto_tune=None, sample_weight=None
     X_tr, X_cal = X_train.iloc[train_idx], X_train.iloc[calib_idx]
     y_tr, y_cal = y_train.iloc[train_idx], y_train.iloc[calib_idx]
 
-    fit_params = _prepare_sample_weight(sample_weight, train_idx)
+    sw_tr = _prepare_sample_weight(sample_weight, train_idx).get("sample_weight", None)
+    fit_params = {"sample_weight": sw_tr} if sw_tr is not None else {}
     base_estimator.fit(X_tr, y_tr, **fit_params)
 
     calibrated_model = CalibratedClassifierCV(
-        base_estimator, method=CALIBRATION_METHOD, cv="prefit"
+        FrozenEstimator(base_estimator), method=CALIBRATION_METHOD
     )
     cal_fit_params = _prepare_sample_weight(sample_weight, calib_idx)
     calibrated_model.fit(X_cal, y_cal, **cal_fit_params)

@@ -3,6 +3,7 @@ from functools import lru_cache
 import pandas as pd
 import streamlit as st
 
+from src.pages.prediction.results_handler import clear_pending_prediction_state
 from src.utils.app_data_loader import load_raw_cases_data, load_school_major_details_df
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
@@ -38,13 +39,14 @@ def cross_faculty_confirm_dialog(
 
     with col2:
         if st.button("取消", width="stretch", key="cross_faculty_cancel_btn", shortcut="Esc"):
+            clear_pending_prediction_state(session_manager)
             session_manager.set(
                 cross_faculty_confirmed=False,
                 cross_faculty_cancelled=True,
-                pending_cross_faculty_prediction=False,
-                pending_prediction_data=None,
                 prediction_submit_lock=False,
                 submitted=False,
+                hk_ui_phase="idle",
+                hk_last_error=None,
             )
             st.rerun()
 

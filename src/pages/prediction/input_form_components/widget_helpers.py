@@ -1,7 +1,15 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 import streamlit as st
+
+_FilterMode = Literal["fuzzy", "contains", "prefix"] | None
+
+_FILTER_MODE_MIN_OPTIONS = 15
+
+
+def _filter_mode_for_option_count(n: int) -> _FilterMode:
+    return "fuzzy" if n > _FILTER_MODE_MIN_OPTIONS else None
 
 
 class SelectBoxHelper:
@@ -47,6 +55,7 @@ class SelectBoxHelper:
             elif default_index >= len(all_options):
                 default_index = 0
 
+            fm = _filter_mode_for_option_count(len(all_options))
             return st.selectbox(
                 label,
                 all_options,
@@ -54,6 +63,7 @@ class SelectBoxHelper:
                 on_change=on_change_callback,
                 placeholder="请选择...",
                 key=widget_key,
+                filter_mode=fm,
             )
         except Exception as e:
             self.logger.error(f"渲染selectbox失败 ({widget_key}): {e}", exc_info=True)
@@ -79,11 +89,13 @@ class SelectBoxHelper:
         widget_key: str,
         on_change_callback: Callable,
     ) -> list:
+        fm = _filter_mode_for_option_count(len(options))
         return st.multiselect(
             label,
             options=options,
             default=default_selections,
             key=widget_key,
             on_change=on_change_callback,
-            placeholder="不填默认全选",
+            placeholder="",
+            filter_mode=fm,
         )

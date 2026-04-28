@@ -1,151 +1,175 @@
+from __future__ import annotations
+
+from typing import Any
+
+from src.pages.prediction.core.utils import denormalize_language_score
+
+PIPELINE_PHASE_MAP = {
+    "init_engine": "prep",
+    "wake_model": "prep",
+    "check_consistency": "prep",
+    "verify_data": "prep",
+    "build_features": "prep",
+    "search_cases": "match",
+    "prepare_pool": "match",
+    "load_similarity": "match",
+    "extract_profile": "match",
+    "running_calc": "infer",
+    "initial_filter": "infer",
+    "analyze_text": "infer",
+    "merging": "deliver",
+    "done": "deliver",
+    "empty_results": "deliver",
+}
+
+PHASE_LABELS = {
+    "prep": "初始化：加载模型、校验数据一致性、清洗输入并构造特征向量。",
+    "match": "检索：相似案例召回、候选池构建、加载相似度缓存、抽取申请人表征。",
+    "infer": "推理：批量概率计算、初筛、软背景文本特征与规则化权重调整。",
+    "deliver": "汇总：合并相似/跨专业/指定志愿多路结果，去重排序并输出。",
+}
+
+
+def _shorten_program_label(text: str, max_len: int = 36) -> str:
+    s = str(text).strip()
+    if len(s) <= max_len:
+        return s
+    return s[: max_len - 1] + "…"
+
+
+def clip_join_labels(
+    items: list[Any],
+    max_items: int = 4,
+    sep: str = "、",
+    *,
+    shorten_each: int | None = None,
+) -> str:
+    xs = [str(x).strip() for x in items if str(x).strip()]
+    if not xs:
+        return "—"
+    head = xs[:max_items]
+    parts = [_shorten_program_label(x, shorten_each) if shorten_each else x for x in head]
+    out = sep.join(parts)
+    if len(xs) > max_items:
+        out += "…"
+    return out
+
+
+def _format_language_display(language_type: str | None, language_score: float | None) -> str:
+    t = (language_type or "").strip()
+    if language_score is None:
+        return t or "—"
+    try:
+        x = float(language_score)
+    except (TypeError, ValueError):
+        return f"{t} {language_score}".strip() if t else str(language_score)
+    if t in ("雅思", "托福") and 0.0 <= x <= 1.05:
+        raw = denormalize_language_score(x, t, round_to_half=True)
+        if t == "托福":
+            disp = int(raw) if abs(raw - round(raw)) < 1e-6 else round(raw, 1)
+            return f"{t} {disp}"
+        disp = int(raw) if abs(raw - round(raw)) < 1e-6 else raw
+        return f"{t} {disp}"
+    if abs(x - round(x)) < 1e-9:
+        return f"{t + ' ' if t else ''}{int(round(x))}".strip()
+    s = f"{x:.3f}".rstrip("0").rstrip(".")
+    return f"{t + ' ' if t else ''}{s}".strip() or "—"
+
+
+def format_pipeline_prep_progress(
+    *,
+    bg_university: str | None,
+    bg_major: str | None,
+    language_type: str | None,
+    language_score: float | None,
+    target_universities: list[Any] | None,
+    similarity_cache_loaded: bool,
+) -> str:
+    tu = target_universities or []
+    scope = clip_join_labels(tu, 4) if tu else "未限定（全库）"
+    cache = "相似度缓存就绪" if similarity_cache_loaded else "无相似度缓存"
+    return (
+        f"准备：{bg_university or '—'} / {bg_major or '—'}，"
+        f"标化 {_format_language_display(language_type, language_score)}，"
+        f"志愿 {scope}，{cache}"
+    )
+
+
+def format_pipeline_compute_progress(
+    combinations: list[tuple[str, str]],
+    hints: dict[str, Any],
+) -> str:
+    user_locked = bool(hints.get("user_locked_majors"))
+    mode = "指定专业池" if user_locked else "匹配专业池（语义+模糊）"
+    unis = clip_join_labels(hints.get("target_unis") or [], 4)
+    majors = clip_join_labels(
+        hints.get("target_majors") or [],
+        3,
+        shorten_each=34,
+    )
+    preview = _preview_combination_pairs(combinations, max_pairs=3)
+    return f"推理：{mode}，院校 {unis}，专业 {majors}，示例 {preview}"
+
+
+def _preview_combination_pairs(pairs: list[tuple[str, str]], max_pairs: int = 3) -> str:
+    out: list[str] = []
+    used_pairs: set[tuple[str, str]] = set()
+    seen_uni: set[str] = set()
+
+    for u, m in pairs:
+        uu, mm = str(u).strip(), str(m).strip()
+        if not uu or not mm:
+            continue
+        k = (uu, mm)
+        if k in used_pairs or uu in seen_uni:
+            continue
+        used_pairs.add(k)
+        seen_uni.add(uu)
+        out.append(f"{uu} / {_shorten_program_label(mm, 32)}")
+        if len(out) >= max_pairs:
+            return "、".join(out)
+
+    for u, m in pairs:
+        uu, mm = str(u).strip(), str(m).strip()
+        k = (uu, mm)
+        if not uu or not mm or k in used_pairs:
+            continue
+        used_pairs.add(k)
+        out.append(f"{uu} / {_shorten_program_label(mm, 32)}")
+        if len(out) >= max_pairs:
+            break
+    return "、".join(out) if out else "—"
+
+
+def format_pipeline_refine_progress(
+    *,
+    route_labels: list[str],
+    bg_faculty: str | None,
+    soft_background_on: bool,
+) -> str:
+    routes = "、".join(route_labels) if route_labels else "—"
+    fac = (bg_faculty or "").strip() or "—"
+    sb = "已纳入经历文本" if soft_background_on else "未纳入经历文本"
+    return f"校准：分路 {routes}，背景学部 {fac}，{sb}"
+
+
+def format_pipeline_done_progress() -> str:
+    return "分析完成，请查看推荐结果"
+
+
+def format_pipeline_empty_progress(
+    *,
+    bg_major: str | None,
+    target_universities: list[Any] | None,
+) -> str:
+    tu = target_universities or []
+    scope = clip_join_labels(tu, 3) if tu else "未限定"
+    return f"当前无推荐结果：背景 {bg_major or '—'}，志愿 {scope}"
+
+
 PIPELINE_MESSAGES = {
-    "init_engine": [
-        "·正在唤醒预测引擎，准备开始分析...",
-        "·让我先准备好分析工具，马上开始...",
-        "·初始化推理环境，稍等片刻...",
-        "·启动算法调度器，为你调配最优计算资源...",
-        "·系统就绪，开始为你部署分析流水线...",
-        "·预测引擎预热中，很快就好...",
-        "·正在分配GPU算力，准备启动深度分析...",
-    ],
-    "verify_data": [
-        "·让我仔细看看你的背景信息...",
-        "·正在逐项核验申请人画像，确保没有遗漏...",
-        "·先梳理一下你的核心背景数据...",
-        "·检查一下你填写的信息是否完整，别漏了什么...",
-        "·逐字段核对你的背景资料，这是分析的基础...",
-        "·你的背景数据已收到，让我逐项过一遍...",
-        "·正在读取你的申请人档案...",
-        "·确认背景信息的有效性，确保分析基础扎实...",
-    ],
-    "wake_model": [
-        "·正在加载预测模型，准备帮你推演...",
-        "·唤醒XGBoost模型，让它来帮忙判断...",
-        "·加载机器学习模型权重中...",
-        "·调取训练好的预测模型，它学习过大量历史案例...",
-        "·模型参数加载中，即将开始推理...",
-        "·正在恢复模型的记忆，让它回忆历史规律...",
-        "·预测模型上线，准备开始运算...",
-    ],
-    "search_cases": [
-        "·让我查一下历史录取库里有没有类似的案例...",
-        "·正在海量历史数据中检索相似申请者...",
-        "·翻阅案例库，寻找与你背景相近的样本...",
-        "·在数万条录取记录中搜索和你情况相似的同学...",
-        "·看看过去有没有背景差不多的人成功录取的先例...",
-        "·历史案例匹配中，找到参考样本能让推荐更准...",
-        "·正在扫描录取数据库，锁定可比较的历史案例...",
-        "·对标案例库，看看谁跟你的情况最像...",
-    ],
-    "check_consistency": [
-        "·核对一下数据是否一致，避免分析偏差...",
-        "·交叉校验核心信号，确保结果可靠...",
-        "·数据一致性确认中，这一步很关键...",
-        "·做个交叉验证，确保各维度数据没有矛盾...",
-        "·检查数据完整性，不完整的数据会影响推荐质量...",
-        "·信号校准中，让每个维度的数据都对齐...",
-        "·验证输入一致性，排除潜在的数据噪声...",
-    ],
-    "build_features": [
-        "·正在提取你的特征向量，构建竞争力画像...",
-        "·多维度拆解你的背景，建立分析坐标系...",
-        "·特征工程运算中，量化你的申请优势...",
-        "·把你的背景转化为模型可以理解的数字信号...",
-        "·从GPA、语言、科研等维度提取关键特征...",
-        "·正在构建你的多维竞争力向量...",
-        "·量化你的各项指标，让模型精确感知你的实力...",
-        "·编码你的背景信息，生成高维特征空间...",
-    ],
-    "prepare_pool": [
-        "·扫描各院校的准入门槛，筛选可能的目标池...",
-        "·正在评估哪些院校和专业值得纳入考虑...",
-        "·锁定候选院校范围，缩小推荐视野...",
-        "·逐一过滤不符合条件的院校，聚焦有价值的选项...",
-        "·根据你的背景圈定可行的院校矩阵...",
-        "·正在建立候选院校清单，排除明显不匹配的选项...",
-        "·对比院校录取标准，看看哪些在你的射程范围内...",
-        "·思考中...以你的条件，哪些院校有可能性？",
-    ],
-    "load_similarity": [
-        "·让我看看有没有走过类似路径的成功案例...",
-        "·计算申请轨迹相关性，寻找可参考的先例...",
-        "·检索相似背景的录取路径，提供参考...",
-        "·在历史数据中寻找和你背景最接近的成功样本...",
-        "·计算背景相似度，找到最有参考价值的案例...",
-        "·正在匹配相似轨迹，看看前人是怎么选的...",
-        "·相似路径检索中，帮你找到可以借鉴的方向...",
-    ],
-    "extract_profile": [
-        "·正在生成你的竞争力画像，看看你的优势在哪...",
-        "·评估各项特征的显著度，找出你的核心亮点...",
-        "·建立申请人模型，量化你在候选人中的定位...",
-        "·分析你的背景结构，识别独特的竞争优势...",
-        "·构建你的申请人画像，这是推荐的核心依据...",
-        "·正在为你绘制竞争力雷达图...",
-        "·从多个维度给你的申请力打分...",
-        "·综合评估你的硬实力和软实力...",
-    ],
-    "running_calc": [
-        "·跑一下蒙特卡洛模拟，推演各种可能的结果...",
-        "·多路径概率计算中，正在收敛最优解...",
-        "·拟合申请路径，测算各方案的可行性...",
-        "·启动概率推演，计算每条路径的成功率...",
-        "·正在模拟不同申请组合的录取概率...",
-        "·模型推理中，同时评估多个候选方案...",
-        "·并行计算中，逐一测算各专业的录取可能性...",
-        "·概率引擎全速运转，为你找出最优路径...",
-        "·核心运算阶段，耐心等一下，马上出结果...",
-    ],
-    "initial_filter": [
-        "·初步结果出来了，让我再精细调整一下权重...",
-        "·对初筛方案做动态权重衰减，去粗取精...",
-        "·优化推荐权重，确保排序合理...",
-        "·粗筛完成，正在做第二轮精细化调整...",
-        "·有了初步候选列表，让我再优化一下排序...",
-        "·微调各方案的优先级，给你最合理的排列...",
-        "·初步结果不错，再校准一下权重分配...",
-    ],
-    "analyze_text": [
-        "·看看你的软背景能不能加分...",
-        "·用NLP提取文书中的关键信号...",
-        "·正在解析你的非结构化软背景信息...",
-        "·分析你的课外经历，判断对申请有没有增益...",
-        "·挖掘你软背景中的亮点，看看能否提升竞争力...",
-        "·文本语义分析中，识别有价值的背景信息...",
-        "·让AI帮你评估这些软背景的实际含金量...",
-    ],
-    "cross_check": [
-        "·检查一下跨学科的匹配度，这很影响结果...",
-        "·跨专业系数补偏中，避免盲目推荐...",
-        "·校验学院偏好一致性，确保推荐方向合理...",
-        "·思考中...跨专业申请的可行性如何？需要修正权重...",
-        "·正在评估学科交叉的合理性，避免方向偏离太远...",
-        "·让我再想想跨专业的风险和收益...",
-        "·确认一下推荐的专业方向是否与你的背景逻辑自洽...",
-    ],
-    "merging": [
-        "·综合所有分析结果，生成最终推荐方案...",
-        "·聚合高置信度路径，为你排出最优选择...",
-        "·汇总完毕，正在输出推荐方案...",
-        "·所有维度分析完成，正在整合最终结果...",
-        "·把各路分析结果融合在一起，生成推荐清单...",
-        "·最后一步，合并所有候选方案并去重排序...",
-        "·就快好了，正在生成你的专属推荐方案...",
-    ],
-    "empty_results": [
-        "·分析完毕，暂时没有找到高契合度的匹配项目",
-        "·以当前条件来看，未发现合适的推荐路径",
-        "·当前参数下没有匹配到案例，建议调整条件后重试",
-        "·很遗憾，以你目前的条件组合未能匹配到合适项目",
-        "·筛选条件可能偏严格，试试放宽部分要求？",
-    ],
-    "done": [
-        "·分析完成，推荐结果已就绪",
-        "·预测任务完成，以下是为你筛选的学校和专业",
-        "·结果已生成，来看看哪些方案最适合你",
-        "·所有分析流程已完成，请查看推荐列表",
-        "·推荐方案已就绪，希望对你有帮助",
-    ],
+    "cross_check": ["跨学部/跨专业一致性校验中"],
+    "empty_results": ["当前条件下无匹配结果"],
 }
 
 EXPERIENCE_ITEM_NAMES = {
@@ -155,8 +179,8 @@ EXPERIENCE_ITEM_NAMES = {
     "paper_details": "学术产出",
 }
 
-EXPERIENCE_BOOST_TEMPLATE = "·你提供了{items}，让我评估一下对申请的加成效果..."
-EXPERIENCE_DEFAULT_MSG = "·正在核验你的软背景信息，看看有没有加分项..."
+EXPERIENCE_BOOST_TEMPLATE = "已检测到经历字段：{items}，纳入软背景特征"
+EXPERIENCE_DEFAULT_MSG = "校验软背景文本字段"
 
 FIELD_NAME_MAP = {
     "research_details": "研究",
@@ -166,76 +190,31 @@ FIELD_NAME_MAP = {
 }
 
 EXPERIENCE_ANALYSIS_MESSAGES = [
-    "·让我分析一下你的{field}，看看有哪些亮点...",
-    "·正在评估{field}的含金量...",
-    "·提取背景文本中的关键增益信号...",
-    "·检查你填写的内容信息密度是否足够...",
-    "·验证输入文本的有效性，避免无效信息干扰判断...",
-    "·计算文本信息熵，识别有效内容...",
-    "·逐段阅读你的{field}经历，提取核心关键词...",
-    "·分析{field}的深度和广度，综合评判价值...",
-    "·思考中...这段{field}经历对申请有多大帮助？",
-    "·解析{field}文本结构，量化其竞争力贡献...",
+    "解析{field}文本",
+    "{field}字段校验",
 ]
 
 EXPERIENCE_VALIDATION_TEMPLATE = [
-    "·正在审阅你的{field_name}，进度 {idx}/{total}...",
-    "·调用AI校验{field_name}的真实性和相关性 ({idx}/{total})...",
-    "·仔细看看你的{field_name}，判断是否对申请有帮助 ({idx}/{total})...",
-    "·逐条核验{field_name}内容的有效性 ({idx}/{total})...",
-    "·让我读一下你的{field_name}，评估含金量 ({idx}/{total})...",
-    "·{field_name}审查中，确认内容质量 ({idx}/{total})...",
+    "校验{field_name}（{idx}/{total}）",
 ]
 
 RANKER_MESSAGES = {
     "basic": [
-        "·{tone} | 正在测算{target_major}的录取概率，看看胜算如何...",
-        "·{tone} | {target_major}这个方向不错，让我校验一下契合度...",
-        "·{tone} | 评估{target_major}的竞争激烈程度，帮你判断难度...",
-        "·{tone} | 思考中...{target_major}适不适合你？让数据说话...",
-        "·{tone} | 分析{target_major}的历史录取数据，给你一个参考概率...",
-        "·{tone} | {target_major}的门槛如何？让我帮你测算一下...",
-        "·{tone} | 正在对比你的背景与{target_major}的典型录取画像...",
-        "·{tone} | 把你的条件代入{target_major}的录取模型看看...",
+        "{tone}，概率测算：{target_major}",
     ],
     "cross_major": [
-        "·{tone} | 发现你是{background_major_ori}背景，申请{target_major}属于跨专业，让我仔细评估一下...",
-        "·{tone} | {background_major_ori}转{target_major}，正在校准两者之间的关联度...",
-        "·{tone} | 思考中...{background_major_ori}到{target_major}的跨度有多大？能不能跨过去？",
-        "·{tone} | 检测到跨专业申请：{background_major_ori} → {target_major}，分析转换可行性...",
-        "·{tone} | {background_major_ori}和{target_major}之间有交叉吗？让我查一下...",
-        "·{tone} | 跨专业路径分析中...{background_major_ori}的哪些技能在{target_major}里被认可？",
-        "·{tone} | {background_major_ori}背景去申{target_major}，历史上有成功案例吗？查一下...",
-        "·{tone} | 评估{background_major_ori}到{target_major}的学科距离，判断跨申难度...",
+        "{tone}，疑似跨专业：{background_major_ori} → {target_major}",
     ],
     "faculty": [
-        "·{tone} | 从学院维度分析{target_major}的匹配权重...",
-        "·{tone} | 检测到{target_major}涉及跨学科，正在增强相关信号...",
-        "·{tone} | 评估{target_major}在学院层面的录取偏好...",
-        "·{tone} | 看看{target_major}所在学院对你这类背景的接受度如何...",
-        "·{tone} | 分析{target_major}的学院归属，校验学部匹配度...",
-        "·{tone} | {target_major}的学院是否与你的背景学院有关联？分析中...",
+        "{tone}，学部权重：{target_major}",
     ],
     "relax": [
-        "·{tone} | {target_major}还在边界附近，试着放宽条件看看...",
-        "·{tone} | 思考中...{target_major}值不值得放进推荐池？",
-        "·{tone} | 调整{target_major}的筛选边界，探索更多可能性...",
-        "·{tone} | {target_major}差一点点就过线了，放宽一下试试...",
-        "·{tone} | 让我再给{target_major}一次机会，微调参数边界...",
-        "·{tone} | {target_major}虽然不是最优匹配，但也许值得考虑？",
-        "·{tone} | 拓宽{target_major}的评估范围，看看有没有被遗漏的可能...",
+        "{tone}，放宽边界：{target_major}",
     ],
     "tighten": [
-        "·{tone} | 收紧{target_major}的录取阈值，确保推荐质量...",
-        "·{tone} | 再想想...{target_major}的竞争力够不够？是否需要剔除？",
-        "·{tone} | {target_major}在边界线上，让我用更严格的标准再筛一遍...",
-        "·{tone} | 提高{target_major}的准入门槛，只保留高置信度的推荐...",
-        "·{tone} | 严格模式下评估{target_major}，宁缺毋滥...",
+        "{tone}，收紧阈值：{target_major}",
     ],
     "fallback": [
-        "·{tone} | 聚合{target_major}的多维特征，综合评判...",
-        "·{tone} | 最后优化一下{target_major}的排序位置...",
-        "·{tone} | 汇总{target_major}的各项评分，给出综合排名...",
-        "·{tone} | 对{target_major}做最终的多因子加权评估...",
+        "{tone}，综合排序：{target_major}",
     ],
 }

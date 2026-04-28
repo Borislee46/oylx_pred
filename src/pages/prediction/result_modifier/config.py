@@ -1,6 +1,9 @@
 import json
+import logging
 from functools import lru_cache
 from pathlib import Path
+
+_logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=1)
@@ -90,8 +93,13 @@ def load_prediction_rules() -> dict:
         try:
             with open(PREDICTION_RULES_PATH, encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
-            pass
+        except Exception as e:
+            _logger.warning(
+                "Failed to load prediction rules from %s, using defaults: %s",
+                PREDICTION_RULES_PATH,
+                e,
+                exc_info=True,
+            )
     return {}
 
 
@@ -105,8 +113,16 @@ PROFESSIONAL_REDUCTION_FACTOR: float = 0.30
 PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR: float = 0.50
 MIN_SIMILARITY_THRESHOLD: float = 0.89
 HIGHER_SIMILARITY_THRESHOLD: float = 0.92
+FUZZY_BIAS_THRESHOLD_HIGH: float = 92.0
+FUZZY_BIAS_THRESHOLD_MID: float = 82.0
+FUZZY_BIAS_THRESHOLD_LOW: float = 72.0
+FUZZY_BIAS_MULTIPLIER_HIGH: float = 1.25
+FUZZY_BIAS_MULTIPLIER_MID: float = 1.15
+FUZZY_BIAS_MULTIPLIER_LOW: float = 1.05
 UNIVERSITY_COUNT_THRESHOLD: int = 2
 CROSS_MAJOR_SIMILARITY_MIN: float = 0.8
+COMBINATION_POOL_SEMANTIC_MIN: float = 0.6
+COMBINATION_POOL_FUZZY_MIN: int = 90
 TOP_N_RECOMMENDATIONS: int = 30
 USER_SPECIFIED_SMALL_RANGE_THRESHOLD: int = 20
 USER_SPECIFIED_MEDIUM_RANGE_THRESHOLD: int = 100
@@ -122,7 +138,6 @@ QUALITY_SCORE_THRESHOLD: float = 0.15
 PROBABILITY_BOOST_MIN: float = 0.1
 PROBABILITY_BOOST_MAX: float = 0.9
 PROBABILITY_SCALE_CENTER: float = 0.5
-PROBABILITY_SCALE_FACTOR: float = 2.0
 
 DEFAULT_UNIVERSITY_DIFFICULTY_ORDER: tuple[str, ...] = tuple(
     _rules.get(

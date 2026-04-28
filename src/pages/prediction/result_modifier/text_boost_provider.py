@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from abc import ABC, abstractmethod
 from functools import lru_cache
 from typing import Any
 
@@ -10,9 +11,11 @@ from src.utils.logger import setup_logger
 logger = setup_logger("page3", "prediction")
 
 
-class TextBoostProvider:
-    def apply(self, probabilities: list[float], experience_details: dict[str, str]) -> list[float]:
-        raise NotImplementedError
+class TextBoostProvider(ABC):
+    @abstractmethod
+    def apply(
+        self, probabilities: list[float], experience_details: dict[str, str]
+    ) -> list[float]: ...
 
 
 class NullTextBoostProvider(TextBoostProvider):

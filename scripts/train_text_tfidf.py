@@ -1,18 +1,4 @@
 import json
-
-"""
-文本质量增量模型训练脚本
-
-本脚本负责训练在线预测时使用的“背提加成”模型权重。
-主要产出：
-1. tfidf_vectorizer.joblib: 文本向量化模型。
-2. tfidf_centroids.npz: 高质量案例在 TF-IDF 空间中的中心点（作为质量基准）。
-3. text_uplift_weights.json: 相似度与经历数量对录取概率提升的贡献权重。
-
-权重文件字段说明:
-- w_r, w_a, w_i, w_p: 对应科研、奖项、实习、论文的【基础质量权重】。
-- u_r, u_a, u_i, u_p: 对应科研、奖项、实习、论文的【质量 × 数量 交互权重】。
-"""
 import logging
 import pickle
 import sys
@@ -79,30 +65,21 @@ def _text_prep(s: str) -> str:
 
 
 def _calculate_entropy_fast(text: str) -> float:
-    """
-    极致优化的香农熵计算（字节级）。
-    比原生 Counter 快 10-20 倍。用于评估文本信息密度。
-    """
     if not text:
         return 0.0
-    # 转换为字节数组进行超高速计数
     try:
         b = text.encode("utf-8")
     except UnicodeEncodeError:
         return 0.0
 
-    if len(b) < 10:  # 过滤过短文本
+    if len(b) < 10:
         return 0.0
 
-    # 使用 np.bincount 在字节层面进行直方图统计
     counts = np.bincount(np.frombuffer(b, dtype=np.uint8), minlength=256)
     probs = counts[counts > 0] / len(b)
 
-    # 熵计算：-Σ p*log2(p)
     entropy = -np.sum(probs * np.log2(probs))
 
-    # 归一化：字节最大熵为 8.0。
-    # 针对硕士申请背景，取 5.0 作为高质量信息量的饱和阈值
     return float(np.clip(entropy / 5.0, 0.0, 1.0))
 
 
@@ -226,15 +203,6 @@ def _fit_uplift_weights(
     sims_df: pd.DataFrame,
     p_base: np.ndarray | None,
 ) -> dict[str, float]:
-    """
-    拟合文本增量权重 (Uplift Weights Fitting)。
-
-    采用增量建模 (Uplift Modeling) 的核心逻辑：
-    1. 残差定义：计算真实标签 (logit_true) 与基础模型预测 (logit_base) 的差值，即“纯背景带来的增量”。
-    2. 特征构建：包含各维度文本的基础相似度，以及“相似度 × 经历数量”的交互项。
-    3. 优化目标：寻找一组非负权重，使得背景特征的线性组合能最大程度解释该残差。
-    """
-
     def _clip01(x: np.ndarray) -> np.ndarray:
         return np.clip(x, PROB_CLIP_MIN, PROB_CLIP_MAX)
 
@@ -263,7 +231,6 @@ def _fit_uplift_weights(
             s = pd.Series(0, index=df.index)
         return s.fillna(0).astype(np.float32)
 
-    # 使用向量化方式计算各列的熵（有效信息丰盈度）
     def _get_richness_vec(canonical_key: str) -> np.ndarray:
         candidates = COLUMN_MAP.get(canonical_key, [])
         all_parts = []
@@ -274,7 +241,6 @@ def _fit_uplift_weights(
         if not all_parts:
             return np.zeros(len(df), dtype=np.float32)
 
-        # 合并所有文本部分
         merged = all_parts[0]
         for i in range(1, len(all_parts)):
             merged = merged + " " + all_parts[i]
@@ -286,9 +252,6 @@ def _fit_uplift_weights(
     i_rich = _get_richness_vec("internship_details")
     p_rich = _get_richness_vec("paper_details")
 
-    # 构建特征矩阵 X
-    # 前 4 列为修正后的基础质量得分：quality * richness
-    # 后 4 列为修正后的交互项：quality(adj) * log1p(count * richness)
     sr_adj = sr * r_rich
     sa_adj = sa * a_rich
     si_adj = si * i_rich
@@ -341,8 +304,6 @@ def _fit_uplift_weights(
 
     if _HAS_NNLS:
         try:
-            # 使用非负最小二乘法 (NNLS)
-            # 假设背景文本只会带来正面加成 (Uplift)，不应存在“扣分”权重
             coef, _ = nnls(X, y_vec)
             if float(np.sum(coef)) <= EPSILON:
                 logger.warning("NNLS结果接近零，回退到Ridge回归")

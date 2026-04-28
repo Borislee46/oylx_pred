@@ -206,12 +206,12 @@ class ProbabilityAdjustmentPipeline:
                     if abs(new_prob - probabilities[i]) < 1e-6:
                         continue
 
-                    res = results[i]
+                    res = results[i].copy()
                     old_prob = probabilities[i]
                     res["probability"] = new_prob
-
-                    trace = res.get("_adjustment_trace", {})
+                    trace = dict(res.get("_adjustment_trace", {}))
                     trace["boost_NLP_Text"] = new_prob - old_prob
                     res["_adjustment_trace"] = trace
+                    results[i] = res
 
         return results

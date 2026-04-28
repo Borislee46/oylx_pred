@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import pandas as pd
@@ -14,6 +15,8 @@ from src.pages.prediction.result_modifier.config import (
     AGENT_MIN_BALANCE_DIFF_MIN,
     AGENT_MIN_BALANCE_DIFF_RATIO,
     AGENT_NO_CHANGE_THRESHOLD,
+    COMBINATION_POOL_FUZZY_MIN,
+    COMBINATION_POOL_SEMANTIC_MIN,
     HIGHER_SIMILARITY_THRESHOLD,
     MIN_SIMILARITY_THRESHOLD,
     UNIVERSITY_COUNT_THRESHOLD,
@@ -33,63 +36,176 @@ from src.utils.logger import setup_logger
 boundary_processor_logger = setup_logger("page3", "prediction")
 
 
-def generate_prediction_combinations(
+def _is_major_match(
+    m_lower: str,
+    bg_mapped: str,
+    bg_orig: str,
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None,
+) -> bool:
+    sim = float((bg_target_similarity_cache or {}).get((bg_mapped, m_lower), 0.0))
+    if sim >= COMBINATION_POOL_SEMANTIC_MIN:
+        return True
+    return fuzz.token_sort_ratio(bg_orig, m_lower) > COMBINATION_POOL_FUZZY_MIN
+
+
+def _resolve_prediction_target_lists(
     input_data: PredictionInput,
     all_universities_target: list[str],
     all_majors_target: list[str],
-    bg_target_similarity_cache: dict[str, float] | None = None,
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None = None,
     background_major_original: str | None = None,
-) -> tuple[list[tuple[str, str]], dict[str, Any]]:
-    target_unis = input_data.get("target_universities") or all_universities_target
+) -> tuple[list[str], list[str]]:
+    target_unis = list(input_data.get("target_universities") or all_universities_target)
     user_specified_majors = input_data.get("target_majors")
 
     if not user_specified_majors:
         bg_mapped = str(input_data.get("background_major", "")).strip().lower()
 
-        SEMANTIC_THRESHOLD = 0.6
-        target_majors = []
+        target_majors: list[str] = []
         bg_orig = str(background_major_original or "").strip().lower()
 
         for m in all_majors_target:
             m_str = str(m).strip()
             if not m_str:
                 continue
-            m_lower = m_str.lower()
-
-            sim_score = 0.0
-            if bg_target_similarity_cache is not None and bg_mapped:
-                if isinstance(bg_target_similarity_cache, dict):
-                    sim_score = bg_target_similarity_cache.get((bg_mapped, m_lower), 0.0)
-                elif isinstance(bg_target_similarity_cache, pd.Series):
-                    try:
-                        sim_score = bg_target_similarity_cache.get((bg_mapped, m_lower), 0.0)
-                    except (KeyError, TypeError):
-                        pass
-
-            if sim_score >= SEMANTIC_THRESHOLD:
-                target_majors.append(m)
-                continue
-
-            if fuzz.token_sort_ratio(bg_orig, m_lower) > 90:
+            if _is_major_match(m_str.lower(), bg_mapped, bg_orig, bg_target_similarity_cache):
                 target_majors.append(m)
 
         if not target_majors:
-            target_majors = all_majors_target
+            target_majors = list(all_majors_target)
     else:
-        target_majors = user_specified_majors
+        target_majors = list(user_specified_majors)
 
+    return target_unis, target_majors
+
+
+def _count_fuzz_passing_majors(
+    input_data: PredictionInput,
+    all_majors_target: list[str],
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None,
+    background_major_original: str | None,
+) -> int:
+    bg_mapped = str(input_data.get("background_major", "")).strip().lower()
+    bg_orig = (
+        str(background_major_original or input_data.get("background_major") or "").strip().lower()
+    )
+    if not bg_orig:
+        return 0
+    n = 0
+    seen: set[str] = set()
+    for m in all_majors_target:
+        m_str = str(m).strip()
+        if not m_str:
+            continue
+        m_lower = m_str.lower()
+        if m_lower in seen:
+            continue
+        if _is_major_match(m_lower, bg_mapped, bg_orig, bg_target_similarity_cache):
+            seen.add(m_lower)
+            n += 1
+    return n
+
+
+def prediction_progress_scope_meta(
+    input_data: PredictionInput,
+    all_majors_target: list[str],
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None,
+    background_major_original: str,
+) -> tuple[int | None, int | None, bool]:
+    tu = input_data.get("target_universities") or []
+    utrim = [str(u).strip() for u in tu if str(u).strip()]
+    n_uni = len(set(utrim)) if utrim else None
+
+    tm = input_data.get("target_majors") or []
+    mtrim = [str(m).strip() for m in tm if str(m).strip()]
+    if mtrim:
+        return n_uni, len(set(mtrim)), True
+
+    fuzz_n = _count_fuzz_passing_majors(
+        input_data,
+        all_majors_target,
+        bg_target_similarity_cache,
+        background_major_original,
+    )
+    if fuzz_n > 0:
+        return n_uni, fuzz_n, False
+    return n_uni, None, False
+
+
+def _enumerate_valid_combinations(
+    target_unis: list[str],
+    target_majors: list[str],
+) -> list[tuple[str, str]]:
     valid_unis = _data_manager.valid_universities
     valid_majors = _data_manager.valid_majors
     valid_set = _data_manager.valid_combinations
-
-    res = [
+    return [
         (u, m)
         for u in target_unis
         if u in valid_unis
         for m in target_majors
         if m in valid_majors and (u, m) in valid_set
     ]
-    return res, {"combination_count": len(res)}
+
+
+def generate_prediction_combinations(
+    input_data: PredictionInput,
+    all_universities_target: list[str],
+    all_majors_target: list[str],
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None = None,
+    background_major_original: str | None = None,
+) -> tuple[list[tuple[str, str]], dict[str, Any]]:
+    target_unis, target_majors = _resolve_prediction_target_lists(
+        input_data,
+        all_universities_target,
+        all_majors_target,
+        bg_target_similarity_cache,
+        background_major_original,
+    )
+    res = _enumerate_valid_combinations(target_unis, target_majors)
+    return res, {
+        "combination_count": len(res),
+        "progress_hints": {
+            "target_unis": [str(u).strip() for u in target_unis if str(u).strip()],
+            "target_majors": [str(m).strip() for m in target_majors if str(m).strip()],
+            "user_locked_majors": bool(input_data.get("target_majors")),
+        },
+    }
+
+
+def count_cases_with_similar_background(
+    cases_df: pd.DataFrame | None,
+    background_major: str,
+    background_major_original: str,
+    bg_target_similarity_cache: dict[tuple[str, str], float] | None = None,
+) -> int:
+    if cases_df is None or cases_df.empty or "background_major" not in cases_df.columns:
+        return 0
+
+    bg_mapped = str(background_major or "").strip().lower()
+    bg_orig = str(background_major_original or background_major or "").strip().lower()
+    if not bg_orig:
+        return 0
+
+    vc = cases_df["background_major"].astype(str).str.strip().value_counts(dropna=False)
+    total = 0
+    for maj_val, cnt in vc.items():
+        m_lower = str(maj_val).strip().lower()
+        if not m_lower:
+            continue
+        sim_score = 0.0
+        if bg_target_similarity_cache is not None and bg_mapped:
+            sim_score = float(bg_target_similarity_cache.get((bg_mapped, m_lower), 0.0))
+        if sim_score >= COMBINATION_POOL_SEMANTIC_MIN:
+            total += int(cnt)
+            continue
+        if fuzz.token_sort_ratio(bg_orig, m_lower) > COMBINATION_POOL_FUZZY_MIN:
+            total += int(cnt)
+
+    if total == 0 and bg_mapped:
+        mask = cases_df["background_major"].astype(str).str.strip().str.lower() == bg_mapped
+        return int(mask.sum())
+    return total
 
 
 def _get_user_specified_results(
@@ -230,7 +346,7 @@ def _apply_agent_balance_adjustment_flat(
     diff = len(cross_rec) - len(sim_rec)
     max_len = max(len(sim_rec), len(cross_rec))
     value = AGENT_MIN_BALANCE_DIFF_RATIO * max_len
-    threshold = max(AGENT_MIN_BALANCE_DIFF_MIN, int(-(-value // 1)) if value >= 0 else int(value))
+    threshold = max(AGENT_MIN_BALANCE_DIFF_MIN, math.ceil(value))
 
     if abs(diff) < threshold or cases_df is None or not background_major:
         return sim_rec, cross_rec

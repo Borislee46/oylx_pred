@@ -3,7 +3,6 @@ import os
 import uuid
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 
 def _get_base_url() -> str:
@@ -32,7 +31,7 @@ def _generate_card_html(available_buttons: list, base_url: str, trace_id: str) -
     for idx, (button_text, path_or_url, is_link) in enumerate(available_buttons):
         if is_link:
             redirect_url = (
-                f"{base_url}redirect?url={quote(path_or_url, safe='')}"
+                f"{base_url}redirect?target={quote(path_or_url, safe='')}"
                 f"&source={quote(button_text, safe='')}"
                 f"&user={quote(user, safe='')}"
                 f"&email={quote(email, safe='')}"
@@ -109,4 +108,4 @@ def render_buttons_grid(available_buttons: list) -> None:
     else:
         height = 480 + (num_cards - 6) * 12
 
-    components.html(component_html, height=height, scrolling=False)
+    st.iframe(component_html, height=height)

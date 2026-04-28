@@ -101,7 +101,9 @@ class FormValidator:
                 form_data.get("background_university"),
                 gpa_converter,
             )
-            if normalized_gpa == 0.0 and form_data["gpa_raw"] > 0:
+            if normalized_gpa is None:
+                errors.append(ValidationError("gpa_raw", "GPA无法解析或归一化，请检查输入与分制"))
+            elif normalized_gpa == 0.0 and form_data["gpa_raw"] > 0:
                 errors.append(ValidationError("gpa_scale", "GPA分制无效"))
 
         exam_type = form_data.get("exam_type")
@@ -132,9 +134,7 @@ class FormValidator:
             ):
                 errors.append(ValidationError("language_score_raw", "雅思成绩必须是0.5的倍数"))
 
-        if form_data["language_score_raw"] is not None and form_data["language_score_raw"] > 0:
-            pass
-        elif form_data["language_score_raw"] == 0 and not is_overseas:
+        if form_data["language_score_raw"] == 0 and not is_overseas:
             errors.append(
                 ValidationError("language_score_raw", f"{form_data['language_type']}成绩不能为0")
             )
