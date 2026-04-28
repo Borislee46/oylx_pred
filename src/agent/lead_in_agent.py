@@ -4,10 +4,7 @@ from typing import Any
 from src.agent.base_agent import BaseAgent
 from src.agent.context import StudentContext
 from src.agent.lead_in_prompts import LEAD_IN_SYSTEM_PROMPT, build_lead_in_prompt
-<<<<<<< HEAD
 from src.agent.schemas import ExtractedBackground, LeadInResult
-=======
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 
 class LeadInAgent(BaseAgent):
@@ -19,11 +16,7 @@ class LeadInAgent(BaseAgent):
         self,
         context: StudentContext,
         user_input: str | None = None,
-<<<<<<< HEAD
     ) -> LeadInResult:
-=======
-    ) -> dict[str, Any]:
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         t_start = time.perf_counter()
         text = (user_input or context.raw_input or "").strip()
         input_chars = len(text)
@@ -99,11 +92,7 @@ class LeadInAgent(BaseAgent):
         )
         return result
 
-<<<<<<< HEAD
     def _parse_response(self, raw: str | None) -> LeadInResult | None:
-=======
-    def _parse_response(self, raw: str | None) -> dict[str, Any] | None:
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         return self._parse_json_response(
             raw,
             schema_hint=(
@@ -116,11 +105,7 @@ class LeadInAgent(BaseAgent):
 
 
 def _merge_extracted_background(
-<<<<<<< HEAD
     context: StudentContext, new_info: ExtractedBackground
-=======
-    context: StudentContext, new_info: dict[str, Any]
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 ) -> None:
     """Merge new extracted info into existing background.
 

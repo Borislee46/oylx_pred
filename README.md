@@ -5,10 +5,6 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.55-FF4B4B?logo=streamlit&logoColor=white)
 ![XGBoost](https://img.shields.io/badge/XGBoost-3.0-orange)
-<<<<<<< HEAD
-=======
-![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek_v3.2-06b6d4)
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 **在线**：Streamlit（80 端口）&ensp;|&ensp; **认证**：E2 OAuth &ensp;|&ensp; **用户**：~500 账号，日活 85-110 &ensp;|&ensp; **覆盖**：销售 400 + 规划师 220 + 管理层 80
 
@@ -138,11 +134,7 @@ BaseAgent          →  client / 双层缓存 / 重试 / 三级JSON容错
 
 - **Web**: Streamlit, streamlit-aggrid, streamlit-echarts
 - **ML**: XGBoost, scikit-learn, NumPy, pandas
-<<<<<<< HEAD
 - **LLM**: DeepSeek (OpenAI 兼容 API)
-=======
-- **LLM**: DeepSeek v3.2 (OpenAI 兼容 API)
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 - **加速**: numba (JIT), rapidfuzz (模糊匹配), 多进程推理
 - **质量**: Ruff, Black, Mypy, pytest
 
@@ -190,10 +182,6 @@ BaseAgent          →  client / 双层缓存 / 重试 / 三级JSON容错
 | 决策 | 理由 |
 |------|------|
 | 不依赖 LangChain | 固定流程不需要 Chain/Tool 抽象，直接继承更简洁 |
-<<<<<<< HEAD
-=======
-| DeepSeek v3.2 而非 GPT-4 | 成本低 10×，中文 NLU 相当，OpenAI 兼容 API |
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 | XGBoost 而非深度学习 | 6 万样本下树模型更稳健，单调约束保证业务合理性 |
 | Streamlit 而非 React | 内部工具快速迭代，CSS 设计系统弥补 UI 局限 |
 | 概率等级制而非精确 % | 6 万样本不足以支撑精确概率，分级更诚实更安全 |

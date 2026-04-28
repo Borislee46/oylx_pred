@@ -172,7 +172,6 @@ class BackgroundFacultyAgent(BaseAgent):
             use_persistent_cache=bool(kwargs.get("use_persistent_cache", True)),
         )
 
-<<<<<<< HEAD
         result: dict[str, Any] = {
             "faculties": faculties,
             "primary": faculties[0] if faculties else None,
@@ -180,9 +179,6 @@ class BackgroundFacultyAgent(BaseAgent):
         if bg_major and not faculties:
             result["_error"] = "no_faculties_resolved"
         return result
-=======
-        return {"faculties": faculties, "primary": faculties[0] if faculties else None}
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 
 def get_background_faculty_from_cases_df(

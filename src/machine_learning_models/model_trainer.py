@@ -9,12 +9,7 @@ from .data_config import (
     N_ITER,
     THRESHOLD_SCAN_STEPS,
 )
-<<<<<<< HEAD
 from .hyperparameter_tuning import tune_hyperparameters
-=======
-from hyperparameter_tuning import tune_hyperparameters
-from sklearn.calibration import CalibratedClassifierCV
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 from sklearn.frozen import FrozenEstimator
 from sklearn.metrics import (
     accuracy_score,
@@ -27,11 +22,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-<<<<<<< HEAD
 from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedShuffleSplit
-=======
-from sklearn.model_selection import StratifiedShuffleSplit
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 from xgboost import XGBClassifier
 
 

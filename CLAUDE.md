@@ -10,11 +10,7 @@
 pages/*.py          → 薄路由层，只做 import 和调用 render/main 入口函数
 src/pages/*/        → 页面实现：prediction/ 是核心，hr_*/ 是 HR 模块
 src/utils/          → 共享基础设施：auth/ ui/ session_manager page_init（19项公共 API）
-<<<<<<< HEAD
 src/agent/          → LLM Agent 框架（DeepSeek，6 个 Agent：1 基类 + 3 业务 + 2 新业务）
-=======
-src/agent/          → LLM Agent 框架（DeepSeek v3.2，6 个 Agent：1 基类 + 3 业务 + 2 新业务）
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 src/machine_learning_models/ → 离线 XGBoost 训练流水线
 config/             → 所有配置的单一真相源
 src/machine_learning_models/ → 离线 XGBoost 训练流水线

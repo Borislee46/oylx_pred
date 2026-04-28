@@ -50,11 +50,7 @@ class TextPreprocessingAgent(BaseAgent):
             content=content,
             default_on_error=bool(kwargs.get("default_on_error", False)),
         )
-<<<<<<< HEAD
         result: dict[str, Any] = {"field_type": field_type, "is_valid": is_valid}
         if not is_valid and content:
             result["_error"] = "api_failed_or_invalid"
         return result
-=======
-        return {"field_type": field_type, "is_valid": is_valid}
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc

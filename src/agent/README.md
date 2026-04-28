@@ -2,17 +2,12 @@
 
 ## 1. 模块概述
 
-<<<<<<< HEAD
 `src/agent` 是 LLM Agent 系统，基于 DeepSeek（OpenAI 兼容 API）。采用 Shared Context → Agent Registry → Orchestrator 三层架构，覆盖留学全链路：前期 NLU（碎片信息提取）→ 中期决策（边界 case + 预测解释）→ 待扩展后期（申请管理）。不依赖 LangChain，所有 Agent 继承 `BaseAgent`。
-=======
-`src/agent` 是 LLM Agent 系统，基于 DeepSeek v3.2（OpenAI 兼容 API）。采用 Shared Context → Agent Registry → Orchestrator 三层架构，覆盖留学全链路：前期 NLU（碎片信息提取）→ 中期决策（边界 case + 预测解释）→ 待扩展后期（申请管理）。不依赖 LangChain，所有 Agent 继承 `BaseAgent`。
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 ## 2. 目录结构
 
 ```
 agent/
-<<<<<<< HEAD
 ├── __init__.py                     # 公共 API（14项导出，含懒注册）
 ├── base_agent.py                   # BaseAgent 基类（client、缓存、重试、JSON修复）
 ├── context.py                      # StudentContext（全链路共享上下文）
@@ -28,22 +23,6 @@ agent/
 ├── lead_in_agent.py                # 前期 NLU Agent
 ├── lead_in_prompts.py              # LeadIn Prompt 模板
 ├── explain_agent.py                # 预测解释 Agent
-=======
-├── __init__.py                     # 公共 API（8项导出）
-├── base_agent.py                   # BaseAgent 基类（client、缓存、重试、JSON修复）
-├── context.py                      # StudentContext（全链路共享上下文）
-├── registry.py                     # AgentRegistry（Agent 注册中心）
-├── orchestrator.py                 # AgentOrchestrator（编排路由）
-├── boundary_case_agent.py          # 边界案例决策 Agent（已有）
-├── boundary_case_prompts.py        # 边界案例 Prompt 模板
-├── text_preprocessing_agent.py     # 背提文本预处理 Agent（已有）
-├── text_preprocessing_prompts.py   # 文本预处理 Prompt 模板
-├── background_faculty_agent.py     # 背景学部推断 Agent（已有）
-├── background_faculty_prompts.py   # 学部推断 Prompt 模板
-├── lead_in_agent.py                # 前期 NLU Agent（新）
-├── lead_in_prompts.py              # LeadIn Prompt 模板
-├── explain_agent.py                # 预测解释 Agent（新）
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 └── utils.py                        # Agent 共享工具
 ```
 
@@ -123,7 +102,6 @@ Agent 基类，所有 Agent 继承它：
 - **后期字段**：申请计划（待扩展）
 - **audit**：`history` 列表记录每个 Agent 的调用
 
-<<<<<<< HEAD
 ### 5.3 AgentRegistry（懒加载注册中心）
 
 `registry.py` — Agent 工厂注册 + 懒实例化：
@@ -185,49 +163,28 @@ Pipeline 通过共享 `StudentContext` 传递状态，任一步返回 `_error` �
 `run_pipeline()` 检测到 `_error` 后立即终止后续步骤。
 
 ### 5.7 LeadInAgent
-=======
-### 5.3 AgentRegistry + AgentOrchestrator
-
-- **AgentRegistry**：`register(name, agent)` / `get(name)` — dict wrapper
-- **AgentOrchestrator**：`run(agent_name, context, **kwargs)` → 取 Agent → 调用 → 写回 context
-
-### 5.4 LeadInAgent（新）
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 前期 NLU Agent：
 - 输入：顾问自由文本 + StudentContext
 - 输出：`extracted_info`（JSON）+ `quick_assessment`（自然语言）+ `suggested_questions`
 - 已集成到 `pages/hk.py`，通过 `render_lead_in_panel()`
 
-<<<<<<< HEAD
 ### 5.8 ExplainAgent
-=======
-### 5.5 ExplainAgent（新）
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 预测解释 Agent：
 - 输入：StudentContext（含 prediction_results）
 - 输出：整体评估、推荐理由、优势/风险、总结建议
 - 已集成到 `content_display.py`，预测完成后自动展示
 
-<<<<<<< HEAD
 ### 5.9 已有 Agent
-=======
-### 5.6 已有 Agent
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 | Agent | 用途 |
 |-------|------|
 | BoundaryCaseAgent | 相似/跨专业推荐平衡决策 |
-<<<<<<< HEAD
 | FormValidationAgent | 表单数据合理性校验（含规则快速通道） |
 | TextPreprocessingAgent | 背提文本质量评估 |
 | BackgroundFacultyAgent | 背景专业 → 学部推断 |
 | ApplicationAgent | 申请策略生成 |
-=======
-| TextPreprocessingAgent | 背提文本质量评估 |
-| BackgroundFacultyAgent | 背景专业 → 学部推断 |
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 ## 6. 数据流
 

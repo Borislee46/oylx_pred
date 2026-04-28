@@ -5,28 +5,17 @@ import hashlib
 import streamlit as st
 
 from src.pages.write_print.engine import analyze
-<<<<<<< HEAD
 from src.utils import SUPPORT_EMAIL
-=======
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 from src.pages.write_print.model import get_model
 from src.pages.write_print.features import read_input
 from src.pages.write_print.rewriter import generate_full_rewrite
 
 STUB_FOOTER = (
-<<<<<<< HEAD
     '<div class="hk-footer" style="display:flex;justify-content:flex-end;align-items:center;">'
     '<span style="font-size:0.78rem;color:var(--hk-slate-300)">'
     'WritePrint — 文书AI检测</span><div class="hk-footer-dot"></div>'
     f'<a href="mailto:{SUPPORT_EMAIL}" style="font-size:0.78rem;color:var(--hk-slate-300)">'
     f'技术支持：{SUPPORT_EMAIL}</a></div>'
-=======
-    '<div class="hk-footer">'
-    '<span style="font-size:0.78rem;color:var(--hk-slate-300)">'
-    'WritePrint — 文书AI检测</span><div class="hk-footer-dot"></div>'
-    '<a href="mailto:lijiapeng8@xdf.cn" style="font-size:0.78rem;color:var(--hk-slate-300)">'
-    '技术支持：lijiapeng8@xdf.cn</a></div>'
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 )
 
 WP_STYLE = """<style>
@@ -118,15 +107,12 @@ def _text_hash(text: str) -> str:
     return hashlib.md5(text.encode()).hexdigest()[:8]
 
 
-<<<<<<< HEAD
 def _render_footer() -> None:
     st.page_link("main.py", label="← 返回首页",
                  query_params={"scroll_to": "main-page-header-anchor"})
     st.html(STUB_FOOTER)
 
 
-=======
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 def _clear_wp_state():
     for k in ("wp_result", "wp_text_hash", "wp_rewritten", "wp_new_result",
               "wp_processing"):
@@ -144,25 +130,12 @@ def render() -> None:
     )
     st.caption("Paste a personal statement to detect AI patterns and get human-like rewrites.")
 
-<<<<<<< HEAD
     input_method = st.radio("Input", ["Paste text", "Upload file"],
                             horizontal=True, label_visibility="collapsed")
 
     text = ""
     if input_method == "Upload file":
         uploaded = st.file_uploader("Drop a PDF or TXT file here", type=["pdf", "txt"])
-=======
-    col1, col2 = st.columns([3, 2])
-    with col1:
-        input_method = st.radio("Input", ["Paste text", "Upload file"],
-                                horizontal=True, label_visibility="collapsed")
-
-    text = ""
-    if input_method == "Upload file":
-        with col2:
-            uploaded = st.file_uploader("PDF or TXT", type=["pdf", "txt"],
-                                        label_visibility="collapsed")
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         if uploaded:
             import tempfile
             import os
@@ -205,11 +178,7 @@ def render() -> None:
     # ── render analysis results ──
     result = st.session_state.get("wp_result")
     if not result:
-<<<<<<< HEAD
         _render_footer()
-=======
-        st.html(STUB_FOOTER)
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         return
 
     _render_score_ring(result["score"], result["verdict"], result["text_stats"])
@@ -264,8 +233,4 @@ def render() -> None:
         )
 
     st.caption("Score ±18% confidence (LOO-CV MAE). 10-feature Ridge model.")
-<<<<<<< HEAD
     _render_footer()
-=======
-    st.html(STUB_FOOTER)
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc

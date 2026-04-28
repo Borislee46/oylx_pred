@@ -15,11 +15,8 @@ from .model_loader import load_model_dependencies
 from .page_auth import handle_e2_login
 from .page_init import init_page
 from .school_constants import SCHOOL_LEVEL_PRIORITY
-<<<<<<< HEAD
 
 SUPPORT_EMAIL = "lijiapeng8@xdf.cn"
-=======
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 from .school_level_service import get_school_level_service
 from .session_manager import (
     PredictionResultModel,
@@ -30,10 +27,7 @@ from .session_manager import (
 __all__ = [
     "PredictionResultModel",
     "SCHOOL_LEVEL_PRIORITY",
-<<<<<<< HEAD
     "SUPPORT_EMAIL",
-=======
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
     "SessionManager",
     "UserDataModel",
     "check_module_permission",
