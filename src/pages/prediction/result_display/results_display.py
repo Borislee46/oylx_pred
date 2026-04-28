@@ -152,20 +152,24 @@ class ResultsDisplay:
             return
 
         if has_user_specified:
-            self._display_type("user_specified")
+            with st.expander("查看完整列表"):
+                self._display_type("user_specified")
         elif has_similarity and has_cross_major:
-            col1, col2 = st.columns(2)
-            with col1:
-                self._display_type("similarity")
-            with col2:
-                self._display_type("cross_major")
+            with st.expander("查看完整列表"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    self._display_type("similarity")
+                with col2:
+                    self._display_type("cross_major")
         elif has_similarity:
-            self._display_type("similarity")
+            with st.expander("查看完整列表"):
+                self._display_type("similarity")
         elif has_cross_major:
-            self._display_type("cross_major")
+            with st.expander("查看完整列表"):
+                self._display_type("cross_major")
 
-        st.info(
-            "注意：机器学习算法未将时政变化、最新校方招生政策等时效性内容作为特征因子进行训练，预测的录取概率仅供参考。"
+        st.caption(
+            "机器学习算法未将时政变化、最新校方招生政策等作为特征因子，预测的录取概率仅供参考。"
         )
 
     def _display_type(self, result_type: str):

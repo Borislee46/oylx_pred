@@ -76,7 +76,7 @@ def _overview_cards(cfg: SurveyConfig, k: dict) -> list[dict[str, str]]:
                 "label": "摘要结论",
                 "value": f"{leader['维度']} vs {lagger['维度']}",
                 "body": (
-                    f"业务线对比上，{leader['维度']} 当前领先，评分 {format_metric(leader['评分均值'])}；"
+                    f"业务线对比上，{leader['维度']} 当前领先，评分 {format_metric(leader['评分均值'], '{:.3f}')}；"
                     f"{lagger['维度']} 相对靠后，更适合优先查看其意见主题与样本结构。"
                 ),
                 "priority": "P2 横向诊断：先比较领先与靠后业务线的主题分布差异，再决定是否复制打法。",
@@ -216,7 +216,7 @@ def render(cfg: SurveyConfig) -> None:
                         <div class="pbi-seg-grid">
                             <div>
                                 <div class="pbi-seg-lbl">评分均值</div>
-                                <div class="pbi-seg-val">{format_metric(row.get("评分均值"))}</div>
+                                <div class="pbi-seg-val">{format_metric(row.get("评分均值"), "{:.3f}")}</div>
                             </div>
                             <div>
                                 <div class="pbi-seg-lbl">样本量</div>

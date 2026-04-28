@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from ..schema import ScoringSpec
+from ..text_utils import meaningful_text_mask
 
 
 @dataclass
@@ -29,8 +30,11 @@ def _rid_series(df: pd.DataFrame) -> pd.Series:
 def _has_text(df: pd.DataFrame, col: str) -> pd.Series:
     if col not in df.columns:
         return pd.Series(False, index=df.index)
-    s = df[col].astype(str).str.strip()
-    return s.ne("") & ~s.str.lower().eq("nan")
+    return meaningful_text_mask(df[col])
+
+
+def _reverse_low_good(value: float) -> float:
+    return 6.0 - value
 
 
 def score_likert(
@@ -87,7 +91,7 @@ def score_ordinal_low_good(df: pd.DataFrame, cols: list[str]) -> ScoreResult:
             if pd.isna(x):
                 continue
             fv = float(x)
-            aligned.append(6.0 - fv)
+            aligned.append(_reverse_low_good(fv))
             if fv >= 4:
                 op_n += 1
                 op_rids.add(rid.loc[idx])
@@ -105,7 +109,12 @@ def score_coded_pair(df: pd.DataFrame, code_col: str, text_col: str) -> ScoreRes
     if code_col not in df.columns:
         return ScoreResult(float("nan"), 0.0, 0.0, 0, 0)
     sc = pd.to_numeric(df[code_col], errors="coerce")
-    has = _has_text(df, text_col)
+    code_txt = meaningful_text_mask(df[code_col])
+    opinion_txt = (
+        meaningful_text_mask(df[text_col])
+        if text_col in df.columns
+        else pd.Series(False, index=df.index)
+    )
     rid = _rid_series(df)
     scores: list[float] = []
     op_rids: set = set()
@@ -114,19 +123,23 @@ def score_coded_pair(df: pd.DataFrame, code_col: str, text_col: str) -> ScoreRes
     pr_n = 0
     for idx in df.index:
         v = sc.loc[idx]
-        if pd.isna(v):
+        fv = float(v) if pd.notna(v) else None
+        pr_num = fv == 1.0
+        op_num = fv == 2.0
+        pr_t = bool(code_txt.loc[idx])
+        op_t = bool(opinion_txt.loc[idx])
+        row_scores: list[float] = []
+        if pr_num or pr_t:
+            row_scores.append(5.0)
+        if op_num or op_t:
+            row_scores.append(2.0)
+        if not row_scores:
             continue
-        fv = float(v)
-        if fv == 1.0:
-            scores.append(5.0)
-        elif fv == 2.0:
-            scores.append(2.0)
-        if fv not in (1.0, 2.0) or not bool(has.loc[idx]):
-            continue
-        if fv == 2.0:
+        scores.extend(row_scores)
+        if op_num or op_t:
             op_n += 1
             op_rids.add(rid.loc[idx])
-        else:
+        if pr_num or pr_t:
             pr_n += 1
             pr_rids.add(rid.loc[idx])
     n = len(df)

@@ -1,7 +1,0 @@
-{
-  "DEBUG_MODE": true,
-  "DEBUG_USER": {
-    "email": "dev@example.com",
-    "nickname": "Local Dev"
-  }
-}

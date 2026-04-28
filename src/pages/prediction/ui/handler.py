@@ -2,6 +2,8 @@ import random
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+import streamlit as st
+
 from src.pages.prediction.config.ui_messages import PIPELINE_MESSAGES
 from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.pipeline import run_prediction_pipeline_with_progress
@@ -132,6 +134,8 @@ def handle_form_submission(
         session_manager.delete(session_keys.input_data)
         return
 
+    _run_form_validation_quick_check(session_manager, input_data_from_form)
+
     if not ctx.background_faculty:
         ctx.background_faculty = get_background_faculty(bg_major, page_state.cases_df)
     if not ctx.admitted_combinations:
@@ -190,3 +194,21 @@ def handle_form_submission(
         background_faculty=ctx.background_faculty,
         admitted_combinations=ctx.admitted_combinations,
     )
+
+
+def _run_form_validation_quick_check(session_manager: "SessionManager", form_data: dict) -> None:
+    """Run rule-based form validation and show warnings. Non-blocking."""
+    from src.agent.form_validation_agent import FormValidationAgent
+
+    issues = FormValidationAgent.quick_check(form_data)
+
+    errors = [i for i in issues if i["severity"] == "error"]
+    warnings = [i for i in issues if i["severity"] == "warn"]
+
+    if errors:
+        for e in errors:
+            st.error(e["message"])
+
+    if warnings:
+        for w in warnings:
+            st.warning(w["message"])

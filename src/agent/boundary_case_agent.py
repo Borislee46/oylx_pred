@@ -92,29 +92,17 @@ class BoundaryCaseAgent(BaseAgent):
             )
 
             prompt = build_boundary_evaluation_prompt(background_major, current_batch_cases, mode)
-            content = self._call_api(prompt, max_tokens=256)
-
-            if content is None:
+            raw = self._call_api(prompt, max_tokens=256)
+            if raw is None:
                 continue
 
-            content = self._clean_json_content(content)
-            try:
-                result = json.loads(content)
-            except json.JSONDecodeError:
-                repaired = self._repair_json_once(
-                    content,
-                    schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
-                    cache_prefix="boundary_json_repair",
-                    max_tokens=256,
-                )
-                if not repaired:
-                    continue
-                try:
-                    result = json.loads(repaired)
-                except json.JSONDecodeError:
-                    continue
-
-            if not isinstance(result, dict):
+            result = self._parse_json_response(
+                raw,
+                schema_hint='{"decisions": [bool, ...], "needs_adjustment": bool}',
+                cache_prefix="boundary_json_repair",
+                max_tokens=256,
+            )
+            if result is None or not isinstance(result, dict):
                 continue
 
             agent_decisions = result.get("decisions", [])
@@ -160,3 +148,27 @@ class BoundaryCaseAgent(BaseAgent):
             "needs_adjustment": needs_adjustment,
             "evaluated": evaluated,
         }
+
+    def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
+        """Orchestrator-compatible entry point.
+
+        Expects kwargs:
+            background_major: str
+            boundary_cases: list[dict]
+            mode: str ("similarity" | "cross_major")
+            use_persistent_cache: bool = True
+            chunk_size: int = 40
+        """
+        from src.agent.context import StudentContext
+
+        bg_major = kwargs.get("background_major", "")
+        if not bg_major and isinstance(context, StudentContext):
+            bg_major = context.background_major or context.extracted_background.get("major", "")
+
+        return self.evaluate_boundary_cases(
+            background_major=str(bg_major),
+            boundary_cases=kwargs.get("boundary_cases", []),
+            mode=str(kwargs.get("mode", "similarity")),
+            use_persistent_cache=bool(kwargs.get("use_persistent_cache", True)),
+            chunk_size=int(kwargs.get("chunk_size", 40)),
+        )

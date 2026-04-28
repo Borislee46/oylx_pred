@@ -73,7 +73,8 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
     available_buttons = []
 
     if accessible_modules.get("hk", False):
-        available_buttons.append(("EasyApply 留学择校系统", "pages/hk.py", False))
+        available_buttons.append(("Signals 留学择校系统", "pages/hk.py", False))
+        available_buttons.append(("WritePrint 文书AI检测", "pages/write_print.py", False))
         available_buttons.append(
             (
                 "Power BI 完整版案例库",
@@ -82,13 +83,9 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
             )
         )
 
-    if accessible_modules.get("cs_survey", False):
-        available_buttons.append(("客服调研数据", "pages/cs_survey.py", False))
-
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", False))
         available_buttons.append(("algorithm_lab", "pages/algorithm_lab.py", False))
-        available_buttons.append(("Streamlit 组件试验", "pages/widget_lab.py", False))
 
     if any(
         accessible_modules.get(k, False)
@@ -113,6 +110,18 @@ def main() -> None:
             st.iframe(
                 f"""
                 <script>
+                (function () {{
+                    const fe = window.frameElement;
+                    if (fe) {{
+                        fe.style.cssText =
+                            "position:absolute!important;left:-9999px!important;width:0!important;height:0!important;border:0!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;";
+                        const shell = fe.closest('[data-testid="stElementContainer"]');
+                        if (shell) {{
+                            shell.style.cssText =
+                                "display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;";
+                        }}
+                    }}
+                }})();
                 setTimeout(() => {{
                     const el = window.parent.document.getElementById("{scroll_to}");
                     if (el) {{

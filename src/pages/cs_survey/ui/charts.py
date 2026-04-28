@@ -258,6 +258,7 @@ def render_area_detail(df: pd.DataFrame, height: int, key: str) -> None:
     sub = df.copy()
     sub["评分均值"] = pd.to_numeric(sub["评分均值"], errors="coerce")
     sub = sub.dropna(subset=["评分均值"])
+    sub = sub.sort_values("评分均值", ascending=False)
     if sub.empty:
         _render_empty_state(height)
         return
@@ -366,7 +367,7 @@ def render_ranked_detail_scores(
     sub["评分均值"] = pd.to_numeric(sub["评分均值"], errors="coerce")
     sub = sub.dropna(subset=["评分均值"])
     sub = _top_n_rows(sub, "评分均值", top_n)
-    sub = sub.sort_values("评分均值", ascending=True)
+    sub = sub.sort_values("评分均值", ascending=False)
     if sub.empty:
         _render_empty_state(height)
         return
@@ -382,6 +383,7 @@ def render_ranked_detail_scores(
         "yAxis": {
             "type": "category",
             "data": labels,
+            "inverse": True,
             "axisLine": {"show": False},
             "axisTick": {"show": False},
             "axisLabel": _axis_label(width=138),
@@ -404,6 +406,33 @@ def render_ranked_detail_scores(
                 },
             }
         ],
+        "tooltip": {**_tooltip(), "axisPointer": {"type": "shadow"}},
+    }
+    render_echarts_option(opt, chart_h, key)
+
+
+def render_multi_select_bars(df: pd.DataFrame, height: int, key: str) -> None:
+    if df.empty or "option" not in df.columns or "count" not in df.columns:
+        _render_empty_state(height)
+        return
+    sub = df.sort_values("count", ascending=True)
+    labels = sub["option"].astype(str).tolist()
+    values = [int(v) for v in sub["count"].tolist()]
+    chart_h = _auto_chart_height(len(labels), height, 34)
+    opt = {
+        "color": [THEME["accent"]],
+        "animationDuration": 500,
+        "textStyle": _base_text_style(10),
+        "grid": {"left": "22%", "right": "8%", "bottom": "6%", "top": "8%", "containLabel": True},
+        "xAxis": _value_axis(min_interval=1),
+        "yAxis": {
+            "type": "category",
+            "data": labels,
+            "axisLine": {"show": False},
+            "axisTick": {"show": False},
+            "axisLabel": _axis_label(width=120),
+        },
+        "series": [_bar_series(values, color=THEME["accent"], horizontal=True, show_label=True)],
         "tooltip": {**_tooltip(), "axisPointer": {"type": "shadow"}},
     }
     render_echarts_option(opt, chart_h, key)

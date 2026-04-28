@@ -43,6 +43,7 @@ class FeedbackDetailSpec:
     text: str
     pillar: str
     subcat: str
+    type: str = "likert"
     opinion_max: float = 2.0
     praise_min: float = 4.0
 
@@ -107,6 +108,12 @@ class CrossFilterSpec:
 
 
 @dataclass
+class MultiSelectSpec:
+    base: str
+    items: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
 class SurveyConfig:
     id: str
     title: str
@@ -122,6 +129,7 @@ class SurveyConfig:
     feedback_detail: dict[str, list[FeedbackDetailSpec]]
     themes: dict[str, ThemeRuleset]
     views: list[ViewSpec]
+    multi_select: dict[str, MultiSelectSpec] = field(default_factory=dict)
     source_path: str = ""
 
     @property
@@ -197,6 +205,13 @@ def parse_survey_config(raw: dict[str, Any], source_path: str = "") -> SurveyCon
 
     views = [ViewSpec(**v) for v in raw.get("views", [])]
 
+    multi_select: dict[str, MultiSelectSpec] = {}
+    for sid, spec in (raw.get("multi_select") or {}).items():
+        multi_select[sid] = MultiSelectSpec(
+            base=spec["base"],
+            items={str(k): v for k, v in spec.get("items", {}).items()},
+        )
+
     return SurveyConfig(
         id=raw["id"],
         title=raw.get("title", raw["id"]),
@@ -212,5 +227,6 @@ def parse_survey_config(raw: dict[str, Any], source_path: str = "") -> SurveyCon
         feedback_detail=feedback_detail,
         themes=themes,
         views=views,
+        multi_select=multi_select,
         source_path=source_path,
     )

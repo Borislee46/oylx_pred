@@ -101,30 +101,18 @@ class BackgroundFacultyAgent(BaseAgent):
             valid_faculties=valid_faculties,
             max_extra=max_extra,
         )
-        content = self._call_api(prompt, cache_prefix="bg_faculty", use_cache=True)
-        if not content:
+        raw = self._call_api(prompt, cache_prefix="bg_faculty", use_cache=True)
+        if not raw:
             if base:
                 return [base]
             return []
 
-        content = self._clean_json_content(content)
-        result: dict[str, Any] | None = None
-        try:
-            parsed = json.loads(content)
-            result = parsed if isinstance(parsed, dict) else None
-        except json.JSONDecodeError:
-            repaired = self._repair_json_once(
-                content,
-                schema_hint='{"extra_faculties": [string, ...]}',
-                cache_prefix="bg_faculty_json_repair",
-                max_tokens=256,
-            )
-            if repaired:
-                try:
-                    parsed = json.loads(repaired)
-                    result = parsed if isinstance(parsed, dict) else None
-                except json.JSONDecodeError:
-                    result = None
+        result = self._parse_json_response(
+            raw,
+            schema_hint='{"extra_faculties": [string, ...]}',
+            cache_prefix="bg_faculty_json_repair",
+            max_tokens=256,
+        )
 
         if result is None:
             if base:
@@ -159,6 +147,32 @@ class BackgroundFacultyAgent(BaseAgent):
                 pass
 
         return out[:max_total]
+
+    def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
+        """Orchestrator-compatible entry point.
+
+        Reads background_major from StudentContext or kwargs.
+        Writes resolved faculties back to context.
+        """
+        from src.agent.context import StudentContext
+
+        bg_major = kwargs.get("background_major_original", "")
+        if not bg_major and isinstance(context, StudentContext):
+            bg_major = context.background_major or context.extracted_background.get("major", "")
+
+        base_faculty = kwargs.get("base_faculty") or (
+            context.background_faculty if isinstance(context, StudentContext) else None
+        )
+
+        faculties = self.resolve_background_faculties(
+            background_major_original=str(bg_major),
+            base_faculty=base_faculty,
+            max_total=int(kwargs.get("max_total", 3)),
+            max_extra=int(kwargs.get("max_extra", 2)),
+            use_persistent_cache=bool(kwargs.get("use_persistent_cache", True)),
+        )
+
+        return {"faculties": faculties, "primary": faculties[0] if faculties else None}
 
 
 def get_background_faculty_from_cases_df(

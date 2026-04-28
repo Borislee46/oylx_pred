@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -m py_compile src/agent/form_validation_agent.py)",
+      "Bash(py -m py_compile src/agent/__init__.py)",
+      "Bash(py -m py_compile src/pages/prediction/ui/handler.py)"
+    ]
+  }
+}

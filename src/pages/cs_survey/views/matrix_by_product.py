@@ -5,26 +5,39 @@ import streamlit as st
 
 from ..engine.aggregations import (
     build_detail_matrix,
+    build_multi_select_counts,
     build_pillar_matrix,
-    score_distribution,
+    build_product_feedback_summary,
+    source_score_distribution,
 )
 from ..engine.kpis import build_compare_lines, kpi_source
-from ..engine.themes import build_feedback_detail_rows, build_theme_rows, theme_pairs_for_source
+from ..engine.themes import (
+    annotate_feedback_themes,
+    build_feedback_detail_rows,
+    build_theme_rows_from_feedback,
+)
 from ..filters import filter_by_product, filter_center, list_center_values
 from ..layout import get_page_layout, layout_get
 from ..loader import load_all_sources
 from ..schema import SurveyConfig
 from ..ui.blocks import panel, render_section_header
 from ..ui.charts import (
-    render_area_detail,
     render_bar_dist,
+    render_multi_select_bars,
+    render_ranked_detail_scores,
     render_three_pillar_bars,
 )
 from ..ui.filter_bar import filter_bar
 from ..ui.navigation import render_view_nav
 from ..ui.tables import render_table
 from ..ui.theme_css import format_metric, inject_detail_css
-from .detail_shared import render_detail_hero, render_detail_kpis, render_theme_bar
+from .detail_shared import (
+    filter_theme_feedback,
+    render_detail_hero,
+    render_detail_kpis,
+    render_evidence_filters,
+    render_theme_bar,
+)
 
 
 def _source_selector(cfg: SurveyConfig) -> str:
@@ -86,32 +99,21 @@ def render(cfg: SurveyConfig) -> None:
 
     df_main = filtered[source_id]
     details = cfg.details.get(source_id, [])
-    dist_cols = cfg.score_distribution_cols.get(source_id, [])
     feedback_spec = cfg.feedback_detail.get(source_id, [])
-    reverse_cols = (
-        set(cfg.score_cols.get(source_id).reverse) if cfg.score_cols.get(source_id) else set()
-    )
 
     df_matrix = build_pillar_matrix(df_main, cfg.pillars, source_id)
     df_detail = build_detail_matrix(df_main, details)
-    dist = score_distribution(df_main, dist_cols, reverse_cols)
+    dist = source_score_distribution(df_main, cfg, source_id)
     df_compare = build_compare_lines(filtered, cfg)
     kpi = kpi_source(df_main, cfg, source_id)
 
-    theme_pairs = theme_pairs_for_source(cfg, source_id)
-    df_theme = pd.DataFrame(
-        build_theme_rows(df_main, theme_pairs, cfg.themes["opinion"], mode="opinion"),
-        columns=["反馈类型", "反馈量"],
-    )
-    df_praise = pd.DataFrame(
-        build_theme_rows(df_main, theme_pairs, cfg.themes["praise"], mode="praise"),
-        columns=["反馈类型", "反馈量"],
-    )
     df_feedback_detail = pd.DataFrame(
         build_feedback_detail_rows(df_main, src.dim1_short or src.label, feedback_spec),
         columns=["条线", "三大类", "子类", "分数", "反馈类型", "反馈"],
     )
-
+    df_feedback_detail = annotate_feedback_themes(
+        df_feedback_detail, cfg.themes["opinion"], cfg.themes["praise"]
+    )
     chips = [
         f"业务条线: {src.label}",
         f"产品类型: {product_label}",
@@ -171,7 +173,9 @@ def render(cfg: SurveyConfig) -> None:
     tab_main, tab_evidence = st.tabs(["核心洞察", "反馈证据"])
 
     with tab_main:
-        top_left, top_right = st.columns(layout_get(layout, "main_row_columns", default=[1, 1]))
+        top_left, top_right = st.columns(
+            layout_get(layout, "main_row_columns", default=[1.06, 0.94])
+        )
         with top_left:
             with panel(
                 "产品大类核心指标", "当前业务条线下各产品大类的核心表现，用来先判断差异来自哪里。"
@@ -181,7 +185,17 @@ def render(cfg: SurveyConfig) -> None:
             with panel("评分量分布", "样本量分布帮助判断评分波动是否可靠。", badge="1-5 分"):
                 render_bar_dist(dist, summary_h, "p1_dist")
 
-        mid_left, mid_right = st.columns(layout_get(layout, "middle_row_columns", default=[1, 1]))
+        if product_cfg is not None and product_cfg.type == "coded_pair_praise_suggestion":
+            df_prod_fb = build_product_feedback_summary(df_main, product_cfg)
+            if not df_prod_fb.empty:
+                with panel(
+                    "产品类型反馈汇总", "按产品类型统计意见与表扬反馈量，独立于问题级反馈。"
+                ):
+                    render_table(df_prod_fb, 220)
+
+        mid_left, mid_right = st.columns(
+            layout_get(layout, "middle_row_columns", default=[1.02, 0.98])
+        )
         with mid_left:
             with panel(
                 "各维度意见与表扬", "按三大块对比意见量和表扬量，定位当前切片最敏感的服务环节。"
@@ -189,29 +203,69 @@ def render(cfg: SurveyConfig) -> None:
                 render_three_pillar_bars(df_matrix, detail_h, "p1_pillar", cfg.pillar_names)
         with mid_right:
             with panel(
-                "产品明细评分趋势", "评分均值从低到高展开，方便快速识别拉低体验的具体明细。"
+                "产品明细评分对比", "按评分从高到低展示全部产品明细，方便同时识别领先项与低分项。"
             ):
-                render_area_detail(df_detail, detail_h, "p1_detail")
+                render_ranked_detail_scores(df_detail, detail_h, "p1_detail", top_n=None)
+
+        multi_cfg = cfg.multi_select.get(source_id)
+        if multi_cfg is not None:
+            df_multi = build_multi_select_counts(df_main, multi_cfg)
+            with panel("核心需求分布 (Q8)", "用户最关注的产品支持维度，按选项计数。"):
+                render_multi_select_bars(df_multi, 280, f"q8_multi_{source_id}")
 
         lower_left, lower_right = st.columns(
-            layout_get(layout, "lower_row_columns", default=[1, 1])
+            layout_get(layout, "lower_row_columns", default=[0.92, 1.08])
         )
         with lower_left:
             with panel("业务线对比摘要", "保持当前筛选上下文，横向比较其它业务线的核心指标。"):
                 render_table(df_compare, detail_h)
         with lower_right:
-            with panel("反馈主题", "把负向和正向主题放在同一块里切换看，页面节奏会更统一。"):
+            with panel("反馈主题", "意见主题和表扬主题均完整展示，便于直接查看全量结构。"):
+                theme_feedback_view, _, selected_theme = filter_theme_feedback(
+                    df_feedback_detail,
+                    state_prefix="cs_survey_by_product",
+                    label="主题范围",
+                )
+                df_theme = pd.DataFrame(
+                    build_theme_rows_from_feedback(
+                        theme_feedback_view, cfg.themes["opinion"], mode="opinion"
+                    ),
+                    columns=["反馈类型", "反馈量"],
+                )
+                df_praise = pd.DataFrame(
+                    build_theme_rows_from_feedback(
+                        theme_feedback_view, cfg.themes["praise"], mode="praise"
+                    ),
+                    columns=["反馈类型", "反馈量"],
+                )
                 theme_op_tab, theme_pr_tab = st.tabs(["意见主题", "表扬主题"])
                 with theme_op_tab:
-                    render_theme_bar(df_theme, "#93C5FD", theme_h, "p1_theme_op")
+                    render_theme_bar(df_theme, "#93C5FD", theme_h, "p1_theme_op", top_n=None)
                 with theme_pr_tab:
-                    render_theme_bar(df_praise, "#F2C811", theme_h, "p1_theme_pr")
+                    render_theme_bar(df_praise, "#F2C811", theme_h, "p1_theme_pr", top_n=None)
 
     with tab_evidence:
-        ev_left, ev_right = st.columns(layout_get(layout, "evidence_row_columns", default=[1, 1]))
+        render_section_header(
+            "Evidence Link",
+            "产品明细与原始反馈联动",
+            "支持先按三大块定位，再按明细、反馈类型和关键词快速查看相关原文。",
+        )
+        df_detail_view, df_feedback_view = render_evidence_filters(
+            df_detail,
+            df_feedback_detail,
+            state_prefix="cs_survey_by_product",
+            group_label="三大块",
+            detail_label="产品明细",
+            theme_value=selected_theme,
+        )
+        ev_left, ev_right = st.columns(
+            layout_get(layout, "evidence_row_columns", default=[0.88, 1.12])
+        )
         with ev_left:
-            with panel("产品明细数据", "下钻到产品明细后的维度和评分表现，适合作为复盘依据。"):
-                render_table(df_detail, detail_h)
+            with panel("产品明细数据", "左侧明细表会随筛选同步收窄，便于先确认问题集中在哪一项。"):
+                render_table(df_detail_view, detail_h)
         with ev_right:
-            with panel("原始反馈文本", "保留原始反馈文本，便于从主题进一步回看具体样本。"):
-                render_table(df_feedback_detail, text_h)
+            with panel(
+                "原始反馈文本", "右侧自动展示与当前筛选条件对应的原始反馈，适合直接核对样本。"
+            ):
+                render_table(df_feedback_view, text_h)

@@ -8,11 +8,12 @@
     linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
   color: var(--hk-surface-bg) !important;
   border: none !important;
-  padding: 0.6rem 1.5rem !important;
+  padding: 0.55rem 1.4rem !important;
   font-family: var(--hk-font-sans) !important;
-  font-weight: 600 !important;
-  font-size: var(--hk-text-sm) !important;
-  letter-spacing: 0.5px !important;
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.02em !important;
+  -webkit-font-smoothing: antialiased !important;
   transition:
     transform 0.2s,
     box-shadow 0.2s,
@@ -409,12 +410,16 @@
 .stApp select,
 .stApp div[role="textbox"] {
   font-family: var(--hk-font-sans) !important;
-  font-size: var(--hk-text-base) !important;
-  line-height: 1.5 !important;
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.55 !important;
   outline: none !important;
   box-shadow: none !important;
   caret-color: var(--hk-cyan) !important;
-  color: var(--hk-slate-700) !important;
+  color: var(--hk-slate-600) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
 .stApp input:focus,
@@ -428,9 +433,20 @@
 .stApp textarea::placeholder {
   color: var(--hk-placeholder) !important;
   opacity: 1 !important;
+  font-weight: 400 !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.01em !important;
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.75),
     0 -1px 0 rgba(15, 23, 42, 0.06);
+}
+
+.stApp label,
+.stApp .stMarkdown p,
+.stApp .stCaptionContainer p {
+  font-family: var(--hk-font-sans) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
 .stApp button[data-testid^="stNumberInputStep"] {

@@ -1,161 +1,224 @@
-# EasyApply 留学择校系统
+# Signals &middot; 留学择校系统
 
-本数据产品提供一套从“模型训练 → 表单校验与归一 → 预测编排 → 结果调整”的端到端解决方案。
+> 基于 XGBoost + 7 Agent LLM 管线的录取预测平台 — 从离线训练到 Web 交互，一人全栈。
 
-**核心亮点**：
-1.  **极致性能**：极低的 I/O 和开销，几乎 0 成本实现秒级推理。
-2.  **专家级效果**：预测结果与业务专家对齐，逼近人工选校水平。
-3.  **灵活扩展**：部分边界 Case 可用 Agent 解决，或在资源充足时完全替换为 Agent。
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.55-FF4B4B?logo=streamlit&logoColor=white)
+![XGBoost](https://img.shields.io/badge/XGBoost-3.0-orange)
+![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek_v3.2-06b6d4)
 
-## 整站应用架构
-
-- **形态**: Streamlit 多页应用；门户入口为根目录 `main.py`（`streamlit run main.py`）。
-- **认证与门禁**: E2 OAuth 回调、`src/utils/page_init.py` 登录与页面初始化、按邮箱模块权限（`src/utils/auth/permission_checker.py`）；维护模式等由配置控制。
-- **路由与实现分层**:
-    *   `pages/*.py`：Streamlit 识别的页面路由，宜保持薄封装。
-    *   `src/pages/`：各业务模块实现（预测在 `src/pages/prediction/`，人力看板等在对应子目录）。
-    *   `src/utils/`：认证、配置、数据加载、日志等共享能力。
-- **门户可挂载模块**（权限开通后可见，与 `main.py` 中按钮一致）: EasyApply 留学择校 (`pages/hk.py`)、平台使用指南、权限管理 / `algorithm_lab`（管理员）、人力薪资数据看板、人力绩效数据看板、人力结构数据看板；另含外链案例库入口。
-
-下文「架构流程」以 **EasyApply 预测子系统** 为主；其他模块详见各 `pages/*.py` 与 `src/pages/` 下实现。
-
-## 架构流程
-
-1.  **模型训练 (Offline)**: `src/machine_learning_models/`
-    *   **核心**: 使用 XGBoost 结合 SMOTE/SMOTENC 处理不平衡数据，并进行概率 Sigmoid 校准。
-    *   **产物**: XGBoost 主模型 (`.ubj`)、TF-IDF 文本相似度模型。
-
-2.  **专业相似度预计算 (Offline)**: `scripts/precompute_similarities.py`
-    *   **核心**: 使用 E5 Embedding 模型预计算背景专业-目标专业相似度缓存。
-    *   **产物**: `cache/background_target_similarity.feather`。
-
-3.  **用户表单 (Online)**: `src/pages/prediction/input_form_components/`
-    *   **核心**: `FormStateManager` 管理状态（自动保存/去重），`FormValidator` 进行严格校验与智能转换。
-    *   **特色**: 跨学院拦截、目标自动扩展、海外院校语言成绩处理。
-
-4.  **预测编排 (Online)**: `src/pages/prediction/`
-    *   **入口**: 页面管线 (`src/pages/prediction/flow/pipeline.py`)；类 JSON 编排见 `src/pages/prediction/api/json_api.py`（进程内、非独立后端，便于后续从 Streamlit 解耦）。
-    *   **核心**: 组合生成 → 并行推理 → 推荐生成 → 后处理 → 合并去重。
-    *   **结果**: 相似专业推荐、跨专业推荐、用户指定结果。
-
-5.  **结果调整 (Online)**: `src/pages/prediction/result_modifier/`
-    *   **核心**: 可控后处理（GPA/语言惩罚、职业型降权、跨专业惩罚、TF-IDF 文本加成）。
+**在线**：Streamlit（80 端口）&ensp;|&ensp; **认证**：E2 OAuth &ensp;|&ensp; **用户**：~500 账号，日活 85-110 &ensp;|&ensp; **覆盖**：销售 400 + 规划师 220 + 管理层 80
 
 ---
 
-## 1. 训练模块
+## 功能亮点
 
-**路径**: `src/machine_learning_models`
-
-*   **数据与特征**:
-    *   目标列: `admitted` (二分类)
-    *   特征: 分类列 (`category` 编码)、计数列 (截尾+log1p)、语言分 (归一化)。
-*   **采样**: SMOTE/SMOTENC 动态采样，异常回退。
-*   **样本权重**: 文本为空样本降权、最近样本加权、采样权重对齐。
-*   **训练与校准**: XGBoost + 单调约束 + `CalibratedClassifierCV` (sigmoid, prefit)。
-*   **文本加成训练**: 生成 TF-IDF 向量器、质心和权重文件。
-
-**详细文档**: [机器学习训练管线文档](docs/ml_training_api.md)
-
-## 2. 表单校验与归一
-
-**路径**: `src/pages/prediction/input_form_components`
-
-*   **校验器**: `FormValidator` 提供详细的中文错误提示。
-*   **状态管理**: `FormStateManager` 实现自动保存（节流 + 快照 hash）。
-*   **跨学院拦截**: `src/pages/prediction/cross_faculty_guard.py` 风险识别与弹窗确认。
-*   **GPA 转换**: 优先按院校/国家规则 (`config/gpa_conversion_rules.json`)，否则线性缩放。
-*   **语言分数**: 托福/雅思互转与归一化；海外院校选填处理。
-*   **组件服务**: 四级联动筛选 (`target_options_service.py`)。
-
-**详细文档**: [表单组件与校验 API 文档](docs/input_form_components_api.md)
-
-## 3. 核心预测流程 (Online)
-
-**路径**: `src/pages/prediction`
-
-*   **流程编排与预警 (Flow Control)**:
-    *   入口管线: `flow/pipeline.py`
-    *   风险守卫: `cross_faculty_guard.py` (拦截异常跨学院申请)
-*   **数据准备与召回 (Preparation)**:
-    *   数据归一化: `form_normalizer.py`
-    *   混合召回: `preparer.py` 实现 E5 Embedding 向量召回与 Fuzzy 模糊匹配。
-*   **核心推理与平准 (Execution)**:
-    *   精排推理: `prediction_execution/executor.py` 驱动并行 XGBoost 推理。
-    *   结果平准: `flow/processor.py` 结合 `BoundaryCaseAgent` 进行相似推荐与边界探索。
-*   **接口方式**:
-    *   Streamlit UI 交互: `src/pages/prediction/flow/pipeline.py`
-    *   `api/json_api.py`: 与 UI 同进程的预测编排封装（内存任务存储等），非生产级 HTTP 服务；若独立部署需另起服务层与持久化任务状态。
-
-**详细文档**: [预测模块 API 文档](docs/prediction_api.md)
-
-## 4. 概率修正流水线 (Modification)
-
-**路径**: `src/pages/prediction/result_modifier`
-
-*   **调整驱动**: 基于 `adjustment_pipeline.py` 的二级修正流水线。
-*   **概率修正因子 (Arbitration)**:
-    *   **基础修正**: `ProbabilityAdjuster` 处理 GPA/语言惩罚、院校降权。
-    *   **业务逻辑**: `CrossMajorPenalty` 处理跨专业惩罚。
-    *   **NLP 提升**: `TextBoostProvider` 实现基于 TF-IDF 的文本 Logit Uplift。
-*   **文本加成机制**:
-    *   包含门控、平滑、动态封顶机制，防止加成过度。
-
-**详细文档**: [结果修正模块文档](docs/result_modifier_api.md)
-
-## 5. 专业相似度预计算
-
-**脚本**: `scripts/precompute_similarities.py`
-
-*   **模型**: Multilingual E5 Instruct。
-*   **功能**: 预计算背景专业-目标专业相似度，加速线上查询。
-*   **缓存**: 生成 `cache/background_target_similarity.feather`。
-
-**详细文档**: [专业相似度预计算文档](docs/major_similarity_precompute.md)
+- **录取概率预测** — XGBoost 二分类 + sigmoid 校准，叠加 TF-IDF 文本信号增强 + 专业相似度匹配 + 可配置规则引擎
+- **LLM Agent 全链路** — 7 Agent 覆盖前期 NLU → 中期预测 → 后期解读，自研三层架构（Context → Registry → Orchestrator），不依赖 LangChain
+- **并发推理引擎** — 进程池/线程池切换、超时控制、自动分块，8 并发下吞吐量仅衰减 15%
+- **工业级 UI** — 6 层 CSS 设计系统（玻璃态/金属 Logo/辉光动画/噪点纹理），三步 UX 流
 
 ---
 
-## 配置清单
+## 使用情况
 
-*   `config/app_config.json`: 应用级配置。
-*   `config/dev_config.json`: 开发环境配置。
-*   `config/gpa_conversion_rules.json`: GPA 分制规则。
-*   `config/similarity_adjustment_rules.json`: 相似度微调规则。
-*   `config/university_difficulty.json`: 院校难度分级。
-*   `src/pages/prediction/result_modifier/config.py`: 结果调整配置。
-
-## 数据规范
-
-*   **训练主表** (`cases.feather`): `admitted`, `background_*`, `target_*`, `toefl/ielts`, counts, text details。
-*   **学校基础表** (`school_base.feather`): 院校名称、国家、等级。
-*   **专业详情表** (`school_major_details.feather`): 专业中英文名、聚合名、大类。
-*   **相似度缓存** (`cache/*.feather`): `key` (`major1|major2`), `similarity`。
-
-## 运行与调试
-
-*   **安装依赖**: `pip install -r requirements.txt`
-*   **启动应用**: `streamlit run main.py`
-*   **环境变量**:
-    *   `PREDICTION_USE_PROCESS_POOL=1`: 启用预测进程池。
-    *   `PREDICTION_MAX_WORKERS`: 限制并发数。
-*   **测试**: `pytest tests`: 包含单元测试，压测等
-
-## 缓存与持久化
-
-*   **预测缓存**: `st.cache_data(ttl=600)`。
-*   **数据缓存**: `st.cache_data(ttl=3600)` (案例数据)。
-*   **资源缓存**: `st.cache_resource` (模型加载)。
-*   **文本加成**: 内存级 LRU 缓存。
-*   **用户表单**: 会话态自动保存 (无落盘)。
-
-## 常见问题排查
-
-*   **模型无法加载**: 检查 `.ubj` 文件及 Booster 属性；缺失属性时检查同名 JSON。
-*   **特征不对齐**: 确保线上与训练的 `feature_names` 一致；分类特征需统一编码。
-*   **文本加成无效**: 检查产物文件 (`.joblib`, `.npz`, `.json`) 及门控阈值配置。
-*   **相似度为 0**: 检查缓存文件及键名格式 (`major1|major2` 字母序)。
+系统已在内部全国范围落地。工作日日活 85-110 人，中期规划师是最高频用户（客均日调用 3-5 次），累计开通率约 72%。
 
 ---
 
-> **维护人**: lijiapeng8@xdf.cn
-> **版本**: v3.0
+## 系统架构
+
+```mermaid
+flowchart TB
+    subgraph UX["三步 UX 流"]
+        LeadIn["LeadInAgent · NLU 提取"]
+        Form["表单核验"]
+        Explain["ExplainAgent · 流式解读"]
+    end
+    subgraph Core["预测管道"]
+        Pipeline["流水线编排"] --> Executor["并行推理引擎"]
+        Executor --> Modifier["概率调整链"]
+    end
+    subgraph Agents["Agent 系统（7 Agent）"]
+        Orchestrator["AgentOrchestrator"] --> Registry["AgentRegistry"]
+        Registry --> LeadIn
+        Registry --> Explain
+        Registry --> Boundary["BoundaryCase"]
+        Registry --> Faculty["Faculty 推断"]
+        Registry --> TextPrep["文本质量"]
+        Registry --> FormVal["表单校验"]
+    end
+    subgraph Offline["离线训练"]
+        Train["XGBoost + SMOTE"] --> Calib["Sigmoid 校准"]
+        Calib --> Model["预训练模型 .ubj"]
+        E5["E5 Embedding"] --> SimCache["专业相似度缓存"]
+    end
+    Model -.-> Executor
+    SimCache -.-> Pipeline
+```
+
+**在线路径**：顾问自由文本 → LeadInAgent NLU 提取 → 表单自动填充 → 预测管道（特征构建 → 并行 XGBoost → 概率调整链）→ ExplainAgent 流式解读
+
+**概率调整链**：GPA/语言惩罚 → 跨专业惩罚(×0.5) → 跨学院惩罚(×0.3) → 职业学位降级 → TF-IDF 文本提升
+
+---
+
+## Agent 系统
+
+### 设计理念
+
+固定流程的 LLM 应用中，LangChain 的 Chain/Tool 抽象带来的复杂度远超收益。本系统直接从 `BaseAgent` 继承，每个 Agent 实现 `run(context, **kwargs) → dict`，通过 `AgentOrchestrator` 统一调用。
+
+### 三层架构
+
+```
+AgentOrchestrator  →  路由 + 审计追踪
+AgentRegistry      →  懒注册 dict wrapper
+BaseAgent          →  client / 双层缓存 / 重试 / 三级JSON容错
+```
+
+### 核心能力
+
+| 能力 | 实现 |
+|------|------|
+| 多轮 NLU | `conversation_turns` 追踪对话，`_merge_extracted_background` 增量合并 |
+| 三级 JSON 容错 | direct parse → lightweight regex(<1ms) → API repair(~9s) |
+| 流式输出 | SSE streaming，配合 `st.write_stream` 实时展示 |
+| 双层缓存 | 内存 LRU(1000) + 文件 JSON，按 prompt hash 去重 |
+| 结构化日志 | `[Agent名] REQ START/OK/TIMEOUT` 含 token 估算、延迟、重试 |
+
+### Agent 清单
+
+| Agent | 阶段 | 延迟 | 作用 |
+|-------|------|------|------|
+| `LeadInAgent` | 前期 | ~5s | 自由文本 → 结构化背景 + 评估 + 追问（多轮增量） |
+| `ExplainAgent` | 后期 | ~12s | 预测结果 → 流式自然语言解读（优势/风险/推荐） |
+| `BoundaryCaseAgent` | 中期 | ~2s | 相似/跨专业推荐边界决策 |
+| `BackgroundFacultyAgent` | 中期 | ~1.5s | 专业 → 学部推断 |
+| `TextPreprocessingAgent` | 中期 | ~2s | 经历文本质量评估 |
+| `FormValidationAgent` | 前期 | <1ms | 规则 + LLM 两层表单校验 |
+
+---
+
+## 部署与性能
+
+### 生产环境
+
+腾讯云单 Pod（4C2G），Streamlit 一体化部署。日活 ~100 人非集中并发下完全够用。
+
+仓库含 `src/pages/prediction/api/json_api.py` 作为前后端解耦预研：完整预测链路封装为无状态函数，后续可拆分 Streamlit + FastAPI 推理服务独立部署。
+
+### 压测基准
+
+推理引擎端到端并发测试（`tests/stress/test_prediction_stability.py`）：
+
+| 并发 | 请求数 | 吞吐量(RPS) | 平均延迟 | CPU | 内存 |
+|------|--------|------------|----------|-----|------|
+| 2 | 10 | 31.5 | 60ms | 98.6% | 540MB |
+| 4 | 20 | 29.4 | 127ms | — | — |
+| 8 | 30 | 27.1 | 262ms | — | — |
+
+吞吐量从 2→8 并发仅衰减 15%，瓶颈在 CPU 非内存。单请求延迟在 8 并发下 262ms 仍可交互。
+
+### 推理引擎参数
+
+| 环境变量 | 默认值 | 说明 |
+|----------|--------|------|
+| `PREDICTION_SINGLE_THREAD_THRESHOLD` | 2048 | 低于此任务数走单线程 |
+| `PREDICTION_MIN_CHUNK_SIZE` | 256 | 并发 worker 最小分块 |
+| `PREDICTION_USE_PROCESS_POOL` | 0 | 设为 1 启用进程池（绕过 GIL） |
+| `PREDICTION_OVERALL_TIMEOUT_SEC` | 300 | 整体超时 |
+
+---
+
+## 技术栈
+
+- **Web**: Streamlit, streamlit-aggrid, streamlit-echarts
+- **ML**: XGBoost, scikit-learn, NumPy, pandas
+- **LLM**: DeepSeek v3.2 (OpenAI 兼容 API)
+- **加速**: numba (JIT), rapidfuzz (模糊匹配), 多进程推理
+- **质量**: Ruff, Black, Mypy, pytest
+
+---
+
+## 项目结构
+
+```
+├── main.py                             应用入口
+├── pages/hk.py                         预测页面（薄路由）
+├── config/                             JSON 配置中心
+│   ├── app_config.json                 OAuth / API 密钥
+│   ├── auth_config.json               权限白名单（~500人）
+│   ├── prediction_rules.json          院校排序 / 展示规则
+│   └── *.example.json                 配置模板
+├── src/
+│   ├── agent/                          Agent 系统
+│   │   ├── base_agent.py              基类（client/缓存/重试/JSON修复）
+│   │   ├── context.py                 StudentContext 共享上下文
+│   │   ├── orchestrator.py            编排器
+│   │   ├── registry.py                注册中心
+│   │   ├── lead_in_agent.py           前期 NLU
+│   │   ├── explain_agent.py           结果解读（流式）
+│   │   ├── form_validation_agent.py   表单校验
+│   │   └── *_agent.py                 边界 / 学部 / 文本
+│   ├── pages/prediction/              预测子系统
+│   │   ├── flow/pipeline.py           编排管线
+│   │   ├── prediction_execution/      推理引擎
+│   │   ├── result_modifier/           概率调整链
+│   │   ├── result_display/            结果展示
+│   │   ├── input_form_components/     表单校验与归一化
+│   │   └── api/json_api.py            进程内 API（解耦预研）
+│   ├── machine_learning_models/       离线训练
+│   └── utils/                         认证 / 日志 / 数据加载
+├── assets/hk_style/                   CSS 设计系统（6 层）
+├── scripts/                           相似度预计算 / TF-IDF 训练
+├── tests/                             单元 / 集成 / 压测
+└── docs/                              模块 API 文档
+```
+
+---
+
+## 设计决策
+
+| 决策 | 理由 |
+|------|------|
+| 不依赖 LangChain | 固定流程不需要 Chain/Tool 抽象，直接继承更简洁 |
+| DeepSeek v3.2 而非 GPT-4 | 成本低 10×，中文 NLU 相当，OpenAI 兼容 API |
+| XGBoost 而非深度学习 | 6 万样本下树模型更稳健，单调约束保证业务合理性 |
+| Streamlit 而非 React | 内部工具快速迭代，CSS 设计系统弥补 UI 局限 |
+| 概率等级制而非精确 % | 6 万样本不足以支撑精确概率，分级更诚实更安全 |
+| `.feather` + `st.cache` 而非 DB | 无运维负担，数据量级适合内存缓存 |
+
+---
+
+## 快速开始
+
+```bash
+pip install -r requirements.txt
+
+# 准备配置
+cp config/app_config.example.json config/app_config.json
+cp config/auth_config.example.json config/auth_config.json
+
+streamlit run main.py
+```
+
+开发环境在 `config/dev_config.json` 设 `DEBUG_MODE: true` 跳过 OAuth。
+
+---
+
+## 相关文档
+
+- [预测 API](docs/prediction_api.md) · [表单组件](docs/input_form_components_api.md) · [结果后处理](docs/result_modifier_api.md)
+- [训练 API](docs/ml_training_api.md) · [相似度预计算](docs/major_similarity_precompute.md)
+- [预测子系统](src/pages/prediction/README.md) · [Agent 系统](src/agent/README.md)
+
+---
+
+## License
+
+MIT
+
+---
+
+> **作者**：Jiapeng Li &ensp;|&ensp; [lijiapeng8@xdf.cn](mailto:lijiapeng8@xdf.cn)

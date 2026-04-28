@@ -84,7 +84,7 @@ def _style_dataframe(df: pd.DataFrame):
 
     fmt = {}
     for c in mean_cols:
-        fmt[c] = "{:.2f}"
+        fmt[c] = "{:.3f}"
     for c in pct_cols:
         fmt[c] = "{:.1f}%"
     for c in count_cols:

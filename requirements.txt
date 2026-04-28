@@ -1,3 +1,4 @@
+nltk>=3.8
 numpy==2.4.3
 pandas==2.3.1
 scikit-learn==1.8.0
@@ -10,5 +11,6 @@ openpyxl==3.1.5
 rapidfuzz==3.14.3
 numba==0.64.0
 filelock==3.25.2
+pypdf>=6.0.0
 # pytest>=8.0.0
 PyYAML

@@ -10,6 +10,18 @@ section[data-testid="stSidebar"] {
 [data-testid="stElementToolbar"] {
   display: none;
 }
+footer {
+  display: none !important;
+}
+#MainMenu {
+  display: none !important;
+}
+[data-testid="stDecoration"] {
+  display: none !important;
+}
+.stApp > header {
+  background: transparent !important;
+}
 
 .stApp label[data-baseweb="radio"] > div:first-child {
   width: 1rem !important;
@@ -141,6 +153,11 @@ section[data-testid="stSidebar"] {
 .stApp .stAlert {
   border-radius: var(--hk-radius) !important;
   font-family: var(--hk-font-sans);
+  font-size: 0.82rem !important;
+  font-weight: 400 !important;
+}
+.stApp .stAlert [data-testid="stNotification"] {
+  font-size: 0.82rem !important;
 }
 
 div[data-baseweb="popover"] {
@@ -276,6 +293,7 @@ div[data-baseweb="menu"] > div:only-child {
     box-shadow var(--hk-transition-fast),
     border-color var(--hk-transition-fast),
     color var(--hk-transition-fast) !important;
+  padding: 0.2rem 0.55rem !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_control"]::before {
@@ -304,6 +322,8 @@ div[data-baseweb="menu"] > div:only-child {
 
 .stApp button[data-testid="stBaseButton-segmented_control"] p {
   color: var(--hk-slate-600) !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_control"]:hover {
@@ -362,6 +382,7 @@ div[data-baseweb="menu"] > div:only-child {
     inset 0 1px 0 rgba(255, 255, 255, 0.56) !important;
   transform: translateY(0) translateZ(0) !important;
   z-index: 1 !important;
+  padding: 0.2rem 0.55rem !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_controlActive"]::before {
@@ -384,7 +405,8 @@ div[data-baseweb="menu"] > div:only-child {
 .stApp button[data-testid="stBaseButton-segmented_controlActive"] p {
   color: var(--hk-cyan-dark) !important;
   font-weight: 600 !important;
-  font-size: var(--hk-text-sm) !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap !important;
 }
 
 .stApp button[data-testid="stBaseButton-segmented_controlActive"]:hover {

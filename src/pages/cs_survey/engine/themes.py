@@ -5,6 +5,7 @@ from collections import Counter
 import pandas as pd
 
 from ..schema import FeedbackDetailSpec, ProductGroupSpec, ScoringSpec, SurveyConfig, ThemeRuleset
+from ..text_utils import is_meaningful_text
 
 
 def classify(text: str, ruleset: ThemeRuleset) -> str:
@@ -39,7 +40,7 @@ def _collect_texts_likert(
             if mode == "praise" and fv < praise_min:
                 continue
             t = str(tx.loc[idx]).strip()
-            if t and t.lower() != "nan":
+            if is_meaningful_text(t):
                 out.append(t)
     return out
 
@@ -94,6 +95,61 @@ def build_theme_rows(
     return rows
 
 
+def build_theme_rows_from_feedback(
+    df_feedback: pd.DataFrame,
+    ruleset: ThemeRuleset,
+    *,
+    mode: str,
+) -> list[dict]:
+    if (
+        df_feedback.empty
+        or "反馈类型" not in df_feedback.columns
+        or "反馈" not in df_feedback.columns
+    ):
+        return []
+    target = "意见" if mode == "opinion" else "表扬"
+    texts = [
+        str(x).strip()
+        for x in df_feedback.loc[df_feedback["反馈类型"].astype(str).str.strip() == target, "反馈"]
+        .astype(str)
+        .tolist()
+        if is_meaningful_text(x)
+    ]
+    cnt = Counter(classify(t, ruleset) for t in texts)
+    rows = [{"反馈类型": theme, "反馈量": int(cnt.get(theme, 0))} for theme in ruleset.known_themes]
+    rows = [r for r in rows if r["反馈量"] > 0]
+    rows.sort(key=lambda r: r["反馈量"], reverse=True)
+    return rows
+
+
+def annotate_feedback_themes(
+    df_feedback: pd.DataFrame,
+    opinion_ruleset: ThemeRuleset,
+    praise_ruleset: ThemeRuleset,
+    *,
+    theme_col: str = "主题",
+) -> pd.DataFrame:
+    if (
+        df_feedback.empty
+        or "反馈类型" not in df_feedback.columns
+        or "反馈" not in df_feedback.columns
+    ):
+        return df_feedback.copy()
+    out = df_feedback.copy()
+    themes: list[str] = []
+    for _, row in out.iterrows():
+        feedback_type = str(row.get("反馈类型", "")).strip()
+        text = str(row.get("反馈", "")).strip()
+        if feedback_type == "意见":
+            themes.append(classify(text, opinion_ruleset))
+        elif feedback_type == "表扬":
+            themes.append(classify(text, praise_ruleset))
+        else:
+            themes.append("")
+    out[theme_col] = themes
+    return out
+
+
 def build_feedback_detail_rows(
     df: pd.DataFrame,
     dim1_short: str,
@@ -101,6 +157,77 @@ def build_feedback_detail_rows(
 ) -> list[dict]:
     rows: list[dict] = []
     for s in spec:
+        if getattr(s, "type", "likert") == "text_pair_praise_suggestion":
+            praise_tx = (
+                df[s.code].astype(str).str.strip()
+                if s.code in df.columns
+                else pd.Series("", index=df.index, dtype=str)
+            )
+            opinion_tx = (
+                df[s.text].astype(str).str.strip()
+                if s.text in df.columns
+                else pd.Series("", index=df.index, dtype=str)
+            )
+            for idx in df.index:
+                praise_text = str(praise_tx.loc[idx]).strip()
+                if is_meaningful_text(praise_text):
+                    rows.append(
+                        {
+                            "条线": dim1_short,
+                            "三大类": s.pillar,
+                            "子类": s.subcat,
+                            "分数": None,
+                            "反馈类型": "表扬",
+                            "反馈": praise_text,
+                        }
+                    )
+                opinion_text = str(opinion_tx.loc[idx]).strip()
+                if is_meaningful_text(opinion_text):
+                    rows.append(
+                        {
+                            "条线": dim1_short,
+                            "三大类": s.pillar,
+                            "子类": s.subcat,
+                            "分数": None,
+                            "反馈类型": "意见",
+                            "反馈": opinion_text,
+                        }
+                    )
+            continue
+        if getattr(s, "type", "likert") == "ordinal_feedback":
+            if s.code not in df.columns:
+                continue
+            sc = pd.to_numeric(df[s.code], errors="coerce")
+            tx = (
+                df[s.text].astype(str).str.strip()
+                if s.text in df.columns
+                else pd.Series("", index=df.index, dtype=str)
+            )
+            for idx in df.index:
+                fv_raw = sc.loc[idx]
+                if pd.isna(fv_raw):
+                    continue
+                text = str(tx.loc[idx]).strip()
+                if not is_meaningful_text(text):
+                    continue
+                fv = float(fv_raw)
+                if fv <= 2.0:
+                    ftype = "表扬"
+                elif fv >= 4.0:
+                    ftype = "意见"
+                else:
+                    continue
+                rows.append(
+                    {
+                        "条线": dim1_short,
+                        "三大类": s.pillar,
+                        "子类": s.subcat,
+                        "分数": round(fv, 2),
+                        "反馈类型": ftype,
+                        "反馈": text,
+                    }
+                )
+            continue
         if s.code not in df.columns:
             continue
         sc = pd.to_numeric(df[s.code], errors="coerce")
@@ -114,17 +241,25 @@ def build_feedback_detail_rows(
             if pd.isna(v):
                 continue
             text = str(tx.loc[idx]).strip()
-            if not text or text.lower() == "nan":
+            if not is_meaningful_text(text):
                 continue
             fv = float(v)
-            opinion_max = float(getattr(s, "opinion_max", 2.0))
-            praise_min = float(getattr(s, "praise_min", 4.0))
-            if fv <= opinion_max:
-                ftype = "意见"
-            elif fv >= praise_min:
-                ftype = "表扬"
+            if getattr(s, "type", "likert") == "coded_pair_praise_suggestion":
+                if fv == 1.0:
+                    ftype = "表扬"
+                elif fv == 2.0:
+                    ftype = "意见"
+                else:
+                    continue
             else:
-                continue
+                opinion_max = float(getattr(s, "opinion_max", 2.0))
+                praise_min = float(getattr(s, "praise_min", 4.0))
+                if fv <= opinion_max:
+                    ftype = "意见"
+                elif fv >= praise_min:
+                    ftype = "表扬"
+                else:
+                    continue
             rows.append(
                 {
                     "条线": dim1_short,

@@ -141,12 +141,22 @@ feedback_detail:
   hyo:
     - { code: Q4__1, text: Q4__1__open2, pillar: 产品研发, subcat: 产品适配度, opinion_max: 2 }
     - { code: Q5__1, text: Q5__1__open2, pillar: 产品研发, subcat: 市场认可度, opinion_max: 2 }
+    - { code: Q6,   text: Q6_编码本选项文本,  pillar: 产品推广, subcat: 产品培训,     type: ordinal_feedback }
+    - { code: Q7,   text: Q7_编码本选项文本,  pillar: 产品服务, subcat: 产品迭代更新, type: ordinal_feedback }
+    - { code: Q13,  text: Q13_编码本选项文本, pillar: 产品服务, subcat: 响应及时性,   type: ordinal_feedback }
+    - { code: Q9__1, text: Q9__2, pillar: 产品类型, subcat: 志高, type: text_pair_praise_suggestion }
+    - { code: Q10__1, text: Q10__2, pillar: 产品类型, subcat: 致远, type: text_pair_praise_suggestion }
+    - { code: Q11__1, text: Q11__2, pillar: 产品类型, subcat: 稚趣, type: text_pair_praise_suggestion }
+    - { code: Q12__1, text: Q12__2, pillar: 产品类型, subcat: 挚爱, type: text_pair_praise_suggestion }
 
 themes:
   opinion:
     default: 其他
     rules:
       - { theme: 价格高风险,         any_of: [[价格], [定价], [贵], [费用], [涨价], [成本], [划算]] }
+      - { theme: 高考支持需加强,     any_of: [[高考], [真题], [题库], [刷题], [复习], [冲刺], [备考]] }
+      - { theme: 教材资料需完善,     any_of: [[教材], [教辅], [讲义], [资料], [题库], [真题], [听力], [语法], [阅读]] }
+      - { theme: 班型排班需优化,     any_of: [[组班], [开班], [班课], [排班], [线下], [一对一], [课时], [套餐], [灵活]] }
       - { theme: 预警需提升,         any_of: [[预警], [风险预警], [风险提示]] }
       - { theme: 产品迭代更新需提升, any_of: [[迭代], [更新], [升级], [优化]] }
       - { theme: 产品核验需提升,     any_of: [[核验], [核实], [真实], [准确]] }
@@ -157,7 +167,7 @@ themes:
   praise:
     default: 其他
     rules:
-      - { theme: 适配度符合,         any_of: [[适配], [符合], [匹配], [贴合]] }
+      - { theme: 适配度符合,         any_of: [[适配], [符合], [匹配], [贴合], [适合, 需求], [满足, 需求], [符合, 需求]] }
       - { theme: 培训到位,           any_of: [[培训], [到位], [讲解], [授课], [充分]] }
       - { theme: 背景核验真实准确,   any_of: [[核验], [真实], [准确], [背景, 核验]] }
       - { theme: 响应及时,           any_of: [[响应], [及时]] }
@@ -165,6 +175,19 @@ themes:
       - { theme: 推广支持全面,       any_of: [[推广], [支持], [全面], [宣传], [材料], [方案]] }
       - { theme: 能有效解决问题,     any_of: [[解决, 问题], [解决, 有效], [解决, 投诉], [解决, 处理]] }
       - { theme: 有迭代更新,         any_of: [[迭代], [更新], [优化], [升级]] }
+      - { theme: 课程体系完善,       any_of: [[课程, 完整], [课程, 完善], [体系, 完善], [教学, 与时俱进], [非常完善], [很完美]] }
+      - { theme: 整体反馈较好,       any_of: [[很好], [不错], [挺好], [还可以], [反馈很好], [基本满足], [很好, 满足]] }
+
+multi_select:
+  hyo:
+    base: Q8
+    items:
+      1: 教学内容
+      2: 教研资料
+      3: 运营支持
+      4: 组装搭配
+      5: 产品迭代
+      6: 其他（请注明）
 
 views:
   - { type: overview,          key: overview,   label: 概览 }

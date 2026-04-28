@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from .schema import CrossFilterSpec, PillarSpec, ProductGroupSpec, ScoringSpec, SurveyConfig
+from .text_utils import meaningful_text_mask
 
 
 def filter_center(df: pd.DataFrame, spec: CrossFilterSpec, value: str) -> pd.DataFrame:
@@ -55,15 +56,16 @@ def filter_by_product(
         if code_col not in df.columns:
             return df.iloc[0:0].copy()
         s = df[code_col].astype(str).str.strip()
-        code_ok = s.isin(["1", "2", "表扬", "建议"]) | pd.to_numeric(
+        code_numeric = s.isin(["1", "2", "表扬", "建议"]) | pd.to_numeric(
             df[code_col], errors="coerce"
         ).isin([1, 2])
-        txt_ok = pd.Series(False, index=df.index)
-        if text_col in df.columns:
-            tx = df[text_col].astype(str).str.strip()
-            txt_ok = tx.ne("") & ~tx.str.lower().eq("nan") & ~tx.isin(["/", "暂无", "无"])
-        spill = (s.str.len() > 2) & ~s.isin(["1", "2"])
-        m = code_ok | txt_ok | spill
+        praise_txt = meaningful_text_mask(df[code_col])
+        opinion_txt = (
+            meaningful_text_mask(df[text_col])
+            if text_col in df.columns
+            else pd.Series(False, index=df.index)
+        )
+        m = code_numeric | praise_txt | opinion_txt
         return df.loc[m].copy()
     return df
 
