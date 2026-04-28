@@ -5,9 +5,10 @@ import hashlib
 import streamlit as st
 
 from src.pages.write_print.engine import analyze
-from src.utils import SUPPORT_EMAIL
+from src.utils import SUPPORT_EMAIL, SessionManager, log_interaction_event
 from src.pages.write_print.model import get_model
 from src.pages.write_print.features import read_input
+from src.pages.write_print.profile import build_writing_profile
 from src.pages.write_print.rewriter import generate_full_rewrite
 
 STUB_FOOTER = (
@@ -119,6 +120,27 @@ def _clear_wp_state():
         st.session_state.pop(k, None)
 
 
+def _publish_writing_profile(
+    text: str,
+    result: dict,
+    new_result: dict | None = None,
+) -> None:
+    profile = build_writing_profile(text, result, new_result)
+    SessionManager().set(writing_profile=profile)
+    st.session_state["writing_profile"] = profile
+    log_interaction_event(
+        "write_print_profile",
+        {
+            "text_hash": profile["text_hash"],
+            "score": profile["score"],
+            "risk_level": profile["risk_level"],
+            "after_rewrite_score": profile.get("after_rewrite_score"),
+            "top_feature_count": len(profile.get("top_features", [])),
+            "top_fix_count": len(profile.get("top_fixes", [])),
+        },
+    )
+
+
 def render() -> None:
     st.html(WP_STYLE)
 
@@ -174,6 +196,7 @@ def render() -> None:
         _clear_wp_state()
         st.session_state["wp_result"] = result
         st.session_state["wp_text_hash"] = _text_hash(text)
+        _publish_writing_profile(text, result)
 
     # ── render analysis results ──
     result = st.session_state.get("wp_result")
@@ -208,6 +231,7 @@ def render() -> None:
             model, scaler = _load_model()
             new_result = analyze(rewritten, scaler, model)
             st.session_state["wp_new_result"] = new_result
+            _publish_writing_profile(text, result, new_result)
         else:
             st.toast("LLM rewrite failed — please try again", icon="⚠️")
         st.session_state["wp_processing"] = False

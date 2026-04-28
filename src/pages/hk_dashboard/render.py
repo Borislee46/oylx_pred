@@ -1,5 +1,6 @@
 """HK Dashboard — main render entry point."""
 
+import pandas as pd
 import streamlit as st
 
 from src.pages.hk_dashboard.styles import inject_hk_dashboard_styles
@@ -28,7 +29,6 @@ def _summary_ribbon(data: dict) -> None:
 
 
 def render() -> None:
-    import pandas as pd  # noqa: F811
     inject_hk_dashboard_styles()
 
     st.title("香港运营数据看板")

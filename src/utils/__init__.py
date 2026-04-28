@@ -10,6 +10,7 @@ from .auth.permission_checker import (
 )
 from .data_safety.clipboard_guard import inject_clipboard_guard
 from .env_config_loader import load_app_config
+from .interaction_events import log_interaction_event
 from .logger import setup_logger
 from .model_loader import load_model_dependencies
 from .page_auth import handle_e2_login
@@ -44,5 +45,6 @@ __all__ = [
     "load_dev_config",
     "load_model_dependencies",
     "load_school_major_details_df",
+    "log_interaction_event",
     "setup_logger",
 ]

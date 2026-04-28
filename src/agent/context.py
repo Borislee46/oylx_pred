@@ -39,6 +39,7 @@ class StudentContext:
     experience_details: dict[str, Any] = field(default_factory=dict)
 
     prediction_results: dict[str, Any] = field(default_factory=dict)
+    writing_profile: dict[str, Any] = field(default_factory=dict)
     ai_explanation: str = ""
 
     # ---------- 后期：ApplicationAgent 填充 ----------
