@@ -61,6 +61,7 @@ class FormValidationAgent(BaseAgent):
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=8, agent_name="表单校验Agent")
 
+<<<<<<< HEAD
     def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
         """Orchestrator-compatible entry point.
 
@@ -71,6 +72,8 @@ class FormValidationAgent(BaseAgent):
             form_data = getattr(context, "extracted_background", {})
         return self.validate(form_data)
 
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
     def validate(self, form_data: dict[str, Any]) -> dict[str, Any]:
         t_start = time.perf_counter()
         self.logger.info(

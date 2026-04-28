@@ -4,8 +4,11 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+<<<<<<< HEAD
 from src.agent.schemas import ExtractedBackground
 
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 @dataclass
 class StudentContext:
@@ -17,9 +20,15 @@ class StudentContext:
     # ---------- 前期：LeadInAgent 填充 ----------
     raw_input: str = ""
 
+<<<<<<< HEAD
     extracted_background: ExtractedBackground = field(default_factory=dict)
     # { university, major, gpa, language_score, language_type, country,
     #   target_schools, target_majors, research, internship, award, paper }
+=======
+    extracted_background: dict[str, Any] = field(default_factory=dict)
+    # { university, major, gpa, language_score, language_type, country,
+    #   research, internship, award, paper, ... }
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
     quick_assessment: str = ""
     suggested_questions: list[str] = field(default_factory=list)

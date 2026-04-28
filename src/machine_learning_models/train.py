@@ -65,6 +65,7 @@ def main():
         prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
     )
 
+<<<<<<< HEAD
     cv_results = cross_validate_model(
         X_train, y_train,
         model_name=args.model,
@@ -74,6 +75,8 @@ def main():
     )
     metrics["cross_validation"] = cv_results
 
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
     package_versions = get_package_versions()
     saved_model_paths = utils.save_model(
         model,

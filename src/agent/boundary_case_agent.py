@@ -46,7 +46,11 @@ class BoundaryCaseAgent(BaseAgent):
     ) -> dict[str, Any]:
         if not boundary_cases:
             self.logger.warning(f"[{self.agent_name}] 边界案例列表为空，跳过评估")
+<<<<<<< HEAD
             return {"decisions": [], "needs_adjustment": False, "evaluated": [], "api_errors": 0}
+=======
+            return {"decisions": [], "needs_adjustment": False, "evaluated": []}
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
         final_decisions = [False] * len(boundary_cases)
         evaluated = [False] * len(boundary_cases)
@@ -75,7 +79,10 @@ class BoundaryCaseAgent(BaseAgent):
                 "decisions": final_decisions,
                 "needs_adjustment": any(final_decisions),
                 "evaluated": evaluated,
+<<<<<<< HEAD
                 "api_errors": 0,
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
             }
 
         self.logger.info(
@@ -96,7 +103,10 @@ class BoundaryCaseAgent(BaseAgent):
             prompt = build_boundary_evaluation_prompt(background_major, current_batch_cases, mode)
             raw = self._call_api(prompt, max_tokens=256)
             if raw is None:
+<<<<<<< HEAD
                 api_errors += 1
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
                 continue
 
             result = self._parse_json_response(
@@ -106,7 +116,10 @@ class BoundaryCaseAgent(BaseAgent):
                 max_tokens=256,
             )
             if result is None or not isinstance(result, dict):
+<<<<<<< HEAD
                 api_errors += 1
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
                 continue
 
             agent_decisions = result.get("decisions", [])
@@ -151,7 +164,10 @@ class BoundaryCaseAgent(BaseAgent):
             "decisions": final_decisions,
             "needs_adjustment": needs_adjustment,
             "evaluated": evaluated,
+<<<<<<< HEAD
             "api_errors": api_errors,
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         }
 
     def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:

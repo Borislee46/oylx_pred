@@ -1,6 +1,9 @@
 """WritePrint — text I/O, tokenization, and 6 surface features."""
 
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 import re
 import statistics
 from collections import Counter
@@ -56,7 +59,11 @@ def extract_text_from_pdf(pdf_path: str) -> str:
                 pages.append(text)
         return "\n".join(pages)
     except Exception as e:
+<<<<<<< HEAD
         logging.warning(f"PDF extract failed on '{pdf_path}': {e}")
+=======
+        print(f"  [warn] PDF extract failed on '{pdf_path}': {e}")
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         return ""
 
 

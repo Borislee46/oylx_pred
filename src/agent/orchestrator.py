@@ -40,6 +40,7 @@ class AgentOrchestrator:
 
         return result
 
+<<<<<<< HEAD
     @staticmethod
     def run_pipeline(
         steps: list[dict[str, Any]],
@@ -63,6 +64,8 @@ class AgentOrchestrator:
                 break
         return results
 
+=======
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
 
 def _summarize(result: dict[str, Any], max_len: int = 80) -> str:
     if not result:

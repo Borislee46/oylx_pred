@@ -123,6 +123,7 @@ class ExplainAgent(BaseAgent):
         self._system_prompt = EXPLAIN_SYSTEM_PROMPT
         self._stream_buffer = ""
 
+<<<<<<< HEAD
     # ── shared prompt construction ──────────────────────────────────────
     def _prepare(self, context: StudentContext) -> str:
         pred = context.prediction_results or {}
@@ -143,6 +144,31 @@ class ExplainAgent(BaseAgent):
         self._stream_buffer = ""
 
         for chunk in self._call_api_streaming(full_prompt, max_tokens=600):
+=======
+    def stream(self, context: StudentContext):
+        """Stream explanation text chunks via st.write_stream.
+
+        Usage:
+            agent = AgentRegistry.get("explain")
+            raw = st.write_stream(agent.stream(ctx))
+            result = agent._parse_response(raw)
+        """
+        t_start = time.perf_counter()
+        pred = context.prediction_results or {}
+        self.logger.info(
+            f"[{self.agent_name}] STREAM START | "
+            f"results: sim={len(pred.get('similarity_results') or [])} "
+            f"cross={len(pred.get('cross_major_results') or [])}"
+        )
+
+        prompt = _build_explain_prompt(context)
+        full_prompt = f"{self._system_prompt}\n\n{prompt}"
+        self._stream_buffer = ""
+
+        for chunk in self._call_api_streaming(
+            full_prompt, max_tokens=600
+        ):
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
             if chunk:
                 self._stream_buffer += chunk
                 yield chunk
@@ -156,10 +182,27 @@ class ExplainAgent(BaseAgent):
     def parse_stream_result(self) -> dict[str, Any] | None:
         return self._parse_response(self._stream_buffer)
 
+<<<<<<< HEAD
     # ── sync path ───────────────────────────────────────────────────────
     def run(self, context: StudentContext) -> dict[str, Any]:
         t_start = time.perf_counter()
         full_prompt = self._prepare(context)
+=======
+    def run(self, context: StudentContext) -> dict[str, Any]:
+        t_start = time.perf_counter()
+        pred = context.prediction_results or {}
+        n_sim = len(pred.get("similarity_results") or [])
+        n_cross = len(pred.get("cross_major_results") or [])
+        n_unified = len(pred.get("unified_results") or [])
+        self.logger.info(
+            f"[{self.agent_name}] RUN START | "
+            f"results: sim={n_sim} cross={n_cross} unified={n_unified} | "
+            f"gpa={context.gpa} lang={context.language_type} {context.language_score}"
+        )
+
+        prompt = _build_explain_prompt(context)
+        full_prompt = f"{self._system_prompt}\n\n{prompt}"
+>>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
         raw = self._call_api(full_prompt, cache_prefix="explain", max_tokens=600)
 
         result = self._parse_response(raw)
