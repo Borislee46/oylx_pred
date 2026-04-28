@@ -1,6 +1,5 @@
 import base64
 import html
-import time
 from pathlib import Path
 
 import streamlit as st
@@ -119,12 +118,12 @@ def render_lead_in_panel(session_manager) -> None:
         '<div class="hk-step-row">'
         f'<div class="hk-step-item{" hk-step-active" if not has_result else " hk-step-done"}">'
         '<div class="hk-step-num">1</div>'
-        '<div class="hk-step-label">AI 前期分析</div>'
+        '<div class="hk-step-label">背景整理</div>'
         "</div>"
         '<div class="hk-step-connector"></div>'
         f'<div class="hk-step-item{" hk-step-active" if has_result else ""}">'
         '<div class="hk-step-num">2</div>'
-        '<div class="hk-step-label">预测表单</div>'
+        '<div class="hk-step-label">表单核验</div>'
         "</div>"
         '<div class="hk-step-connector"></div>'
         '<div class="hk-step-item">'
@@ -137,9 +136,9 @@ def render_lead_in_panel(session_manager) -> None:
     if not has_result:
         st.html(
             '<div class="hk-section-label" style="margin-bottom:0.5rem">'
-            "AI 智能提取</div>"
+            "背景整理</div>"
             '<p style="color:var(--hk-slate-400);font-size:0.8rem;margin:0 0 0.5rem 0">'
-            "输入学生背景，AI 自动识别并填充表单</p>"
+            "输入学生背景，系统会整理并填入表单</p>"
         )
 
     with st.container(border=True):
@@ -154,16 +153,13 @@ def render_lead_in_panel(session_manager) -> None:
 
         c1, c2 = st.columns([1, 4])
         with c1:
-            analyze = st.button("AI 分析", key="lead_in_btn", use_container_width=True)
+            analyze = st.button("整理信息", key="lead_in_btn", use_container_width=True)
 
         if analyze and raw.strip():
             progress = st.empty()
-            _render_lead_in_progress(progress, "正在识别院校与专业")
-            time.sleep(0.2)
-            _render_lead_in_progress(progress, "正在提取成绩与经历")
+            _render_lead_in_progress(progress, "正在整理背景")
             AgentOrchestrator.run("lead_in", ctx, user_input=raw)
-            _render_lead_in_progress(progress, "分析完成")
-            time.sleep(0.3)
+            _render_lead_in_progress(progress, "已整理")
             progress.empty()
             apply_lead_in_to_form(ctx, session_manager)
             st.session_state["lead_in_ctx"] = ctx
@@ -175,7 +171,7 @@ def render_lead_in_panel(session_manager) -> None:
 
 def _render_lead_in_summary(ctx, action_col, session_manager) -> None:
     info = {k: v for k, v in (ctx.extracted_background or {}).items() if v}
-    summary = ctx.quick_assessment[:100] + ("…" if len(ctx.quick_assessment) > 100 else "")
+    summary = ctx.quick_assessment[:88] + ("…" if len(ctx.quick_assessment) > 88 else "")
 
     st.html(
         '<div class="hk-insight-card hk-insight-accent" style="margin-top:0.5rem">'
@@ -184,12 +180,12 @@ def _render_lead_in_summary(ctx, action_col, session_manager) -> None:
     )
 
     with action_col:
-        if st.button("清除", key="lead_in_clear"):
+        if st.button("重新输入", key="lead_in_clear"):
             st.session_state["lead_in_ctx"] = StudentContext()
             session_manager.set(lead_in_form_summary="", lead_in_form_filled=False)
             st.rerun()
 
-    with st.expander(f"已提取 {len(info)} 个字段"):
+    with st.expander(f"查看已整理信息 · {len(info)} 项"):
         FIELD_LABELS = {
             "university": "院校",
             "major": "专业",

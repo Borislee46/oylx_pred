@@ -287,6 +287,81 @@
   letter-spacing: 0.01em;
 }
 
+/* ── Risk Summary ─────────────────────────────────────────── */
+.hk-ready-card {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--hk-radius-lg);
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 10px 26px rgba(15, 23, 42, 0.055);
+  margin: 0.75rem 0 1rem;
+}
+.hk-ready-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+.hk-ready-kicker {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hk-slate-400);
+  margin-bottom: 0.2rem;
+}
+.hk-ready-title {
+  font-family: var(--hk-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--hk-slate-800);
+  line-height: 1.35;
+}
+.hk-ready-action {
+  max-width: 420px;
+  font-size: 0.82rem;
+  color: var(--hk-slate-500);
+  line-height: 1.55;
+  text-align: right;
+}
+.hk-ready-action span {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hk-slate-300);
+  margin-bottom: 0.1rem;
+}
+.hk-ready-factors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.8rem;
+}
+.hk-ready-factor {
+  border-radius: var(--hk-radius-md);
+  background: rgba(248, 250, 252, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 0.62rem 0.75rem;
+}
+.hk-ready-factor-name {
+  font-size: 0.7rem;
+  color: var(--hk-slate-400);
+  margin-bottom: 0.2rem;
+}
+.hk-ready-factor-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--hk-slate-700);
+}
+.hk-ready-factor-note {
+  font-size: 0.72rem;
+  color: var(--hk-slate-400);
+  margin-top: 0.18rem;
+  line-height: 1.35;
+}
+
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes hkFadeSlideIn {
   from {

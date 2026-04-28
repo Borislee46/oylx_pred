@@ -40,8 +40,16 @@ def _render_ai_explanation(
     if "explain_cache" not in st.session_state:
         st.session_state["explain_cache"] = {}
 
-    key_data = {"sim": sim[:5], "cross": cross[:3], "gpa": gpa}
-    cache_key = hashlib.md5(json.dumps(key_data, sort_keys=True, default=str).encode()).hexdigest()
+    cache_key = _build_explain_cache_key(
+        sim=sim,
+        cross=cross,
+        unified=unified,
+        background_major=background_major,
+        gpa=gpa,
+        language_score=language_score,
+        language_type=language_type,
+        experience_details=experience_details,
+    )
 
     cached = st.session_state["explain_cache"].get(cache_key)
     if cached:
@@ -98,6 +106,7 @@ def _render_ai_explanation(
         _show_explanation(result)
     else:
         placeholder.empty()
+        st.caption("解读暂不可用，可以稍后重试。")
 
 
 def _render_analysis_progress(placeholder, text: str) -> None:
@@ -113,6 +122,49 @@ def _render_analysis_progress(placeholder, text: str) -> None:
         "</div>",
         unsafe_allow_html=True,
     )
+
+
+def _build_explain_cache_key(
+    *,
+    sim: list,
+    cross: list,
+    unified: list,
+    background_major: str,
+    gpa: float,
+    language_score: float,
+    language_type: str,
+    experience_details: dict | None,
+) -> str:
+    key_data = {
+        "sim": _compact_results(sim[:5]),
+        "cross": _compact_results(cross[:3]),
+        "unified": _compact_results(unified[:5]),
+        "background_major": background_major,
+        "gpa": gpa,
+        "language": [language_type, language_score],
+        "experience": _compact_experience(experience_details),
+    }
+    return hashlib.md5(json.dumps(key_data, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def _compact_results(items: list[dict]) -> list[tuple[str, str, float]]:
+    return [
+        (
+            str(item.get("university", "")),
+            str(item.get("major", "")),
+            round(float(item.get("probability", 0) or 0), 4),
+        )
+        for item in items
+        if isinstance(item, dict)
+    ]
+
+
+def _compact_experience(experience_details: dict | None) -> dict[str, int]:
+    return {
+        str(k): len(str(v or ""))
+        for k, v in (experience_details or {}).items()
+        if v
+    }
 
 
 def _show_explanation(explanation: dict) -> None:
