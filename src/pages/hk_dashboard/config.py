@@ -6,13 +6,13 @@ import os
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", "hk")
 
 FILES = {
-    "kehu_ziyuan": os.path.join(DATA_DIR, "客服资源.csv"),
-    "tmk": os.path.join(DATA_DIR, "客服TMK资源处理.csv"),
-    "qianyue": os.path.join(DATA_DIR, "客服签约列表.csv"),
-    "class_master": os.path.join(DATA_DIR, "班级维表.csv"),
-    "roster": os.path.join(DATA_DIR, "班级花名册.csv"),
-    "revenue": os.path.join(DATA_DIR, "收入人次.csv"),
-    "deferred_revenue": os.path.join(DATA_DIR, "结转收入.csv"),
+    "kehu_ziyuan": os.path.join(DATA_DIR, "customer_resources.csv"),
+    "tmk": os.path.join(DATA_DIR, "tmk_processing.csv"),
+    "qianyue": os.path.join(DATA_DIR, "contract_list.csv"),
+    "class_master": os.path.join(DATA_DIR, "class_master.csv"),
+    "roster": os.path.join(DATA_DIR, "class_roster.csv"),
+    "revenue": os.path.join(DATA_DIR, "revenue.csv"),
+    "deferred_revenue": os.path.join(DATA_DIR, "deferred_revenue.csv"),
 }
 
 # ── Column name constants ───────────────────────────────────
@@ -40,6 +40,7 @@ BONUS_TIERS = [
     (0.85, 1.01, [(1, 24, 30), (25, 49, 40), (50, float("inf"), 50)]),
 ]
 
+
 def lookup_bonus_rate(renewal_rate: float, student_count: int) -> int:
     for r_low, r_high, brackets in BONUS_TIERS:
         if r_low <= renewal_rate < r_high:
@@ -47,3 +48,12 @@ def lookup_bonus_rate(renewal_rate: float, student_count: int) -> int:
                 if s_low <= student_count <= s_high:
                     return rate
     return 0
+
+
+def fmt_month_cn(month_str: str) -> str:
+    """'2026-02' → '2026年2月'."""
+    try:
+        y, m = month_str.split("-")
+        return f"{y}年{int(m)}月"
+    except (ValueError, AttributeError):
+        return month_str

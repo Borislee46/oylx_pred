@@ -12,9 +12,9 @@ _WORKER_MODEL: PredictionModel | None = None
 
 def _init_worker_process(model_type: str) -> None:
     global _WORKER_MODEL
-    from src.pages.prediction.page_data_loader import cached_get_prediction_model
+    from src.pages.prediction.page_data_loader import get_prediction_model
 
-    _WORKER_MODEL = cached_get_prediction_model(model_type)
+    _WORKER_MODEL = get_prediction_model(model_type)
 
 
 def _run_chunk_in_worker(

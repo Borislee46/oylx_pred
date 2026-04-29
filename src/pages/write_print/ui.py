@@ -5,18 +5,18 @@ import hashlib
 import streamlit as st
 
 from src.pages.write_print.engine import analyze
-from src.utils import SUPPORT_EMAIL, log_interaction_event
-from src.pages.write_print.model import get_model
 from src.pages.write_print.features import read_input
+from src.pages.write_print.model import get_model
 from src.pages.write_print.profile import build_writing_profile
 from src.pages.write_print.rewriter import generate_full_rewrite
+from src.utils import SUPPORT_EMAIL, log_interaction_event
 
 STUB_FOOTER = (
     '<div class="hk-footer" style="display:flex;justify-content:flex-end;align-items:center;">'
     '<span style="font-size:0.78rem;color:var(--hk-slate-300)">'
     'WritePrint — 文书AI检测</span><div class="hk-footer-dot"></div>'
     f'<a href="mailto:{SUPPORT_EMAIL}" style="font-size:0.78rem;color:var(--hk-slate-300)">'
-    f'技术支持：{SUPPORT_EMAIL}</a></div>'
+    f"技术支持：{SUPPORT_EMAIL}</a></div>"
 )
 
 WP_STYLE = """<style>
@@ -76,7 +76,7 @@ def _render_score_ring(score: float, verdict: dict, text_stats: dict) -> None:
         f'<span class="wp-stat">{text_stats["words"]:,} words</span>'
         f'<span class="wp-stat">{text_stats["sentences"]} sentences</span>'
         f'<span class="wp-stat">{text_stats["paragraphs"]} paragraphs</span>'
-        f'</div>'
+        f"</div>"
     )
 
 
@@ -84,7 +84,7 @@ def _render_feature_bars(features: dict) -> None:
     contributions = [fb["contribution"] for fb in features.values()]
     max_abs = max(abs(c) for c in contributions) if contributions else 1
 
-    for name, fb in features.items():
+    for _name, fb in features.items():
         pct = abs(fb["contribution"]) / max_abs * 100 if max_abs > 0 else 0
         bar_color = "var(--hk-cyan)" if fb["contribution"] > 0 else "var(--hk-slate-300)"
         direction = "+" if fb["contribution"] > 0 else ""
@@ -93,7 +93,7 @@ def _render_feature_bars(features: dict) -> None:
             f'<span class="wp-bar-label">{fb["label"]}</span>'
             '<div class="wp-bar-track">'
             f'<div class="wp-bar-fill" style="width:{pct:.0f}%;background:{bar_color};"></div>'
-            '</div>'
+            "</div>"
             f'<span style="font-size:0.72rem;color:var(--hk-slate-400);">'
             f'{direction}{fb["contribution"]:.1f}</span></div>'
         )
@@ -109,14 +109,14 @@ def _text_hash(text: str) -> str:
 
 
 def _render_footer() -> None:
-    st.page_link("main.py", label="← 返回首页",
-                 query_params={"scroll_to": "main-page-header-anchor"})
+    st.page_link(
+        "main.py", label="← 返回首页", query_params={"scroll_to": "main-page-header-anchor"}
+    )
     st.html(STUB_FOOTER)
 
 
 def _clear_wp_state():
-    for k in ("wp_result", "wp_text_hash", "wp_rewritten", "wp_new_result",
-              "wp_processing"):
+    for k in ("wp_result", "wp_text_hash", "wp_rewritten", "wp_new_result", "wp_processing"):
         st.session_state.pop(k, None)
 
 
@@ -146,19 +146,21 @@ def render() -> None:
         '<div class="hk-header"><div>'
         '<p class="hk-header-title">WritePrint</p>'
         '<p class="hk-header-subtitle">文书AI检测 & 智能改写</p>'
-        '</div></div>'
+        "</div></div>"
     )
     st.caption("Paste a personal statement to detect AI patterns and get human-like rewrites.")
 
-    input_method = st.radio("Input", ["Paste text", "Upload file"],
-                            horizontal=True, label_visibility="collapsed")
+    input_method = st.radio(
+        "Input", ["Paste text", "Upload file"], horizontal=True, label_visibility="collapsed"
+    )
 
     text = ""
     if input_method == "Upload file":
         uploaded = st.file_uploader("Drop a PDF or TXT file here", type=["pdf", "txt"])
         if uploaded:
-            import tempfile
             import os
+            import tempfile
+
             suffix = ".pdf" if uploaded.name.endswith(".pdf") else ".txt"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 tmp.write(uploaded.read())
@@ -171,18 +173,24 @@ def render() -> None:
                 st.caption(f"Loaded: {uploaded.name} ({len(text):,} chars)")
     else:
         text = st.text_area(
-            "Paste text", height=200,
+            "Paste text",
+            height=200,
             placeholder="Paste your personal statement here...",
             label_visibility="collapsed",
         )
 
     # Detect text change → invalidate old results
-    text_changed = (_text_hash(text) != st.session_state.get("wp_text_hash"))
+    text_changed = _text_hash(text) != st.session_state.get("wp_text_hash")
     if text_changed and "wp_result" in st.session_state:
         _clear_wp_state()
 
-    if st.button("Analyze", type="primary", disabled=len(text) < 50,
-                 use_container_width=True, key="submit_button_key"):
+    if st.button(
+        "Analyze",
+        type="primary",
+        disabled=len(text) < 50,
+        width="stretch",
+        key="submit_button_key",
+    ):
         model, scaler = _load_model()
         with st.spinner("Analyzing..."):
             result = analyze(text, scaler, model)
@@ -213,8 +221,12 @@ def render() -> None:
     processing = st.session_state.get("wp_processing", False)
     with col_a:
         disabled = processing or st.session_state.get("wp_text_hash") is None
-        if st.button("Humanize — Full Text Rewrite", type="secondary",
-                     use_container_width=True, disabled=disabled):
+        if st.button(
+            "Humanize — Full Text Rewrite",
+            type="secondary",
+            width="stretch",
+            disabled=disabled,
+        ):
             st.session_state["wp_processing"] = True
             st.rerun()
 
@@ -222,7 +234,9 @@ def render() -> None:
     if processing:
         with st.spinner("LLM rewriting full text with feature guidance..."):
             rewritten = generate_full_rewrite(
-                text, result["score"], result["features"],
+                text,
+                result["score"],
+                result["features"],
             )
         if rewritten:
             st.session_state["wp_rewritten"] = rewritten
@@ -247,11 +261,13 @@ def render() -> None:
                 f'<span style="font-size:2rem;font-weight:800;color:{color};">'
                 f'{new_result["score"]:.0f}%</span>'
                 f'<span style="font-size:0.8rem;color:var(--hk-slate-400);">'
-                f' (Δ{diff:+.0f}%)</span></div>'
+                f" (Δ{diff:+.0f}%)</span></div>"
             )
         st.text_area(
-            "Rewritten text", value=rewritten_text,
-            height=300, label_visibility="collapsed",
+            "Rewritten text",
+            value=rewritten_text,
+            height=300,
+            label_visibility="collapsed",
         )
 
     st.caption("Score ±18% confidence (LOO-CV MAE). 10-feature Ridge model.")

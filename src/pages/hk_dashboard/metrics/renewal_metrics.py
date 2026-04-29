@@ -4,7 +4,6 @@ Validated against data/hk/旺角2月教学端绩效核对.xlsx (Feb → Mar 2026
 """
 
 import pandas as pd
-import numpy as np
 
 from src.pages.hk_dashboard.config import lookup_bonus_rate
 
@@ -13,7 +12,12 @@ def _month_range(month: str) -> tuple[pd.Timestamp, pd.Timestamp]:
     """Parse '2026-02' into (start, end) timestamps for that month."""
     y, m = map(int, month.split("-"))
     start = pd.Timestamp(y, m, 1)
-    end = pd.Timestamp(y, m, m) + pd.offsets.MonthEnd(1) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+    end = (
+        pd.Timestamp(y, m, m)
+        + pd.offsets.MonthEnd(1)
+        + pd.Timedelta(days=1)
+        - pd.Timedelta(seconds=1)
+    )
     return start, end
 
 
@@ -41,16 +45,12 @@ def calculate_renewal_rate(
 
     # ── Active students in target month ──
     # Student is active if 进班_dt <= month_end AND (离班_dt is NaT OR 离班_dt >= month_start)
-    active_mask = (
-        (r["进班_dt"] <= end) &
-        (r["离班_dt"].isna() | (r["离班_dt"] >= start))
-    )
+    active_mask = (r["进班_dt"] <= end) & (r["离班_dt"].isna() | (r["离班_dt"] >= start))
     active = r[active_mask][["学员编号", "班级编码"]].drop_duplicates()
 
     # ── Active students in next month ──
-    retained_mask = (
-        (r["进班_dt"] <= next_end) &
-        (r["离班_dt"].isna() | (r["离班_dt"] >= next_start))
+    retained_mask = (r["进班_dt"] <= next_end) & (
+        r["离班_dt"].isna() | (r["离班_dt"] >= next_start)
     )
     retained_students = r[retained_mask]["学员编号"].drop_duplicates().tolist()
 
@@ -74,8 +74,9 @@ def calculate_renewal_rate(
         f_total = grp["学员编号"].nunique()
         f_retained = grp[grp["学员编号"].isin(retained_students)]["学员编号"].nunique()
         rate = f_retained / f_total if f_total > 0 else 0.0
-        results.append({"教师": teacher, "当月学员数": f_total,
-                        "次月在班数": f_retained, "续费率": rate})
+        results.append(
+            {"教师": teacher, "当月学员数": f_total, "次月在班数": f_retained, "续费率": rate}
+        )
 
     if not results:
         return pd.DataFrame(columns=["教师", "当月学员数", "次月在班数", "续费率"])
@@ -110,8 +111,17 @@ def calculate_bonus(
         teacher_hours[t] = teacher_hours.get(t, 0) + (h if pd.notna(h) else 0)
 
     if renewal_df.empty:
-        return pd.DataFrame(columns=["教师", "当月学员数", "次月在班数", "续费率",
-                                     "单价(HKD/课时)", "当月课时", "应发奖金(HKD)"])
+        return pd.DataFrame(
+            columns=[
+                "教师",
+                "当月学员数",
+                "次月在班数",
+                "续费率",
+                "单价(HKD/课时)",
+                "当月课时",
+                "应发奖金(HKD)",
+            ]
+        )
 
     # ── Apply tiers ──
     result = renewal_df.copy()

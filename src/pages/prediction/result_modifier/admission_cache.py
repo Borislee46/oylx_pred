@@ -2,9 +2,6 @@ import pandas as pd
 
 from src.pages.prediction.result_modifier.streamlit_cache import cache_data
 from src.pages.prediction.result_modifier.utils import compute_dataframe_hash
-from src.utils.logger import setup_logger
-
-logger = setup_logger("page3", "prediction")
 
 
 @cache_data(show_spinner=False)

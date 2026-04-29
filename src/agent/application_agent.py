@@ -24,8 +24,7 @@ class ApplicationAgent(BaseAgent):
             return {"strategy_overview": "暂无预测结果，无法生成申请策略。", "_error": "no_results"}
 
         self.logger.info(
-            f"[{self.agent_name}] RUN START | "
-            f"results={len(unified)} | gpa={context.gpa}"
+            f"[{self.agent_name}] RUN START | results={len(unified)} | gpa={context.gpa}"
         )
 
         bg = context.extracted_background or {}
@@ -45,9 +44,7 @@ class ApplicationAgent(BaseAgent):
         result = self._parse_response(raw)
         elapsed_ms = (time.perf_counter() - t_start) * 1000
         if result is None:
-            self.logger.warning(
-                f"[{self.agent_name}] RUN FAILED | total={elapsed_ms:.0f}ms"
-            )
+            self.logger.warning(f"[{self.agent_name}] RUN FAILED | total={elapsed_ms:.0f}ms")
             return {"strategy_overview": "申请策略暂不可用", "_error": "api_failed"}
 
         context.application_plan = result

@@ -4,11 +4,18 @@ import pandas as pd
 import streamlit as st
 
 
-def month_filter(months: list[str], key: str = "month", label: str = "月份") -> str | None:
+def month_filter(
+    months: list[str],
+    key: str = "month",
+    label: str = "月份",
+    format_func=None,
+    default_index: int = 0,
+) -> str | None:
     """Single-select month dropdown. `months` should be sorted list of 'YYYY-MM' strings."""
     if not months:
         return None
-    return st.selectbox(label, options=months, key=key)
+    idx = max(0, min(default_index, len(months) - 1))
+    return st.selectbox(label, options=months, index=idx, key=key, format_func=format_func)
 
 
 def category_filter(

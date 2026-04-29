@@ -145,7 +145,11 @@ def _set_form_summary(session_manager: Any, applied: dict) -> None:
         elif len(schools) > 1:
             parts.append(f"{schools[0][:8]}等{len(schools)}所")
     if "target_country" in applied:
-        parts.append(str(applied["target_country"][0]) if isinstance(applied["target_country"], list) else str(applied["target_country"]))
+        parts.append(
+            str(applied["target_country"][0])
+            if isinstance(applied["target_country"], list)
+            else str(applied["target_country"])
+        )
 
     summary = " · ".join(parts) if parts else ""
     if summary:
@@ -156,6 +160,7 @@ def _set_form_summary(session_manager: Any, applied: dict) -> None:
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
+
 
 def _fuzzy_match(query: str, candidates: list[str]) -> str:
     """Exact → substring → difflib. Falls back to original query."""

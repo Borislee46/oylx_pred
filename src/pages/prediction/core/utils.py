@@ -3,7 +3,6 @@ from functools import lru_cache
 import pandas as pd
 
 from src.utils.app_data_loader import load_school_major_details_df
-from src.utils.logger import setup_logger
 
 
 def normalize_language_score(score, language_type):
@@ -23,9 +22,6 @@ def denormalize_language_score(normalized_score, language_type, round_to_half=Fa
         if round_to_half:
             return round(score * 2) / 2
         return score
-
-
-_utils_logger = setup_logger("page3", "prediction")
 
 
 class SchoolMajorDataManager:

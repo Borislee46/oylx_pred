@@ -15,7 +15,9 @@ def render_filterable_table(
         st.caption("暂无数据")
         return
 
-    search = st.text_input("搜索", key=f"search_{key}", placeholder="输入关键词...", label_visibility="collapsed")
+    search = st.text_input(
+        "搜索", key=f"search_{key}", placeholder="输入关键词...", label_visibility="collapsed"
+    )
     if search:
         mask = pd.Series(False, index=df.index)
         for col in df.select_dtypes(include=["object"]).columns:
@@ -23,7 +25,10 @@ def render_filterable_table(
         df = df[mask]
 
     st.dataframe(
-        df, use_container_width=True, hide_index=hide_index,
-        height=height, column_config=column_config,
+        df,
+        width="stretch",
+        hide_index=hide_index,
+        height=height,
+        column_config=column_config,
     )
     st.caption(f"{len(df)} 条记录")

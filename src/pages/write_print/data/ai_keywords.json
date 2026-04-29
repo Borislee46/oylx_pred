@@ -1,40 +1,184 @@
 {
-  "delve": ["explore", "examine", "look into", "consider", "investigate", "study"],
-  "underscore": ["highlight", "emphasize", "stress", "point out", "show", "underline"],
+  "delve": [
+    "explore",
+    "examine",
+    "look into",
+    "consider",
+    "investigate",
+    "study"
+  ],
+  "underscore": [
+    "highlight",
+    "emphasize",
+    "stress",
+    "point out",
+    "show",
+    "underline"
+  ],
   "crucial": ["important", "key", "essential", "critical", "vital", "central"],
-  "paramount": ["essential", "key", "important", "critical", "vital", "foremost"],
-  "moreover": ["also", "besides", "in addition", "further", "what is more", "beyond that"],
-  "furthermore": ["also", "in addition", "additionally", "besides", "plus", "on top of that"],
+  "paramount": [
+    "essential",
+    "key",
+    "important",
+    "critical",
+    "vital",
+    "foremost"
+  ],
+  "moreover": [
+    "also",
+    "besides",
+    "in addition",
+    "further",
+    "what is more",
+    "beyond that"
+  ],
+  "furthermore": [
+    "also",
+    "in addition",
+    "additionally",
+    "besides",
+    "plus",
+    "on top of that"
+  ],
   "consequently": ["so", "as a result", "thus", "because of this", "therefore"],
   "hence": ["so", "thus", "therefore", "as a result", "for this reason"],
   "thus": ["so", "therefore", "as a result", "this means", "accordingly"],
   "nevertheless": ["however", "but", "still", "yet", "even so", "that said"],
-  "nonetheless": ["however", "still", "but", "even so", "that said", "all the same"],
-  "notably": ["especially", "particularly", "importantly", "significantly", "worth noting"],
+  "nonetheless": [
+    "however",
+    "still",
+    "but",
+    "even so",
+    "that said",
+    "all the same"
+  ],
+  "notably": [
+    "especially",
+    "particularly",
+    "importantly",
+    "significantly",
+    "worth noting"
+  ],
   "additionally": ["also", "besides", "in addition", "what is more", "further"],
-  "conversely": ["on the other hand", "in contrast", "however", "meanwhile", "by comparison"],
+  "conversely": [
+    "on the other hand",
+    "in contrast",
+    "however",
+    "meanwhile",
+    "by comparison"
+  ],
   "subsequently": ["later", "afterward", "next", "then", "following that"],
   "utilize": ["use", "employ", "apply", "make use of", "draw on"],
-  "facilitate": ["help", "enable", "make possible", "assist", "support", "ease"],
-  "implement": ["apply", "put in place", "carry out", "execute", "do", "put into action"],
-  "demonstrate": ["show", "prove", "indicate", "reveal", "illustrate", "display"],
-  "elucidate": ["explain", "clarify", "shed light on", "illuminate", "spell out"],
+  "facilitate": [
+    "help",
+    "enable",
+    "make possible",
+    "assist",
+    "support",
+    "ease"
+  ],
+  "implement": [
+    "apply",
+    "put in place",
+    "carry out",
+    "execute",
+    "do",
+    "put into action"
+  ],
+  "demonstrate": [
+    "show",
+    "prove",
+    "indicate",
+    "reveal",
+    "illustrate",
+    "display"
+  ],
+  "elucidate": [
+    "explain",
+    "clarify",
+    "shed light on",
+    "illuminate",
+    "spell out"
+  ],
   "endeavor": ["try", "attempt", "strive", "work toward", "aim to"],
   "optimize": ["improve", "enhance", "refine", "fine-tune", "perfect", "boost"],
-  "leverage": ["use", "take advantage of", "capitalize on", "build on", "draw on"],
+  "leverage": [
+    "use",
+    "take advantage of",
+    "capitalize on",
+    "build on",
+    "draw on"
+  ],
   "paradigm": ["model", "framework", "approach", "way of thinking", "pattern"],
-  "robust": ["strong", "solid", "effective", "powerful", "well-built", "reliable"],
-  "synergy": ["cooperation", "collaboration", "combined effect", "teamwork", "partnership"],
+  "robust": [
+    "strong",
+    "solid",
+    "effective",
+    "powerful",
+    "well-built",
+    "reliable"
+  ],
+  "synergy": [
+    "cooperation",
+    "collaboration",
+    "combined effect",
+    "teamwork",
+    "partnership"
+  ],
   "innovative": ["new", "fresh", "novel", "original", "creative", "pioneering"],
-  "cutting-edge": ["advanced", "leading", "state-of-the-art", "modern", "newest"],
-  "state-of-the-art": ["advanced", "modern", "leading", "cutting-edge", "latest"],
-  "groundbreaking": ["revolutionary", "pioneering", "innovative", "transformative", "novel"],
-  "transformative": ["game-changing", "revolutionary", "powerful", "major", "significant"],
-  "holistic": ["comprehensive", "complete", "all-around", "broad", "full", "well-rounded"],
+  "cutting-edge": [
+    "advanced",
+    "leading",
+    "state-of-the-art",
+    "modern",
+    "newest"
+  ],
+  "state-of-the-art": [
+    "advanced",
+    "modern",
+    "leading",
+    "cutting-edge",
+    "latest"
+  ],
+  "groundbreaking": [
+    "revolutionary",
+    "pioneering",
+    "innovative",
+    "transformative",
+    "novel"
+  ],
+  "transformative": [
+    "game-changing",
+    "revolutionary",
+    "powerful",
+    "major",
+    "significant"
+  ],
+  "holistic": [
+    "comprehensive",
+    "complete",
+    "all-around",
+    "broad",
+    "full",
+    "well-rounded"
+  ],
   "foster": ["encourage", "promote", "support", "nurture", "build", "develop"],
-  "streamline": ["simplify", "speed up", "make easier", "improve", "smooth out"],
+  "streamline": [
+    "simplify",
+    "speed up",
+    "make easier",
+    "improve",
+    "smooth out"
+  ],
   "bolster": ["strengthen", "support", "boost", "reinforce", "shore up"],
-  "augment": ["add to", "increase", "improve", "enhance", "supplement", "build on"],
+  "augment": [
+    "add to",
+    "increase",
+    "improve",
+    "enhance",
+    "supplement",
+    "build on"
+  ],
   "mitigate": ["reduce", "lessen", "ease", "alleviate", "limit", "curb"],
   "expedite": ["speed up", "accelerate", "hasten", "rush", "fast-track"],
   "ameliorate": ["improve", "better", "ease", "relieve", "enhance"],
@@ -49,47 +193,126 @@
   "substantiate": ["support", "back up", "confirm", "verify", "prove"],
   "underscore": ["highlight", "emphasize", "stress", "point out", "show"],
   "vanguard": ["forefront", "front line", "cutting edge", "lead", "head"],
-  "ubiquitous": ["widespread", "common", "everywhere", "prevalent", "omnipresent"],
+  "ubiquitous": [
+    "widespread",
+    "common",
+    "everywhere",
+    "prevalent",
+    "omnipresent"
+  ],
   "salient": ["key", "main", "important", "notable", "prominent", "striking"],
   "pivotal": ["key", "crucial", "central", "critical", "vital", "essential"],
   "corroborate": ["confirm", "support", "back up", "verify", "validate"],
   "disparate": ["different", "diverse", "varied", "distinct", "separate"],
   "innate": ["natural", "built-in", "inherent", "inborn", "intrinsic"],
-  "lucid": ["clear", "easy to follow", "understandable", "plain", "straightforward"],
+  "lucid": [
+    "clear",
+    "easy to follow",
+    "understandable",
+    "plain",
+    "straightforward"
+  ],
   "plethora": ["abundance", "wealth", "many", "wide variety", "range"],
   "myriad": ["many", "countless", "numerous", "a host of", "a multitude of"],
   "reiterate": ["repeat", "restate", "say again", "emphasize", "stress"],
   "surmise": ["guess", "suppose", "speculate", "infer", "suspect"],
   "tacit": ["unspoken", "implied", "understood", "silent", "implicit"],
   "tenet": ["principle", "belief", "rule", "idea", "core value"],
-  "vis-a-vis": ["compared to", "regarding", "in relation to", "with respect to"],
+  "vis-a-vis": [
+    "compared to",
+    "regarding",
+    "in relation to",
+    "with respect to"
+  ],
   "whilst": ["while", "as", "during", "at the same time as"],
   "heretofore": ["before", "previously", "up to now", "until now", "so far"],
   "therein": ["in it", "inside", "within it", "there", "in that"],
   "whereby": ["by which", "through which", "so that", "in which"],
   "wherein": ["in which", "where", "in what way", "how"],
-  "aforementioned": ["mentioned above", "above", "previously mentioned", "said", "earlier"],
+  "aforementioned": [
+    "mentioned above",
+    "above",
+    "previously mentioned",
+    "said",
+    "earlier"
+  ],
   "notwithstanding": ["despite", "in spite of", "regardless of", "even with"],
-  "henceforth": ["from now on", "going forward", "in the future", "from this point on"],
+  "henceforth": [
+    "from now on",
+    "going forward",
+    "in the future",
+    "from this point on"
+  ],
   "indispensable": ["essential", "vital", "necessary", "crucial", "key"],
   "commensurate": ["matching", "proportional", "corresponding", "in line with"],
   "dichotomy": ["division", "split", "contrast", "gap", "divide"],
-  "epistemological": ["knowledge-related", "relating to knowledge", "about understanding"],
-  "existential": ["fundamental", "basic", "deep", "core", "relating to existence"],
-  "heuristic": ["rule of thumb", "practical approach", "guideline", "shortcut method"],
-  "nuanced": ["subtle", "refined", "detailed", "sophisticated", "finely judged"],
+  "epistemological": [
+    "knowledge-related",
+    "relating to knowledge",
+    "about understanding"
+  ],
+  "existential": [
+    "fundamental",
+    "basic",
+    "deep",
+    "core",
+    "relating to existence"
+  ],
+  "heuristic": [
+    "rule of thumb",
+    "practical approach",
+    "guideline",
+    "shortcut method"
+  ],
+  "nuanced": [
+    "subtle",
+    "refined",
+    "detailed",
+    "sophisticated",
+    "finely judged"
+  ],
   "spearhead": ["lead", "head up", "drive", "champion", "front"],
   "curate": ["select", "choose", "organize", "put together", "gather"],
-  "disruptive": ["game-changing", "groundbreaking", "radical", "revolutionary", "shaking things up"],
+  "disruptive": [
+    "game-changing",
+    "groundbreaking",
+    "radical",
+    "revolutionary",
+    "shaking things up"
+  ],
   "empower": ["enable", "equip", "give power to", "help", "arm"],
   "inclusive": ["open", "welcoming", "broad", "for everyone", "comprehensive"],
-  "purpose-driven": ["focused", "mission-led", "goal-oriented", "determined", "intentional"],
+  "purpose-driven": [
+    "focused",
+    "mission-led",
+    "goal-oriented",
+    "determined",
+    "intentional"
+  ],
   "sustainable": ["lasting", "durable", "long-term", "viable", "enduring"],
-  "bespoke": ["custom", "tailored", "personalized", "made-to-order", "custom-made"],
-  "resonate": ["connect with", "appeal to", "strike a chord", "relate to", "click with"],
+  "bespoke": [
+    "custom",
+    "tailored",
+    "personalized",
+    "made-to-order",
+    "custom-made"
+  ],
+  "resonate": [
+    "connect with",
+    "appeal to",
+    "strike a chord",
+    "relate to",
+    "click with"
+  ],
   "indelible": ["lasting", "permanent", "unforgettable", "enduring", "deep"],
   "meticulous": ["careful", "thorough", "detailed", "precise", "painstaking"],
-  "embolden": ["encourage", "strengthen", "inspire", "fortify", "give confidence"],
+  "embolden": [
+    "encourage",
+    "strengthen",
+    "inspire",
+    "fortify",
+    "give confidence"
+  ],
   "caveat": ["warning", "catch", "note", "condition", "exception"],
   "engender": ["cause", "create", "produce", "bring about", "generate"],
   "reinforce": ["strengthen", "support", "back up", "bolster", "shore up"]

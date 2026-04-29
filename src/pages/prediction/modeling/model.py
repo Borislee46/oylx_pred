@@ -1,4 +1,4 @@
-from functools import lru_cache
+import threading
 from typing import Any, Optional
 
 import numpy as np
@@ -61,8 +61,7 @@ class PredictionModel:
 
         self._setup_global_categories(global_categories_df)
         self._enable_categorical = self._check_categorical_support()
-
-        self._get_base_features_cached = lru_cache(maxsize=128)(self._preprocess_base_features_raw)
+        self._predict_lock = threading.Lock()
 
     def _setup_global_categories(self, global_categories_df: pd.DataFrame | None):
         self.global_categories = {}
@@ -207,11 +206,12 @@ class PredictionModel:
             return []
 
         input_tuple = tuple(sorted(input_data.items()))
-        base_preprocessed = self._get_base_features_cached(input_tuple, tuple(features))
+        base_preprocessed = self._preprocess_base_features_raw(input_tuple, tuple(features))
 
         df = self._create_prediction_dataframe(combinations, base_preprocessed, features)
 
-        probas = self.model.predict_proba(df)
+        with self._predict_lock:
+            probas = self.model.predict_proba(df)
         if probas.ndim == 2 and probas.shape[1] > 1:
             probas = probas[:, 1]
 

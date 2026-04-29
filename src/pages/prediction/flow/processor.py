@@ -31,9 +31,6 @@ from src.pages.prediction.result_modifier.filters import (
     get_similar_major_recommendations,
 )
 from src.pages.prediction.result_modifier.ranker import adjust_similarity_results_with_agent
-from src.utils.logger import setup_logger
-
-boundary_processor_logger = setup_logger("page3", "prediction")
 
 
 def _is_major_match(

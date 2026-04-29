@@ -123,6 +123,7 @@ def normalize_form_data_for_prediction(
         "target_majors": form_data.get("target_majors", []),
         "gpa": normalized_gpa,
         "language_score": final_normalized_lang_score,
+        "language_score_raw": raw_lang,
         "language_type": lang_type,
         "research_count": form_data.get("research_count"),
         "award_count": form_data.get("award_count"),

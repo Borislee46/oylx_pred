@@ -471,3 +471,123 @@
   color: var(--hk-cyan) !important;
   background-color: transparent !important;
 }
+
+/* ── Accent buttons — stat cards / lead-in ────────────────── */
+/*   White card style, cyan accent. Sits above default.       */
+.st-key-statbtn_total .stButton > button,
+.st-key-statbtn_high .stButton > button,
+.st-key-statbtn_mid .stButton > button,
+.st-key-statbtn_low .stButton > button,
+.st-key-lead_in_btn .stButton > button {
+  background: var(--hk-surface-elevated) !important;
+  color: var(--hk-cyan) !important;
+  border: 1px solid var(--hk-cyan-alpha-40) !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 0 0 1px var(--hk-cyan-alpha-08) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  transition:
+    background var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    color var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast) !important;
+}
+
+.st-key-statbtn_total .stButton > button:hover:not(:disabled):not([disabled]),
+.st-key-statbtn_high .stButton > button:hover:not(:disabled):not([disabled]),
+.st-key-statbtn_mid .stButton > button:hover:not(:disabled):not([disabled]),
+.st-key-statbtn_low .stButton > button:hover:not(:disabled):not([disabled]),
+.st-key-lead_in_btn .stButton > button:hover:not(:disabled):not([disabled]) {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan-alpha-12),
+    var(--hk-cyan-alpha-06)
+  ) !important;
+  border-color: var(--hk-cyan) !important;
+  color: var(--hk-cyan-dark) !important;
+  box-shadow:
+    0 4px 12px rgba(6, 182, 212, 0.15),
+    0 1px 3px rgba(15, 23, 42, 0.08),
+    0 0 0 1px var(--hk-cyan-alpha-20) !important;
+  transform: translateY(-1px) !important;
+}
+
+.st-key-statbtn_total .stButton > button:active:not(:disabled):not([disabled]),
+.st-key-statbtn_high .stButton > button:active:not(:disabled):not([disabled]),
+.st-key-statbtn_mid .stButton > button:active:not(:disabled):not([disabled]),
+.st-key-statbtn_low .stButton > button:active:not(:disabled):not([disabled]),
+.st-key-lead_in_btn .stButton > button:active:not(:disabled):not([disabled]) {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan-alpha-18),
+    var(--hk-cyan-alpha-10)
+  ) !important;
+  border-color: var(--hk-cyan-dark) !important;
+  color: var(--hk-cyan-dark) !important;
+  box-shadow:
+    0 1px 2px rgba(6, 182, 212, 0.1),
+    inset 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+  transform: translateY(0) scale(0.985) !important;
+}
+
+/* Remove default pseudo-elements on accent buttons */
+.st-key-statbtn_total .stButton > button::before,
+.st-key-statbtn_high .stButton > button::before,
+.st-key-statbtn_mid .stButton > button::before,
+.st-key-statbtn_low .stButton > button::before,
+.st-key-lead_in_btn .stButton > button::before,
+.st-key-statbtn_total .stButton > button::after,
+.st-key-statbtn_high .stButton > button::after,
+.st-key-statbtn_mid .stButton > button::after,
+.st-key-statbtn_low .stButton > button::after,
+.st-key-lead_in_btn .stButton > button::after {
+  display: none !important;
+}
+
+/* ── Explain button — filled cyan, heavier than accent ───── */
+/*   The "next step" action. Not 3D, but filled and prominent. */
+.st-key-explain_btn .stButton > button {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan),
+    var(--hk-cyan-dark)
+  ) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow:
+    0 2px 8px rgba(6, 182, 212, 0.25),
+    0 0 0 1px rgba(6, 182, 212, 0.15) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  transition:
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast),
+    filter var(--hk-transition-fast) !important;
+}
+
+.st-key-explain_btn .stButton > button:hover:not(:disabled):not([disabled]) {
+  box-shadow:
+    0 6px 20px rgba(6, 182, 212, 0.35),
+    0 0 0 2px rgba(6, 182, 212, 0.2) !important;
+  transform: translateY(-1px) !important;
+  filter: brightness(1.08) !important;
+}
+
+.st-key-explain_btn .stButton > button:active:not(:disabled):not([disabled]) {
+  box-shadow:
+    0 1px 4px rgba(6, 182, 212, 0.2),
+    inset 0 1px 3px rgba(15, 23, 42, 0.12) !important;
+  transform: translateY(0) scale(0.985) !important;
+  filter: brightness(0.95) !important;
+}
+
+.st-key-explain_btn .stButton > button::before,
+.st-key-explain_btn .stButton > button::after {
+  display: none !important;
+}

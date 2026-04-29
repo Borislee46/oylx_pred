@@ -30,6 +30,7 @@ class StudentContext:
     # ---------- 中期：MatchAdvisor 填充 ----------
     gpa: float = 0.0
     language_score: float = 0.0
+    language_score_raw: float = 0.0
     language_type: str = ""
     background_university: str = ""
     background_major: str = ""
@@ -60,7 +61,6 @@ class StudentContext:
 
     def to_dict(self) -> dict[str, Any]:
         return _dataclass_to_dict(self)
-
 
 
 def _dataclass_to_dict(obj: Any) -> Any:

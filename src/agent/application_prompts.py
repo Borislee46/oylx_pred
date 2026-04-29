@@ -26,11 +26,18 @@ APPLICATION_SYSTEM_PROMPT = """\
 """
 
 
-def build_application_prompt(gpa: float, language_type: str, language_score: float,
-                             background_university: str, background_major: str,
-                             target_country: str, experience_details: dict | None,
-                             unified_results: list, tier_threshold_high: float = 0.6,
-                             tier_threshold_low: float = 0.3) -> str:
+def build_application_prompt(
+    gpa: float,
+    language_type: str,
+    language_score: float,
+    background_university: str,
+    background_major: str,
+    target_country: str,
+    experience_details: dict | None,
+    unified_results: list,
+    tier_threshold_high: float = 0.6,
+    tier_threshold_low: float = 0.3,
+) -> str:
     lines = [
         "## 学生背景",
         f"- 院校：{background_university}",

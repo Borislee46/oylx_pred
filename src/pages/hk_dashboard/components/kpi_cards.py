@@ -22,8 +22,8 @@ def render_kpi_row(cards: list[dict]) -> None:
             f'<div class="hk-kpi-card t-{accent}">'
             f'<div class="kpi-value">{c["value"]}</div>'
             f'<div class="kpi-label">{c["label"]}</div>'
-            f'{sub_html}{formula_html}'
-            f'</div>'
+            f"{sub_html}{formula_html}"
+            f"</div>"
         )
     html += "</div>"
     st.html(html)

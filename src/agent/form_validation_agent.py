@@ -1,4 +1,3 @@
-import json
 import time
 from typing import Any
 
@@ -43,7 +42,9 @@ def _build_validation_prompt(form_data: dict[str, Any]) -> str:
     lines.append(f"- GPA：{gpa}（{gpa_scale}分制）")
     lines.append(f"- 语言：{language_type} {language_score}" if language_type else "- 语言：未填写")
     lines.append(f"- 目标地区：{', '.join(target_countries) if target_countries else '未选择'}")
-    lines.append(f"- 目标院校：{', '.join(target_universities[:5]) if target_universities else '未选择'}")
+    lines.append(
+        f"- 目标院校：{', '.join(target_universities[:5]) if target_universities else '未选择'}"
+    )
     lines.append(f"- 目标专业：{', '.join(target_majors[:5]) if target_majors else '未选择'}")
 
     experience = form_data.get("experience_details", {}) or {}
@@ -82,15 +83,15 @@ class FormValidationAgent(BaseAgent):
         prompt = _build_validation_prompt(form_data)
         full_prompt = f"{FORM_VALIDATION_SYSTEM_PROMPT}\n\n{prompt}"
         raw = self._call_api(
-            full_prompt, cache_prefix="form_validation", max_tokens=200,
+            full_prompt,
+            cache_prefix="form_validation",
+            max_tokens=200,
         )
 
         result = self._parse_response(raw)
         elapsed_ms = (time.perf_counter() - t_start) * 1000
         if result is None:
-            self.logger.warning(
-                f"[{self.agent_name}] VALIDATE FAILED | total={elapsed_ms:.0f}ms"
-            )
+            self.logger.warning(f"[{self.agent_name}] VALIDATE FAILED | total={elapsed_ms:.0f}ms")
             return {"issues": [], "overall_assessment": "校验暂不可用", "_error": "api_failed"}
 
         issues = result.get("issues", [])
@@ -111,15 +112,17 @@ class FormValidationAgent(BaseAgent):
 
         if gpa > 0:
             if gpa_scale == "4.0" and gpa > 4.0:
-                issues.append({
-                    "field": "gpa", "severity": "error",
-                    "message": f"GPA {gpa} 超出4.0分制范围，请检查量纲或重新输入"
-                })
+                issues.append(
+                    {
+                        "field": "gpa",
+                        "severity": "error",
+                        "message": f"GPA {gpa} 超出4.0分制范围，请检查量纲或重新输入",
+                    }
+                )
             elif gpa_scale == "5.0" and gpa > 5.0:
-                issues.append({
-                    "field": "gpa", "severity": "error",
-                    "message": f"GPA {gpa} 超出5.0分制范围"
-                })
+                issues.append(
+                    {"field": "gpa", "severity": "error", "message": f"GPA {gpa} 超出5.0分制范围"}
+                )
 
         lang_score = form_data.get("language_score", 0) or 0
         lang_type = form_data.get("language_type", "") or ""
@@ -128,39 +131,53 @@ class FormValidationAgent(BaseAgent):
             is_normalized = isinstance(lang_score, (int, float)) and 0 < lang_score <= 1
             if not is_normalized:
                 if lang_type == "雅思" and (lang_score < 3 or lang_score > 9):
-                    issues.append({
-                        "field": "language_score", "severity": "error",
-                        "message": f"雅思成绩 {lang_score} 不在合理范围(3-9)"
-                    })
+                    issues.append(
+                        {
+                            "field": "language_score",
+                            "severity": "error",
+                            "message": f"雅思成绩 {lang_score} 不在合理范围(3-9)",
+                        }
+                    )
                 elif lang_type == "托福" and (lang_score < 30 or lang_score > 120):
-                    issues.append({
-                        "field": "language_score", "severity": "error",
-                        "message": f"托福成绩 {lang_score} 不在合理范围(30-120)"
-                    })
+                    issues.append(
+                        {
+                            "field": "language_score",
+                            "severity": "error",
+                            "message": f"托福成绩 {lang_score} 不在合理范围(30-120)",
+                        }
+                    )
 
         bg_uni = (form_data.get("background_university") or "").strip()
         bg_major = (form_data.get("background_major") or "").strip()
         if not bg_uni:
-            issues.append({
-                "field": "background_university", "severity": "error",
-                "message": "院校未填写，此为必填项"
-            })
+            issues.append(
+                {
+                    "field": "background_university",
+                    "severity": "error",
+                    "message": "院校未填写，此为必填项",
+                }
+            )
         if not bg_major:
-            issues.append({
-                "field": "background_major", "severity": "error",
-                "message": "专业未填写，此为必填项"
-            })
+            issues.append(
+                {
+                    "field": "background_major",
+                    "severity": "error",
+                    "message": "专业未填写，此为必填项",
+                }
+            )
 
         experience = form_data.get("experience_details", {}) or {}
         for k, name in [("research", "科研"), ("internship", "实习"), ("paper", "论文")]:
             count = form_data.get(f"{k}_count", 0) or 0
             has_text = bool(experience.get(k))
             if count > 0 and not has_text:
-                issues.append({
-                    "field": f"{k}_details",
-                    "severity": "warn",
-                    "message": f"{name}有{count}段但缺少描述，建议补充以提升评估准确度"
-                })
+                issues.append(
+                    {
+                        "field": f"{k}_details",
+                        "severity": "warn",
+                        "message": f"{name}有{count}段但缺少描述，建议补充以提升评估准确度",
+                    }
+                )
 
         return issues
 

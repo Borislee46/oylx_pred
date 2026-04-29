@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 class AgentRegistry:
-    _agents: dict[str, Any] = {}
+    """Agent factory registry. Each call to get() creates a fresh instance.
+
+    Agents are NOT cached — every session thread gets its own instance,
+    ensuring _memory_cache, _session, and _stream_buffer are isolated.
+    """
+
     _factories: dict[str, Callable[[], Any]] = {}
 
     @classmethod
@@ -13,12 +19,8 @@ class AgentRegistry:
 
     @classmethod
     def get(cls, name: str) -> Any:
-        if name in cls._agents:
-            return cls._agents[name]
         if name in cls._factories:
-            instance = cls._factories[name]()
-            cls._agents[name] = instance
-            return instance
+            return cls._factories[name]()
         raise KeyError(f"Agent '{name}' 未注册。可用: {list(cls._factories.keys())}")
 
     @classmethod
@@ -27,5 +29,4 @@ class AgentRegistry:
 
     @classmethod
     def clear(cls) -> None:
-        cls._agents.clear()
         cls._factories.clear()

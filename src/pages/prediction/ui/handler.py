@@ -102,6 +102,7 @@ def run_prediction_with_guard(
 
     unified = getattr(prediction_result_model, "unified_results", None)
     if isinstance(unified, list) and len(unified) > 0:
+        prediction_handler_logger.info("预测成功 | 结果数=%d", len(unified))
         session_manager.set(
             prediction_results=prediction_result_model,
             **{session_keys.has_predicted: True, session_keys.predict_lock: False},
@@ -113,6 +114,14 @@ def run_prediction_with_guard(
         FormStateManager.update_form_snapshot_hash_after_prediction(session_manager)
         return True
 
+    prediction_handler_logger.warning(
+        "预测未生成有效结果 | error=%s",
+        (
+            getattr(prediction_result_model, "meta", {}).get("error", "unknown")
+            if prediction_result_model
+            else "null_result"
+        ),
+    )
     reset_prediction_results(session_manager)
     session_manager.set(**{session_keys.predict_lock: False})
     return False
@@ -130,10 +139,16 @@ def handle_form_submission(
 
     bg_major = input_data_from_form.get("background_major")
     if not all([input_data_from_form.get("background_university"), bg_major]):
+        prediction_handler_logger.info("表单提交缺少背景院校或专业，跳过预测")
         reset_prediction_results(session_manager)
         session_manager.delete(session_keys.input_data)
         return
 
+    prediction_handler_logger.info(
+        "表单提交 | 院校=%s 专业=%s",
+        input_data_from_form.get("background_university", "")[:40],
+        bg_major[:40],
+    )
     _run_form_validation_quick_check(session_manager, input_data_from_form)
 
     if not ctx.background_faculty:
@@ -157,8 +172,18 @@ def handle_form_submission(
 
         if is_cross_faculty:
             if agent_approved:
+                prediction_handler_logger.info(
+                    "跨学科检测: 智能体已批准 | bg=%s target=%s",
+                    bg_faculty,
+                    target_faculties,
+                )
                 session_manager.set(cross_faculty_confirmed=True)
             elif not session_manager.get("cross_faculty_confirmed", False):
+                prediction_handler_logger.warning(
+                    "跨学科检测: 需用户确认 | bg=%s target=%s",
+                    bg_faculty,
+                    target_faculties,
+                )
                 _update_progress(progress_cb, "检测到跨学科申请跨度较大，需进一步评估风险...")
                 session_manager.set(
                     hk_ui_phase="awaiting_confirm",
@@ -206,9 +231,11 @@ def _run_form_validation_quick_check(session_manager: "SessionManager", form_dat
     warnings = [i for i in issues if i["severity"] == "warn"]
 
     if errors:
+        prediction_handler_logger.warning("表单验证错误 | %s", [e["message"] for e in errors])
         for e in errors:
             st.error(e["message"])
 
     if warnings:
+        prediction_handler_logger.info("表单验证提醒 | %s", [w["message"] for w in warnings])
         for w in warnings:
             st.warning(w["message"])

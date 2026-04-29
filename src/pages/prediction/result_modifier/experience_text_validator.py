@@ -17,9 +17,6 @@ from src.pages.prediction.result_modifier.utils import (
     is_effectively_empty,
 )
 from src.utils.env_config_loader import load_app_config
-from src.utils.logger import setup_logger
-
-logger = setup_logger("page3", "prediction")
 
 
 def _get_streamlit():

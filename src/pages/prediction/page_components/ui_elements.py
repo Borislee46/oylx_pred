@@ -112,31 +112,44 @@ def render_lead_in_panel(session_manager) -> None:
         st.session_state["lead_in_ctx"] = StudentContext()
 
     ctx: StudentContext = st.session_state["lead_in_ctx"]
-    has_result = bool(ctx.quick_assessment)
+    has_lead_in = bool(ctx.quick_assessment)
+    has_predicted = session_manager.get("has_predicted", False)
+    form_active = (
+        has_lead_in
+        or bool(session_manager.get("lead_in_form_summary", ""))
+        or session_manager.get("form_expanded", False)
+    )
+
+    def _step_class(step: int) -> str:
+        if has_predicted:
+            return " hk-step-done"
+        if step == 1:
+            return " hk-step-done" if has_lead_in else " hk-step-active"
+        if step == 2:
+            return " hk-step-active" if form_active else ""
+        return ""
 
     st.html(
         '<div class="hk-step-row">'
-        f'<div class="hk-step-item{" hk-step-active" if not has_result else " hk-step-done"}">'
+        f'<div class="hk-step-item{_step_class(1)}">'
         '<div class="hk-step-num">1</div>'
         '<div class="hk-step-label">背景整理</div>'
         "</div>"
         '<div class="hk-step-connector"></div>'
-        f'<div class="hk-step-item{" hk-step-active" if has_result else ""}">'
+        f'<div class="hk-step-item{_step_class(2)}">'
         '<div class="hk-step-num">2</div>'
         '<div class="hk-step-label">表单核验</div>'
         "</div>"
         '<div class="hk-step-connector"></div>'
-        '<div class="hk-step-item">'
+        f'<div class="hk-step-item{_step_class(3)}">'
         '<div class="hk-step-num">3</div>'
         '<div class="hk-step-label">预测结果</div>'
         "</div>"
         "</div>"
     )
 
-    if not has_result:
+    if not has_lead_in:
         st.html(
-            '<div class="hk-section-label" style="margin-bottom:0.5rem">'
-            "背景整理</div>"
             '<p style="color:var(--hk-slate-400);font-size:0.8rem;margin:0 0 0.5rem 0">'
             "输入学生背景，系统会整理并填入表单</p>"
         )
@@ -153,7 +166,7 @@ def render_lead_in_panel(session_manager) -> None:
 
         c1, c2 = st.columns([1, 4])
         with c1:
-            analyze = st.button("整理信息", key="lead_in_btn", use_container_width=True)
+            analyze = st.button("整理信息", key="lead_in_btn", width="stretch")
 
         if analyze and raw.strip():
             progress = st.empty()
@@ -165,7 +178,7 @@ def render_lead_in_panel(session_manager) -> None:
             st.session_state["lead_in_ctx"] = ctx
             st.rerun()
 
-    if has_result:
+    if has_lead_in:
         _render_lead_in_summary(ctx, c2, session_manager)
 
 

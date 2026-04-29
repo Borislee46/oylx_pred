@@ -21,9 +21,10 @@ class LeadInAgent(BaseAgent):
         text = (user_input or context.raw_input or "").strip()
         input_chars = len(text)
         turn_count = len(context.conversation_turns)
-        has_existing = bool(context.extracted_background and any(
-            v for v in context.extracted_background.values() if v
-        ))
+        has_existing = bool(
+            context.extracted_background
+            and any(v for v in context.extracted_background.values() if v)
+        )
         self.logger.info(
             f"[{self.agent_name}] RUN START | input={input_chars}chars | "
             f"turn={turn_count} | has_existing_bg={has_existing}"
@@ -41,9 +42,7 @@ class LeadInAgent(BaseAgent):
                 ],
             }
 
-        context.conversation_turns.append(
-            {"role": "user", "content": text, "ts": time.time()}
-        )
+        context.conversation_turns.append({"role": "user", "content": text, "ts": time.time()})
 
         prompt = build_lead_in_prompt(
             text, context.extracted_background, context.conversation_turns
@@ -54,9 +53,7 @@ class LeadInAgent(BaseAgent):
         result = self._parse_response(raw)
         elapsed_ms = (time.perf_counter() - t_start) * 1000
         if result is None:
-            self.logger.warning(
-                f"[{self.agent_name}] RUN FAILED | total={elapsed_ms:.0f}ms"
-            )
+            self.logger.warning(f"[{self.agent_name}] RUN FAILED | total={elapsed_ms:.0f}ms")
             return {
                 "extracted_info": {},
                 "quick_assessment": "分析暂不可用，请稍后重试。",
@@ -73,16 +70,12 @@ class LeadInAgent(BaseAgent):
             {
                 "role": "agent",
                 "summary": context.quick_assessment[:120] if context.quick_assessment else "",
-                "fields_filled": sum(
-                    1 for v in context.extracted_background.values() if v
-                ),
+                "fields_filled": sum(1 for v in context.extracted_background.values() if v),
                 "ts": time.time(),
             }
         )
 
-        fields_filled = sum(
-            1 for v in context.extracted_background.values() if v
-        )
+        fields_filled = sum(1 for v in context.extracted_background.values() if v)
         self.logger.info(
             f"[{self.agent_name}] RUN OK | total={elapsed_ms:.0f}ms | "
             f"turn={turn_count}→{turn_count + 1} | "
@@ -104,9 +97,7 @@ class LeadInAgent(BaseAgent):
         )
 
 
-def _merge_extracted_background(
-    context: StudentContext, new_info: ExtractedBackground
-) -> None:
+def _merge_extracted_background(context: StudentContext, new_info: ExtractedBackground) -> None:
     """Merge new extracted info into existing background.
 
     Scalars overwrite on first non-null value only (preserving earlier
@@ -124,7 +115,7 @@ def _merge_extracted_background(
             continue  # preserve existing scalar values
         if k in mergeable_lists and k in existing and isinstance(existing[k], list):
             seen = set(existing[k])
-            for item in (v if isinstance(v, list) else [v]):
+            for item in v if isinstance(v, list) else [v]:
                 if str(item) not in seen:
                     existing[k].append(str(item))
                     seen.add(str(item))

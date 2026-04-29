@@ -9,9 +9,6 @@ from src.pages.prediction.result_modifier.config import (
     LANGUAGE_REQUIREMENT_PENALTY_MIDPOINT,
     LANGUAGE_REQUIREMENT_PENALTY_STEEPNESS,
 )
-from src.utils.logger import setup_logger
-
-logger = setup_logger("page3", "prediction")
 
 
 class LanguageRequirementPenalty:

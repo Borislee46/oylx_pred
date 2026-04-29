@@ -28,7 +28,17 @@ def load_kehu_ziyuan() -> pd.DataFrame:
 
 @st.cache_data(ttl=600, show_spinner=False)
 def load_tmk_data() -> pd.DataFrame:
-    return _safe_read(FILES["tmk"])
+    df = _safe_read(FILES["tmk"])
+    if not df.empty:
+        # Normalize: TMK CSV uses uppercase ID, other tables use lowercase
+        rename = {}
+        if "资源ID" in df.columns and "资源id" not in df.columns:
+            rename["资源ID"] = "资源id"
+        if "工单ID" in df.columns and "工单id" not in df.columns:
+            rename["工单ID"] = "工单id"
+        if rename:
+            df = df.rename(columns=rename)
+    return df
 
 
 @st.cache_data(ttl=600, show_spinner=False)

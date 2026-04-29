@@ -334,7 +334,6 @@ class BaseAgent:
             self.logger.warning(f"[{self.agent_name}] 流式API未配置")
             return
 
-        thinking = thinking_type or self.thinking_type or "disabled"
         input_tokens = self._estimate_tokens(prompt)
         self.logger.info(
             f"[{self.agent_name}] STREAM START | prompt={len(prompt)}chars ~{input_tokens}tk | "

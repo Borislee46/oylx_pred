@@ -148,6 +148,15 @@ class ProbabilityAdjustmentPipeline:
 
         if self.probability_adjuster and ctx.gpa is not None and ctx.language_score is not None:
             penalties = self.probability_adjuster.get_penalties(ctx.gpa, ctx.language_score)
+            logger.info(
+                "调整管道: batch=%s count=%d | gpa=%.2f lang=%.2f | gpa_penalty=%.2f lang_penalty=%.2f",
+                batch_tag,
+                len(results),
+                ctx.gpa,
+                ctx.language_score,
+                penalties.get("gpa", 0),
+                penalties.get("language", 0),
+            )
             if penalties.get("gpa", 0) > 0:
                 arbitrator.add_factor(
                     AdjustmentFactor(
@@ -184,6 +193,12 @@ class ProbabilityAdjustmentPipeline:
                 adjusted_results = self._apply_text_boost(adjusted_results, ctx.experience_details)
 
                 animator.clear()
+                logger.info(
+                    "文本提升已应用 | batch=%s count=%d items=%s",
+                    batch_tag,
+                    len(adjusted_results),
+                    items,
+                )
 
         return adjusted_results
 

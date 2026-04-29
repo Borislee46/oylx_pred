@@ -44,17 +44,10 @@ test.py
 *.xlsx
 venv312/
 
-<<<<<<< HEAD
-cache/
-=======
-cache/hrdata/
-cache/*.feather
-cache/**/*.feather
->>>>>>> 8cd3b6eb5ec7ef4a084c3f4716d9429701e2f0fc
-config/auth_config.json
-config/app_config.json
-config/hr_permissions.json
-config/dev_config.json
+# cache/ 
+# config/app_config.json
+# config/hr_permissions.json
+# config/dev_config.json
 .ruff_cache/
 cookie.txt
 

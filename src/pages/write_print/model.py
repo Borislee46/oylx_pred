@@ -5,20 +5,20 @@ import time
 
 import numpy as np
 from sklearn.linear_model import Ridge
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import LeaveOneOut, cross_val_score
 from sklearn.metrics import mean_absolute_error
+from sklearn.model_selection import LeaveOneOut, cross_val_score
+from sklearn.preprocessing import StandardScaler
 
-from src.utils.logger import setup_logger
 from src.pages.write_print.features import (
-    _ensure_nltk_data,
-    compute_features,
-    extract_text_from_pdf,
-    clean_turnitin_report,
-    parse_filename_score,
     FEATURE_NAMES,
     SAMPLE_DIR,
+    _ensure_nltk_data,
+    clean_turnitin_report,
+    compute_features,
+    extract_text_from_pdf,
+    parse_filename_score,
 )
+from src.utils.logger import setup_logger
 
 _log = setup_logger("page3", "write_print")
 
@@ -56,13 +56,17 @@ def fit_model(sample_dir=SAMPLE_DIR):
     X_scaled = scaler.fit_transform(X)
 
     alphas = [0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0]
-    best_alpha, best_mae = alphas[0], float('inf')
+    best_alpha, best_mae = alphas[0], float("inf")
     loo = LeaveOneOut()
 
     for alpha in alphas:
         ridge = Ridge(alpha=alpha)
         cv_scores = cross_val_score(
-            ridge, X_scaled, y, cv=loo, scoring='neg_mean_absolute_error',
+            ridge,
+            X_scaled,
+            y,
+            cv=loo,
+            scoring="neg_mean_absolute_error",
         )
         mae = -cv_scores.mean()
         if mae < best_mae:
@@ -84,7 +88,7 @@ def fit_model(sample_dir=SAMPLE_DIR):
 
 _model_cache = None
 _scaler_cache = None
-_cache_lock = threading.Lock()
+_cache_lock = threading.RLock()
 
 
 def get_model(sample_dir=SAMPLE_DIR):
@@ -106,19 +110,20 @@ _IMPACT_WEIGHTS = None
 def _learn_impacts(texts: list, actual_scores, scaler, model):
     global _IMPACT_WEIGHTS
     from collections import defaultdict
+
     from src.pages.write_print.engine import analyze
 
     cat_residuals = defaultdict(list)
 
-    for text, actual in zip(texts, actual_scores):
+    for text, actual in zip(texts, actual_scores, strict=False):
         result = analyze(text, scaler, model)
-        if 'error' in result:
+        if "error" in result:
             continue
-        residual = actual - result['score']
+        residual = actual - result["score"]
 
         cat_counts = defaultdict(int)
-        for fix in result['local_fixes']:
-            cat_counts[fix['category']] += 1
+        for fix in result["local_fixes"]:
+            cat_counts[fix["category"]] += 1
 
         for cat, count in cat_counts.items():
             if count > 0:
@@ -134,7 +139,9 @@ def _learn_impacts(texts: list, actual_scores, scaler, model):
 
 
 def get_impact_weights():
-    return _IMPACT_WEIGHTS
+    """Thread-safe read of learnt impact weights."""
+    with _cache_lock:
+        return _IMPACT_WEIGHTS
 
 
 def print_fit_report(model, scaler, X, y, names_list):
@@ -146,30 +153,35 @@ def print_fit_report(model, scaler, X, y, names_list):
 
     loo = LeaveOneOut()
     cv_scores = cross_val_score(
-        model, X_scaled, y, cv=loo, scoring='neg_mean_absolute_error',
+        model,
+        X_scaled,
+        y,
+        cv=loo,
+        scoring="neg_mean_absolute_error",
     )
     loo_mae = -cv_scores.mean()
 
-    print(f"\n{'='*70}")
-    print(f"FITTED SCORES  (Ridge alpha={model.alpha}, "
-          f"LOO-CV MAE={loo_mae:.1f}%, Train MAE={train_mae:.1f}%)")
-    print(f"{'='*70}")
+    print(f"\n{'=' * 70}")
+    print(
+        f"FITTED SCORES  (Ridge alpha={model.alpha}, "
+        f"LOO-CV MAE={loo_mae:.1f}%, Train MAE={train_mae:.1f}%)"
+    )
+    print(f"{'=' * 70}")
     print(f"{'File':<50} {'Actual':>6}  {'Fitted':>6}  {'Delta':>6}")
-    print(f"{'-'*70}")
+    print(f"{'-' * 70}")
     for i in range(n):
         short_name = names_list[i][:48]
-        print(f"{short_name:<50} {y[i]:>5.0f}%  {y_pred[i]:>5.0f}%  "
-              f"{y_pred[i]-y[i]:>+5.0f}%")
+        print(f"{short_name:<50} {y[i]:>5.0f}%  {y_pred[i]:>5.0f}%  {y_pred[i] - y[i]:>+5.0f}%")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"FEATURE WEIGHTS  (standardized, intercept={model.intercept_:.1f})")
-    print(f"{'='*70}")
-    for name, w in zip(FEATURE_NAMES, model.coef_):
+    print(f"{'=' * 70}")
+    for name, w in zip(FEATURE_NAMES, model.coef_, strict=True):
         print(f"  {name:<25}  {w:+.2f}")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("FEATURE-TARGET PEARSON r")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     for i, name in enumerate(FEATURE_NAMES):
         corr = np.corrcoef(X[:, i], y)[0, 1]
         print(f"  {name:<25}  r={corr:+.3f}")

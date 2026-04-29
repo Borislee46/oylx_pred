@@ -109,7 +109,7 @@ def filter_theme_feedback(
         reset_col, select_col, theme_col = st.columns([0.16, 0.42, 0.42])
         with reset_col:
             _control_spacer()
-            if st.button("重置", key=f"{state_prefix}_theme_reset", use_container_width=True):
+            if st.button("重置", key=f"{state_prefix}_theme_reset", width="stretch"):
                 st.session_state.pop(f"{state_prefix}_theme_group", None)
                 st.session_state.pop(f"{state_prefix}_theme_value", None)
         with select_col:
@@ -208,7 +208,7 @@ def render_evidence_filters(
             ).strip()
         with cols[-1]:
             _control_spacer()
-            if st.button("重置", key=f"{state_prefix}_evidence_reset", use_container_width=True):
+            if st.button("重置", key=f"{state_prefix}_evidence_reset", width="stretch"):
                 st.session_state.pop(f"{state_prefix}_evidence_group", None)
                 st.session_state.pop(f"{state_prefix}_evidence_detail", None)
                 st.session_state.pop(f"{state_prefix}_evidence_type", None)

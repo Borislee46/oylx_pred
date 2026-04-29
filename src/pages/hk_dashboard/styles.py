@@ -4,7 +4,8 @@ import streamlit as st
 
 
 def inject_hk_dashboard_styles() -> None:
-    st.html("""
+    st.html(
+        """
     <style>
     /* ── Root ── */
     .stMainBlockContainer { padding: 0.4rem 1.25rem 1.5rem 1.25rem; }
@@ -12,8 +13,8 @@ def inject_hk_dashboard_styles() -> None:
 
     /* ── Title ── */
     h1 {
-        font-size: 1.25rem; font-weight: 600; color: #0f172a;
-        padding: 0.15rem 0 0.35rem 0; margin: 0 0 0.5rem 0;
+        font-size: 1.05rem; font-weight: 600; color: #0f172a;
+        padding: 0.1rem 0 0.3rem 0; margin: 0 0 0.4rem 0;
         border-bottom: 1px solid #e2e8f0;
     }
 
@@ -117,4 +118,5 @@ def inject_hk_dashboard_styles() -> None:
 
     hr { border-color: #f1f5f9; margin: 0.5rem 0; }
     </style>
-    """)
+    """
+    )

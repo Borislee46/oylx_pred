@@ -124,7 +124,7 @@ def run_single_prediction(
         language_type=language_type or prediction_input.get("language_type"),
         background_university=background_university,
         progress_reporter=progress_reporter,
-        agent=page_state.boundary_agent,
+        agent=None,
         admitted_combinations=admitted_combinations,
     )
 

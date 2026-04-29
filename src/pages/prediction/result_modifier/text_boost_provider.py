@@ -6,9 +6,6 @@ from functools import lru_cache
 from typing import Any
 
 from src.pages.prediction.result_modifier.utils import has_any_experience
-from src.utils.logger import setup_logger
-
-logger = setup_logger("page3", "prediction")
 
 
 class TextBoostProvider(ABC):

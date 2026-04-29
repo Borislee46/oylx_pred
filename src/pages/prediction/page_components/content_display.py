@@ -7,15 +7,14 @@ import streamlit as st
 
 from src.agent.context import StudentContext
 from src.agent.registry import AgentRegistry
-from src.pages.prediction.application_readiness import (
-    build_readiness_profile,
-    render_readiness_card,
+from src.pages.prediction.ai_report import (
+    render_ai_section,
+    render_ai_section_streaming,
+    render_static_frame,
 )
 from src.pages.prediction.handler_config import DEFAULT_SESSION_KEYS
-from src.pages.prediction.page_components.display_helpers import show_explanation
 from src.pages.prediction.page_components.result_section import display_results_section
 from src.pages.prediction.results_handler import reset_prediction_results
-from src.utils import log_interaction_event
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
 
@@ -24,13 +23,15 @@ content_display_logger = setup_logger("page3", "prediction")
 
 def _render_ai_explanation(
     prediction_results,
-    background_university: str,
-    background_major: str,
-    gpa: float,
-    language_score: float,
-    language_type: str,
-    experience_details: dict | None,
+    input_data: dict[str, Any],
 ) -> None:
+    background_university = input_data.get("background_university", "")
+    background_major = input_data.get("background_major", "")
+    gpa = float(input_data.get("gpa", 0) or 0)
+    language_score = float(input_data.get("language_score", 0) or 0)
+    language_score_raw = float(input_data.get("language_score_raw", 0) or 0)
+    language_type = str(input_data.get("language_type", ""))
+    experience_details = input_data.get("experience_details")
     sim = prediction_results.similarity_results or []
     cross = prediction_results.cross_major_results or []
     unified = prediction_results.unified_results or []
@@ -53,27 +54,30 @@ def _render_ai_explanation(
 
     cached = st.session_state["explain_cache"].get(cache_key)
     if cached:
-        _show_explanation(cached)
+        render_static_frame(input_data, sim, cross, [])
+        render_ai_section(cached)
         return
 
-    # Manual trigger — don't auto-run
+    # Manual trigger — no frame until clicked
     if "explain_requested" not in st.session_state:
         st.session_state["explain_requested"] = False
 
     if not st.session_state["explain_requested"]:
-        c1, _ = st.columns([2, 5])
-        with c1:
-            if st.button("AI 选校解读", key="explain_btn", use_container_width=True):
+        c_left, _ = st.columns([2, 5])
+        with c_left:
+            if st.button("AI 选校解读", key="explain_btn", width="stretch"):
                 st.session_state["explain_requested"] = True
                 st.rerun()
         return
 
+    render_static_frame(input_data, sim, cross, [])
     ctx = StudentContext(
         stage="match",
         background_university=background_university,
         background_major=background_major,
         gpa=gpa,
         language_score=language_score,
+        language_score_raw=language_score_raw,
         language_type=language_type or "",
         experience_details=experience_details or {},
         prediction_results={
@@ -82,46 +86,41 @@ def _render_ai_explanation(
             "unified_results": unified,
         },
     )
-
     agent = AgentRegistry.get("explain")
 
-    placeholder = st.empty()
-    _render_analysis_progress(placeholder, "正在分析背景信息")
-    time.sleep(0.3)
-    _render_analysis_progress(placeholder, "正在评估申请竞争力")
-    time.sleep(0.3)
-    _render_analysis_progress(placeholder, "正在生成解读")
-
+    stream_placeholder = st.empty()
+    with stream_placeholder.container():
+        render_ai_section_streaming("")
     buffer = ""
+    last_update = 0.0
     for chunk in agent.stream(ctx):
         buffer += chunk or ""
-    _render_analysis_progress(placeholder, "分析完成")
+        now = time.monotonic()
+        if now - last_update < 0.08:
+            continue
+        partial = _try_extract_overview(buffer)
+        with stream_placeholder.container():
+            render_ai_section_streaming(partial or buffer[:300])
+        last_update = now
 
     result = agent.parse_stream_result() or agent._parse_response(buffer)
     st.session_state["explain_requested"] = False
 
     if result and result.get("overview"):
-        placeholder.empty()
         st.session_state["explain_cache"][cache_key] = result
-        _show_explanation(result)
+        with stream_placeholder.container():
+            render_ai_section(result)
     else:
-        placeholder.empty()
-        st.caption("解读暂不可用，可以稍后重试。")
+        stream_placeholder.empty()
+        st.caption("解读暂不可用，稍后重试。")
 
 
-def _render_analysis_progress(placeholder, text: str) -> None:
-    placeholder.markdown(
-        f'<div style="border-left:1.5px solid var(--hk-cyan);padding:0.5rem 0.8rem;'
-        f'color:var(--hk-slate-500);font-size:0.85rem;font-style:italic">'
-        f"{text}"
-        '<span class="hk-thought-wait">'
-        '<span class="hk-thought-wait-d1">.</span>'
-        '<span class="hk-thought-wait-d2">.</span>'
-        '<span class="hk-thought-wait-d3">.</span>'
-        "</span>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+def _try_extract_overview(text: str) -> str:
+    """Try to extract partial overview from streaming JSON."""
+    import re
+
+    m = re.search(r'"overview"\s*:\s*"([^"]*)', text)
+    return m.group(1) if m else ""
 
 
 def _build_explain_cache_key(
@@ -160,15 +159,7 @@ def _compact_results(items: list[dict]) -> list[tuple[str, str, float]]:
 
 
 def _compact_experience(experience_details: dict | None) -> dict[str, int]:
-    return {
-        str(k): len(str(v or ""))
-        for k, v in (experience_details or {}).items()
-        if v
-    }
-
-
-def _show_explanation(explanation: dict) -> None:
-    show_explanation(explanation)
+    return {str(k): len(str(v or "")) for k, v in (experience_details or {}).items() if v}
 
 
 def display_content(
@@ -203,44 +194,9 @@ def display_content(
         page_state.cases_df,
         submitted=submitted,
     )
-    readiness = build_readiness_profile(current_input_data, res_model)
-    render_readiness_card(readiness)
-    _log_readiness_once(session_manager, readiness)
-
-    if submitted and res_model and (res_model.similarity_results or res_model.cross_major_results):
+    if res_model and (res_model.similarity_results or res_model.cross_major_results):
         st.html('<hr class="hk-section-divider">')
-        _render_ai_explanation(
-            res_model,
-            current_input_data.get("background_university", ""),
-            current_input_data.get("background_major", ""),
-            current_input_data.get("gpa", 0),
-            current_input_data.get("language_score", 0),
-            current_input_data.get("language_type", ""),
-            current_input_data.get("experience_details"),
-        )
+        _render_ai_explanation(res_model, current_input_data)
 
     if not submitted and form_changed:
         session_manager.set(**{session_key_form_data_changed: False})
-
-
-def _log_readiness_once(
-    session_manager: SessionManager,
-    readiness: dict[str, Any],
-) -> None:
-    key_data = {
-        "score": readiness.get("score"),
-    }
-    key = hashlib.md5(json.dumps(key_data, sort_keys=True).encode()).hexdigest()
-    if session_manager.get("last_readiness_event_hash") == key:
-        return
-    session_manager.set(last_readiness_event_hash=key)
-    log_interaction_event(
-        "application_readiness",
-        {
-            "score": readiness.get("score"),
-            "label": readiness.get("label"),
-            "factor_scores": {
-                f["name"]: f.get("score") for f in readiness.get("factors", [])
-            },
-        },
-    )

@@ -27,9 +27,7 @@ class AgentOrchestrator:
             )
             return {"_error": f"agent_not_found:{agent_name}"}
         except Exception:
-            _ORCHESTRATOR_LOGGER.exception(
-                "Agent '%s' 执行异常", agent_name
-            )
+            _ORCHESTRATOR_LOGGER.exception("Agent '%s' 执行异常", agent_name)
             return {"_error": f"agent_error:{agent_name}"}
 
         context.record(
@@ -70,5 +68,5 @@ def _summarize(result: dict[str, Any], max_len: int = 80) -> str:
     keys = list(result.keys())
     summary = ", ".join(keys[:6])
     if len(summary) > max_len:
-        summary = summary[:max_len - 3] + "..."
+        summary = summary[: max_len - 3] + "..."
     return summary

@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
-import streamlit as st
 
 from src.pages.prediction.config.ui_messages import (
     PIPELINE_MESSAGES,
@@ -257,7 +256,6 @@ def _prepare_list_args(input_data: dict[str, Any]) -> tuple[list[str], list[str]
     return _to_list("_all_universities_target"), _to_list("_all_majors_target")
 
 
-@st.cache_data(ttl=600, show_spinner=False)
 def run_prediction_pipeline(
     input_data: dict[str, Any],
     model_name: str,

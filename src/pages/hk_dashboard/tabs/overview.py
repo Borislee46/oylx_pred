@@ -3,9 +3,12 @@
 import pandas as pd
 import streamlit as st
 
-from src.pages.hk_dashboard.charts import monthly_trend_line, simple_bar, donut_chart
-from src.pages.hk_dashboard.metrics.revenue_metrics import cash_income_monthly, cash_income_by_project
-from src.pages.hk_dashboard.metrics.funnel_metrics import consultant_ranking, channel_breakdown
+from src.pages.hk_dashboard.charts import donut_chart, monthly_trend_line, simple_bar
+from src.pages.hk_dashboard.metrics.funnel_metrics import channel_breakdown, consultant_ranking
+from src.pages.hk_dashboard.metrics.revenue_metrics import (
+    cash_income_by_project,
+    cash_income_monthly,
+)
 
 
 def render(data: dict[str, pd.DataFrame]) -> None:

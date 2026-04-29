@@ -69,6 +69,7 @@ class AgentAdjustmentEngine:
                 break
 
         if not candidates:
+            logger.info("Agent 调整: 无候选案例 | remaining=%d", remaining)
             return initial_results
 
         majors = [c.get("major", "") for c in candidates if c.get("major")]
@@ -83,8 +84,16 @@ class AgentAdjustmentEngine:
                 initial_results, candidates, decisions, max_adjust=remaining
             )
             self.session.adjusted_count += count
+            logger.info(
+                "Agent 调整完成 | decisions=%d adjusted=%d total_adjusted=%d/%d",
+                sum(decisions),
+                count,
+                self.session.adjusted_count,
+                self.session.target_diff,
+            )
             return adjusted_results
 
+        logger.info("Agent 调整: 无规则匹配 | candidates=%d", len(candidates))
         return initial_results
 
     def _process_decisions(self, cases: list[dict]) -> list[bool]:

@@ -31,16 +31,10 @@ class machine_learning_model:
     background_universities: set[str]
     target_base_df: pd.DataFrame
     university_country_map: dict[str, str]
-    boundary_agent: Any = None
 
     @classmethod
-    @st.cache_resource(
-        show_spinner=False,
-        scope="global",
-        on_release=lambda obj: obj.boundary_agent.close() if obj.boundary_agent else None,
-    )
+    @st.cache_resource(show_spinner=False, scope="global")
     def resource_loader(cls) -> "machine_learning_model":
-        from src.agent.boundary_case_agent import BoundaryCaseAgent
         from src.pages.prediction.core.utils import _data_manager
         from src.pages.prediction.input_form_components.target_options_service import (
             build_target_base_df,
@@ -73,8 +67,6 @@ class machine_learning_model:
 
         target_base_df, uni_country_map = build_target_base_df(unique_targets_df, details_df)
 
-        agent = BoundaryCaseAgent(cases_df=cases)
-
         return cls(
             prediction_model=model,
             loaded_feature_names=feature_list,
@@ -83,5 +75,4 @@ class machine_learning_model:
             background_universities=bg_unis,
             target_base_df=target_base_df,
             university_country_map=uni_country_map,
-            boundary_agent=agent,
         )

@@ -5,10 +5,7 @@ import streamlit as st
 
 from src.pages.prediction.results_handler import clear_pending_prediction_state
 from src.utils.app_data_loader import load_raw_cases_data, load_school_major_details_df
-from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
-
-guard_logger = setup_logger("page3", "prediction")
 
 
 @st.dialog("提示", width="small")

@@ -101,3 +101,7 @@ TMK      ─┼─→ enrollment tab (资源id join)
 `pages/hk_dashboard.py` — 薄路由，调用 `init_page(module_name="hk_dashboard")` + `render()`
 
 权限注册：`src/utils/auth/permission_checker.py` `MODULE_IDS` 已添加 `"hk_dashboard"`
+
+## 数据模型
+
+完整的表关联 ER 图、键值交集矩阵、列名修正详见 **[DATA_MODEL.md](DATA_MODEL.md)**。

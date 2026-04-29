@@ -10,13 +10,10 @@ from src.pages.prediction.data_sort_config import (
 )
 from src.pages.prediction.result_modifier.config import TOP_N_RECOMMENDATIONS
 from src.pages.prediction.result_modifier.utils import get_probability
-from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
 
-logger = setup_logger("page3", "prediction")
 
-
-def _get_column_config(
+def get_column_config(
     df: pd.DataFrame, column_widths: dict | None = None, label_map: dict | None = None
 ):
     column_widths = column_widths or {}
@@ -83,7 +80,7 @@ class ResultsDisplay:
             },
         }
 
-    def _display_dataframe(
+    def display_dataframe(
         self, df: pd.DataFrame, column_widths: dict | None = None, result_type: str | None = None
     ):
         if df.empty:
@@ -106,11 +103,11 @@ class ResultsDisplay:
         st.dataframe(
             styled_df,
             hide_index=True,
-            column_config=_get_column_config(df, column_widths, label_map=label_map),
+            column_config=get_column_config(df, column_widths, label_map=label_map),
             key=f"prediction_result_df_{result_type or 'default'}",
         )
 
-    def _get_result_dataframe(self, result_type: str, max_items: int | None = None) -> pd.DataFrame:
+    def get_result_dataframe(self, result_type: str, max_items: int | None = None) -> pd.DataFrame:
         results = self.result_types[result_type]["results"]
         if not results:
             return pd.DataFrame(columns=["推荐院校", "推荐专业", "录取概率", "推荐专业详情"])
@@ -141,6 +138,14 @@ class ResultsDisplay:
         return pd.DataFrame(data)
 
     def display(self):
+        st.html(
+            '<p style="font-size:0.68rem;color:var(--hk-slate-400);'
+            'margin-top:0.5rem;text-align:center">'
+            "机器学习算法未将时政变化、最新校方招生政策等作为特征因子，预测的录取概率仅供参考。"
+            "</p>"
+        )
+        return  # ── 完整列表暂时隐藏 ──
+
         session_manager = SessionManager()
         selected_majors = session_manager.get("selected_target_majors", [])
         has_user_specified = bool(selected_majors) and bool(self.user_specified_results)
@@ -168,13 +173,9 @@ class ResultsDisplay:
             with st.expander("查看完整列表"):
                 self._display_type("cross_major")
 
-        st.caption(
-            "机器学习算法未将时政变化、最新校方招生政策等作为特征因子，预测的录取概率仅供参考。"
-        )
-
     def _display_type(self, result_type: str):
         max_items = None if result_type == "user_specified" else TOP_N_RECOMMENDATIONS
-        df = self._get_result_dataframe(result_type, max_items=max_items)
-        self._display_dataframe(
+        df = self.get_result_dataframe(result_type, max_items=max_items)
+        self.display_dataframe(
             df, self.result_types[result_type]["config"], result_type=result_type
         )

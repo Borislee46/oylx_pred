@@ -5,26 +5,23 @@ from src.agent.base_agent import BaseAgent
 from src.agent.context import StudentContext
 
 EXPLAIN_SYSTEM_PROMPT = """\
-你是留学选校分析专家。根据预测结果和学生背景，生成专业易懂的中文解读。
+你是一位资深留学顾问，正为客户一对一解读选校预测结果。语气专业但有温度，像和客户面对面交谈，不要像机器报告。
 
-结果中可能包含调整标记（_adjustment_trace），说明概率被调整的原因：
-- "Cross Major Penalty"：跨专业惩罚（相似度不足）
-- "Faculty Out of Scope Penalty"：跨学部惩罚（学部跨度大）
-- "Professional Major Penalty"：专业项目缺实习背景
-- "Language Penalty"：语言成绩未达要求
-- "Text Boost"：经历文本质量提升
+结果中可能出现调整标记（_adjustment_trace），含义如下：
+- Cross Major Penalty：跨专业申请，专业匹配度不足
+- Faculty Out of Scope Penalty：跨学部申请，学科跨度较大
+- Professional Major Penalty：职业导向项目缺少对应实习
+- Language Penalty：语言成绩低于项目常规要求
+- Text Boost：经历描述质量较好，正向调整
 
-tier说明：高概率(≥60%)=保底，中等(30-60%)=适中，低(<30%)=冲刺。
+写作要点：
+1. overview：先肯定客户背景亮点，再客观指出短板。80-120字，口语化但不随意。
+2. strengths：客户真正的竞争优势（2-3条），每条一句话。
+3. concerns：需要正视的风险点（2-3条），给出具体原因而非泛泛而谈。
+4. summary：40-60字，给出明确的下一步建议。如果客户有明显短板，可以建议对应的提升方案（如科研/实习/语言）。
 
-解读要点：
-1. overview：综合评估学生背景水平和整体申请竞争力（80-120字）
-2. recommendations：选3-5个最优推荐，每个说明推荐理由
-3. strengths：学生的竞争优势（2-4条）
-4. concerns：需要关注的风险点（2-4条），如涉及跨专业/跨学部/语言等调整必须提及
-5. summary：40-60字总结建议，给出最值得优先处理的下一步动作
-
-严格输出JSON，无其他内容：
-{"overview":"...","recommendations":[{"school":"","major":"","probability":0,"tier":"冲刺|适中|保底","reason":""}],"strengths":[""],"concerns":[""],"summary":"..."}
+严格输出JSON：
+{"overview":"...","strengths":[""],"concerns":[""],"summary":"..."}
 """
 
 
@@ -55,64 +52,79 @@ def _fmt_trace(trace: list | None) -> str:
 
 def _build_explain_prompt(ctx: StudentContext) -> str:
     bg = ctx.extracted_background or {}
+
+    # Format language score properly
+    lang_type = ctx.language_type or bg.get("language_type", "")
+    raw_lang = ctx.language_score_raw or bg.get("language_score")
+    if raw_lang and raw_lang > 0:
+        if lang_type in ("托福", "TOEFL"):
+            lang_str = f"{lang_type} {raw_lang:.0f}"
+        else:
+            lang_str = f"雅思 {raw_lang:.1f}"
+    else:
+        lang_str = "未知"
+
     lines = [
         "## 学生背景",
-        f"- 院校：{ctx.background_university or bg.get('university', '未知')}",
-        f"- 专业：{ctx.background_major or bg.get('major', '未知')}",
-        f"- GPA：{ctx.gpa or bg.get('gpa', '未知')}",
-        f"- 语言：{ctx.language_type or bg.get('language_type', '')} "
-        f"{ctx.language_score or bg.get('language_score', '')}",
+        f"院校：{ctx.background_university or bg.get('university', '未知')}",
+        f"专业：{ctx.background_major or bg.get('major', '未知')}",
+        f"GPA：{ctx.gpa or bg.get('gpa', '未知')}",
+        f"语言：{lang_str}",
     ]
 
-    exp = ctx.experience_details
-    if exp:
-        parts = []
-        for k in ("research", "internship", "award", "paper"):
-            v = exp.get(k)
-            if v:
-                parts.append(str(v))
-        if parts:
-            lines.append(f"- 经历：{'; '.join(parts)}")
+    exp = ctx.experience_details or bg
+    exp_parts = []
+    for k, label in [
+        ("research", "科研"),
+        ("internship", "实习"),
+        ("award", "获奖"),
+        ("paper", "论文"),
+    ]:
+        v = exp.get(k) if exp else None
+        if v:
+            exp_parts.append(f"{label}：{v}")
+    if exp_parts:
+        lines.append(f"经历：{'；'.join(exp_parts)}")
+    else:
+        lines.append("经历：暂无")
 
     results = ctx.prediction_results or {}
-    unified = results.get("unified_results") or []
     sim = results.get("similarity_results") or []
     cross = results.get("cross_major_results") or []
+    unified = results.get("unified_results") or []
 
-    lines.append(f"\n## 预测结果（共 {len(unified)} 条推荐）")
+    total = len(unified) or len(sim) + len(cross)
+    lines.append(f"\n## 预测结果（共 {total} 条推荐）")
 
-    def _fmt_results(label: str, items: list) -> None:
+    def _add(label: str, items: list) -> None:
         if not items:
             return
-        lines.append(f"\n### {label}")
-        for i, r in enumerate(items[:6]):
+        lines.append(f"\n{label}：")
+        for i, r in enumerate(items[:5]):
             uni = r.get("university", "")
             maj = r.get("major", "")
             prob = r.get("probability", 0)
-            sim_score = r.get("similarity", 0)
-            trace_str = _fmt_trace(r.get("_adjustment_trace"))
-            lang_adj = " [语言惩罚]" if r.get("language_penalty_applied") else ""
-            line = f"{i + 1}. {uni} {maj}：{_fmt_prob(prob)} | 相似度{sim_score:.2f}"
-            if trace_str:
-                line += f" | 调整: {trace_str}"
-            if lang_adj:
-                line += lang_adj
-            lines.append(line)
+            traces = []
+            trace = r.get("_adjustment_trace")
+            if isinstance(trace, list):
+                for t in trace:
+                    name = t.get("name", "") if isinstance(t, dict) else str(t)
+                    if "penalty" in name.lower():
+                        traces.append(name)
+            lang_pen = " [语言]" if r.get("language_penalty_applied") else ""
+            trace_note = f"({' '.join(traces)})" if traces else ""
+            lines.append(f"  {i + 1}. {uni} {maj}  {_fmt_prob(prob)}{lang_pen}{trace_note}")
 
-    _fmt_results("相似专业", sim)
-    _fmt_results("跨专业", cross)
+    _add("相似专业推荐", sim)
+    _add("跨专业推荐", cross)
 
     if unified:
-        lines.append(f"\n### 综合排序（前6）")
-        for i, r in enumerate(unified[:6]):
+        lines.append("\n综合排名前5：")
+        for i, r in enumerate(unified[:5]):
             uni = r.get("university", "")
             maj = r.get("major", "")
             prob = r.get("probability", 0)
-            trace_str = _fmt_trace(r.get("_adjustment_trace"))
-            line = f"{i + 1}. {uni} {maj}：{_fmt_prob(prob)}"
-            if trace_str:
-                line += f" | {trace_str}"
-            lines.append(line)
+            lines.append(f"  {i + 1}. {uni} {maj}  {_fmt_prob(prob)}")
 
     return "\n".join(lines)
 
@@ -165,9 +177,7 @@ class ExplainAgent(BaseAgent):
         result = self._parse_response(raw)
         elapsed_ms = (time.perf_counter() - t_start) * 1000
         if result is None:
-            self.logger.warning(
-                f"[{self.agent_name}] RUN FAILED | total={elapsed_ms:.0f}ms"
-            )
+            self.logger.warning(f"[{self.agent_name}] RUN FAILED | total={elapsed_ms:.0f}ms")
             return {"overview": "解释暂不可用", "_error": "api_failed"}
 
         context.ai_explanation = result.get("overview", "")
