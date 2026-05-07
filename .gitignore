@@ -54,4 +54,6 @@ cookie.txt
 .mypy_cache/
 .gitattributes
 
+src/pages/write_print/data/sample/
+src/pages/write_print/data/sample_manifest.json
 node_modules/
