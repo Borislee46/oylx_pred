@@ -20,7 +20,7 @@ def _get_hk_shield_component():
 def mount_hk_shield_v2(key: str = "hk_shield_v2"):
     assets_dir = Path("assets/ui/hk_shield")
     style_css, _, _ = load_component_assets(assets_dir)
-    st.markdown(f"<style>{style_css}</style>", unsafe_allow_html=True)
+    st.html(f"<style>{style_css}</style>")
 
     comp = _get_hk_shield_component()
     return comp(key=key, height=0)

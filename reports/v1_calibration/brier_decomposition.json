@@ -1,0 +1,38 @@
+{
+  "raw_xgboost": {
+    "brier_score": 0.204386,
+    "calibration_reliability": 0.020249,
+    "refinement_resolution": 0.039428,
+    "uncertainty": 0.223565,
+    "check": "brier = cal - ref + unc",
+    "check_value": 0.204386,
+    "base_rate": 0.3374,
+    "n_samples": 12344,
+    "n_bins": 10,
+    "interpretation": {
+      "calibration": "0 = perfect calibration. Higher = predicted probabilities deviate from observed rates.",
+      "refinement": "Higher = better discrimination across risk groups. 0 = model always predicts base rate.",
+      "uncertainty": "Brier of naive base-rate predictor (=0.3374). Irreducible error ceiling."
+    }
+  },
+  "sigmoid_calibrated": {
+    "brier_score": 0.185886,
+    "calibration_reliability": 0.001128,
+    "refinement_resolution": 0.038807,
+    "uncertainty": 0.223565,
+    "check": "brier = cal - ref + unc",
+    "check_value": 0.185886,
+    "base_rate": 0.3374,
+    "n_samples": 12344,
+    "n_bins": 10,
+    "interpretation": {
+      "calibration": "0 = perfect calibration. Higher = predicted probabilities deviate from observed rates.",
+      "refinement": "Higher = better discrimination across risk groups. 0 = model always predicts base rate.",
+      "uncertainty": "Brier of naive base-rate predictor (=0.3374). Irreducible error ceiling."
+    }
+  },
+  "delta": {
+    "brier_score_improvement": 0.0185,
+    "calibration_improvement": 0.019121
+  }
+}

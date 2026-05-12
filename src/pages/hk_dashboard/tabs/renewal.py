@@ -26,6 +26,9 @@ def _available_months(roster: pd.DataFrame) -> list[str]:
     # Exclude current month (incomplete data) and any future months
     now_month = pd.Timestamp.now().strftime("%Y-%m")
     months = [m for m in months if m < now_month]
+    # Cohort method needs M+1 data; drop last month since next month is incomplete
+    if len(months) >= 2:
+        months = months[:-1]
     return months
 
 
@@ -102,49 +105,52 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     st.html("<h3>教师续费率</h3>")
     c1, c2 = st.columns([2, 3])
     with c1:
-        if not renewal_df.empty:
-            simple_bar(
-                renewal_df.head(15),
-                "教师",
-                "续费率",
-                horizontal=True,
-                color="#2563eb",
-                height=240,
-                fmt=".0%",
-            )
-        st.html(
-            '<div class="hk-note">主带课教师 | GROUP BY 教师 | 续费率 = 次月在班 / 当月学员</div>'
-        )
-    with c2:
-        st.html("<h3>奖金明细</h3>")
-        if not bonus_df.empty:
-            display = bonus_df[
-                [
+        with st.container(border=True):
+            if not renewal_df.empty:
+                simple_bar(
+                    renewal_df.head(15),
                     "教师",
-                    "当月学员数",
-                    "次月在班数",
                     "续费率",
-                    "单价(HKD/课时)",
-                    "当月课时",
-                    "应发奖金(HKD)",
-                ]
-            ].copy()
-            display["续费率"] = display["续费率"].apply(lambda x: f"{x:.0%}")
-            render_filterable_table(display, key="bonus_table")
-        st.html(
-            '<div class="hk-note">奖金阶梯: 续费率[50%,75%)/[75%,85%)/[85%,100%] × 班型[1-24]/[25-49]/[50+] 人</div>'
-        )
+                    horizontal=True,
+                    color="#2563eb",
+                    height=210,
+                    fmt=".0%",
+                )
+            st.html(
+                '<div class="hk-note">主带课教师 | GROUP BY 教师 | 续费率 = 次月在班 / 当月学员</div>'
+            )
+    with c2:
+        with st.container(border=True):
+            st.html("<h3>奖金明细</h3>")
+            if not bonus_df.empty:
+                display = bonus_df[
+                    [
+                        "教师",
+                        "当月学员数",
+                        "次月在班数",
+                        "续费率",
+                        "单价(HKD/课时)",
+                        "当月课时",
+                        "应发奖金(HKD)",
+                    ]
+                ].copy()
+                display["续费率"] = display["续费率"].apply(lambda x: f"{x:.0%}")
+                render_filterable_table(display, key="bonus_table")
+            st.html(
+                '<div class="hk-note">奖金阶梯: 续费率[50%,75%)/[75%,85%)/[85%,100%] × 班型[1-24]/[25-49]/[50+] 人</div>'
+            )
 
-    st.html("<h3>续费率区间分布</h3>")
-    if not renewal_df.empty:
-        bins = [0, 0.5, 0.75, 0.85, 1.01]
-        labels = ["< 50%", "50% - 75%", "75% - 85%", "85% - 100%"]
-        renewal_df["续费率区间"] = pd.cut(
-            renewal_df["续费率"], bins=bins, labels=labels, right=False
-        )
-        dist = renewal_df["续费率区间"].value_counts().reset_index(name="count")
-        dist.columns = ["区间", "count"]
-        simple_bar(dist, "区间", "count", color="#0d9488", height=200)
+    with st.container(border=True):
+        st.html("<h3>续费率区间分布</h3>")
+        if not renewal_df.empty:
+            bins = [0, 0.5, 0.75, 0.85, 1.01]
+            labels = ["< 50%", "50% - 75%", "75% - 85%", "85% - 100%"]
+            renewal_df["续费率区间"] = pd.cut(
+                renewal_df["续费率"], bins=bins, labels=labels, right=False
+            )
+            dist = renewal_df["续费率区间"].value_counts().reset_index(name="count")
+            dist.columns = ["区间", "count"]
+            simple_bar(dist, "区间", "count", color="#0d9488", height=180)
 
     # ── Validation expander ──
     st.divider()

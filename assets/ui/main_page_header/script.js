@@ -1,15 +1,4 @@
-(function () {
-  const fe = window.frameElement;
-  if (fe) {
-    fe.style.cssText =
-      "position:absolute!important;left:-9999px!important;width:0!important;height:0!important;border:0!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;";
-    const shell = fe.closest('[data-testid="stElementContainer"]');
-    if (shell) {
-      shell.style.cssText =
-        "display:none!important;width:0!important;height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;";
-    }
-  }
-
+export default function (component) {
   const root = window.parent.document.documentElement;
   let ticking = false;
   let mouseX = 0;
@@ -28,7 +17,6 @@
     (e) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
-
       if (!ticking) {
         window.parent.requestAnimationFrame(updateParallax);
         ticking = true;
@@ -45,4 +33,4 @@
       anchor.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, 50);
-})();
+}

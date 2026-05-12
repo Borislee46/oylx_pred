@@ -1,0 +1,30 @@
+Note
+If you are only interested in using Streamlit Components, then you can skip this section and head over to the Streamlit Components Gallery to find and install components created by the community!
+
+Developers can write JavaScript and HTML "components" that can be rendered in Streamlit apps. Streamlit Components can receive data from, and also send data to, Streamlit Python scripts.
+
+Streamlit Components let you expand the functionality provided in the base Streamlit package. Use Streamlit Components to create the needed functionality for your use-case, then wrap it up in a Python package and share with the broader Streamlit community!
+
+With Streamlit Components you can add new features to your app in the following ways:
+
+Create your own components to use in place of existing Streamlit elements and widgets.
+Create completely new Streamlit elements and widgets by wrapping existing React.js, Vue.js, or other JavaScript widget toolkits.
+Render Python objects by constructing HTML representations and styling them to fit your app's theme.
+Create convenience functions to embed commonly-used web features like GitHub gists and Pastebin.
+Check out these Streamlit Components tutorial videos by Streamlit engineer Tim Conkling to get started:
+
+Part 1: Setup and Architecture
+
+Part 2: Make a Slider Widget
+
+Limitations of custom components
+How do Streamlit Components differ from functionality provided in the base Streamlit package?
+Streamlit Components are wrapped up in an iframe, which gives you the ability to do whatever you want (within the iframe) using any web technology you like.
+What types of things aren't possible with Streamlit Components?
+Because each Streamlit Component gets mounted into its own sandboxed iframe, this implies a few limitations on what is possible with Components:
+
+Can't communicate with other Components: Components can’t contain (or otherwise communicate with) other components, so Components cannot be used to build something like a grid layout.
+Can't modify CSS: A Component can’t modify the CSS that the rest of the Streamlit app uses, so you can't create something to put the app in dark mode, for example.
+Can't add/remove elements: A Component can’t add or remove other elements of a Streamlit app, so you couldn't make something to remove the app menu, for example.
+My Component seems to be blinking/stuttering...how do I fix that?
+Currently, no automatic debouncing of Component updates is performed within Streamlit. The Component creator themselves can decide to rate-limit the updates they send back to Streamlit.

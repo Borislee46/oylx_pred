@@ -25,9 +25,11 @@ def _render_pipeline(kehu, tmk, qianyue) -> None:
     with c1:
         st.html("<h3>TMK 外呼管道</h3>")
         total_tmk = len(tmk)
-        called = tmk["外呼次数"].notna().sum()
-        has_wo = tmk["工单id"].notna().sum()
-        processed = (tmk["资源状态"] == "已处理").sum()
+        # Nested funnel: each stage is a subset of the previous
+        called_mask = tmk["外呼次数"].notna()
+        called = called_mask.sum()
+        has_wo = (called_mask & tmk["工单id"].notna()).sum()
+        processed = (called_mask & tmk["工单id"].notna() & (tmk["资源状态"] == "已处理")).sum()
         stages = [
             ("TMK 资源", total_tmk, "#2563eb"),
             ("已外呼", called, "#0d9488"),
@@ -38,14 +40,15 @@ def _render_pipeline(kehu, tmk, qianyue) -> None:
         for i, (label, val, color) in enumerate(stages):
             pct = val / (stages[0][1] or 1) * 100
             ratio = f"{(val / stages[i - 1][1] * 100):.0f}%" if i > 0 and stages[i - 1][1] else ""
-            bar_pct = max(pct * 0.85, 3)
+            bar_pct = max(pct, 2)
             html += (
                 f'<div style="margin-bottom:3px;display:flex;align-items:center">'
                 f'<span style="width:52px;font-size:0.72rem;font-weight:600;color:#475569">{label}</span>'
                 f'<span style="width:52px;font-size:0.76rem;font-weight:700;color:{color}">{val:,}</span>'
                 f'<span style="width:34px;font-size:0.64rem;color:#94a3b8">{ratio}</span>'
-                f'<span style="flex:1;margin-left:3px;background:{color};height:14px;'
-                f'border-radius:2px;width:{bar_pct:.0f}%"></span>'
+                f'<span style="flex:1;margin-left:3px;height:14px;background:#f1f5f9;border-radius:2px;">'
+                f'<span style="display:block;height:100%;background:{color};border-radius:2px;'
+                f'width:{bar_pct:.0f}%;"></span></span>'
                 f"</div>"
             )
         html += "</div>"
@@ -67,13 +70,14 @@ def _render_pipeline(kehu, tmk, qianyue) -> None:
         html2 = '<div style="padding:0.15rem 0">'
         for label, val, color in items:
             pct = val / (items[0][1] or 1) * 100
-            bar_pct = max(pct * 0.85, 4)
+            bar_pct = max(min(pct, 100), 3)
             html2 += (
                 f'<div style="margin-bottom:3px;display:flex;align-items:center">'
                 f'<span style="width:58px;font-size:0.72rem;font-weight:600;color:#475569">{label}</span>'
                 f'<span style="width:52px;font-size:0.76rem;font-weight:700;color:{color}">{val:,}</span>'
-                f'<span style="flex:1;margin-left:3px;background:{color};height:14px;'
-                f'border-radius:2px;width:{bar_pct:.0f}%"></span>'
+                f'<span style="flex:1;margin-left:3px;height:14px;background:#f1f5f9;border-radius:2px;">'
+                f'<span style="display:block;height:100%;background:{color};border-radius:2px;'
+                f'width:{bar_pct:.0f}%;"></span></span>'
                 f"</div>"
             )
         html2 += "</div>"
@@ -149,19 +153,21 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     st.html("<h2>渠道分析</h2>")
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>资源渠道</h3>")
-        ch = channel_breakdown(kehu)
-        if not ch.empty:
-            donut_chart(ch, "渠道", "count", max_categories=6, height=220)
+        with st.container(border=True):
+            st.html("<h3>资源渠道</h3>")
+            ch = channel_breakdown(kehu)
+            if not ch.empty:
+                donut_chart(ch, "渠道", "count", max_categories=6, height=180)
     with c2:
-        st.html("<h3>签约渠道</h3>")
-        if "二级获取渠道" in qianyue.columns:
-            ch2 = qianyue["二级获取渠道"].value_counts().reset_index(name="count")
-            ch2.columns = ["渠道", "count"]
-            if not ch2.empty:
-                simple_bar(
-                    ch2.head(10), "渠道", "count", horizontal=True, color="#0d9488", height=200
-                )
+        with st.container(border=True):
+            st.html("<h3>签约渠道</h3>")
+            if "二级获取渠道" in qianyue.columns:
+                ch2 = qianyue["二级获取渠道"].value_counts().reset_index(name="count")
+                ch2.columns = ["渠道", "count"]
+                if not ch2.empty:
+                    simple_bar(
+                        ch2.head(10), "渠道", "count", horizontal=True, color="#0d9488", height=180
+                    )
 
     st.html("<h2>工单跟进</h2>")
     wo_stats = work_order_follow_up_stats(tmk, qianyue)
@@ -182,7 +188,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     c1, c2 = st.columns([2, 3])
     with c1:
         if not ranking.empty:
-            simple_bar(ranking.head(15), "顾问姓名", "签约数", horizontal=True, height=260)
+            simple_bar(ranking.head(15), "顾问姓名", "签约数", horizontal=True, height=240)
     with c2:
         render_filterable_table(ranking, key="consultant_ranking")
 
@@ -199,31 +205,37 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     st.html("<h2>签约趋势与产品</h2>")
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>月度签约趋势</h3>")
-        sign_trend = monthly_signing_trend(qianyue)
-        if not sign_trend.empty:
-            monthly_trend_line(sign_trend, "月份", "签约数", color="#0d9488", height=200)
-        st.html('<div class="hk-note">签约列表 | GROUP BY MONTH(签约时间) | COUNT(签约单id)</div>')
-    with c2:
-        st.html("<h3>签约金额趋势</h3>")
-        if not sign_trend.empty:
-            monthly_trend_line(
-                sign_trend, "月份", "签约金额", color="#d97706", currency=True, height=200
+        with st.container(border=True):
+            st.html("<h3>月度签约趋势</h3>")
+            sign_trend = monthly_signing_trend(qianyue)
+            if not sign_trend.empty:
+                monthly_trend_line(sign_trend, "月份", "签约数", color="#0d9488", height=180)
+            st.html(
+                '<div class="hk-note">签约列表 | GROUP BY MONTH(签约时间) | COUNT(签约单id)</div>'
             )
-        st.html('<div class="hk-note">签约列表 | GROUP BY MONTH(签约时间) | SUM(学费)</div>')
+    with c2:
+        with st.container(border=True):
+            st.html("<h3>签约金额趋势</h3>")
+            if not sign_trend.empty:
+                monthly_trend_line(
+                    sign_trend, "月份", "签约金额", color="#d97706", currency=True, height=180
+                )
+            st.html('<div class="hk-note">签约列表 | GROUP BY MONTH(签约时间) | SUM(学费)</div>')
 
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>签约产品分布</h3>")
-        by_prod = signing_by_product(qianyue)
-        if not by_prod.empty:
-            simple_bar(
-                by_prod, "课程产品名称", "签约数", horizontal=True, color="#0d9488", height=200
-            )
-        st.html('<div class="hk-note">签约列表 | GROUP BY 课程产品名称 | COUNT(签约单id)</div>')
+        with st.container(border=True):
+            st.html("<h3>签约产品分布</h3>")
+            by_prod = signing_by_product(qianyue)
+            if not by_prod.empty:
+                simple_bar(
+                    by_prod, "课程产品名称", "签约数", horizontal=True, color="#0d9488", height=180
+                )
+            st.html('<div class="hk-note">签约列表 | GROUP BY 课程产品名称 | COUNT(签约单id)</div>')
     with c2:
-        st.html("<h3>渠道 × 产品</h3>")
-        cross = channel_product_cross(qianyue)
-        if not cross.empty:
-            grouped_bar(cross.head(20), "一级获取渠道", "签约数", "课程产品名称", height=250)
-        st.html('<div class="hk-note">签约列表 | GROUP BY 一级获取渠道, 课程产品名称</div>')
+        with st.container(border=True):
+            st.html("<h3>渠道 × 产品</h3>")
+            cross = channel_product_cross(qianyue)
+            if not cross.empty:
+                grouped_bar(cross.head(20), "一级获取渠道", "签约数", "课程产品名称", height=180)
+            st.html('<div class="hk-note">签约列表 | GROUP BY 一级获取渠道, 课程产品名称</div>')

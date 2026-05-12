@@ -49,31 +49,36 @@ def render(data: dict[str, pd.DataFrame]) -> None:
 
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>by 产品品类</h3>")
-        by_proj = cash_income_by_project(filtered)
-        simple_bar(by_proj, "产品品类", "现金收入", fmt=",.0f", height=200)
+        with st.container(border=True):
+            st.html("<h3>by 产品品类</h3>")
+            by_proj = cash_income_by_project(filtered)
+            simple_bar(by_proj, "产品品类", "现金收入", fmt=",.0f", height=180)
     with c2:
-        st.html("<h3>by 季度</h3>")
-        by_q = cash_income_by_quarter(filtered)
-        if not by_q.empty:
-            grouped_bar(by_q, "季度", "现金收入", "业务归属年", height=220)
+        with st.container(border=True):
+            st.html("<h3>by 季度</h3>")
+            by_q = cash_income_by_quarter(filtered)
+            if not by_q.empty:
+                grouped_bar(by_q, "季度", "现金收入", "业务归属年", height=180)
 
-    st.html("<h3>月度趋势</h3>")
-    monthly = cash_income_monthly(filtered)
-    monthly_trend_line(monthly, "月份", "现金收入", currency=True, height=200)
-    st.html(
-        '<div class="hk-note">收入人次 | GROUP BY MONTH(业务日期) | SUM(现金收入) | 退费含负值</div>'
-    )
-
+    with st.container(border=True):
+        st.html("<h3>月度趋势</h3>")
+        monthly = cash_income_monthly(filtered)
+        monthly_trend_line(monthly, "月份", "现金收入", currency=True, height=180)
     # ── MoM / YoY ──
     kpi = mom_yoy_kpi(filtered)
+    # Refund rate
+    _all_amt = pd.to_numeric(filtered["现金收入"], errors="coerce")
+    _gross = _all_amt[_all_amt > 0].sum()
+    _refund = abs(_all_amt[_all_amt < 0].sum())
+    _refund_rate = f"{_refund / _gross * 100:.1f}%" if _gross else "-"
+
     if kpi["latest_month"]:
         month_cn = fmt_month_cn(kpi["latest_month"])
         mom_str = f"{kpi['mom_pct']:+.1f}%" if kpi["mom_pct"] is not None else "-"
         yoy_str = f"{kpi['yoy_pct']:+.1f}%" if kpi["yoy_pct"] is not None else "-"
         mom_color = "normal" if kpi.get("mom_pct", 0) and kpi["mom_pct"] >= 0 else "inverse"
         yoy_color = "normal" if kpi.get("yoy_pct", 0) and kpi["yoy_pct"] >= 0 else "inverse"
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.metric(f"{month_cn} 收入", f"{kpi['latest_amt'] / 1e4:.0f} 万")
         with c2:
@@ -85,6 +90,13 @@ def render(data: dict[str, pd.DataFrame]) -> None:
             )
         with c3:
             st.metric("同比 (vs 去年同月)", "-", delta=yoy_str, delta_color=yoy_color)
+        with c4:
+            st.metric(
+                "退费率 (整体)",
+                _refund_rate,
+                delta=f"退费 ¥{_refund / 1e4:.1f} 万" if _refund else None,
+                delta_color="inverse",
+            )
 
     with st.expander("收入明细"):
         detail = (
@@ -98,41 +110,42 @@ def render(data: dict[str, pd.DataFrame]) -> None:
 
     # ── Dimension breakdowns ──
     st.html("<h2>收入结构 (按维度)</h2>")
+
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.html("<h3>by 年级</h3>")
-        by_grade = cash_income_by_grade(revenue)
-        if not by_grade.empty:
-            simple_bar(by_grade.head(10), "年级", "现金收入", fmt=",.0f", height=200)
-        st.html('<div class="hk-note">收入人次 | GROUP BY 学员年级 | SUM(现金收入)</div>')
+        with st.container(border=True):
+            st.html("<h3>by 年级</h3>")
+            by_grade = cash_income_by_grade(revenue)
+            if not by_grade.empty:
+                simple_bar(by_grade.head(10), "年级", "现金收入", fmt=",.0f", height=180)
     with c2:
-        st.html("<h3>by 班容</h3>")
-        by_cap = cash_income_by_capacity(revenue, class_master)
-        if not by_cap.empty:
-            simple_bar(by_cap.head(10), "班容", "现金收入", fmt=",.0f", height=200)
-        st.html('<div class="hk-note">收入人次 | GROUP BY 规格名称 | SUM(现金收入)</div>')
+        with st.container(border=True):
+            st.html("<h3>by 班容</h3>")
+            by_cap = cash_income_by_capacity(revenue, class_master)
+            if not by_cap.empty:
+                simple_bar(by_cap.head(10), "班容", "现金收入", fmt=",.0f", height=180)
     with c3:
-        st.html("<h3>by 学校</h3>")
-        by_school = cash_income_by_school(revenue)
-        if not by_school.empty:
-            simple_bar(
-                by_school.head(10), "学校", "现金收入", horizontal=True, fmt=",.0f", height=200
-            )
-        st.html('<div class="hk-note">收入人次 | GROUP BY 学校名称 | SUM(现金收入)</div>')
+        with st.container(border=True):
+            st.html("<h3>by 学校</h3>")
+            by_school = cash_income_by_school(revenue)
+            if not by_school.empty:
+                simple_bar(
+                    by_school.head(10), "学校", "现金收入", horizontal=True, fmt=",.0f", height=180
+                )
 
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>by 科目</h3>")
-        by_subject = cash_income_by_subject(revenue)
-        if not by_subject.empty:
-            simple_bar(by_subject.head(10), "科目", "现金收入", fmt=",.0f", height=200)
-        st.html('<div class="hk-note">收入人次 | GROUP BY 科目 | SUM(现金收入)</div>')
+        with st.container(border=True):
+            st.html("<h3>by 科目</h3>")
+            by_subject = cash_income_by_subject(revenue)
+            if not by_subject.empty:
+                simple_bar(by_subject.head(10), "科目", "现金收入", fmt=",.0f", height=180)
     with c2:
-        st.html("<h3>新老生收入</h3>")
-        by_nos = new_old_student_breakdown(revenue)
-        if not by_nos.empty:
-            donut_chart(by_nos, "类型", "现金收入", max_categories=4, height=220)
-        st.html('<div class="hk-note">收入人次 | GROUP BY 集团口径是否新老生 | SUM(现金收入)</div>')
+        with st.container(border=True):
+            st.html("<h3>新老生收入</h3>")
+            by_nos = new_old_student_breakdown(revenue)
+            if not by_nos.empty:
+                donut_chart(by_nos, "类型", "现金收入", max_categories=4, height=180)
 
     # ── Data cross-reference ──
     st.divider()
@@ -165,25 +178,27 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     st.html("<h2>结转收入</h2>")
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>月度趋势</h3>")
-        def_monthly = monthly_deferred_revenue(deferred)
-        monthly_trend_line(
-            def_monthly, "月份", "结转收入", color="#d97706", currency=True, height=200
-        )
-        st.html('<div class="hk-note">结转收入 | GROUP BY 财月 | SUM(结转收入含税)</div>')
-    with c2:
-        st.html("<h3>教师结转产能 Top 10</h3>")
-        tch = deferred_by_teacher(deferred, class_master)
-        if not tch.empty:
-            simple_bar(
-                tch.head(10),
-                "主带课教师",
-                "结转收入",
-                color="#d97706",
-                horizontal=True,
-                fmt=",.0f",
-                height=200,
+        with st.container(border=True):
+            st.html("<h3>月度趋势</h3>")
+            def_monthly = monthly_deferred_revenue(deferred)
+            monthly_trend_line(
+                def_monthly, "月份", "结转收入", color="#d97706", currency=True, height=180
             )
+    with c2:
+        with st.container(border=True):
+            st.html("<h3>教师结转产能 Top 10</h3>")
+            tch = deferred_by_teacher(deferred, class_master)
+            if not tch.empty:
+                simple_bar(
+                    tch.head(10),
+                    "主带课教师",
+                    "结转收入",
+                    color="#d97706",
+                    horizontal=True,
+                    fmt=",.0f",
+                    height=180,
+                )
+                _def_total = pd.to_numeric(deferred["结转收入(含税)"], errors="coerce").sum()
 
     with st.expander("结转收入明细"):
         def_detail = deferred[

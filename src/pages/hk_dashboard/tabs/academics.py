@@ -80,19 +80,20 @@ def render(data: dict[str, pd.DataFrame]) -> None:
             avail = [c for c in display_cols if c in r.columns]
             render_filterable_table(r[avail].head(300), key="roster_table")
     with c2:
-        st.html("<h3>年级分布</h3>")
-        if "学员年级(自动更新)" in r.columns:
-            grade_cnt = r["学员年级(自动更新)"].value_counts().reset_index(name="count")
-            grade_cnt.columns = ["年级", "count"]
-            if not grade_cnt.empty:
-                simple_bar(
-                    grade_cnt.head(10),
-                    "年级",
-                    "count",
-                    horizontal=True,
-                    color="#7c3aed",
-                    height=200,
-                )
+        with st.container(border=True):
+            st.html("<h3>年级分布</h3>")
+            if "学员年级(自动更新)" in r.columns:
+                grade_cnt = r["学员年级(自动更新)"].value_counts().reset_index(name="count")
+                grade_cnt.columns = ["年级", "count"]
+                if not grade_cnt.empty:
+                    simple_bar(
+                        grade_cnt.head(10),
+                        "年级",
+                        "count",
+                        horizontal=True,
+                        color="#7c3aed",
+                        height=180,
+                    )
 
     st.html("<h2>考勤</h2>")
     r["打卡_n"] = pd.to_numeric(r["打卡次数"], errors="coerce")
@@ -123,19 +124,21 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     st.html("<h2>离班分析</h2>")
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>离班方式</h3>")
-        if "离班方式" in roster.columns:
-            leave_cnt = roster["离班方式"].value_counts().reset_index(name="count")
-            leave_cnt.columns = ["离班方式", "count"]
-            simple_bar(leave_cnt, "离班方式", "count", color="#d97706", height=200)
-        st.html('<div class="hk-note">花名册 | GROUP BY 离班方式</div>')
+        with st.container(border=True):
+            st.html("<h3>离班方式</h3>")
+            if "离班方式" in roster.columns:
+                leave_cnt = roster["离班方式"].value_counts().reset_index(name="count")
+                leave_cnt.columns = ["离班方式", "count"]
+                simple_bar(leave_cnt, "离班方式", "count", color="#d97706", height=180)
+            st.html('<div class="hk-note">花名册 | GROUP BY 离班方式</div>')
     with c2:
-        st.html("<h3>有效状态分布</h3>")
-        status_cnt = roster["有效状态"].value_counts().reset_index(name="count")
-        status_cnt.columns = ["状态", "count"]
-        if not status_cnt.empty:
-            donut_chart(status_cnt, "状态", "count", max_categories=4, height=220)
-        st.html('<div class="hk-note">花名册 | GROUP BY 有效状态</div>')
+        with st.container(border=True):
+            st.html("<h3>有效状态分布</h3>")
+            status_cnt = roster["有效状态"].value_counts().reset_index(name="count")
+            status_cnt.columns = ["状态", "count"]
+            if not status_cnt.empty:
+                donut_chart(status_cnt, "状态", "count", max_categories=4, height=180)
+            st.html('<div class="hk-note">花名册 | GROUP BY 有效状态</div>')
 
     st.html("<h2>教师课量</h2>")
     workload = _teacher_workload(class_master)
@@ -143,7 +146,7 @@ def render(data: dict[str, pd.DataFrame]) -> None:
     with c1:
         if not workload.empty:
             simple_bar(
-                workload.head(15), "教师", "课时", horizontal=True, color="#2563eb", height=260
+                workload.head(15), "教师", "课时", horizontal=True, color="#2563eb", height=180
             )
     with c2:
         render_filterable_table(workload, key="workload_table")
@@ -157,40 +160,43 @@ def render(data: dict[str, pd.DataFrame]) -> None:
 
     c1, c2 = st.columns(2)
     with c1:
-        st.html("<h3>教室分布</h3>")
-        if "教室" in cm.columns:
-            room_cnt = cm["教室"].value_counts().reset_index(name="班级数")
-            room_cnt.columns = ["教室", "班级数"]
-            if not room_cnt.empty:
-                simple_bar(
-                    room_cnt.head(12),
-                    "教室",
-                    "班级数",
-                    horizontal=True,
-                    color="#7c3aed",
-                    height=230,
-                )
-        st.html('<div class="hk-note">维表 | GROUP BY 教室 | COUNT(正常班级)</div>')
+        with st.container(border=True):
+            st.html("<h3>教室分布</h3>")
+            if "教室" in cm.columns:
+                room_cnt = cm["教室"].value_counts().reset_index(name="班级数")
+                room_cnt.columns = ["教室", "班级数"]
+                if not room_cnt.empty:
+                    simple_bar(
+                        room_cnt.head(12),
+                        "教室",
+                        "班级数",
+                        horizontal=True,
+                        color="#7c3aed",
+                        height=180,
+                    )
+            st.html('<div class="hk-note">维表 | GROUP BY 教室 | COUNT(正常班级)</div>')
 
     with c2:
-        st.html("<h3>上课时段</h3>")
-        if "上课时段" in cm.columns:
-            slot_cnt = cm["上课时段"].value_counts().reset_index(name="count")
-            slot_cnt.columns = ["时段", "count"]
-            if not slot_cnt.empty:
-                donut_chart(slot_cnt, "时段", "count", max_categories=5, height=240)
-        st.html('<div class="hk-note">维表 | GROUP BY 上课时段</div>')
+        with st.container(border=True):
+            st.html("<h3>上课时段</h3>")
+            if "上课时段" in cm.columns:
+                slot_cnt = cm["上课时段"].value_counts().reset_index(name="count")
+                slot_cnt.columns = ["时段", "count"]
+                if not slot_cnt.empty:
+                    donut_chart(slot_cnt, "时段", "count", max_categories=5, height=180)
+            st.html('<div class="hk-note">维表 | GROUP BY 上课时段</div>')
 
     # Daily class overview
-    st.html("<h3>行课日期分布</h3>")
-    if "开课日期" in cm.columns:
-        cm["开课_dt"] = pd.to_datetime(cm["开课日期"], errors="coerce")
-        date_dist = cm["开课_dt"].dropna().dt.to_period("M").value_counts().sort_index()
-        date_dist.index = date_dist.index.map(lambda p: f"{p.year}年{p.month}月")
-        date_dist = date_dist.reset_index(name="count")
-        date_dist.columns = ["月份", "count"]
-        simple_bar(date_dist, "月份", "count", color="#0d9488", height=200)
-        st.html('<div class="hk-note">维表 | GROUP BY MONTH(开课日期) | 每月开课班级数</div>')
+    with st.container(border=True):
+        st.html("<h3>行课日期分布</h3>")
+        if "开课日期" in cm.columns:
+            cm["开课_dt"] = pd.to_datetime(cm["开课日期"], errors="coerce")
+            date_dist = cm["开课_dt"].dropna().dt.to_period("M").value_counts().sort_index()
+            date_dist.index = date_dist.index.map(lambda p: f"{p.year}年{p.month}月")
+            date_dist = date_dist.reset_index(name="count")
+            date_dist.columns = ["月份", "count"]
+            simple_bar(date_dist, "月份", "count", color="#0d9488", height=180)
+            st.html('<div class="hk-note">维表 | GROUP BY MONTH(开课日期) | 每月开课班级数</div>')
 
     # Class capacity detail
     st.html("<h3>班级容量分布</h3>")

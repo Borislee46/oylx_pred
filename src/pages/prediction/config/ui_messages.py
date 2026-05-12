@@ -218,3 +218,58 @@ RANKER_MESSAGES = {
         "{tone}，综合排序：{target_major}",
     ],
 }
+
+# ── Form Validation Messages ─────────────────────────────────
+
+FORM_ERROR_MESSAGES = {
+    "exam_type_invalid": "{exam_type}分数无效，请选择有效的考试类型",
+    "exam_score_not_integer": "{exam_type}分数无效，请输入整数",
+    "exam_score_negative": "{exam_type}分数无效，请输入大于0的整数",
+    "exam_score_out_of_range": "{exam_type}分数无效，请输入 {min} - {max} 之间的整数",
+    "background_university_empty": "请选择背景院校",
+    "background_major_empty": "请选择背景专业",
+    "background_major_invalid": "背景专业选择无效，请重新选择",
+    "gpa_empty": "GPA不能为空",
+    "gpa_zero": "GPA不能为0",
+    "gpa_parse_failed": "GPA无法解析或归一化，请检查输入与分制",
+    "gpa_scale_invalid": "GPA分制无效",
+    "language_score_input_error": "请修正语言成绩输入错误",
+    "ielts_step_invalid": "雅思成绩必须是0.5的倍数",
+    "language_score_zero": "{language_type}成绩不能为0",
+    "experience_field_research": "科研项目数量",
+    "experience_field_award": "获奖数量",
+    "experience_field_internship": "实习数量",
+    "experience_field_paper": "论文数量",
+    "experience_detail_mismatch": "{field_name}数量为0，但填写了详细信息，请检查数量或清空详细信息",
+}
+
+FORM_WARNING_MESSAGES = {
+    "language_score_below_threshold": (
+        "注意：当前{language_type}成绩 {score} 低于提示线 {threshold}，预测结果可能会明显下调"
+    ),
+    "ielts_step_warning": "雅思成绩必须是0.5的倍数",
+}
+
+FORM_LABELS = {
+    "language_score_optional": "（选填）",
+    "language_score": "**语言成绩**",
+    "language_type_label": "语言成绩类型",
+    "language_score_label": "{language_type}成绩",
+}
+
+FORM_PLACEHOLDERS = {
+    "language_score_overseas": "海外院校背景语言成绩为选填",
+    "language_score_domestic": "请输入成绩",
+    "selectbox_default": "请选择...",
+    "selectbox_error": "选项加载失败，请稍后重试",
+}
+
+CROSS_FACULTY_MESSAGES = {
+    "dialog_title": "提示",
+    "dialog_body": (
+        "检测到您的背景属于 **{bg_faculty}**，而目标专业包含 **{target_faculties}** 方向。\n\n"
+        "这属于跨大类申请，可能面临不同的评估标准，是否继续？"
+    ),
+    "confirm_button": "继续",
+    "cancel_button": "取消",
+}

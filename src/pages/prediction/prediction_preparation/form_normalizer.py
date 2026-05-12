@@ -98,16 +98,20 @@ def normalize_form_data_for_prediction(
     exam_type = form_data.get("exam_type")
     exam_score = form_data.get("exam_score")
 
-    normalized_gpa = calculate_processed_gpa(
-        raw_gpa, gpa_scale, bg_uni, gpa_converter, exam_type, exam_score
-    )
+    gpa_before_bonus = FormValidator.normalize_gpa(raw_gpa, gpa_scale, bg_uni, gpa_converter)
+    normalized_gpa = gpa_before_bonus
+    gpa_bonus = 0.0
+    if normalized_gpa is not None:
+        gpa_bonus = calculate_gpa_bonus(exam_type, exam_score)
+        if gpa_bonus > 0:
+            normalized_gpa += gpa_bonus
 
     school_service = get_school_level_service()
     is_overseas = school_service.is_overseas_school(bg_uni) if bg_uni else False
     raw_lang = form_data.get("language_score_raw")
     lang_type = form_data.get("language_type")
 
-    _, final_normalized_lang_score = calculate_processed_language_score(
+    display_lang, final_normalized_lang_score = calculate_processed_language_score(
         raw_lang, lang_type, bg_uni, is_overseas
     )
 
@@ -122,8 +126,11 @@ def normalize_form_data_for_prediction(
         "target_universities": form_data.get("target_universities", []),
         "target_majors": form_data.get("target_majors", []),
         "gpa": normalized_gpa,
+        "gpa_raw": gpa_before_bonus,
+        "exam_type": exam_type,
+        "exam_score": exam_score,
         "language_score": final_normalized_lang_score,
-        "language_score_raw": raw_lang,
+        "language_score_raw": display_lang,
         "language_type": lang_type,
         "research_count": form_data.get("research_count"),
         "award_count": form_data.get("award_count"),

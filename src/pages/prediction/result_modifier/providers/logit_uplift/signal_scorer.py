@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+
+from src.pages.prediction.result_modifier.providers.logit_uplift.utils import safe_float
 
 
 @dataclass(frozen=True)
@@ -39,10 +40,6 @@ class SignalScorer:
                         self._rules_by_field[f] = []
                     self._rules_by_field[f].append(r)
 
-    @staticmethod
-    def _safe_float(x: Any, default: float = 0.0) -> float:
-        return float(x)
-
     def _load_rules(self, lexicon_path: str | None) -> tuple[_Rule, ...]:
         if not lexicon_path:
             return ()
@@ -63,7 +60,7 @@ class SignalScorer:
             pattern = r.get("pattern")
             if not isinstance(pattern, str) or not pattern.strip():
                 continue
-            score = self._safe_float(r.get("score"), 0.0)
+            score = safe_float(r.get("score"), 0.0)
             score = float(min(max(score, 0.0), 1.0))
             tag = r.get("tag")
             if not isinstance(tag, str) or not tag.strip():

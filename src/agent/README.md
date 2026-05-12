@@ -2,28 +2,32 @@
 
 ## 1. 模块概述
 
-`src/agent` 是 LLM Agent 系统，基于 DeepSeek（OpenAI 兼容 API）。采用 Shared Context → Agent Registry → Orchestrator 三层架构，覆盖留学全链路：前期 NLU（碎片信息提取）→ 中期决策（边界 case + 预测解释）→ 待扩展后期（申请管理）。不依赖 LangChain，所有 Agent 继承 `BaseAgent`。
+`src/agent` 是 LLM Agent 系统，基于 DeepSeek（OpenAI 兼容 API）。采用 Shared Context → Agent Registry → Orchestrator 三层架构，覆盖留学全链路：前期 NLU（碎片信息提取）→ 中期决策（边界 case + 预测解释）→ 后期（申请策略）。不依赖 LangChain，所有 Agent 继承 `BaseAgent`。
 
 ## 2. 目录结构
 
 ```
 agent/
-├── __init__.py                     # 公共 API（14项导出，含懒注册）
-├── base_agent.py                   # BaseAgent 基类（client、缓存、重试、JSON修复）
+├── __init__.py                     # 公共 API（24 项导出 + 集中注册）
+├── base_agent.py                   # BaseAgent 基类（client、缓存、重试、JSON 修复、token 追踪）
 ├── context.py                      # StudentContext（全链路共享上下文）
-├── registry.py                     # AgentRegistry（懒加载注册中心）
-├── orchestrator.py                 # AgentOrchestrator（单Agent + Pipeline编排）
-├── schemas.py                      # TypedDict 数据契约（ExtractedBackground 等）
-├── boundary_case_agent.py          # 边界案例决策 Agent
-├── boundary_case_prompts.py        # 边界案例 Prompt 模板
-├── text_preprocessing_agent.py     # 背提文本预处理 Agent
-├── text_preprocessing_prompts.py   # 文本预处理 Prompt 模板
-├── background_faculty_agent.py     # 背景学部推断 Agent
-├── background_faculty_prompts.py   # 学部推断 Prompt 模板
+├── registry.py                     # AgentRegistry（工厂注册，每次 get() 新建实例）
+├── orchestrator.py                 # AgentOrchestrator（单 Agent + Pipeline 编排）
+├── schemas.py                      # TypedDict 数据契约（12 个类型定义）
+├── utils.py                        # Agent 共享工具（truncate、parse_bool 等）
+├── form_bridge.py                  # Agent → 表单桥接（5层 fuzzy match + 别名解析 + 学位后缀剥离）
 ├── lead_in_agent.py                # 前期 NLU Agent
 ├── lead_in_prompts.py              # LeadIn Prompt 模板
-├── explain_agent.py                # 预测解释 Agent
-└── utils.py                        # Agent 共享工具
+├── explain_agent.py                # ExplainAgent（流式 + 同步双路径）
+├── explain_profiles.py             # 4 种 Profile System Prompt（strong_elite/medium_mixed/weak_gaps/cross_major）
+├── boundary_case_agent.py          # 边界案例决策 Agent
+├── boundary_case_prompts.py        # 边界案例 Prompt 模板
+├── text_preprocessing_agent.py     # 背提文本校验 Agent（含批量模式）
+├── text_preprocessing_prompts.py   # 文本校验 Prompt 模板（单字段 + 批量）
+├── background_faculty_agent.py     # 背景学部推断 Agent
+├── background_faculty_prompts.py   # 学部推断 Prompt 模板
+├── application_agent.py            # 申请策略生成 Agent
+└── application_prompts.py          # 申请策略 Prompt 模板
 ```
 
 ## 3. 架构
@@ -34,22 +38,24 @@ agent/
 │                   (编排路由)                           │
 ├──────────────────────────────────────────────────────┤
 │                AgentRegistry                          │
-│        lead_in | explain | boundary | ...             │
-├──────────┬──────────┬──────────┬─────────────────────┤
-│ LeadIn   │ Explain  │ Boundary │ TextPrep / Faculty  │
-│ Agent    │ Agent    │ Agent    │ (已有)              │
-└────┬─────┴────┬─────┴────┬─────┴─────────────────────┘
-     │          │          │
-     ▼          ▼          ▼
+│  lead_in | explain | boundary_case | text_preprocessing | … │
+├──────────┬──────────┬──────────┬──────────────────────────┤
+│ LeadIn   │ Explain  │ Boundary │ TextPrep │ …            │
+│ Agent    │ Agent    │ Agent    │ Agent    │              │
+└────┬─────┴────┬─────┴──────────┴──────────┴──────────────┘
+     │          │
+     ▼          ▼
 ┌──────────────────────────────────────────────────────┐
 │                StudentContext                         │
 │  raw_input → extracted_background → prediction_      │
-│  results → application_plan                          │
+│  results → ai_explanation                             │
 │  + history（审计追踪）                                │
 └──────────────────────────────────────────────────────┘
 ```
 
 ## 4. 端到端流程
+
+### 主流程
 
 ```
 顾问自由文本
@@ -64,13 +70,17 @@ LeadInAgent.run(StudentContext)
 [表单自动填充] → [XGBoost 预测管道]
     │
     ▼
-ExplainAgent.run(StudentContext)
-    ├── overview：整体评估
-    ├── strengths / concerns
-    └── summary
+ExplainAgent.stream(ctx)
+    ├── 流式 LLM 生成（25ms/6字双阈值节流）
+    ├── 逐段揭示：overview → strengths → concerns → summary
+    └── 输出 {overview, strengths, concerns, summary, school_notes, products}
+    │
+    ▼
+ApplicationAgent.run(StudentContext)
+    └── 申请策略 + 行动建议
 ```
 
-### 已有 Agent 管线
+### 辅助 Agent 管线
 
 ```
 BoundaryCaseAgent.evaluate_boundary_cases()
@@ -80,6 +90,7 @@ BoundaryCaseAgent.evaluate_boundary_cases()
 
 TextPreprocessingAgent → has_meaningful_experience_text 判定
 BackgroundFacultyAgent → faculty 分类
+ApplicationAgent → 申请策略 + 行动建议
 ```
 
 ## 5. 核心组件
@@ -88,10 +99,11 @@ BackgroundFacultyAgent → faculty 分类
 
 Agent 基类，所有 Agent 继承它：
 - OpenAI 兼容 client（`config/app_config.json`）
-- 内存缓存（`self._memory_cache`）+ 文件持久化缓存
-- 自动重试（超时 + 网络错误）
-- JSON 清理 + 修复（`_clean_json_content` / `_repair_json_once`）
-- Token 估算
+- 内存 LRU 缓存（`self._memory_cache`，128 条，1h TTL）+ 类级别文件持久化缓存
+- 自动重试（默认 3 次，1s 间隔；流式 2 次）
+- 四级 JSON 容错：`json.loads` → 轻量正则修复（<1ms）→ `json_repair` 库（<5ms）→ LLM 修复 API（~9s 兜底）
+- 简化的 API 消息格式（`{"role": "user", "content": prompt}`，无嵌套 content 数组）
+- 真实 Token 用量追踪（`self.last_usage` 存储 API 返回的 `prompt_tokens`/`completion_tokens`）
 
 ### 5.2 StudentContext
 
@@ -99,52 +111,40 @@ Agent 基类，所有 Agent 继承它：
 - **stage**：`lead_in | match | application`
 - **前期字段**：`raw_input`、`extracted_background`、`quick_assessment`、`suggested_questions`
 - **中期字段**：预测结果、背景信息、AI 解释
-- **后期字段**：申请计划（待扩展）
+- **后期字段**：申请策略与行动建议（ApplicationAgent）
 - **audit**：`history` 列表记录每个 Agent 的调用
 
-### 5.3 AgentRegistry（懒加载注册中心）
+### 5.3 AgentRegistry（工厂注册中心）
 
-`registry.py` — Agent 工厂注册 + 懒实例化：
+`registry.py` — Agent 工厂注册，每次 `get()` 创建新实例：
 
 ```python
-AgentRegistry.register("lead_in", LeadInAgent)   # 注册类，不实例化
-agent = AgentRegistry.get("lead_in")              # 首次调用时才 __init__
+AgentRegistry.register("lead_in", LeadInAgent)   # 注册工厂，不实例化
+agent = AgentRegistry.get("lead_in")              # 每次调用都 __init__，新建实例
 ```
 
 - 所有 Agent 在模块 import 时以**工厂函数**注册（非实例），import 开销 O(1)
-- 首次 `get(name)` 触发实例化并缓存，后续命中缓存
+- 每次 `get(name)` 创建新实例，保证 `_memory_cache` 和 `_session` 隔离
+- 上游调用方（如 `experience_text_validator.py`）通过 `@cache_resource` 在 Streamlit 级别缓存 Agent 实例
 - `list()` / `clear()` 辅助调试
 
-### 5.4 AgentOrchestrator（单Agent + Pipeline 编排）
+### 5.4 AgentOrchestrator（单 Agent 编排）
 
-`orchestrator.py` — 两种调用模式：
+`orchestrator.py` — 统一调用入口：
 
-**单 Agent 派发**：
 ```python
 result = AgentOrchestrator.run("lead_in", context, user_input=text)
 ```
 
-**Pipeline 链式编排**：
-```python
-steps = [
-    {"agent": "lead_in", "kwargs": {"user_input": text}},
-    {"agent": "form_validation", "kwargs": {"form_data": data}},
-    {"agent": "explain", "kwargs": {}},
-]
-results = AgentOrchestrator.run_pipeline(steps, context)
-```
-
-Pipeline 通过共享 `StudentContext` 传递状态，任一步返回 `_error` 则提前终止。
+通过共享 `StudentContext` 传递状态，结果通过 `context.record()` 写入审计追踪。
 
 ### 5.5 数据契约（schemas.py）
 
-`schemas.py` 提供 TypedDict 类型定义，替代裸 `dict[str, Any]`：
+`schemas.py` 提供 TypedDict 类型定义：
 
 - `ExtractedBackground` — LeadInAgent 输出的结构化背景字段
 - `LeadInResult` — LeadInAgent.run() 返回类型
-- `PipelineStep` — `run_pipeline()` 的步骤定义
-
-用于 IDE 自动补全、类型检查、以及作为 Agent 间数据契约的文档。
+- `ExplainResult` — ExplainAgent 输出 schema
 
 ### 5.6 错误处理约定
 
@@ -154,48 +154,89 @@ Pipeline 通过共享 `StudentContext` 传递状态，任一步返回 `_error` �
 |-------|------------|---------|
 | LeadInAgent | `"api_failed"` | API 调用失败 |
 | ExplainAgent | `"api_failed"` | API 调用失败 |
-| FormValidationAgent | `"api_failed"` | API 调用失败 |
 | ApplicationAgent | `"api_failed"` / `"no_results"` | API 失败 / 无预测结果 |
 | BoundaryCaseAgent | 通过 `api_errors` 计数 | 批量 API 调用中部分失败 |
 | TextPreprocessingAgent | `"api_failed_or_invalid"` | API 失败或内容无效 |
 | BackgroundFacultyAgent | `"no_faculties_resolved"` | 有输入但未能解析出学部 |
 
-`run_pipeline()` 检测到 `_error` 后立即终止后续步骤。
+所有 Agent 通过 `AgentOrchestrator.run()` 统一调用，异常由 orchestrator 统一捕获。
 
 ### 5.7 LeadInAgent
 
 前期 NLU Agent：
 - 输入：顾问自由文本 + StudentContext
 - 输出：`extracted_info`（JSON）+ `quick_assessment`（自然语言）+ `suggested_questions`
-- 已集成到 `pages/hk.py`，通过 `render_lead_in_panel()`
+- **动态院校约束**（2026-05）：`_build_system_prompt()` 从 `config/prediction_rules.json` 读取 `TARGET_COUNTRY_UNIVERSITY_MAP`，注入可用地区、院校列表。已集成到 `pages/hk.py`
+- **特殊别名**（2026-05）：Prompt 已包含 37 个院校/专业缩写（北大/港大/HKU/NUS/CS/金融…），遇到 "985"/"211"/"港3" 等类别别名保留原值，由 `form_bridge` + `school_alias_resolver` 展开
 
-### 5.8 ExplainAgent
+### 5.8 form_bridge — Agent → 表单桥接
+
+`form_bridge.py` 将 LeadInAgent 提取的结构化背景映射到 Streamlit 表单 widget state。
+
+**5 层模糊匹配**（`_fuzzy_match`）：
+```
+exact → substring → rapidfuzz partial_ratio → char-order → alias map
+```
+
+- `rapidfuzz` 替代 `difflib`：`partial_ratio` 做子串匹配，CJK 感知更好
+- `_chars_in_order`：中文缩写匹配（"港大" → "香港大学"）
+- `_UNIVERSITY_ALIAS_MAP`：英文缩写兜底（NUS/HKU/NTU...）
+
+**目标专业模糊匹配**（`_fuzzy_match_major`）：
+```
+学位后缀剥离（硕士/博士/MSc...） → alias map（CS→Computer Science） → partial_ratio
+```
+- 50+ 专业别名映射（CS/金融/EE/统计/法律...）
+- 自动加载 `school_major_details.feather` 全部英文专业名作为候选集
+
+**院校别名解析**：背景院校 "985"/"211"/"双非" → `school_alias_resolver.resolve_background_school()`；目标院校 "港3"/"港5" → `resolve_target_schools()`
+
+### 5.9 ExplainAgent
 
 预测解释 Agent：
-- 输入：StudentContext（含 prediction_results）
-- 输出：整体评估、推荐理由、优势/风险、总结建议
-- 已集成到 `content_display.py`，预测完成后自动展示
+- 输入：StudentContext（含 prediction_results、matched_products）
+- 输出：`{"overview","strengths","concerns","summary","school_notes","products"}` JSON
+- **双路径**：`stream()`（流式 yield chunk）和 `run()`（同步阻塞），流式失败时自动降级到同步
+- **Profile 路由**：`classify_profile()` 根据预测结果特征（概率均值、惩罚类型、跨专业比例）选择 4 种 System Prompt 之一
+- **Prompt 构建**：`_build_explain_prompt()` 将学生背景 + 预测结果 + 惩罚追踪 + 产品列表序列化为 LLM 输入
+- 已集成到 `content_display.py:_render_ai_explanation()`，流式逐段揭示 + 卡片末尾 "AI解读中..." 脉冲动画
 
-### 5.9 已有 Agent
+### 5.10 已有 Agent
 
-| Agent | 用途 |
-|-------|------|
-| BoundaryCaseAgent | 相似/跨专业推荐平衡决策 |
-| FormValidationAgent | 表单数据合理性校验（含规则快速通道） |
-| TextPreprocessingAgent | 背提文本质量评估 |
-| BackgroundFacultyAgent | 背景专业 → 学部推断 |
-| ApplicationAgent | 申请策略生成 |
+| Agent | 用途 | 关键特性 |
+|-------|------|----------|
+| BoundaryCaseAgent | 相似/跨专业推荐平衡决策 | 类级别文件缓存、分块并行 |
+| TextPreprocessingAgent | 背提文本质量评估 | **批量模式**：`validate_fields_batch()` 单次 API 调用校验 4 个字段 |
+| BackgroundFacultyAgent | 背景专业 → 学部推断 | 类级别 MD5 文件缓存 |
+| ApplicationAgent | 申请策略生成 | 全量背景 + 预测结果合并 |
+
+**TextPreprocessingAgent 批量模式：**
+
+```python
+agent = TextPreprocessingAgent()
+result = agent.validate_fields_batch({
+    "research_details": "...",
+    "award_details": "...",
+    "internship_details": "...",
+    "paper_details": "...",
+})
+# result: {"research_details": True, "award_details": False, ...}
+```
 
 ## 6. 数据流
 
 ```
-config/app_config.json → BaseAgent → OpenAI client
+config/app_config.json → BaseAgent → DeepSeek API
     │
     ▼
-Agent.run(StudentContext)
+Agent.run(StudentContext) / Agent.stream(StudentContext)
     ├── _build_prompt (子类实现)
     ├── _call_api (BaseAgent: 缓存 + 重试)
+    │     ├── 内存缓存命中 → 直接返回
+    │     ├── API 调用（扁平消息格式）
+    │     └── 存储真实 token 用量到 self.last_usage
     ├── _parse_response (子类实现)
+    │     └── 失败则走四级 JSON 修复
     └── context.record() (审计追踪)
 ```
 

@@ -1,0 +1,130 @@
+/* ============================================================
+   52_timeline — Fixed left-gutter progress tracker
+   Escapes the 960px container into the viewport's left margin.
+   Leverages tokens from 00_tokens.css
+   ============================================================ */
+
+/* ── Rail: fixed in left viewport gutter ──────────────────── */
+.hk-timeline-rail {
+  position: fixed;
+  left: max(1.2rem, calc((100vw - 960px) / 2 - 72px));
+  top: 9.5rem; /* below header (~8rem header + gap) */
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  pointer-events: none; /* don't block clicks on content */
+}
+
+/* ── Track: dots + segments, flex column ──────────────────── */
+.hk-timeline-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 420px;
+  height: 480px; /* keeps last dot within viewport */
+}
+
+/* ── Segment: vertical connector line ─────────────────────── */
+.hk-timeline-segment {
+  width: 1.5px;
+  flex: 1 1 0;
+  min-height: 18px;
+  background: var(--hk-slate-200);
+  border-radius: 1px;
+  transition: background var(--hk-transition);
+}
+.hk-timeline-segment.done {
+  background: var(--hk-cyan-alpha-30);
+}
+
+/* ── Dot: small circle with label below ──────────────────── */
+.hk-timeline-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--hk-slate-200);
+  flex-shrink: 0;
+  margin-bottom: 18px;
+  transition:
+    background var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast);
+}
+
+.hk-timeline-dot::after {
+  content: attr(data-label);
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--hk-font-sans);
+  font-size: 0.6rem;
+  font-weight: 400;
+  white-space: nowrap;
+  color: var(--hk-slate-300);
+  letter-spacing: 0.04em;
+  text-align: center;
+  transition: color var(--hk-transition-fast);
+}
+
+/* ── States ───────────────────────────────────────────────── */
+
+.hk-timeline-dot.active {
+  background: var(--hk-cyan);
+  box-shadow: 0 0 0 4px var(--hk-cyan-alpha-15);
+}
+.hk-timeline-dot.active::after {
+  color: var(--hk-slate-800);
+  font-weight: 600;
+}
+
+.hk-timeline-dot.done {
+  background: var(--hk-cyan);
+}
+.hk-timeline-dot.done::after {
+  color: var(--hk-slate-400);
+}
+
+/* ── Dark mode ─────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  .hk-timeline-segment {
+    background: var(--hk-slate-700);
+  }
+  .hk-timeline-segment.done {
+    background: var(--hk-cyan-alpha-40);
+  }
+  .hk-timeline-dot {
+    background: var(--hk-slate-600);
+  }
+  .hk-timeline-dot.active {
+    background: var(--hk-cyan);
+    box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.25);
+  }
+  .hk-timeline-dot.active::after {
+    color: var(--hk-slate-100);
+  }
+  .hk-timeline-dot.done {
+    background: var(--hk-cyan);
+  }
+  .hk-timeline-dot.done::after {
+    color: var(--hk-slate-500);
+  }
+  .hk-timeline-dot::after {
+    color: var(--hk-slate-600);
+  }
+}
+
+/* ── Narrow screens: hide gutter timeline ──────────────────── */
+@media (max-width: 1100px) {
+  .hk-timeline-rail {
+    display: none;
+  }
+}
+
+/* ── Reduced motion ────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hk-timeline-dot,
+  .hk-timeline-segment {
+    transition: none;
+  }
+}

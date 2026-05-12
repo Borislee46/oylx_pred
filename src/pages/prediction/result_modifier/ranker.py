@@ -67,6 +67,69 @@ def _pick_supplement_cases_by_probability(
     return picked
 
 
+def _resolve_faculty_supplements(
+    background_major: str,
+    background_faculty: str | None,
+    results_with_similarity: list[dict[str, Any]],
+    top_set: set[CaseKey],
+    top_similarity_results: list[dict[str, Any]],
+    bg_faculty_agent: Any = None,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """Resolve background faculties via agent, pick supplement cases from extra faculties."""
+    bg_faculties: list[str] = []
+    if str(background_major or "").strip():
+        if bg_faculty_agent is None:
+            from src.agent.background_faculty_agent import BackgroundFacultyAgent
+
+            bg_faculty_agent = BackgroundFacultyAgent()
+        bg_faculties = bg_faculty_agent.resolve_background_faculties(
+            background_major_original=background_major,
+            base_faculty=background_faculty,
+            max_total=3,
+            max_extra=2,
+            use_persistent_cache=True,
+        )
+
+    base = background_faculty.strip() if isinstance(background_faculty, str) else ""
+    extras = [f for f in bg_faculties if f and f != base]
+    if not extras:
+        return bg_faculties, []
+
+    p_min = 0.0
+    if top_similarity_results:
+        try:
+            p_min = min(float(r.get("probability", 0.0) or 0.0) for r in top_similarity_results)
+        except (TypeError, ValueError):
+            p_min = 0.0
+
+    faculty_map: dict[str, list[dict[str, Any]]] = {}
+    for r in results_with_similarity:
+        if not isinstance(r, dict):
+            continue
+        f = str(r.get("faculty", "")).strip()
+        if f not in faculty_map:
+            faculty_map[f] = []
+        faculty_map[f].append(r)
+
+    supplements: list[dict[str, Any]] = []
+    for extra in extras[:2]:
+        extra_candidates = faculty_map.get(extra, [])
+        if not extra_candidates:
+            continue
+        supplements.extend(
+            _pick_supplement_cases_by_probability(
+                candidates=extra_candidates,
+                top_set=top_set,
+                p_min=p_min,
+                k_high=8,
+                k_band=8,
+                band_delta=0.03,
+            )
+        )
+
+    return bg_faculties, supplements
+
+
 def adjust_similarity_results_with_agent(
     top_similarity_results: list[dict[str, Any]],
     results_with_similarity: list[dict[str, Any]],
@@ -77,6 +140,7 @@ def adjust_similarity_results_with_agent(
     background_faculty: str | None = None,
     progress_reporter: Any | None = None,
     is_cross_faculty: bool = False,
+    bg_faculty_agent: Any = None,
 ) -> list[dict[str, Any]]:
     if not top_similarity_results or not agent or balance_diff == 0:
         return top_similarity_results
@@ -99,65 +163,22 @@ def adjust_similarity_results_with_agent(
 
     top_set: set[CaseKey] = {k for r in top_similarity_results if (k := case_key(r)) is not None}
 
-    bg_faculties: list[str] = []
-    if str(background_major or "").strip():
-        from src.agent.background_faculty_agent import BackgroundFacultyAgent
-
-        bg_agent = BackgroundFacultyAgent()
-        bg_faculties = bg_agent.resolve_background_faculties(
-            background_major_original=background_major,
-            base_faculty=background_faculty,
-            max_total=3,
-            max_extra=2,
-            use_persistent_cache=True,
-        )
-
-    base = background_faculty.strip() if isinstance(background_faculty, str) else ""
-    extras = [f for f in bg_faculties if f and f != base]
-    if extras:
-        p_min = 0.0
-        if top_similarity_results:
-            try:
-                p_min = min(float(r.get("probability", 0.0) or 0.0) for r in top_similarity_results)
-            except (TypeError, ValueError):
-                p_min = 0.0
-
-        supplements: list[dict[str, Any]] = []
-
-        faculty_map: dict[str, list[dict[str, Any]]] = {}
-        for r in results_with_similarity:
-            if not isinstance(r, dict):
-                continue
-            f = str(r.get("faculty", "")).strip()
-            if f not in faculty_map:
-                faculty_map[f] = []
-            faculty_map[f].append(r)
-
-        for extra in extras[:2]:
-            extra_candidates = faculty_map.get(extra, [])
-            if not extra_candidates:
-                continue
-            supplements.extend(
-                _pick_supplement_cases_by_probability(
-                    candidates=extra_candidates,
-                    top_set=top_set,
-                    p_min=p_min,
-                    k_high=8,
-                    k_band=8,
-                    band_delta=0.03,
-                )
-            )
-
-        if supplements:
-            results_for_agent = deduplicate_results(results_for_agent + supplements)
+    _, supplements = _resolve_faculty_supplements(
+        background_major=background_major,
+        background_faculty=background_faculty,
+        results_with_similarity=results_with_similarity,
+        top_set=top_set,
+        top_similarity_results=top_similarity_results,
+        bg_faculty_agent=bg_faculty_agent,
+    )
+    if supplements:
+        results_for_agent = deduplicate_results(results_for_agent + supplements)
 
     boundary_candidates, pool_for_exploration = strategy.get_initial_candidates(
         top_similarity_results, results_for_agent, top_set
     )
 
     session = AgentAdjustmentSession(strategy, target_diff, mode)
-
-    final_results = top_similarity_results
 
     with RankerUIHandler(
         background_major=background_major,

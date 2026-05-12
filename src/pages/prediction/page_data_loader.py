@@ -43,9 +43,13 @@ class machine_learning_model:
         from src.pages.prediction.prediction_preparation import (
             compute_df_fingerprint,
         )
-        from src.utils.app_data_loader import load_school_major_details_df
+        from src.utils.app_data_loader import (
+            load_bg_target_similarity_cache,
+            load_school_major_details_df,
+        )
 
         _data_manager.warm_up()
+        load_bg_target_similarity_cache()  # warm up for peak-hour users
         model = cached_get_prediction_model("xgboost")
         features = validate_model_and_features(model)
         cases = load_raw_cases_data()

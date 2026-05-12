@@ -1,0 +1,435 @@
+{
+  "meta": {
+    "created": "2026-05-09",
+    "owner": "李佳鹏",
+    "birth": "1993-04-06 子时",
+    "anxing_code": "C5VUC",
+    "description": "命理预测追踪数据库 — 记录每一条可验证的命盘预测，追踪应验/未应验结果"
+  },
+  "predictions": [
+    {
+      "id": "p2026_001",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流年丙午天同禄入命宫（辰）",
+        "json_ref": "si_hua_kou_jue.丙.lu=天同",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+      },
+      "prediction": "感情桃花为福，下半年有利感情推进。天同禄入命让流年夫妻宫被照，整体感情运偏正面。",
+      "category": "relationship",
+      "tags": [
+        "天同",
+        "禄",
+        "命宫",
+        "流年2026"
+      ],
+      "window": {
+        "start": "2026-01-01",
+        "end": "2026-12-31"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_002",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流年丙午天机权入官禄宫（申）",
+        "json_ref": "si_hua_kou_jue.丙.quan=天机",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+      },
+      "prediction": "事业话语权上升，有新方向出现。天机权在官禄带来决策权或技术主导权提升。",
+      "category": "career",
+      "tags": [
+        "天机",
+        "权",
+        "官禄宫",
+        "流年2026"
+      ],
+      "window": {
+        "start": "2026-01-01",
+        "end": "2026-12-31"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_003",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流年丙午文昌科入迁移宫（戌）",
+        "json_ref": "si_hua_kou_jue.丙.ke=文昌",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+      },
+      "prediction": "外部名声积累，可能出现跳槽/面试/猎头机会。文昌科在迁移主'写出去和说出去的名声'。",
+      "category": "career",
+      "tags": [
+        "文昌",
+        "科",
+        "迁移宫",
+        "流年2026"
+      ],
+      "window": {
+        "start": "2026-01-01",
+        "end": "2026-12-31"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_004",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流年丙午廉贞忌入子女宫（丑）→流年疾厄宫",
+        "json_ref": "si_hua_kou_jue.丙.ji=廉贞",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+      },
+      "prediction": "血光/炎症/感情执念风险。廉贞忌入子女叠加流年疾厄，健康第一优先级。感情上易产生过度执着。",
+      "category": "health",
+      "tags": [
+        "廉贞",
+        "忌",
+        "子女宫",
+        "疾厄宫",
+        "流年2026"
+      ],
+      "window": {
+        "start": "2026-01-01",
+        "end": "2026-12-31"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_005",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月四月（巳月）入父母宫，武曲破军双禄+天钺旺",
+        "json_ref": "palaces[5].stars.main=武曲破军, birth_si_hua.lu=破军",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §四月"
+      },
+      "prediction": "5月5日~6月5日：全年最佳汇报窗口。hk模块、Agent系统推给领导看，反馈会超预期。上司缘佳。",
+      "category": "career",
+      "tags": [
+        "武曲",
+        "破军",
+        "禄",
+        "父母宫",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-05-05",
+        "end": "2026-06-05"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_006",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月五月（午月）入夫妻宫（寅），空宫+大耗+劫煞",
+        "json_ref": "palaces[2].minor=大耗+劫煞",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §五月"
+      },
+      "prediction": "6月5日~7月6日：全年感情最敏感月。对室友一举一动会过度解读。深夜独处聊天场景风险高。如能平安度过（无冲动表白/逼问），贪狼忌考试拿阶段性高分。",
+      "category": "relationship",
+      "tags": [
+        "夫妻宫",
+        "大耗",
+        "劫煞",
+        "流月",
+        "贪狼忌"
+      ],
+      "window": {
+        "start": "2026-06-05",
+        "end": "2026-07-06"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_007",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月六月（未月）入子女宫（丑），廉贞七杀擎羊+流年廉贞忌叠加",
+        "json_ref": "palaces[1].stars.main=廉贞+七杀, birth_si_hua.ji.star=贪狼",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §六月"
+      },
+      "prediction": "7月6日~8月7日：执念高发月。如果五六月份压抑了太多情绪可能压不住了。对某个人/某件事产生执念。子女宫也主下属/团队——工作上容易因协作问题烦躁。",
+      "category": "relationship",
+      "tags": [
+        "廉贞",
+        "忌",
+        "子女宫",
+        "七杀",
+        "擎羊",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-07-06",
+        "end": "2026-08-07"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_008",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月七月（申月）入财帛宫（子），天梁庙+禄存庙，叠流年天机权",
+        "json_ref": "palaces[0].stars.main=天梁, palaces[0].stars.aux=禄存",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §七月"
+      },
+      "prediction": "8月7日~9月7日：全年财运最强月。加薪/奖金/项目拨款的可能性。心态从感情起伏变务实。全年最适合谈升职涨薪的月份。",
+      "category": "finance",
+      "tags": [
+        "天梁",
+        "禄存",
+        "财帛宫",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-08-07",
+        "end": "2026-09-07"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_009",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月八月（酉月）入疾厄宫（亥），天相+陀罗+地劫+地空+天马+天刑，来因宫激活",
+        "json_ref": "palaces[11].stars, basic.origin_palace=亥",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §八月"
+      },
+      "prediction": "9月7日~10月8日：健康关键月。来因宫亮黄灯。身体易出小毛病：炎症、过敏、睡眠质量下降、免疫力低谷。心理上空劫带来莫名空虚感。",
+      "category": "health",
+      "tags": [
+        "疾厄宫",
+        "来因宫",
+        "陀罗",
+        "地劫",
+        "地空",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-09-07",
+        "end": "2026-10-08"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_010",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月九月（戌月）入迁移宫（戌），巨门权+铃星庙+文昌科，三力叠加",
+        "json_ref": "palaces[10].stars, birth_si_hua.quan.star=巨门",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §九月"
+      },
+      "prediction": "10月8日~11月7日：外部机会月。GitHub/技术博客/行业圈子会有正向反馈。如有面试或猎头接触应当放在这个月。集中输出——技术博客、开源代码、团队分享。",
+      "category": "career",
+      "tags": [
+        "巨门",
+        "权",
+        "文昌",
+        "科",
+        "迁移宫",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-10-08",
+        "end": "2026-11-07"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_011",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月十月（亥月）入交友宫（酉），紫微旺+贪狼生年忌+天伤+天哭",
+        "json_ref": "palaces[9].stars, birth_si_hua.ji.star=贪狼",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §十月"
+      },
+      "prediction": "11月7日~12月7日：全年最危险流月。贪狼忌直接被最大化激活。如之前压住没表白→可能被她一个行为触发。如之前没压住→这个月就是结局揭晓。可能看到不该看的东西（社交媒体触发）。",
+      "category": "relationship",
+      "tags": [
+        "贪狼",
+        "忌",
+        "交友宫",
+        "紫微",
+        "天伤",
+        "天哭",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-11-07",
+        "end": "2026-12-07"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_012",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月十一月（子月）入官禄宫（申），天机得+太阴利生年科+流年天机权",
+        "json_ref": "palaces[8].stars, birth_si_hua.ke.star=太阴",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §十一月"
+      },
+      "prediction": "12月7日~1月5日：全年事业最强月。天机权+生年科同时激活——2026事业运势巅峰。上半年打磨的东西集中兑现。年终总结、晋升答辩、对外分享全部放这个月。",
+      "category": "career",
+      "tags": [
+        "天机",
+        "太阴",
+        "权",
+        "科",
+        "官禄宫",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-12-07",
+        "end": "2027-01-05"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_013",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月十二月（丑月）入子女宫（丑），廉贞七杀擎羊+流年廉贞忌，大限切换前最后一个月",
+        "json_ref": "palaces[1].stars, si_hua_kou_jue.丙.ji=廉贞",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §十二月"
+      },
+      "prediction": "1月5日~2月3日：大限切换前最后一个月。廉贞忌收束——对某个人或某件事的过度在意会有'该结束了'的感觉。可能有'想做点大事'的冲动。不宜做重要决定。",
+      "category": "other",
+      "tags": [
+        "廉贞",
+        "忌",
+        "子女宫",
+        "七杀",
+        "大限切换",
+        "流月"
+      ],
+      "window": {
+        "start": "2027-01-05",
+        "end": "2027-02-03"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_014",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "贪狼忌通关标准——感情三连击（6月+7月+11月）的终极考验",
+        "json_ref": "birth_si_hua.ji.star=贪狼, palaces[9]",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §通关标准"
+      },
+      "prediction": "通关标准：她给了一个以前会让我崩的信号，而我这次没崩。一次就行。一次不崩，命盘里的大耗劫煞就少一条路径找到我。",
+      "category": "relationship",
+      "tags": [
+        "贪狼",
+        "忌",
+        "通关标准",
+        "大耗",
+        "劫煞",
+        "流年2026"
+      ],
+      "window": {
+        "start": "2026-01-01",
+        "end": "2026-12-31"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_015",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "子女宫大限（35~44岁）廉贞[利]+七杀[庙]+擎羊[庙]",
+        "json_ref": "palaces[1].stars, palaces[1].limits.major=35~44",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §七·7.4 第四大限"
+      },
+      "prediction": "2027年起：事业最不稳定但也是突破最大的十年。可能创业/独立执业/核心岗位突破。擎羊执行力极强叠加七杀冲劲——快节奏、高能量、可以主动出击。叠加贪狼忌——合作须谨慎，尤其不与朋友合伙。",
+      "category": "career",
+      "tags": [
+        "廉贞",
+        "七杀",
+        "擎羊",
+        "子女宫",
+        "大限"
+      ],
+      "window": {
+        "start": "2027-02-03",
+        "end": "2037-02-01"
+      },
+      "status": "pending",
+      "verification": null
+    },
+    {
+      "id": "p2026_016",
+      "created": "2026-05-09",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "父母宫双禄月→夫妻宫大耗劫煞月的切换窗口 + 太阳↑忌福德 + 廉贞忌入流年疾厄",
+        "json_ref": "palaces[5], palaces[2], palaces[6], birth_si_hua.ji",
+        "document_ref": "monthly/actions/2026-05.md (本次对话产出)"
+      },
+      "prediction": "6条红线守则。5月9日~6月5日（父母宫）：(1)本周推一条汇报给yzq——hk.py+Agent系统，形式'请您瞄一眼'三段式 (2)每天2h物理隔离LX (3)晚11点后不碰手机 (4)团建独处日安排具体小项目。6月5日~7月6日（夫妻宫）：(5)晚10点后不和室友单独聊天 (6)想对她说的话写进日记、不说出口 (7)她的任何信号→先写代码/日记延迟30秒再反应。通关标准：6月结束时不因感情冲动做任何不可逆决定。违反任一条红线视为预测未应验。",
+      "category": "other",
+      "tags": [
+        "红线守则",
+        "父母宫",
+        "夫妻宫",
+        "贪狼忌",
+        "通关标准",
+        "流月"
+      ],
+      "window": {
+        "start": "2026-05-09",
+        "end": "2026-07-06"
+      },
+      "status": "ongoing",
+      "verification": null
+    },
+    {
+      "id": "p2026_017",
+      "created": "2026-05-10",
+      "source": {
+        "type": "事前预测",
+        "chart_signal": "流月巳月父母宫双禄+流年文昌科入迁移+巨门权对冲命宫",
+        "json_ref": "palaces[5].stars=武曲破军+天钺, palaces[10].stars=巨门权+文昌科+铃星",
+        "document_ref": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览+§四月"
+      },
+      "prediction": "掘金文章有正向反馈。5月10日发布的掘金文章在两周内（5/10~5/24）累计互动（点赞+收藏+评论）明显高于记录人历史掘金文章平均水平。理由：①流月父母宫双禄+天钺旺——'展示给上级/外部看的东西被认可'的窗口；②流年文昌科入迁移——'写出去的东西带来名声'；③迁移宫巨门权对冲命宫——外部发声倒逼内在成长。注意：掘金是技术社区，反馈周期比朋友圈长，须给足14天。回报不一定是爆款，但会有一条以上有价值的评论/私信/连接。",
+      "category": "career",
+      "tags": [],
+      "window": {
+        "start": "2026-05-10",
+        "end": "2026-05-24"
+      },
+      "status": "pending",
+      "verification": null
+    }
+  ]
+}

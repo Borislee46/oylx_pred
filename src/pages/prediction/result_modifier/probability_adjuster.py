@@ -1,3 +1,23 @@
+# =============================================================================
+# 概率调整器 (Probability Adjuster)
+# ─────────────────────────────────────────────────────────────────────────────
+# XGBoost 输出的概率经过校准，但仍有两个问题需要后处理：
+#
+# 问题1：模型对极端低分没有"地板"意识。
+#   纯数据驱动下，GPA=2.1 的学生申 Tier-1 学校可能给 15% 概率，
+#   但行业共识是这种组合几乎不可能。需要基于分布的业务惩罚修正。
+#
+# 问题2：模型只知道"录取/不录"，但不知道"录取了什么专业"。
+#   同校跨专业录取模式完全不同，相似专业和跨专业需要差异化处理。
+#   （跨专业惩罚在 adjustment_pipeline.py 中实现）
+#
+# 设计原则：
+#   - 所有惩罚基于训练数据的分布（mean/std），不是绝对阈值
+#   - 惩罚力度呈非线性（quadratic），轻微偏差影响小，严重偏差快速放大
+#   - 极端情况有硬地板（probability → 0.001），不给虚假希望
+#   - 用 numba jit 编译所有核心计算以保证性能（每个预测轮次调用数百次）
+# =============================================================================
+
 import math
 from typing import Any
 
@@ -19,6 +39,8 @@ from src.pages.prediction.result_modifier.config import (
     LANGUAGE_PENALTY_LEVEL_1_THRESHOLD,
     LANGUAGE_PENALTY_LEVEL_2_MULTIPLIER,
     LANGUAGE_PENALTY_LEVEL_2_THRESHOLD,
+    LANGUAGE_PENALTY_LEVEL_3_5_THRESHOLD,
+    LANGUAGE_PENALTY_LEVEL_3_MULTIPLIER,
     LANGUAGE_PENALTY_LEVEL_3_THRESHOLD,
     LANGUAGE_PENALTY_PASS_LINE_MULTIPLIER,
     LANGUAGE_PENALTY_SEVERE_THRESHOLD,
@@ -41,11 +63,44 @@ from src.utils.university_difficulty_service import get_university_difficulty_or
 logger = setup_logger("page3", "prediction")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 为什么用 Sigmoid 做分数映射？
+# ─────────────────────────────────────────────────────────────────────────────
+# GPA (2.0-4.0) 和语言成绩 (0.6-1.0 normalized) 是线性增加的，
+# 但它们对录取概率的贡献是非线性的：
+#   GPA 3.7→3.9 与 GPA 2.5→2.7 的增量含金量不同。
+# Sigmoid 将原始分数映射到 [0,1] 区间，自动编码边际递减效应：
+#   高分段的提升越来越小，低分段每提升一点都有较大收益。
+# k 控制陡峭度，x0 控制中心点（"及格线"附近的值）。
+# ─────────────────────────────────────────────────────────────────────────────
 @numba.njit(cache=True)
 def _fast_sigmoid(x: float, k: float, x0: float) -> float:
     return 1.0 / (1.0 + math.exp(-k * (x - x0)))
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# GPA 惩罚：二次函数 (Quadratic Penalty)
+# ─────────────────────────────────────────────────────────────────────────────
+# penalty = min(max_coeff, quad_coeff * z_score²)
+# 其中 z_score = (mean - gpa) / std  （只在 gpa < mean 时惩罚）
+#
+# 为什么用二次函数？
+# 1. 轻微低于均值（z < 1）：惩罚几乎不可见（0.15 × 1² = 15%），
+#    因为数据本身存在方差，低0.5个标准差并不意味着什么。
+# 2. 明显低于均值（z > 1.5）：惩罚快速上升（0.15 × 2.25 = 34%），
+#    信号增强 — 确实比较低。
+# 3. 严重低于均值（z > 2.3）：达到 max_coeff 上限（80%），
+#    几乎确定被拒，不给虚假期望。
+#
+# 为什么不是线性惩罚？
+#   线性会让 2.5→2.7 和 3.5→3.7 的增量惩罚相同，
+#   但实际上低分段多加 0.1 分和接近均值时多加 0.1 分意义完全不同。
+#   二次函数让"接近均值"的同学几乎不受罚，"远低于均值"的被快速放大。
+#
+# 为什么是 z_score 而非绝对阈值？
+#   录取标准因学校/专业/年份而异。Z-score 基于当前案例分布，
+#   自动适配不同申请季、不同竞争环境的现象 — 这是 data-driven 的思路。
+# ─────────────────────────────────────────────────────────────────────────────
 @numba.njit(cache=True)
 def _compute_gpa_penalty(
     gpa: float,
@@ -64,6 +119,27 @@ def _compute_gpa_penalty(
     return min(max_coeff, quad_coeff * (gpa_gap**2))
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 语言惩罚：分段阶梯 (Tiered Penalty)
+# ─────────────────────────────────────────────────────────────────────────────
+# 与 GPA 不同，语言成绩有明确的"门槛效应"：
+#   - 达到 pass_line（均值-0.5std，约0.8分归一化 ≈ IELTS 7.2）基本不受影响
+#   - 低于 pass_line 分段惩罚：L1(85%)、L2(70%)、L3(40%)
+#   - 低于 minimum（低于~0.6 ≈ IELTS 5.4）直接严重惩罚（95%）
+#
+# 为什么用阶梯而非连续函数？
+# 录取审核中语言成绩有实际的门槛：
+#   - 官网最低要求通常 IELTS 6.0-6.5（归一化 0.67-0.72）
+#   - "有竞争力"通常 IELTS 7.0+（归一化 0.78+）
+#   在门槛之上和之下语义完全不同，不是连续的渐变。
+#   阶梯函数比二次函数更贴近实际审核行为。
+#
+# 为什么 pass_line = mean - 0.5*std？
+#   这是"竞争力线"的统计近似 — 取均值下移半个标准差，
+#   保证大部分录取案例在此之上，而又不会太松。
+#   纯均值（mean）太严（50%学生在此之下），
+#   纯最小值太松。0.5个标准差是经验平衡点。
+# ─────────────────────────────────────────────────────────────────────────────
 @numba.njit(cache=True)
 def _compute_language_penalty(
     score: float,
@@ -75,7 +151,9 @@ def _compute_language_penalty(
     l1_thresh: float,
     l2_mult: float,
     l2_thresh: float,
+    l3_mult: float,
     l3_thresh: float,
+    l3_5_thresh: float,
 ) -> float:
     if score < minimum:
         return severe_threshold
@@ -86,10 +164,29 @@ def _compute_language_penalty(
         return l1_thresh
     elif score < (pass_line - l2_mult * std):
         return l2_thresh
-    else:
+    elif score < (pass_line - l3_mult * std):
         return l3_thresh
+    else:
+        return l3_5_thresh
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 组合惩罚与极端值处理
+# ─────────────────────────────────────────────────────────────────────────────
+# 惩罚顺序：prob → ×(1-gpa_penalty) → ×(1-lang_penalty) → clip
+# 两者相互独立叠加（相乘），因为 GPA 弱和语言弱是两件独立的事。
+#
+# 极端值检测（is_extreme_gpa/lang）：
+#   当 GPA 或语言低于 mean - 2*std 时，直接设 prob = MIN_VALUE (0.001)。
+#   2σ 原则：正态分布下约 2.5% 的情况。这些是统计异常值，
+#   训练数据中几乎不存在这类案例，模型预测置信度极低，
+#   后处理中直接"地板化"比保留不可靠的概率更安全。
+#
+# 为什么不是乘完就完了？
+#   adjusted < threshold 的 check 确保即使惩罚不大，
+#   非常低的概率（<1%）也会被极端值逻辑重新评估。
+#   但普通低分（非极端）不会被错误降到 MIN_VALUE。
+# ─────────────────────────────────────────────────────────────────────────────
 @numba.njit(cache=True)
 def _compute_adjusted_probability(
     prob: float,
@@ -120,6 +217,18 @@ def _compute_adjusted_probability(
     return max(min_val, min(adjusted, 1.0))
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 案例库统计计算
+# ─────────────────────────────────────────────────────────────────────────────
+# 从历史录取数据中计算 GPA 和语言成绩的分布参数。
+# 这些统计量是概率调整惩罚计算的基准：
+#   - mean: 判断学生相对于历史平均水平的位置
+#   - std: 标准化偏差大小
+#
+# std 的 floor = 1e-6：防止除零报错。如果某批次数据 GPA 完全相同，
+# z_score 计算 ∝ (mean-gpa)/std 会除零。1e-6 相当于约 0 方差时
+# z_score 极大 → 一律按 max_coeff 惩罚，行为合理且安全。
+# ─────────────────────────────────────────────────────────────────────────────
 @cache_data(show_spinner=False)
 def _calculate_cases_statistics(_cases_df: pd.DataFrame, hash_key: str) -> dict[str, float]:
     stats = {
@@ -216,6 +325,21 @@ class ProbabilityAdjuster:
     def _language_to_score(self, language_score: float) -> float:
         return _fast_sigmoid(language_score, 15.0, 0.72)
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # 综合评分 (Comprehensive Score)：0.4 GPA + 0.3 语言 + 0.3 院校
+    # ─────────────────────────────────────────────────────────────────────────
+    # 为什么是这个权重？
+    # - GPA (40%): 录取预测中最重要的单一信号。3年学业表现 > 一次考试。
+    # - 语言 (30%): 次重要的学术能力信号，但精确度不如 GPA。
+    # - 本科院校 (30%): C9/985/211/双非的等级信号，反映学术训练基础。
+    #
+    # 3个维度均通过 sigmoid 归一化到 [0,1] 再加权，保证量纲统一。
+    # Sigmoid 参数：
+    #   GPA: k=3.0, x0=3.3 — 3.3 (B+) 后开始饱和，3.7+ 接近满分
+    #   语言: k=15.0, x0=0.72 — 约 IELTS 6.5/TOEFL 86 附近线性区，高分饱和
+    # k 值选择依据：让中位学生落在 sigmoid 的线性区（最有区分度），
+    # 极高/极低分饱和（区分度低，因为极少发生）。
+    # ─────────────────────────────────────────────────────────────────────────
     def _calculate_comprehensive_score(
         self, gpa: float, language_score: float, background_university: str | None
     ) -> float:
@@ -228,6 +352,17 @@ class ProbabilityAdjuster:
         total_score = 0.4 * gpa_score + 0.3 * lang_score + 0.3 * school_score
         return total_score
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # 选择分数 (Selection Score)：相似度 × 竞争力 boost
+    # ─────────────────────────────────────────────────────────────────────────
+    # 基础相似度只衡量"专业名称有多接近"，不评估"学生有没有实力申这所学校"。
+    # 选择分数在相似度基础上叠加竞争力：
+    #   comp_score > 0.6 且目标学校有难度分数时 → boost = 0.3 × comp × diff
+    #
+    # 效果：实力强的学生（comp_score 高）申难度高的学校（diff 高），
+    # 该组合被放大；实力弱的学生不受影响（不触发 boost）。
+    # 这相当于在推荐排序中给"值得挑战"的组合加权。
+    # ─────────────────────────────────────────────────────────────────────────
     def calculate_selection_score(
         self,
         similarity: float,
@@ -267,7 +402,9 @@ class ProbabilityAdjuster:
             LANGUAGE_PENALTY_LEVEL_1_THRESHOLD,
             LANGUAGE_PENALTY_LEVEL_2_MULTIPLIER,
             LANGUAGE_PENALTY_LEVEL_2_THRESHOLD,
+            LANGUAGE_PENALTY_LEVEL_3_MULTIPLIER,
             LANGUAGE_PENALTY_LEVEL_3_THRESHOLD,
+            LANGUAGE_PENALTY_LEVEL_3_5_THRESHOLD,
         )
 
     def get_penalties(self, gpa: float, language_score: float) -> dict[str, float]:

@@ -37,6 +37,7 @@ class BaseAgent:
         self.logger = setup_logger("page3", "prediction")
         self._session: requests.Session | None = None
         self._memory_cache: OrderedDict[str, dict[str, Any]] = OrderedDict()
+        self.last_usage: dict[str, int] = {}
 
         if not self.api_url or not self.api_key:
             self.logger.error(f"[{self.agent_name}] API URL 或 API Key 未在配置中找到。")
@@ -51,11 +52,6 @@ class BaseAgent:
         if self._session is None:
             self._session = requests.Session()
         return self._session
-
-    def close(self):
-        if self._session is not None:
-            self._session.close()
-            self._session = None
 
     def _load_persistent_json(self, cache_dir: str, cache_file: str) -> dict[str, Any]:
         file_path = os.path.join(cache_dir, cache_file)
@@ -88,7 +84,7 @@ class BaseAgent:
     ) -> dict[str, Any]:
         data: dict[str, Any] = {
             "model": self.model,
-            "messages": [{"content": [{"text": prompt, "type": "text"}], "role": "user"}],
+            "messages": [{"role": "user", "content": prompt}],
             "thinking": {"type": thinking_type or self.thinking_type or "disabled"},
         }
 
@@ -168,7 +164,7 @@ class BaseAgent:
             del self._memory_cache[key]
         self._memory_cache[key] = {"value": value, "timestamp": time.time()}
         self._memory_cache.move_to_end(key)
-        while len(self._memory_cache) > 1000:
+        while len(self._memory_cache) > 128:
             self._memory_cache.popitem(last=False)
 
     def _estimate_tokens(self, text: str) -> float:
@@ -249,7 +245,7 @@ class BaseAgent:
         cache_prefix: str = "json_repair",
         max_tokens: int | None = None,
     ) -> dict[str, Any] | None:
-        """Three-tier JSON parsing: direct → lightweight regex → API repair."""
+        """Four-tier JSON parsing: direct → regex → json_repair lib → API repair."""
         if not raw:
             self.logger.warning(f"[{self.agent_name}] PARSE: empty raw response")
             return None
@@ -262,7 +258,7 @@ class BaseAgent:
         except json.JSONDecodeError as e:
             self.logger.warning(f"[{self.agent_name}] PARSE: JSON decode failed | error={e}")
 
-        # Tier 2: lightweight regex fix (no API call)
+        # Tier 2: lightweight regex fix (<1ms)
         fixed = self._fix_json_lightweight(content)
         if fixed:
             try:
@@ -272,8 +268,19 @@ class BaseAgent:
             except json.JSONDecodeError:
                 pass
 
-        # Tier 3: API repair
-        self.logger.info(f"[{self.agent_name}] PARSE: lightweight fix failed, trying API repair")
+        # Tier 3: json_repair library (<5ms, no API call)
+        try:
+            from json_repair import repair_json
+
+            repaired = repair_json(content)
+            result = json.loads(repaired)
+            self.logger.info(f"[{self.agent_name}] PARSE: json_repair succeeded")
+            return result
+        except Exception:
+            pass
+
+        # Tier 4: API repair fallback
+        self.logger.info(f"[{self.agent_name}] PARSE: json_repair failed, trying API repair")
         repaired = self._repair_json_once(content, schema_hint, cache_prefix, max_tokens=max_tokens)
         if not repaired:
             self.logger.warning(f"[{self.agent_name}] PARSE: API repair returned empty")
@@ -490,6 +497,12 @@ class BaseAgent:
                             output_tokens = self._estimate_tokens(result)
                             output_chars = len(result)
                             real_usage = response_json.get("usage", {})
+                            if real_usage:
+                                self.last_usage = {
+                                    k: int(v)
+                                    for k, v in real_usage.items()
+                                    if isinstance(v, (int, float))
+                                }
                             usage_str = ""
                             if real_usage:
                                 usage_str = (

@@ -474,10 +474,7 @@
 
 /* ── Accent buttons — stat cards / lead-in ────────────────── */
 /*   White card style, cyan accent. Sits above default.       */
-.st-key-statbtn_total .stButton > button,
-.st-key-statbtn_high .stButton > button,
-.st-key-statbtn_mid .stButton > button,
-.st-key-statbtn_low .stButton > button,
+[class*="st-key-statbtn_"] .stButton > button,
 .st-key-lead_in_btn .stButton > button {
   background: var(--hk-surface-elevated) !important;
   color: var(--hk-cyan) !important;
@@ -497,10 +494,9 @@
     transform var(--hk-transition-fast) !important;
 }
 
-.st-key-statbtn_total .stButton > button:hover:not(:disabled):not([disabled]),
-.st-key-statbtn_high .stButton > button:hover:not(:disabled):not([disabled]),
-.st-key-statbtn_mid .stButton > button:hover:not(:disabled):not([disabled]),
-.st-key-statbtn_low .stButton > button:hover:not(:disabled):not([disabled]),
+[class*="st-key-statbtn_"]
+  .stButton
+  > button:hover:not(:disabled):not([disabled]),
 .st-key-lead_in_btn .stButton > button:hover:not(:disabled):not([disabled]) {
   background: linear-gradient(
     135deg,
@@ -516,10 +512,9 @@
   transform: translateY(-1px) !important;
 }
 
-.st-key-statbtn_total .stButton > button:active:not(:disabled):not([disabled]),
-.st-key-statbtn_high .stButton > button:active:not(:disabled):not([disabled]),
-.st-key-statbtn_mid .stButton > button:active:not(:disabled):not([disabled]),
-.st-key-statbtn_low .stButton > button:active:not(:disabled):not([disabled]),
+[class*="st-key-statbtn_"]
+  .stButton
+  > button:active:not(:disabled):not([disabled]),
 .st-key-lead_in_btn .stButton > button:active:not(:disabled):not([disabled]) {
   background: linear-gradient(
     135deg,
@@ -535,59 +530,94 @@
 }
 
 /* Remove default pseudo-elements on accent buttons */
-.st-key-statbtn_total .stButton > button::before,
-.st-key-statbtn_high .stButton > button::before,
-.st-key-statbtn_mid .stButton > button::before,
-.st-key-statbtn_low .stButton > button::before,
+[class*="st-key-statbtn_"] .stButton > button::before,
 .st-key-lead_in_btn .stButton > button::before,
-.st-key-statbtn_total .stButton > button::after,
-.st-key-statbtn_high .stButton > button::after,
-.st-key-statbtn_mid .stButton > button::after,
-.st-key-statbtn_low .stButton > button::after,
+[class*="st-key-statbtn_"] .stButton > button::after,
 .st-key-lead_in_btn .stButton > button::after {
   display: none !important;
 }
 
-/* ── Explain button — filled cyan, heavier than accent ───── */
-/*   The "next step" action. Not 3D, but filled and prominent. */
-.st-key-explain_btn .stButton > button {
-  background: linear-gradient(
-    135deg,
-    var(--hk-cyan),
-    var(--hk-cyan-dark)
-  ) !important;
-  color: #fff !important;
+/* ── Explain / Humanize button — rainbow animated border via mask on pseudo-element ── */
+/*   mask-composite:exclude punches out the center so only a 2px border ring shows. */
+@keyframes explain-rainbow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.st-key-explain_btn .stButton > button,
+.st-key-humanize_btn .stButton > button {
+  position: relative;
+  z-index: 0;
+  background: var(--hk-surface-elevated) !important;
+  color: var(--hk-slate-600) !important;
   border: none !important;
   border-radius: var(--hk-radius-md) !important;
-  box-shadow:
-    0 2px 8px rgba(6, 182, 212, 0.25),
-    0 0 0 1px rgba(6, 182, 212, 0.15) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
   transform: none !important;
   font-weight: 600 !important;
   letter-spacing: 0.02em !important;
   transition:
     box-shadow var(--hk-transition-fast),
     transform var(--hk-transition-fast),
-    filter var(--hk-transition-fast) !important;
-}
-
-.st-key-explain_btn .stButton > button:hover:not(:disabled):not([disabled]) {
-  box-shadow:
-    0 6px 20px rgba(6, 182, 212, 0.35),
-    0 0 0 2px rgba(6, 182, 212, 0.2) !important;
-  transform: translateY(-1px) !important;
-  filter: brightness(1.08) !important;
-}
-
-.st-key-explain_btn .stButton > button:active:not(:disabled):not([disabled]) {
-  box-shadow:
-    0 1px 4px rgba(6, 182, 212, 0.2),
-    inset 0 1px 3px rgba(15, 23, 42, 0.12) !important;
-  transform: translateY(0) scale(0.985) !important;
-  filter: brightness(0.95) !important;
+    color var(--hk-transition-fast) !important;
 }
 
 .st-key-explain_btn .stButton > button::before,
-.st-key-explain_btn .stButton > button::after {
+.st-key-humanize_btn .stButton > button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(
+    90deg,
+    #a855f7,
+    #6366f1,
+    #06b6d4,
+    #22c55e,
+    #f59e0b,
+    #a855f7,
+    #6366f1,
+    #06b6d4,
+    #22c55e,
+    #f59e0b,
+    #a855f7
+  );
+  background-size: 200% 100%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  animation: explain-rainbow-shift 6s linear infinite;
+  pointer-events: none;
+}
+
+.st-key-explain_btn .stButton > button:hover:not(:disabled):not([disabled]),
+.st-key-humanize_btn .stButton > button:hover:not(:disabled):not([disabled]) {
+  color: var(--hk-slate-700, #1e293b) !important;
+  box-shadow:
+    0 6px 20px rgba(168, 85, 247, 0.18),
+    0 0 0 1px rgba(168, 85, 247, 0.12) !important;
+  transform: translateY(-1px) !important;
+}
+
+.st-key-explain_btn .stButton > button:active:not(:disabled):not([disabled]),
+.st-key-humanize_btn .stButton > button:active:not(:disabled):not([disabled]) {
+  box-shadow:
+    0 1px 4px rgba(168, 85, 247, 0.16),
+    inset 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+  transform: translateY(0) scale(0.985) !important;
+}
+
+.st-key-explain_btn .stButton > button::after,
+.st-key-humanize_btn .stButton > button::after {
   display: none !important;
 }

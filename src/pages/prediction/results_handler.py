@@ -1,3 +1,4 @@
+from src.pages.prediction.handler_config import DEFAULT_UI_KEYS
 from src.utils.session_manager import PredictionResultModel, SessionManager
 
 
@@ -9,6 +10,7 @@ def reset_prediction_results(session_manager: SessionManager):
         processing_lock=False,
         lock_start_time=0,
     )
+    session_manager.prune_states(["pending_", "last_", "lead_in_"])
 
 
 def clear_pending_prediction_state(
@@ -18,13 +20,13 @@ def clear_pending_prediction_state(
     reset_cross_faculty_cancelled: bool = False,
 ):
     updates = {
-        "pending_cross_faculty_prediction": False,
-        "pending_prediction_data": None,
+        DEFAULT_UI_KEYS.pending_cross_faculty_prediction: False,
+        DEFAULT_UI_KEYS.pending_prediction_data: None,
     }
     if reset_cross_faculty_confirmed:
-        updates["cross_faculty_confirmed"] = False
+        updates[DEFAULT_UI_KEYS.cross_faculty_confirmed] = False
     if reset_cross_faculty_cancelled:
-        updates["cross_faculty_cancelled"] = False
+        updates[DEFAULT_UI_KEYS.cross_faculty_cancelled] = False
     session_manager.set(**updates)
 
 
@@ -63,7 +65,7 @@ def combine_and_deduplicate_results(sim_results, cross_results, user_specified_r
 
 
 def initialize_session_states(session_manager: SessionManager):
-    if session_manager.get("app_initialized"):
+    if session_manager.get(DEFAULT_UI_KEYS.app_initialized):
         return
 
     session_manager.set(

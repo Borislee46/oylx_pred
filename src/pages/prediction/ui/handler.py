@@ -2,13 +2,13 @@ import random
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-import streamlit as st
-
 from src.pages.prediction.config.ui_messages import PIPELINE_MESSAGES
 from src.pages.prediction.core.utils import get_background_faculty
 from src.pages.prediction.flow.pipeline import run_prediction_pipeline_with_progress
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
 from src.pages.prediction.handler_config import (
+    DEFAULT_FORM_KEYS,
+    DEFAULT_UI_KEYS,
     FormSubmissionContext,
     SessionKeys,
 )
@@ -32,6 +32,8 @@ from src.utils.logger import setup_logger
 if TYPE_CHECKING:
     from src.pages.prediction.page_data_loader import machine_learning_model
     from src.utils.session_manager import SessionManager
+
+from src.utils.session_manager import PredictionResultModel
 
 prediction_handler_logger = setup_logger("page3", "prediction")
 
@@ -70,12 +72,13 @@ def run_prediction_with_guard(
     progress_cb: ProgressCallback | None = None,
     background_faculty: str | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
+    cached_combinations: list[tuple[str, str]] | None = None,
 ) -> bool:
     input_data_with_lists = current_input_data.copy()
     input_data_with_lists["_all_universities_target"] = all_universities_target
     input_data_with_lists["_all_majors_target"] = all_majors_target
     input_data_with_lists["_cross_faculty_confirmed"] = session_manager.get(
-        "cross_faculty_confirmed", False
+        DEFAULT_UI_KEYS.cross_faculty_confirmed, False
     )
 
     experience_details = current_input_data.get("experience_details", {})
@@ -96,6 +99,7 @@ def run_prediction_with_guard(
         background_faculty=background_faculty,
         admitted_combinations=admitted_combinations,
         page_state=page_state,
+        cached_combinations=cached_combinations,
     )
     if prediction_result_model and prediction_result_model.meta:
         session_manager.set(**prediction_result_model.meta)
@@ -109,6 +113,15 @@ def run_prediction_with_guard(
             fresh_prediction_result=True,
             student_background_chart_visible=True,
         )
+        _user_info = session_manager.get("user_info", {})
+        _user_email = str(_user_info.get("email", "") or "").lower()
+        if _user_email and _user_email != "lijiapeng8@xdf.cn":
+            try:
+                from src.pages.prediction.usage_stats import increment as _incr_usage
+
+                _incr_usage(unified)
+            except Exception:
+                prediction_handler_logger.warning("usage_stats 写入失败", exc_info=True)
         from src.pages.prediction.input_form_components.form_state import FormStateManager
 
         FormStateManager.update_form_snapshot_hash_after_prediction(session_manager)
@@ -149,7 +162,6 @@ def handle_form_submission(
         input_data_from_form.get("background_university", "")[:40],
         bg_major[:40],
     )
-    _run_form_validation_quick_check(session_manager, input_data_from_form)
 
     if not ctx.background_faculty:
         ctx.background_faculty = get_background_faculty(bg_major, page_state.cases_df)
@@ -158,8 +170,10 @@ def handle_form_submission(
             page_state.cases_df, bg_major
         )
 
-    user_selected_categories = session_manager.get("selected_major_categories", []) or []
-    user_selected_majors = session_manager.get("selected_target_majors", []) or []
+    user_selected_categories = (
+        session_manager.get(DEFAULT_FORM_KEYS.selected_major_categories, []) or []
+    )
+    user_selected_majors = session_manager.get(DEFAULT_FORM_KEYS.selected_target_majors, []) or []
 
     if bg_major and (user_selected_categories or user_selected_majors):
         _update_progress(progress_cb, PIPELINE_MESSAGES["cross_check"])
@@ -178,7 +192,7 @@ def handle_form_submission(
                     target_faculties,
                 )
                 session_manager.set(cross_faculty_confirmed=True)
-            elif not session_manager.get("cross_faculty_confirmed", False):
+            elif not session_manager.get(DEFAULT_UI_KEYS.cross_faculty_confirmed, False):
                 prediction_handler_logger.warning(
                     "跨学科检测: 需用户确认 | bg=%s target=%s",
                     bg_faculty,
@@ -199,7 +213,15 @@ def handle_form_submission(
 
     session_manager.set(**{session_keys.predict_lock: True})
     session_manager.set(hk_ui_phase="running", hk_last_error=None)
-    current_input_data = prepare_input_data(input_data_from_form)
+
+    _prev_model = session_manager.get(DEFAULT_UI_KEYS.prediction_results)
+    if isinstance(_prev_model, PredictionResultModel) and _prev_model.unified_results:
+        session_manager.set(
+            previous_prediction_results=_prev_model,
+            previous_input_data=session_manager.get(session_keys.input_data),
+        )
+
+    current_input_data = prepare_input_data(input_data_from_form, cases_df=page_state.cases_df)
     persist_input_state(session_manager, current_input_data, session_keys)
     log_first_submission_if_needed(
         session_manager,
@@ -207,6 +229,19 @@ def handle_form_submission(
         input_data_from_form,
         session_keys.last_submission_logged,
     )
+
+    _prev_model = session_manager.get(DEFAULT_UI_KEYS.prediction_results)
+    _cached_combos: list[tuple[str, str]] | None = None
+    if isinstance(_prev_model, PredictionResultModel) and _prev_model.unified_results:
+        _prev_target_unis = sorted(
+            {str(r.get("university", "")) for r in _prev_model.unified_results}
+        )
+        _curr_target_unis = sorted(str(u) for u in ctx.all_universities_target)
+        if _prev_target_unis == _curr_target_unis:
+            _cached_combos = [
+                (str(r.get("university", "")), str(r.get("major", "")))
+                for r in _prev_model.unified_results
+            ]
 
     run_prediction_with_guard(
         session_manager,
@@ -218,24 +253,5 @@ def handle_form_submission(
         progress_cb=progress_cb,
         background_faculty=ctx.background_faculty,
         admitted_combinations=ctx.admitted_combinations,
+        cached_combinations=_cached_combos,
     )
-
-
-def _run_form_validation_quick_check(session_manager: "SessionManager", form_data: dict) -> None:
-    """Run rule-based form validation and show warnings. Non-blocking."""
-    from src.agent.form_validation_agent import FormValidationAgent
-
-    issues = FormValidationAgent.quick_check(form_data)
-
-    errors = [i for i in issues if i["severity"] == "error"]
-    warnings = [i for i in issues if i["severity"] == "warn"]
-
-    if errors:
-        prediction_handler_logger.warning("表单验证错误 | %s", [e["message"] for e in errors])
-        for e in errors:
-            st.error(e["message"])
-
-    if warnings:
-        prediction_handler_logger.info("表单验证提醒 | %s", [w["message"] for w in warnings])
-        for w in warnings:
-            st.warning(w["message"])

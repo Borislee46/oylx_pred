@@ -1,73 +1,19 @@
 import hashlib
 import json
-import os
-import threading
 from typing import Any
 
 import pandas as pd
 
 from src.agent.base_agent import BaseAgent
 from src.agent.boundary_case_prompts import build_boundary_evaluation_prompt
+from src.agent.persistent_cache import PersistentCache
 from src.agent.utils import parse_bool
 
-CACHE_DIR = "cache/agent_cache"
-CACHE_FILE = "boundary_case_decisions.json"
 PROMPT_VERSION = 2
 
 
 class BoundaryCaseAgent(BaseAgent):
-    # Class-level persistent cache — shared across instances with locking
-    _persistent_cache: dict[str, Any] | None = None
-    _cache_lock = threading.Lock()
-    _cache_loaded = False
-
-    @classmethod
-    def _get_persistent_cache(cls) -> dict[str, Any]:
-        """Lazy-load persistent cache with double-check locking."""
-        if not cls._cache_loaded:
-            with cls._cache_lock:
-                if not cls._cache_loaded:
-                    cls._persistent_cache = cls._load_cache_from_disk()
-                    cls._cache_loaded = True
-        return cls._persistent_cache or {}
-
-    @classmethod
-    def _write_to_cache(cls, key: str, value: Any) -> None:
-        """Thread-safe write to persistent cache."""
-        with cls._cache_lock:
-            cache = cls._get_persistent_cache()
-            cache[key] = value
-
-    @classmethod
-    def _flush_persistent_cache(cls) -> None:
-        """Thread-safe flush to disk."""
-        with cls._cache_lock:
-            if cls._persistent_cache is not None:
-                cls._save_cache_to_disk(cls._persistent_cache)
-
-    @classmethod
-    def _load_cache_from_disk(cls) -> dict[str, Any]:
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        if not os.path.exists(file_path):
-            return {}
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError):
-            return {}
-
-    @classmethod
-    def _save_cache_to_disk(cls, data: dict[str, Any]) -> None:
-        try:
-            os.makedirs(CACHE_DIR, exist_ok=True)
-            file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-            tmp_path = f"{file_path}.tmp"
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            os.replace(tmp_path, file_path)
-        except OSError:
-            pass
+    _cache = PersistentCache("boundary_case_decisions.json")
 
     def __init__(self, cases_df: pd.DataFrame | None = None, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="边界CaseAgent")
@@ -86,9 +32,6 @@ class BoundaryCaseAgent(BaseAgent):
         }
         payload = json.dumps(key_data, sort_keys=True, ensure_ascii=False)
         return hashlib.md5(payload.encode("utf-8")).hexdigest()
-
-    def _flush_persistent_cache(self) -> None:
-        self._save_persistent_json(CACHE_DIR, CACHE_FILE, self._persistent_cache)
 
     def evaluate_boundary_cases(
         self,
@@ -112,7 +55,7 @@ class BoundaryCaseAgent(BaseAgent):
 
             if use_persistent_cache:
                 cache_key = self._case_cache_key(background_major, case, mode)
-                cached = BoundaryCaseAgent._get_persistent_cache().get(cache_key)
+                cached = BoundaryCaseAgent._cache.get(cache_key)
                 if isinstance(cached, bool):
                     final_decisions[i] = cached
                     evaluated[i] = True
@@ -188,12 +131,12 @@ class BoundaryCaseAgent(BaseAgent):
                 final_decisions[idx] = d
                 if use_persistent_cache:
                     cache_key = self._case_cache_key(background_major, boundary_cases[idx], mode)
-                    BoundaryCaseAgent._write_to_cache(cache_key, d)
+                    BoundaryCaseAgent._cache.set(cache_key, d)
                     new_cache_entries += 1
 
         if use_persistent_cache and new_cache_entries > 0:
             try:
-                BoundaryCaseAgent._flush_persistent_cache()
+                BoundaryCaseAgent._cache.flush()
             except OSError as e:
                 self.logger.error(f"[{self.agent_name}] 保存持久化缓存失败: {e}")
 

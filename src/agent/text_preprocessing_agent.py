@@ -1,7 +1,10 @@
 from typing import Any
 
 from src.agent.base_agent import BaseAgent
-from src.agent.text_preprocessing_prompts import build_field_validation_prompt
+from src.agent.text_preprocessing_prompts import (
+    build_batch_validation_prompt,
+    build_field_validation_prompt,
+)
 from src.agent.utils import parse_bool
 
 
@@ -25,6 +28,42 @@ class TextPreprocessingAgent(BaseAgent):
             f"[{self.agent_name}] 字段验证完成 - 字段类型: {field_type}, 验证结果: {is_valid}"
         )
         return is_valid
+
+    def validate_fields_batch(self, fields: dict[str, str]) -> dict[str, bool]:
+        """Validate multiple experience fields in one API call.
+
+        Returns a dict mapping each field key to its boolean validity.
+        Missing/empty fields default to False.
+        """
+        valid: dict[str, bool] = dict.fromkeys(fields, False)
+        has_content = {k: v for k, v in fields.items() if v and v.strip()}
+        if not has_content:
+            return valid
+
+        prompt = build_batch_validation_prompt(has_content)
+        if not prompt:
+            return valid
+
+        raw = self._call_api(prompt, cache_prefix="field_validation_batch", use_cache=True)
+        if raw is None:
+            return valid
+
+        result = self._parse_json_response(raw, schema_hint='{"<key>": true/false}')
+        if not isinstance(result, dict):
+            return valid
+
+        for key in fields:
+            val = result.get(key)
+            if isinstance(val, bool):
+                valid[key] = val
+            elif isinstance(val, str):
+                valid[key] = parse_bool(val, default=False)
+
+        self.logger.info(
+            f"[{self.agent_name}] 批量字段验证完成 - 字段数: {len(has_content)}, "
+            f"有效: {sum(1 for v in valid.values() if v)}"
+        )
+        return valid
 
     def run(self, context: Any = None, **kwargs: Any) -> dict[str, Any]:
         """Orchestrator-compatible entry point.

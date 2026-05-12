@@ -12,12 +12,7 @@ def _month_range(month: str) -> tuple[pd.Timestamp, pd.Timestamp]:
     """Parse '2026-02' into (start, end) timestamps for that month."""
     y, m = map(int, month.split("-"))
     start = pd.Timestamp(y, m, 1)
-    end = (
-        pd.Timestamp(y, m, m)
-        + pd.offsets.MonthEnd(1)
-        + pd.Timedelta(days=1)
-        - pd.Timedelta(seconds=1)
-    )
+    end = start + pd.offsets.MonthEnd(1) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
     return start, end
 
 

@@ -55,6 +55,7 @@ def _execute_prediction_pipeline(
     background_faculty: str | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
+    cached_combinations: list[tuple[str, str]] | None = None,
 ) -> PredictionResultModel:
     prediction_model = cached_get_prediction_model(model_name)
 
@@ -131,6 +132,7 @@ def _execute_prediction_pipeline(
         background_faculty=background_faculty,
         admitted_combinations=admitted_combinations,
         page_state=page_state,
+        cached_combinations=cached_combinations,
     )
 
     if meta and meta.get("error"):
@@ -290,6 +292,7 @@ def run_prediction_pipeline_with_progress(
     background_faculty: str | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
+    cached_combinations: list[tuple[str, str]] | None = None,
 ) -> PredictionResultModel:
     all_universities_target, all_majors_target = _prepare_list_args(input_data)
     reporter = ProgressReporter(progress_cb)
@@ -305,4 +308,5 @@ def run_prediction_pipeline_with_progress(
         background_faculty=background_faculty,
         admitted_combinations=admitted_combinations,
         page_state=page_state,
+        cached_combinations=cached_combinations,
     )

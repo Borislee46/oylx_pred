@@ -1,7 +1,6 @@
 import hashlib
 import json
 import os
-import threading
 from functools import lru_cache
 from typing import Any
 
@@ -9,12 +8,22 @@ import pandas as pd
 
 from src.agent.background_faculty_prompts import build_background_faculty_prompt
 from src.agent.base_agent import BaseAgent
+from src.agent.persistent_cache import PersistentCache
 from src.utils.app_data_loader import load_school_major_details_df
 
-CACHE_DIR = "cache/agent_cache"
-CACHE_FILE = "background_faculty_candidates.json"
 PROMPT_VERSION = 2
-_SCHOOL_MAJOR_DETAILS_PATH = "src/machine_learning_models/data/school_major_details.feather"
+
+
+def _get_school_major_details_path() -> str:
+    from pathlib import Path
+
+    start = Path(__file__).resolve()
+    for p in (start, *start.parents):
+        if (p / "pyproject.toml").exists():
+            return str(
+                p / "src" / "machine_learning_models" / "data" / "school_major_details.feather"
+            )
+    return "src/machine_learning_models/data/school_major_details.feather"
 
 
 @lru_cache(maxsize=4)
@@ -28,61 +37,13 @@ def _get_valid_faculties_cached(path: str, mtime_key: int) -> list[str]:
 
 
 def _get_valid_faculties() -> list[str]:
-    path = _SCHOOL_MAJOR_DETAILS_PATH
+    path = _get_school_major_details_path()
     mtime_key = int(os.path.getmtime(path)) if os.path.isfile(path) else 0
     return _get_valid_faculties_cached(path, mtime_key)
 
 
 class BackgroundFacultyAgent(BaseAgent):
-    # Class-level persistent cache — shared across instances with locking
-    _persistent_cache: dict[str, Any] | None = None
-    _cache_lock = threading.Lock()
-    _cache_loaded = False
-
-    @classmethod
-    def _get_persistent_cache(cls) -> dict[str, Any]:
-        if not cls._cache_loaded:
-            with cls._cache_lock:
-                if not cls._cache_loaded:
-                    cls._persistent_cache = cls._load_cache_from_disk()
-                    cls._cache_loaded = True
-        return cls._persistent_cache or {}
-
-    @classmethod
-    def _write_to_cache(cls, key: str, value: Any) -> None:
-        with cls._cache_lock:
-            cache = cls._get_persistent_cache()
-            cache[key] = value
-
-    @classmethod
-    def _flush_persistent_cache(cls) -> None:
-        with cls._cache_lock:
-            if cls._persistent_cache is not None:
-                cls._save_cache_to_disk(cls._persistent_cache)
-
-    @classmethod
-    def _load_cache_from_disk(cls) -> dict[str, Any]:
-        file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-        if not os.path.exists(file_path):
-            return {}
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) else {}
-        except (OSError, json.JSONDecodeError):
-            return {}
-
-    @classmethod
-    def _save_cache_to_disk(cls, data: dict[str, Any]) -> None:
-        try:
-            os.makedirs(CACHE_DIR, exist_ok=True)
-            file_path = os.path.join(CACHE_DIR, CACHE_FILE)
-            tmp_path = f"{file_path}.tmp"
-            with open(tmp_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            os.replace(tmp_path, file_path)
-        except OSError:
-            pass
+    _cache = PersistentCache("background_faculty_candidates.json")
 
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=10, agent_name="交叉背景学院Agent")
@@ -126,7 +87,7 @@ class BackgroundFacultyAgent(BaseAgent):
         cache_key = self._cache_key(major, base)
         valid_set = set(valid_faculties)
         if use_persistent_cache:
-            cached = BackgroundFacultyAgent._get_persistent_cache().get(cache_key)
+            cached = BackgroundFacultyAgent._cache.get(cache_key)
             if isinstance(cached, list):
                 cached_out: list[str] = []
                 for x in cached:
@@ -187,9 +148,9 @@ class BackgroundFacultyAgent(BaseAgent):
             out = [base]
 
         if use_persistent_cache:
-            BackgroundFacultyAgent._write_to_cache(cache_key, out)
+            BackgroundFacultyAgent._cache.set(cache_key, out)
             try:
-                BackgroundFacultyAgent._flush_persistent_cache()
+                BackgroundFacultyAgent._cache.flush()
             except OSError:
                 pass
 

@@ -318,7 +318,15 @@ def _check_cross_faculty_needed(
 def _execute_prediction_core(
     payload: dict[str, Any], normalized_input: dict[str, Any], confirm_cross_faculty: bool
 ) -> dict[str, Any]:
+    from src.pages.prediction.prediction_preparation import compute_df_fingerprint
+    from src.pages.prediction.page_data_loader import machine_learning_model
+
     cases_df = load_raw_cases_data()
+    page_state = machine_learning_model.resource_loader()
+    if compute_df_fingerprint(cases_df) != page_state.cases_df_fingerprint:
+        logger.error("案例数据指纹不匹配，模型与数据版本不一致")
+        return {"ok": False, "error": "cases_df_fingerprint_mismatch"}
+
     all_unis = _list_str(payload.get("all_universities_target"))
     all_majors = _list_str(payload.get("all_majors_target"))
 

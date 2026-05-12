@@ -49,7 +49,7 @@ def validate_and_clean_input(input_data: dict[str, Any]) -> PredictionInput:
     return cleaned
 
 
-def prepare_input_data(input_data_from_form: dict) -> dict:
+def prepare_input_data(input_data_from_form: dict, *, cases_df=None) -> dict:
     required = ["background_university", "background_major"]
     if missing := [f for f in required if not input_data_from_form.get(f)]:
         logger.warning(f"缺少必需字段: {', '.join(missing)}")
@@ -62,7 +62,9 @@ def prepare_input_data(input_data_from_form: dict) -> dict:
 
     bg_major = res.get("background_major")
     if isinstance(bg_major, str) and bg_major:
-        faculty = get_background_faculty(bg_major, load_raw_cases_data())
+        if cases_df is None:
+            cases_df = load_raw_cases_data()
+        faculty = get_background_faculty(bg_major, cases_df)
         if faculty:
             res["faculty"] = faculty
 

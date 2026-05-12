@@ -59,6 +59,8 @@ _execute_prediction_pipeline
 
 **输出**：`PredictionResultModel`（`similarity_results`、`cross_major_results`、`user_specified_results`、`unified_results`、`meta`）
 
+**增量参数**（2026-05）：`cached_combinations: list[tuple[str, str]] | None` — 非 None 时跳过组合生成，直接复用传入的 (university, major) 列表。由 `handle_form_submission` 在目标未变时自动注入。
+
 **错误**：`meta.error` 可能为 `model_load_failed`、`cases_df_fingerprint_mismatch`、`no_valid_combinations`、`model_unavailable`、`missing_features`、`execution_failed`、`empty_results`。
 
 ### 4.2 run_prediction
@@ -66,10 +68,14 @@ _execute_prediction_pipeline
 **run_single_prediction**：单次预测执行。
 
 1. 校验/补全 `PredictionInput`
-2. `generate_prediction_combinations` 生成 (university, major) 组合
+2. `generate_prediction_combinations` 生成 (university, major) 组合（若传入 `cached_combinations` 则跳过此步）
 3. `prepare_model_inputs` 构建模型输入
 4. `PredictionExecutor.execute_parallel` 并行推理
 5. `process_prediction_results` 处理原始输出，得到 sim_rec、cross_rec、user_results
+
+**Session 内增量计算**（2026-05）：当同一 session 内目标院校/专业未变化时，`handle_form_submission` 从上次 `unified_results` 提取 `(university, major)` 组合作为 `cached_combinations` 传入 pipeline，跳过 `generate_prediction_combinations()`（含 E5 相似度查表 + fuzzy 匹配），仅重跑 XGBoost 推理 + 调整链。目标有变化时自动 fallback 到全量重算。
+
+**设计取舍**：增量触发条件是「上次结果中的院校集合 == 当前 `all_universities_target`」。在 bulk 模式（未选具体学校）下，`all_universities_target` 是全量 26 所，而上轮结果只命中 8-10 所——二者不相等，增量不触发。这是保守策略：宁可多算，不拿错误组合。精确选校 + 调 GPA/语言的场景才是增量的主战场，且 popular-path（A5）已给 bulk 模式提了速。
 
 ### 4.3 processor
 
@@ -77,6 +83,7 @@ _execute_prediction_pipeline
 - 目标专业：用户指定则用 `target_majors`；否则从 `all_majors_target` 中筛选，语义相似度 ≥ 0.6 或 fuzzy 匹配 > 90 的纳入
 - 目标院校：`target_universities` 或 `all_universities_target`
 - 过滤：仅保留 `_data_manager.valid_combinations` 中的 (u, m)
+- **热门组合快速路径**（2026-05）：`_is_major_match()` 对命中 `config/hot_paths.json` 中 `hot_major_substrings` 的专业直接返回 True，跳过语义相似度查表 + fuzzy 匹配。配置由 `_load_hot_paths()` 在模块加载时读取，文件不存在或损坏时 fallback 到硬编码默认值（港三 × SMART/ACCT/IT）。`hot_schools` 字段已预留，当前仅 `hot_major_substrings` 生效——学校级快速路径待 usage_stats 积累足够数据后启用
 
 **process_prediction_results**：
 - 构建 `SingleResultProcessor`，逐条处理

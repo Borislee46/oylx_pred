@@ -117,11 +117,11 @@ class RankerUIHandler:
         self._round_count += 1
 
         if major_names:
-            text = random.choice(major_names)
+            sample = major_names[0] if len(major_names) == 1 else f"{len(major_names)}个专业"
             pool = self._message_pools[self._round_count % len(self._message_pools)]
             msg = self._pick_message(
                 pool,
-                target_major=text,
+                target_major=sample,
                 background_major_ori=self.background_major or "当前背景",
                 tone=self._tone,
                 faculty=self.background_faculty or "所属学院",

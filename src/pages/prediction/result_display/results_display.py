@@ -8,9 +8,24 @@ from src.pages.prediction.data_sort_config import (
     UNIVERSITY_ORDER_MAP,
     UNIVERSITY_SORT_ORDER,
 )
+from src.pages.prediction.handler_config import DEFAULT_FORM_KEYS, DEFAULT_UI_KEYS
+from src.pages.prediction.result_display.hero_summary import render_hero_summary
+from src.pages.prediction.result_display.trace_display import render_trace_for_results
 from src.pages.prediction.result_modifier.config import TOP_N_RECOMMENDATIONS
 from src.pages.prediction.result_modifier.utils import get_probability
 from src.utils.session_manager import SessionManager
+
+
+def _delta_cell_style(v: str) -> str:
+    if not isinstance(v, str):
+        return ""
+    if v.startswith("+"):
+        return "color: #059669; font-weight: 600;"
+    if v.startswith("-"):
+        return "color: #dc2626; font-weight: 600;"
+    if v == "NEW":
+        return "color: #2563eb; font-weight: 600;"
+    return ""
 
 
 def get_column_config(
@@ -39,6 +54,13 @@ def get_column_config(
                 pinned=True,
                 color="#06b6d4",
             )
+        elif col_name == "±%":
+            column_config[col_name] = st.column_config.TextColumn(
+                label=label,
+                width=width,
+                pinned=True,
+                help="与上次预测的概率变化：▲上涨 ▼下跌 —不变 NEW新增",
+            )
         else:
             column_config[col_name] = st.column_config.TextColumn(label=label, width=width)
 
@@ -51,13 +73,17 @@ class ResultsDisplay:
         top_similarity_results=None,
         top_cross_major_results=None,
         user_specified_results=None,
+        prev_prob_map: dict | None = None,
+        delta_calculator=None,
     ):
         self.top_similarity_results = top_similarity_results or []
         self.top_cross_major_results = top_cross_major_results or []
         self.user_specified_results = user_specified_results or []
+        self.prev_prob_map = prev_prob_map
+        self.delta_calculator = delta_calculator
 
         session_manager = SessionManager()
-        is_cross_faculty = session_manager.get("cross_faculty_confirmed", False)
+        is_cross_faculty = session_manager.get(DEFAULT_UI_KEYS.cross_faculty_confirmed, False)
 
         sim_title = "相似（相对）专业" if is_cross_faculty else "相似专业"
         cross_title = "潜力跨（相对）专业" if is_cross_faculty else "潜力跨专业"
@@ -94,11 +120,18 @@ class ResultsDisplay:
 
         styled_df = df
         major_col = next((c for c in df.columns if c.startswith("推荐专业")), None)
-        if major_col and df[major_col].str.contains("(new!)", regex=False).any():
-            styled_df = df.style.map(
-                lambda v: "color: #06b6d4;" if isinstance(v, str) and "(new!)" in v else "",
-                subset=[major_col],
-            )
+        has_new_major = bool(major_col and df[major_col].str.contains("(new!)", regex=False).any())
+        has_delta_col = "±%" in df.columns
+
+        if has_new_major or has_delta_col:
+            styled_df = df.style
+            if has_new_major:
+                styled_df = styled_df.map(
+                    lambda v: "color: #06b6d4;" if isinstance(v, str) and "(new!)" in v else "",
+                    subset=[major_col],
+                )
+            if has_delta_col:
+                styled_df = styled_df.map(_delta_cell_style, subset=["±%"])
 
         st.dataframe(
             styled_df,
@@ -123,31 +156,30 @@ class ResultsDisplay:
         if max_items:
             sorted_results = sorted_results[:max_items]
 
-        data = {
+        data: dict[str, list] = {
             "推荐院校": [r["university"] for r in sorted_results],
             "推荐专业": [
                 f"{r['major']}(new!)" if r.get("is_new_major") else r["major"]
                 for r in sorted_results
             ],
             "录取概率": [get_probability(r) for r in sorted_results],
-            "推荐专业详情": [
-                get_school_major_details(r.get("university"), r.get("major")) or ""
-                for r in sorted_results
-            ],
         }
+
+        if self.prev_prob_map and self.delta_calculator:
+            data["±%"] = [
+                self.delta_calculator.calculate_delta(r, self.prev_prob_map) for r in sorted_results
+            ]
+
+        data["推荐专业详情"] = [
+            get_school_major_details(r.get("university"), r.get("major")) or ""
+            for r in sorted_results
+        ]
+
         return pd.DataFrame(data)
 
     def display(self):
-        st.html(
-            '<p style="font-size:0.68rem;color:var(--hk-slate-400);'
-            'margin-top:0.5rem;text-align:center">'
-            "机器学习算法未将时政变化、最新校方招生政策等作为特征因子，预测的录取概率仅供参考。"
-            "</p>"
-        )
-        return  # ── 完整列表暂时隐藏 ──
-
         session_manager = SessionManager()
-        selected_majors = session_manager.get("selected_target_majors", [])
+        selected_majors = session_manager.get(DEFAULT_FORM_KEYS.selected_target_majors, [])
         has_user_specified = bool(selected_majors) and bool(self.user_specified_results)
         has_similarity = bool(self.top_similarity_results)
         has_cross_major = bool(self.top_cross_major_results)
@@ -156,24 +188,40 @@ class ResultsDisplay:
             st.info("无推荐结果。")
             return
 
-        if has_user_specified:
-            with st.expander("查看完整列表"):
-                self._display_type("user_specified")
-        elif has_similarity and has_cross_major:
-            with st.expander("查看完整列表"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    self._display_type("similarity")
-                with col2:
-                    self._display_type("cross_major")
-        elif has_similarity:
-            with st.expander("查看完整列表"):
-                self._display_type("similarity")
-        elif has_cross_major:
-            with st.expander("查看完整列表"):
-                self._display_type("cross_major")
+        all_candidates = sorted(
+            (
+                (self.top_similarity_results or [])
+                + (self.top_cross_major_results or [])
+                + (self.user_specified_results or [])
+            ),
+            key=lambda r: float(r.get("probability", 0.0) or 0.0),
+            reverse=True,
+        )
+        render_hero_summary(all_candidates)
 
-    def _display_type(self, result_type: str):
+        if has_user_specified:
+            self._display_table("user_specified")
+        elif has_similarity and has_cross_major:
+            col1, col2 = st.columns(2)
+            with col1:
+                self._display_table("similarity")
+            with col2:
+                self._display_table("cross_major")
+        elif has_similarity:
+            self._display_table("similarity")
+        elif has_cross_major:
+            self._display_table("cross_major")
+
+        st.html(
+            '<div class="hk-disclaimer">'
+            "机器学习算法未将时政变化、最新校方招生政策等作为特征因子，预测的录取概率仅供参考。"
+            "</div>"
+        )
+
+        with st.expander("这分数怎么来的？（top 3 召回算法链路trace）", key="trace_expander"):
+            render_trace_for_results(all_candidates)
+
+    def _display_table(self, result_type: str):
         max_items = None if result_type == "user_specified" else TOP_N_RECOMMENDATIONS
         df = self.get_result_dataframe(result_type, max_items=max_items)
         self.display_dataframe(

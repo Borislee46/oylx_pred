@@ -1,3 +1,9 @@
+import os
+
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["OPENBLAS_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "2"
+
 import re
 import time
 
@@ -74,7 +80,6 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hk", False):
         available_buttons.append(("Signals 留学择校系统", "pages/hk.py", False))
-        available_buttons.append(("WritePrint 文书AI检测", "pages/write_print.py", False))
         available_buttons.append(
             (
                 "Power BI 完整版案例库",

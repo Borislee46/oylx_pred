@@ -3,25 +3,27 @@ from functools import lru_cache
 import pandas as pd
 import streamlit as st
 
+from src.pages.prediction.config.ui_messages import CROSS_FACULTY_MESSAGES
 from src.pages.prediction.results_handler import clear_pending_prediction_state
 from src.utils.app_data_loader import load_raw_cases_data, load_school_major_details_df
 from src.utils.session_manager import SessionManager
 
 
-@st.dialog("提示", width="small")
+@st.dialog(CROSS_FACULTY_MESSAGES["dialog_title"], width="small")
 def cross_faculty_confirm_dialog(
     session_manager: SessionManager, background_faculty: str, target_faculties: set[str]
 ) -> None:
     target_str = "、".join(sorted(target_faculties))
     st.markdown(
-        f"检测到您的背景属于 **{background_faculty}**，而目标专业包含 **{target_str}** 方向。\n\n"
-        "这属于跨大类申请，可能面临不同的评估标准，是否继续？"
+        CROSS_FACULTY_MESSAGES["dialog_body"].format(
+            bg_faculty=background_faculty, target_faculties=target_str
+        )
     )
 
     col1, col2 = st.columns(2)
     with col1:
         if st.button(
-            "继续",
+            CROSS_FACULTY_MESSAGES["confirm_button"],
             type="primary",
             width="stretch",
             key="cross_faculty_confirm_btn",
@@ -35,7 +37,12 @@ def cross_faculty_confirm_dialog(
             st.rerun()
 
     with col2:
-        if st.button("取消", width="stretch", key="cross_faculty_cancel_btn", shortcut="Esc"):
+        if st.button(
+            CROSS_FACULTY_MESSAGES["cancel_button"],
+            width="stretch",
+            key="cross_faculty_cancel_btn",
+            shortcut="Esc",
+        ):
             clear_pending_prediction_state(session_manager)
             session_manager.set(
                 cross_faculty_confirmed=False,

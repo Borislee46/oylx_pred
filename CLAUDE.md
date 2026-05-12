@@ -157,6 +157,9 @@ python scripts/precompute_similarities.py
 
 # 训练文本提升模型
 python scripts/train_text_tfidf.py
+
+# 生成录取相关性矩阵（Monte Carlo 用）
+python scripts/generate_correlation_matrix.py
 ```
 
 ## Important Constraints
@@ -167,6 +170,7 @@ python scripts/train_text_tfidf.py
 - **生产部署在 80 端口**：`server.port = 80`，`server.address = "0.0.0.0"`，XSFR/CORS 关闭（前面有反向代理）
 - **session_state 是唯一状态载体**：通过 `SessionManager` 强类型存取，没有 disk persistence
 - **CSS 分两层**：全局样式（`style.css`）+ Signals 品牌设计系统（`hk_style/00~40_*.css`，按加载顺序叠加）
+- **实验性模块**：`src/pages/prediction/` 下有 3 个从已删除 commit 恢复的实验目录（school_combination_optimizer_algorithm/、admission_probability_calculator_components/、page_components/pdf_generation/），所有文件有 `# !!EXPERIMENTAL:` 标记，grep 可定位。详见 `src/pages/prediction/EXPERIMENTAL_ROUTE.md`
 
 ## Governance Rules
 

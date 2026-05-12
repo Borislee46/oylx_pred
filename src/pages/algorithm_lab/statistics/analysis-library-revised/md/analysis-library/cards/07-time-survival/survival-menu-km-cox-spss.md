@@ -1,0 +1,151 @@
+---
+source: analysis-library/cards/07-time-survival/survival-menu-km-cox-spss.md
+improve_fingerprint: 972170996642a2617bd8c93579f578d7b37dad19069ebec925c70c01827fa1a8
+prompt_digest: bbf83924da02e3b0
+cached: false
+---
+
+# 生存分析（寿命表 / Kaplan–Meier / Cox / 依时协变量）
+
+- **slug**: survival-spss-overview
+- **aliases**: 生存曲线、比例风险模型、KM、Cox、时依协变量、生存分析报告规范
+
+## 1. 回答什么问题
+
+- **寿命表（Life Tables）**：按**时间区间**估计各段的风险人数、退出数、条件生存率及累积生存率；适合**时间精度较低（分组较粗）**或**大样本**的精算（Actuarial）视角。
+- **Kaplan–Meier (KM) 法**：基于**精确的事件发生时间**，通过乘积限法估计非参数**生存函数** \(S(t)\)，有效处理**右删失**数据；可比较多组生存曲线并进行非参数**秩检验**（如 Log-rank 检验）。
+- **Cox 比例风险回归**：在控制**协变量** \(X\) 的情况下，通过半参数模型估计**风险比（Hazard Ratio, HR）**。其不需对基线风险 \(h_0(t)\) 的分布做参数化假定；广泛用于**校正混杂**后的预后分析与病因学推断。
+- **含依时协变量的 Cox 模型**：当协变量在随访期间发生**变化**时使用。其在数学上体现为 \(X(t)\)，但在软件实现上存在差异：R/Python 等倾向于通过**计数过程（Counting Process, 拆分为 `(t_start, t_stop]` 多行数据）**实现；而 SPSS 菜单中默认通过**构造时间函数（如 `T_ * 变量`）**进行表达式拟合。
+
+## 2. 不适用 / 易滥用
+
+- **忽略竞争风险（Competing Risks）**：在有互斥死因（如死于心血管疾病 vs. 死于车祸）时，单终点 KM/Cox 高估了绝对风险。此时“生存”可能并非临床关心的结局。需根据研究目的改用**原因别 Cox（Cause-specific HR, 适合病因学探究）**或 **Fine–Gray 模型（Subdistribution HR, 适合预测临床实际发生率）**。
+- **永生时间偏倚（Immortal Time Bias）**：若将随访期间才确定的暴露状态（如“是否接受心脏移植”）错误地作为基线协变量处理，会使暴露组获得“不会在接受干预前死亡”的不合理生存优势。必须使用**依时协变量**或**界标分析（Landmark Analysis）**纠正。
+- **非独立观测**：同一受试者发生多次事件（复发）或存在多中心聚类效应时，默认的偏似然独立假定被破坏。需采用**脆弱模型（Frailty Model）**、**聚类稳健标准误（Cluster-robust SE）**或**多状态模型**。
+- **因果推断过度延伸**：Cox 模型输出的 HR 仅代表关联，其因果解释强依赖于**研究设计**（如随机化、严格时序与混杂控制）。
+- **无视比例风险假定**：当两条生存曲线出现明显**交叉**，或效应随时间剧烈衰减时，强行报告一个全局“平均 HR”极具误导性，需采用分层或依时系数模型。
+
+## 3. 数据与设计前提
+
+- **终点定义**：需明确事件发生时间 \(T\) 与**事件指示变量** \(\delta\)（通常 1=事件发生，0=删失）。最常见的删失类型为**右删失（Right Censoring）**。
+- **截断 vs. 删失的区别**：
+  - **左截断（Left Truncation / 延迟进入）**：受试者在研究开始后某时间点才进入风险集（未进入前若发生事件则不被观察到）；需在软件中正确设定进入时间以修正风险集。
+  - **左删失（Left Censoring）**：仅知事件在观察起点前发生，但不知具体时间（与截断本质不同，常规 Cox 无法直接处理，需特殊极大似然设定）。
+- **时间单位**：必须与协变量的时间尺度保持一致。依时分析中常需将数据按**人-区间（Person-time）**展开。
+- **样本量要求（EPV 法则）**：为保证 Cox 模型的渐近性质，经典经验法则是 **10 EPV (Events per Variable)**，即纳入多因素模型的每个自变量需对应至少 10 个结局事件。现代文献表明，在使用惩罚似然（如 Ridge/Lasso）或特定临床场景下，EPV 可勉强放宽至 5-9，但极少事件将导致区间宽泛与检验效能低下。
+
+## 4. 模型与检验统计量
+
+- **Kaplan-Meier 估计**：\(\hat{S}(t) = \prod_{t_i \le t} (1 - d_i/n_i)\)。使用 **Greenwood 公式**估计方差并构建置信区间（CI）；中位生存期及其 CI 常用 **Brookmeyer–Crowley** 法估计。
+- **组间秩检验**：均为加权对数秩统计量。
+  - **Log-rank**：权重 \(w(t) = 1\)，对各时间点事件赋予同等权重（对后期差异敏感，假设比例风险）。
+  - **Breslow (Generalized Wilcoxon)**：权重正比于风险人数 \(n_i\)，对早期事件更敏感。
+  - **Tarone–Ware**：权重正比于 \(\sqrt{n_i}\)，介于前两者之间。
+- **Cox 比例风险模型**：\(h(t|X) = h_0(t)\exp(\beta'X)\)。通过最大化**偏似然函数（Partial Likelihood）**估计系数 \(\beta\)，使用 **Wald、Score 或 似然比（Likelihood Ratio）**检验。
+- **结（Ties）的处理**：当多个受试者在同一精确时间发生事件时：
+  - **Breslow**（SPSS 默认）：计算快，但在结多时有偏。
+  - **Efron**（R 默认，推荐）：对结的处理更精确且计算效率尚可。
+  - **Exact（精确法）**：最准确但计算量大，仅适用于小样本。
+- **分层 Cox**：允许不同层别具有各自的基线风险 \(h_{0s}(t)\)，但要求**协变量效应 \(\beta\) 跨层相等**（用于控制非比例风险的干扰因子）。
+
+## 5. 假设与诊断
+
+| 假设 | 检查方式 / 统计检验 | 违背时的典型后果 | 补救措施 |
+|------|---------------------|------------------|----------|
+| **比例风险 (PH)** | **Log-minus-log (LML)** 曲线（需近似平行）；<br>**Schoenfeld 残差**检验（如 `cox.zph`）；残差散点图 | HR 沦为缺乏解释力的“加权平均”；曲线交叉时可能得出相反结论 | 1. 针对该变量**分层 (Strata)**；<br>2. 引入 \(X \times f(t)\) 的**依时系数**；<br>3. 改用 AFT 模型。 |
+| **对数风险线性 (Linearity)** | 连续变量多项式拟合；<br>**鞅残差 (Martingale residuals)** 散点图 | 模型设定错误，遗漏非线性效应，导致 HR 有偏 | 将连续变量分段（Categorize）、使用受限三次样条 (RCS) 或多项式。 |
+| **无信息删失 (Non-informative Censoring)** | 审查患者失访原因（如因病情恶化退出）；敏感性分析 | 高估或低估真实生存率，产生系统性偏倚 | 采用逆概率删失加权 (IPCW)，或在讨论中结合临床机制定性分析局限性。 |
+| **观测独立性** | 研究设计审查（是否有家族/多中心数据）；评估聚类残差模式 | 标准误 (SE) 被低估，假阳性率增加，结论过于乐观 | 引入**脆弱项 (Frailty)** 拟合随机效应，或使用聚类稳健方差估计。 |
+
+## 6. 效应量、区间与模型评价（预测视角拓展）
+
+除了关联分析，生存模型常用于构建预后评估工具。在报告中应涵盖以下维度：
+- **推断性统计量**：Cox 模型报告 **HR 及其 95% CI** 和 P 值；KM 报告组间**中位生存时间差**或特定时间点（如 1 年、3 年）的 **\(S(t)\) 差异**。
+- **亚组与交互作用**：使用**森林图（Forest Plot）**呈现各亚组的 HR，并必须报告**交互作用 P 值 (\(P_{interaction}\))**，避免直接通过“某亚组 P<0.05 另一亚组 P>0.05”断言差异。
+- **预测模型评价**：若用于构建列线图（Nomogram）等预测工具，需报告：
+  - **区分度 (Discrimination)**：**Harrell's C-index**（类似于随时间变化的 AUC）。
+  - **校准度 (Calibration)**：绘制**校准曲线**，比较预测生存概率与观测生存（KM估计）的吻合度。
+  - **整体精度**：**Brier Score**。
+
+## 7. 与相关方法的取舍
+
+- **参数生存模型（Weibull / 指数分布等）**：假设基线风险服从特定概率分布。若分布假设成立，其统计效能更高，且可向样本外观测时间**外推 (Extrapolate)**；若假定错误，则结果有偏。
+- **加速失效时间模型（AFT）**：作为一种参数模型，它直接对“生存时间”建模。其效应量为**时间加速因子（Time Ratio / Acceleration Factor）**，解释为“使预期生存时间延长/缩短的倍数”，在临床沟通中往往比 HR 更直观。
+- **非参数组间比较（仅 KM）**：若仅需比较两组生存率且无须校正任何混杂因素，KM + Log-rank 是首选；若需控制哪怕一个混杂变量，也必须使用 Cox 或基于倾向性评分的方法。
+
+## 8. 实现速查
+
+- **SPSS 操作路径**：**分析 → 生存分析**。包含 `寿命表`、`Kaplan-Meier`、`Cox 回归`、`带时间界限的协变量的 Cox（依时）`。
+  - *避坑提示*：SPSS 的“带时间界限的协变量的 Cox”界面要求用户通过内置时间变量 `T_` 写公式（如设定 `T_COV_ = 变量 * T_` 或 `ln(T_)`）来评估 PH 违背。它**不要求**预先把数据集拆解为多行长数据。
+
+- **R 语言**：使用标准的 `survival` 与 `survminer` 库。
+
+```r
+library(survival)
+library(survminer)
+
+# 1. KM 分析与基础对数秩检验
+fit_km <- survfit(Surv(time, event) ~ group, data = d)
+survdiff(Surv(time, event) ~ group, data = d) # 严谨的底层统计检验
+ggsurvplot(fit_km, conf.int = TRUE, pval = TRUE, risk.table = TRUE)
+
+# 2. Cox 回归 (推荐 ties="efron")
+fit_cox <- coxph(Surv(time, event) ~ x1 + factor(x2) + strata(stratvar), 
+                 data = d, ties = "efron")
+summary(fit_cox)
+
+# 3. PH 假定诊断 (Schoenfeld 残差检验与可视化)
+ph_test <- cox.zph(fit_cox)
+print(ph_test)
+ggcoxzph(ph_test) # 若趋势线显著偏离水平0线，则违背PH假设
+```
+
+- **Python 语言**（依赖 `lifelines`）：
+
+```python
+import pandas as pd
+from lifelines import KaplanMeierFitter, CoxPHFitter
+
+# 1. KM 拟合
+kmf = KaplanMeierFitter()
+kmf.fit(durations=d["time"], event_observed=d["event"])
+kmf.plot_survival_function()
+
+# 2. Cox 回归
+# 注意避坑：lifelines 需手动对分类变量进行 Dummy 编码
+d_model = pd.get_dummies(d[["time", "event", "x1", "x2"]], drop_first=True)
+cph = CoxPHFitter(penalizer=0.0) # 可调整 penalizer 应对少量事件
+cph.fit(d_model, duration_col="time", event_col="event")
+cph.print_summary()
+
+# 3. 假设检验
+cph.check_assumptions(d_model, p_value_threshold=0.05)
+```
+
+## 9. 报告清单（学术论文规范）
+
+在科研写作的方法与结果部分，应涵盖以下要素以确保可重复性：
+1. **终点与时间定义**：明确定性终点事件、删失规则、随访起点的具体定义。
+2. **随访质量描述**：必须报告**中位随访时间（Median Follow-up Time）**（通常采用反向 Kaplan-Meier 法计算，即把删失设为1，事件设为0）。
+3. **样本与事件流失**：初始样本量 \(N\)、最终有效纳入量、总体事件发生数（及事件发生率）。
+4. **单因素/描述性分析**：提供 KM 生存曲线图；建议下方附带 **Number at risk（风险人数表）**；说明所用组间检验方法（如 Log-rank）。
+5. **Cox 回归模型设定**：列明纳入多因素模型的所有协变量及其筛选逻辑；标明使用的 Tie 处理方法（默认或 Efron）；报告每一项的 **HR 及 95% CI** 和全局模型拟合检验。
+6. **统计假设诊断**：用一句话简述“已通过 Schoenfeld 残差检验验证比例风险假设（Global P > 0.05）”。
+7. **进阶分析说明**：若涉及时依协变量，说明采用的是多行切割（Counting process）还是时间函数（SPSS公式法）；若存在竞争风险但未使用细分模型，需在讨论（Discussion）中声明其对绝对风险估计的潜在高估局限性。
+
+## 10. 参考文献与核心手册
+
+- 教材：Klein & Moeschberger (2003) *Survival Analysis: Techniques for Censored and Truncated Data*.
+- 教材：Therneau & Grambsch (2000) *Modeling Survival Data: Extending the Cox Model*.
+- 软件文档：IBM SPSS Statistics 命令语法参考（`KM`, `COXREG`）；R 包 `survival` vignette（重点参考 Therneau 编写的依时协变量与多状态指南）。
+
+---
+
+## 附录：SPSS 生存分析子菜单与对话框要点（速查）
+
+| 菜单项 | 底层过程 (Syntax) | 核心应用场景与注意事项 |
+|--------|-------------------|------------------------|
+| **寿命表 (L)** | `SURVIVAL` | 用于分组区间计算（Actuarial 法）。适合粗刻度数据或超大样本；输出区间内的风险率与累积生存率。时间变量可设为区间中点。 |
+| **Kaplan-Meier** | `KM` | 计算精确时间的乘积限 \(S(t)\)。处理右删失数据；“比较因子”中提供 Log-rank、Breslow、Tarone-Ware 检验；可输出中位生存期及其 CI。 |
+| **Cox 回归** | `COXREG` | 基于偏似然估计 \(HR\)。可在此处设置**层 (Strata)** 分层基线风险，设置协变量交互项；选项中可请求绘制 **Log-minus-log 图**以人工判断 PH 假定。 |
+| **带时间界限的协变量的 Cox** | `COXREG` + 临时变量计算 | SPSS 专属界面：不要求数据为多行形式，而是通过弹出表达式生成器，利用内部隐藏变量 `T_` 构造时依项（如 `cov * T_` 或 `cov * ln(T_)`）以测试非比例风险。 |

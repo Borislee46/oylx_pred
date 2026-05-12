@@ -2,21 +2,24 @@ from functools import partial
 
 import streamlit as st
 
+from src.pages.prediction.handler_config import DEFAULT_WIDGET_KEYS
 from src.pages.prediction.input_form_components.form_state import FormStateManager
 from src.pages.prediction.input_form_components.widget_helpers import SelectBoxHelper
 from src.utils.app_data_loader import load_school_base_data
 
 
 def _log_background_university_change(session_manager, form_state_manager, logger):
-    selected_university = session_manager.get_widget_value("background_university_selectbox")
+    selected_university = session_manager.get_widget_value(
+        DEFAULT_WIDGET_KEYS.background_university
+    )
     session_manager.set(background_university=selected_university, language_score_input=None)
-    FormStateManager._clear_widget_state("language_score_input_widget")
+    FormStateManager._clear_widget_state(DEFAULT_WIDGET_KEYS.language_score)
     logger.info(f"用户选择背景院校: {selected_university}")
     form_state_manager.on_form_change(session_manager, change_type="select")
 
 
 def _log_background_major_change(session_manager, form_state_manager, logger):
-    selected_major = session_manager.get_widget_value("background_major_selectbox")
+    selected_major = session_manager.get_widget_value(DEFAULT_WIDGET_KEYS.background_major)
     logger.info(f"用户选择背景专业: {selected_major}")
     form_state_manager.on_form_change(session_manager, change_type="select")
 

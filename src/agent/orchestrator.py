@@ -38,29 +38,6 @@ class AgentOrchestrator:
 
         return result
 
-    @staticmethod
-    def run_pipeline(
-        steps: list[dict[str, Any]],
-        context: StudentContext,
-    ) -> list[dict[str, Any]]:
-        """Chain agents sequentially through a shared context.
-
-        Each step is ``{"agent": name, "kwargs": {...}}``.
-        Stops early if any agent returns an ``_error`` key.
-        """
-        results: list[dict[str, Any]] = []
-        for step in steps:
-            agent_name = step["agent"]
-            kwargs = step.get("kwargs", {})
-            result = AgentOrchestrator.run(agent_name, context, **kwargs)
-            results.append(result)
-            if "_error" in result:
-                _ORCHESTRATOR_LOGGER.warning(
-                    "Pipeline halted at '%s': %s", agent_name, result["_error"]
-                )
-                break
-        return results
-
 
 def _summarize(result: dict[str, Any], max_len: int = 80) -> str:
     if not result:

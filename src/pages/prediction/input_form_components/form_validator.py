@@ -1,3 +1,4 @@
+from src.pages.prediction.config.ui_messages import FORM_ERROR_MESSAGES
 from src.pages.prediction.input_form_components.form_config import (
     GMAT_SCORE_RANGE,
     GPA_SCALES,
@@ -22,24 +23,34 @@ class FormValidator:
             return True, None, None
 
         if exam_type not in STANDARDIZED_TEST_TYPES:
-            return False, f"{exam_type}分数无效，请选择有效的考试类型", None
+            return False, FORM_ERROR_MESSAGES["exam_type_invalid"].format(exam_type=exam_type), None
 
         try:
             parsed_score = float(score)
 
             if not parsed_score.is_integer():
-                return False, f"{exam_type}分数无效，请输入整数", None
+                return (
+                    False,
+                    FORM_ERROR_MESSAGES["exam_score_not_integer"].format(exam_type=exam_type),
+                    None,
+                )
 
             score_int = int(parsed_score)
             ranges = GRE_SCORE_RANGE if exam_type == "GRE" else GMAT_SCORE_RANGE
 
             if score_int < 0:
-                return False, f"{exam_type}分数无效，请输入大于0的整数", None
+                return (
+                    False,
+                    FORM_ERROR_MESSAGES["exam_score_negative"].format(exam_type=exam_type),
+                    None,
+                )
 
             if score_int < ranges["min"] or score_int > ranges["max"]:
                 return (
                     False,
-                    f"{exam_type}分数无效，请输入 {ranges['min']} - {ranges['max']} 之间的整数",
+                    FORM_ERROR_MESSAGES["exam_score_out_of_range"].format(
+                        exam_type=exam_type, min=ranges["min"], max=ranges["max"]
+                    ),
                     None,
                 )
 
@@ -83,17 +94,27 @@ class FormValidator:
         errors: list[ValidationError] = []
 
         if not form_data["background_university"]:
-            errors.append(ValidationError("background_university", "请选择背景院校"))
+            errors.append(
+                ValidationError(
+                    "background_university", FORM_ERROR_MESSAGES["background_university_empty"]
+                )
+            )
 
         if not form_data["background_major_original"]:
-            errors.append(ValidationError("background_major_original", "请选择背景专业"))
+            errors.append(
+                ValidationError(
+                    "background_major_original", FORM_ERROR_MESSAGES["background_major_empty"]
+                )
+            )
         elif not form_data["background_major"]:
-            errors.append(ValidationError("background_major", "背景专业选择无效，请重新选择"))
+            errors.append(
+                ValidationError("background_major", FORM_ERROR_MESSAGES["background_major_invalid"])
+            )
 
         if form_data["gpa_raw"] is None or form_data["gpa_raw"] == "":
-            errors.append(ValidationError("gpa_raw", "GPA不能为空"))
+            errors.append(ValidationError("gpa_raw", FORM_ERROR_MESSAGES["gpa_empty"]))
         elif form_data["gpa_raw"] == 0:
-            errors.append(ValidationError("gpa_raw", "GPA不能为0"))
+            errors.append(ValidationError("gpa_raw", FORM_ERROR_MESSAGES["gpa_zero"]))
         else:
             normalized_gpa = FormValidator.normalize_gpa(
                 form_data["gpa_raw"],
@@ -102,9 +123,11 @@ class FormValidator:
                 gpa_converter,
             )
             if normalized_gpa is None:
-                errors.append(ValidationError("gpa_raw", "GPA无法解析或归一化，请检查输入与分制"))
+                errors.append(ValidationError("gpa_raw", FORM_ERROR_MESSAGES["gpa_parse_failed"]))
             elif normalized_gpa == 0.0 and form_data["gpa_raw"] > 0:
-                errors.append(ValidationError("gpa_scale", "GPA分制无效"))
+                errors.append(
+                    ValidationError("gpa_scale", FORM_ERROR_MESSAGES["gpa_scale_invalid"])
+                )
 
         exam_type = form_data.get("exam_type")
         exam_score = form_data.get("exam_score")
@@ -124,7 +147,11 @@ class FormValidator:
         )
 
         if form_data.get("language_score_input_error"):
-            errors.append(ValidationError("language_score_input", "请修正语言成绩输入错误"))
+            errors.append(
+                ValidationError(
+                    "language_score_input", FORM_ERROR_MESSAGES["language_score_input_error"]
+                )
+            )
 
         if form_data["language_type"] == "雅思" and form_data["language_score_raw"] is not None:
             if form_data[
@@ -132,11 +159,18 @@ class FormValidator:
             ] > 0 and not LanguageScoreValidator.validate_ielts_step(
                 form_data["language_score_raw"]
             ):
-                errors.append(ValidationError("language_score_raw", "雅思成绩必须是0.5的倍数"))
+                errors.append(
+                    ValidationError("language_score_raw", FORM_ERROR_MESSAGES["ielts_step_invalid"])
+                )
 
         if form_data["language_score_raw"] == 0 and not is_overseas:
             errors.append(
-                ValidationError("language_score_raw", f"{form_data['language_type']}成绩不能为0")
+                ValidationError(
+                    "language_score_raw",
+                    FORM_ERROR_MESSAGES["language_score_zero"].format(
+                        language_type=form_data["language_type"]
+                    ),
+                )
             )
 
         experience_fields = [
@@ -145,7 +179,12 @@ class FormValidator:
             "internship_count",
             "paper_count",
         ]
-        field_names = ["科研项目数量", "获奖数量", "实习数量", "论文数量"]
+        field_names = [
+            FORM_ERROR_MESSAGES["experience_field_research"],
+            FORM_ERROR_MESSAGES["experience_field_award"],
+            FORM_ERROR_MESSAGES["experience_field_internship"],
+            FORM_ERROR_MESSAGES["experience_field_paper"],
+        ]
 
         for field, name in zip(experience_fields, field_names, strict=False):
             if form_data[field] is None:
@@ -167,7 +206,9 @@ class FormValidator:
                     errors.append(
                         ValidationError(
                             count_field,
-                            f"{field_name}数量为0，但填写了详细信息，请检查数量或清空详细信息",
+                            FORM_ERROR_MESSAGES["experience_detail_mismatch"].format(
+                                field_name=field_name
+                            ),
                         )
                     )
 

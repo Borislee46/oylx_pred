@@ -1,3 +1,5 @@
+from src.agent.schemas import compute_tiers
+
 APPLICATION_SYSTEM_PROMPT = """\
 你是资深留学申请规划师。根据预测结果和学生背景，生成切实可行的申请策略。
 
@@ -35,8 +37,6 @@ def build_application_prompt(
     target_country: str,
     experience_details: dict | None,
     unified_results: list,
-    tier_threshold_high: float = 0.6,
-    tier_threshold_low: float = 0.3,
 ) -> str:
     lines = [
         "## 学生背景",
@@ -54,12 +54,14 @@ def build_application_prompt(
 
     lines.append(f"\n## 预测结果（共 {len(unified_results)} 条）")
 
-    reach, match, safety = [], [], []
-    for r in unified_results:
-        prob = r.get("probability", 0)
-        if prob >= tier_threshold_high:
+    probs = [float(r.get("probability", 0) or 0) for r in unified_results]
+    tier_labels = compute_tiers(probs)
+
+    safety, match, reach = [], [], []
+    for r, label in zip(unified_results, tier_labels, strict=True):
+        if label == "保底":
             safety.append(r)
-        elif prob >= tier_threshold_low:
+        elif label == "适中":
             match.append(r)
         else:
             reach.append(r)
@@ -72,16 +74,18 @@ def build_application_prompt(
             uni = r.get("university", "")
             maj = r.get("major", "")
             prob = r.get("probability", 0)
-            trace = r.get("_adjustment_trace")
+            steps = r.get("_adjustment_steps") or []
             note = ""
-            if trace:
-                adjustments = [t.get("name", "") for t in trace if t.get("name")]
+            if steps:
+                adjustments = [
+                    s.get("name", "") for s in steps if isinstance(s, dict) and s.get("name")
+                ]
                 if adjustments:
                     note = f" [调整: {', '.join(adjustments)}]"
             lines.append(f"- {uni} {maj}：{prob:.0%}{note}")
 
-    _fmt_group("保底(≥60%)", safety)
-    _fmt_group("适中(30-60%)", match)
-    _fmt_group("冲刺(<30%)", reach)
+    _fmt_group("保底", safety)
+    _fmt_group("适中", match)
+    _fmt_group("冲刺", reach)
 
     return "\n".join(lines)

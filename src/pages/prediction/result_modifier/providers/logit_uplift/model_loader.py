@@ -107,19 +107,22 @@ class ModelLoader:
     @property
     def vectorizer(self) -> Any:
         self.lazy_load()
-        assert self._vectorizer is not None
+        if self._vectorizer is None:
+            raise RuntimeError("vectorizer 加载失败")
         return self._vectorizer
 
     @property
     def centroids(self) -> dict[str, np.ndarray]:
         self.lazy_load()
-        assert self._centroids is not None
+        if self._centroids is None:
+            raise RuntimeError("centroids 加载失败")
         return self._centroids
 
     @property
     def weights_array(self) -> tuple[float, ...]:
         self.lazy_load()
-        assert self._weights_array is not None
+        if self._weights_array is None:
+            raise RuntimeError("weights 加载失败")
         return self._weights_array
 
 

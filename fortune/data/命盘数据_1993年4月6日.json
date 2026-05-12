@@ -1,0 +1,2135 @@
+{
+  "api_version": "1.1.3",
+  "app_version": "2.5.12",
+  "anxing_code": "C5VUC",
+  "notation": {
+    "centrifugal": "↓",
+    "centripetal": "↑",
+    "before_birthday": "┏",
+    "after_birthday": "┓",
+    "major_star": "大曜：即运曜",
+    "yearly_star": "年曜：即流曜"
+  },
+  "basic": {
+    "gender": "男",
+    "longitude": 129.5,
+    "clock_time": "1993-04-06T22:40",
+    "true_solar_time": "1993-04-06T23:15",
+    "lunar_time": "癸酉年三月十六日子时",
+    "jieqi_pillars": "癸酉 丙辰 戊午 壬子",
+    "non_jieqi_pillars": "癸酉 丙辰 戊午 壬子",
+    "element_bureau": "土五局",
+    "body_master": "天同",
+    "life_master": "廉贞",
+    "zi_dou_lead": "戌",
+    "body_palace": "辰",
+    "origin_palace": "亥"
+  },
+  "birth_si_hua": {
+    "lu": {
+      "star": "破军",
+      "palace": "父母宫",
+      "stem": "丁",
+      "branch": "巳"
+    },
+    "quan": {
+      "star": "巨门",
+      "palace": "迁移宫",
+      "stem": "壬",
+      "branch": "戌"
+    },
+    "ke": {
+      "star": "太阴",
+      "palace": "官禄宫",
+      "stem": "庚",
+      "branch": "申"
+    },
+    "ji": {
+      "star": "贪狼",
+      "palace": "交友宫",
+      "stem": "辛",
+      "branch": "酉"
+    }
+  },
+  "si_hua_kou_jue": {
+    "甲": {
+      "lu": "廉贞",
+      "quan": "破军",
+      "ke": "武曲",
+      "ji": "太阳"
+    },
+    "乙": {
+      "lu": "天机",
+      "quan": "天梁",
+      "ke": "紫微",
+      "ji": "太阴"
+    },
+    "丙": {
+      "lu": "天同",
+      "quan": "天机",
+      "ke": "文昌",
+      "ji": "廉贞"
+    },
+    "丁": {
+      "lu": "太阴",
+      "quan": "天同",
+      "ke": "天机",
+      "ji": "巨门"
+    },
+    "戊": {
+      "lu": "贪狼",
+      "quan": "太阴",
+      "ke": "右弼",
+      "ji": "天机"
+    },
+    "己": {
+      "lu": "武曲",
+      "quan": "贪狼",
+      "ke": "天梁",
+      "ji": "文曲"
+    },
+    "庚": {
+      "lu": "太阳",
+      "quan": "武曲",
+      "ke": "太阴",
+      "ji": "天同"
+    },
+    "辛": {
+      "lu": "巨门",
+      "quan": "太阳",
+      "ke": "文曲",
+      "ji": "文昌"
+    },
+    "壬": {
+      "lu": "天梁",
+      "quan": "紫微",
+      "ke": "左辅",
+      "ji": "武曲"
+    },
+    "癸": {
+      "lu": "破军",
+      "quan": "巨门",
+      "ke": "太阴",
+      "ji": "贪狼"
+    }
+  },
+  "palaces": [
+    {
+      "name": "财帛宫",
+      "stem": "甲",
+      "branch": "子",
+      "stars": {
+        "main": [
+          [
+            "天梁",
+            "庙"
+          ]
+        ],
+        "aux": [
+          [
+            "禄存",
+            "庙"
+          ]
+        ],
+        "minor": [
+          [
+            "天喜",
+            "旺"
+          ],
+          [
+            "恩光",
+            "平"
+          ],
+          [
+            "副截",
+            "陷"
+          ]
+        ]
+      },
+      "self_hua": {},
+      "shensha": {
+        "suixian": "岁破",
+        "jiangqian": "灾煞",
+        "zhangsheng": "墓",
+        "taishui_lu": "博士"
+      },
+      "limits": {
+        "major": "45~54",
+        "minor": [
+          6,
+          18,
+          30,
+          42,
+          54
+        ],
+        "yearly": [
+          4,
+          16,
+          28,
+          40,
+          52
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "夫妻宫",
+        "major_stars": [],
+        "yearly_palace": "迁移宫",
+        "yearly_stars": [],
+        "minor_palace": "财帛宫",
+        "minor_stars": []
+      }
+    },
+    {
+      "name": "子女宫",
+      "stem": "乙",
+      "branch": "丑",
+      "stars": {
+        "main": [
+          [
+            "廉贞",
+            "利"
+          ],
+          [
+            "七杀",
+            "庙"
+          ]
+        ],
+        "aux": [
+          [
+            "擎羊",
+            "庙"
+          ]
+        ],
+        "minor": [
+          [
+            "龙池",
+            "平"
+          ],
+          [
+            "凤阁",
+            "平"
+          ],
+          [
+            "天才",
+            "平"
+          ],
+          [
+            "天寿",
+            "庙"
+          ],
+          [
+            "截空",
+            "不"
+          ],
+          [
+            "年解",
+            "得"
+          ],
+          [
+            "华盖",
+            "陷"
+          ]
+        ]
+      },
+      "self_hua": {},
+      "shensha": {
+        "suixian": "龙德",
+        "jiangqian": "天煞",
+        "zhangsheng": "死",
+        "taishui_lu": "官符"
+      },
+      "limits": {
+        "major": "35~44",
+        "minor": [
+          7,
+          19,
+          31,
+          43,
+          55
+        ],
+        "yearly": [
+          5,
+          17,
+          29,
+          41,
+          53
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "兄弟宫",
+        "major_stars": [
+          "大魁",
+          "大陀",
+          "大鸾"
+        ],
+        "yearly_palace": "疾厄宫",
+        "yearly_stars": [],
+        "minor_palace": "子女宫",
+        "minor_stars": []
+      }
+    },
+    {
+      "name": "夫妻宫",
+      "stem": "甲",
+      "branch": "寅",
+      "stars": {
+        "main": [],
+        "aux": [],
+        "minor": [
+          [
+            "封诰",
+            ""
+          ],
+          [
+            "天巫",
+            ""
+          ],
+          [
+            "大耗",
+            "陷"
+          ],
+          [
+            "劫煞",
+            ""
+          ],
+          [
+            "月德",
+            ""
+          ]
+        ]
+      },
+      "self_hua": {},
+      "shensha": {
+        "suixian": "白虎",
+        "jiangqian": "指背",
+        "zhangsheng": "病",
+        "taishui_lu": "伏兵"
+      },
+      "limits": {
+        "major": "25~34",
+        "minor": [
+          8,
+          20,
+          32,
+          44,
+          56
+        ],
+        "yearly": [
+          6,
+          18,
+          30,
+          42,
+          54
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "命宫",
+        "major_stars": [
+          "大禄"
+        ],
+        "yearly_palace": "财帛宫",
+        "yearly_stars": [],
+        "minor_palace": "夫妻宫",
+        "minor_stars": [
+          "小马"
+        ]
+      }
+    },
+    {
+      "name": "兄弟宫",
+      "stem": "乙",
+      "branch": "卯",
+      "stars": {
+        "main": [],
+        "aux": [
+          [
+            "天魁",
+            "庙"
+          ],
+          [
+            "火星",
+            "利"
+          ]
+        ],
+        "minor": [
+          [
+            "天姚",
+            "庙"
+          ],
+          [
+            "天虚",
+            "庙"
+          ]
+        ]
+      },
+      "self_hua": {},
+      "shensha": {
+        "suixian": "天德",
+        "jiangqian": "咸池",
+        "zhangsheng": "衰",
+        "taishui_lu": "大耗"
+      },
+      "limits": {
+        "major": "15~24",
+        "minor": [
+          9,
+          21,
+          33,
+          45,
+          57
+        ],
+        "yearly": [
+          7,
+          19,
+          31,
+          43,
+          55
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "父母宫",
+        "major_stars": [
+          "大羊"
+        ],
+        "yearly_palace": "子女宫",
+        "yearly_stars": [
+          "年喜"
+        ],
+        "minor_palace": "兄弟宫",
+        "minor_stars": []
+      }
+    },
+    {
+      "name": "命宫",
+      "stem": "丙",
+      "branch": "辰",
+      "stars": {
+        "main": [
+          [
+            "天同",
+            "平"
+          ]
+        ],
+        "aux": [
+          [
+            "文曲",
+            "得"
+          ]
+        ],
+        "minor": [
+          [
+            "天月",
+            ""
+          ],
+          [
+            "龙德",
+            ""
+          ]
+        ]
+      },
+      "self_hua": {
+        "centrifugal_lu": "天同"
+      },
+      "shensha": {
+        "suixian": "吊客",
+        "jiangqian": "月煞",
+        "zhangsheng": "帝旺",
+        "taishui_lu": "病符"
+      },
+      "limits": {
+        "major": "5~14",
+        "minor": [
+          10,
+          22,
+          34,
+          46,
+          58
+        ],
+        "yearly": [
+          8,
+          20,
+          32,
+          44,
+          56
+        ]
+      },
+      "is_body": true,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "福德宫",
+        "major_stars": [],
+        "yearly_palace": "夫妻宫",
+        "yearly_stars": [
+          "年陀"
+        ],
+        "minor_palace": "命宫",
+        "minor_stars": [
+          "小陀"
+        ]
+      }
+    },
+    {
+      "name": "父母宫",
+      "stem": "丁",
+      "branch": "巳",
+      "stars": {
+        "main": [
+          [
+            "武曲",
+            "平"
+          ],
+          [
+            "破军",
+            "平"
+          ]
+        ],
+        "aux": [
+          [
+            "天钺",
+            "旺"
+          ]
+        ],
+        "minor": [
+          [
+            "八座",
+            "庙"
+          ],
+          [
+            "天福",
+            "旺"
+          ],
+          [
+            "破碎",
+            "陷"
+          ]
+        ]
+      },
+      "self_hua": {
+        "centripetal_lu": "破军"
+      },
+      "shensha": {
+        "suixian": "病符",
+        "jiangqian": "亡神",
+        "zhangsheng": "临官",
+        "taishui_lu": "喜神"
+      },
+      "limits": {
+        "major": "115~124",
+        "minor": [
+          11,
+          23,
+          35,
+          47,
+          59
+        ],
+        "yearly": [
+          9,
+          21,
+          33,
+          45,
+          57
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "note": "生年禄在此宫，向心自化禄",
+      "limits_overlap": {
+        "major": "田宅宫",
+        "major_stars": [
+          "大昌"
+        ],
+        "yearly_palace": "兄弟宫",
+        "yearly_stars": [
+          "年禄"
+        ],
+        "minor_palace": "父母宫",
+        "minor_stars": [
+          "小禄",
+          "小喜"
+        ]
+      }
+    },
+    {
+      "name": "福德宫",
+      "stem": "戊",
+      "branch": "午",
+      "stars": {
+        "main": [
+          [
+            "太阳",
+            "旺"
+          ]
+        ],
+        "aux": [
+          [
+            "左辅",
+            "旺"
+          ]
+        ],
+        "minor": [
+          [
+            "红鸾",
+            "旺"
+          ],
+          [
+            "天贵",
+            "庙"
+          ],
+          [
+            "天官",
+            "庙"
+          ],
+          [
+            "台辅",
+            ""
+          ],
+          [
+            "咸池",
+            "陷"
+          ],
+          [
+            "天德",
+            "旺"
+          ]
+        ]
+      },
+      "self_hua": {
+        "centripetal_ji": "太阳"
+      },
+      "shensha": {
+        "suixian": "岁建",
+        "jiangqian": "將星",
+        "zhangsheng": "冠带",
+        "taishui_lu": "飞廉"
+      },
+      "limits": {
+        "major": "105~114",
+        "minor": [
+          12,
+          24,
+          36,
+          48,
+          60
+        ],
+        "yearly": [
+          10,
+          22,
+          34,
+          46,
+          58
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "官禄宫",
+        "major_stars": [],
+        "yearly_palace": "命宫",
+        "yearly_stars": [
+          "年曲",
+          "年羊"
+        ],
+        "minor_palace": "福德宫",
+        "minor_stars": [
+          "小曲",
+          "小羊"
+        ]
+      }
+    },
+    {
+      "name": "田宅宫",
+      "stem": "己",
+      "branch": "未",
+      "stars": {
+        "main": [
+          [
+            "天府",
+            "庙"
+          ]
+        ],
+        "aux": [],
+        "minor": [
+          [
+            "寡宿",
+            "不"
+          ]
+        ]
+      },
+      "self_hua": {},
+      "shensha": {
+        "suixian": "晦气",
+        "jiangqian": "攀鞍",
+        "zhangsheng": "沐浴",
+        "taishui_lu": "奏书"
+      },
+      "limits": {
+        "major": "95~104",
+        "minor": [
+          1,
+          13,
+          25,
+          37,
+          49
+        ],
+        "yearly": [
+          11,
+          23,
+          35,
+          47,
+          59
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "limits_overlap": {
+        "major": "交友宫",
+        "major_stars": [
+          "大钺",
+          "大喜"
+        ],
+        "yearly_palace": "父母宫",
+        "yearly_stars": [],
+        "minor_palace": "田宅宫",
+        "minor_stars": []
+      }
+    },
+    {
+      "name": "官禄宫",
+      "stem": "庚",
+      "branch": "申",
+      "stars": {
+        "main": [
+          [
+            "天机",
+            "得"
+          ],
+          [
+            "太阴",
+            "利"
+          ]
+        ],
+        "aux": [
+          [
+            "右弼",
+            "不"
+          ]
+        ],
+        "minor": []
+      },
+      "self_hua": {
+        "centrifugal_ke": "太阴"
+      },
+      "shensha": {
+        "suixian": "丧门",
+        "jiangqian": "岁驿",
+        "zhangsheng": "长生",
+        "taishui_lu": "将军"
+      },
+      "limits": {
+        "major": "85~94",
+        "minor": [
+          2,
+          14,
+          26,
+          38,
+          50
+        ],
+        "yearly": [
+          12,
+          24,
+          36,
+          48,
+          60
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "note": "生年科在此宫，离心自化科",
+      "limits_overlap": {
+        "major": "迁移宫",
+        "major_stars": [
+          "大马"
+        ],
+        "yearly_palace": "福德宫",
+        "yearly_stars": [
+          "年昌",
+          "年马"
+        ],
+        "minor_palace": "官禄宫",
+        "minor_stars": [
+          "小昌"
+        ]
+      }
+    },
+    {
+      "name": "交友宫",
+      "stem": "辛",
+      "branch": "酉",
+      "stars": {
+        "main": [
+          [
+            "紫微",
+            "旺"
+          ],
+          [
+            "贪狼",
+            "利"
+          ]
+        ],
+        "aux": [],
+        "minor": [
+          [
+            "三台",
+            "庙"
+          ],
+          [
+            "天伤",
+            "平"
+          ],
+          [
+            "天哭",
+            "不"
+          ]
+        ]
+      },
+      "self_hua": {
+        "centripetal_ke": "紫微"
+      },
+      "shensha": {
+        "suixian": "贯索",
+        "jiangqian": "息神",
+        "zhangsheng": "养",
+        "taishui_lu": "小耗"
+      },
+      "limits": {
+        "major": "75~84",
+        "minor": [
+          3,
+          15,
+          27,
+          39,
+          51
+        ],
+        "yearly": [
+          1,
+          13,
+          25,
+          37,
+          49
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "note": "生年忌在此宫，紫微向心自化科",
+      "limits_overlap": {
+        "major": "疾厄宫",
+        "major_stars": [
+          "大曲"
+        ],
+        "yearly_palace": "田宅宫",
+        "yearly_stars": [
+          "年钺",
+          "年鸾"
+        ],
+        "minor_palace": "交友宫",
+        "minor_stars": [
+          "小钺"
+        ]
+      }
+    },
+    {
+      "name": "迁移宫",
+      "stem": "壬",
+      "branch": "戌",
+      "stars": {
+        "main": [
+          [
+            "巨门",
+            "陷"
+          ]
+        ],
+        "aux": [
+          [
+            "文昌",
+            "陷"
+          ],
+          [
+            "铃星",
+            "庙"
+          ]
+        ],
+        "minor": [
+          [
+            "解神",
+            "庙"
+          ],
+          [
+            "副旬",
+            "陷"
+          ],
+          [
+            "天空",
+            "陷"
+          ],
+          [
+            "阴煞",
+            ""
+          ]
+        ]
+      },
+      "self_hua": {
+        "centripetal_ke": "文昌"
+      },
+      "shensha": {
+        "suixian": "官符",
+        "jiangqian": "华盖",
+        "zhangsheng": "胎",
+        "taishui_lu": "青龙"
+      },
+      "limits": {
+        "major": "65~74",
+        "minor": [
+          4,
+          16,
+          28,
+          40,
+          52
+        ],
+        "yearly": [
+          2,
+          14,
+          26,
+          38,
+          50
+        ]
+      },
+      "is_body": false,
+      "is_origin": false,
+      "note": "生年权在此宫",
+      "limits_overlap": {
+        "major": "财帛宫",
+        "major_stars": [],
+        "yearly_palace": "官禄宫",
+        "yearly_stars": [],
+        "minor_palace": "迁移宫",
+        "minor_stars": []
+      }
+    },
+    {
+      "name": "疾厄宫",
+      "stem": "癸",
+      "branch": "亥",
+      "stars": {
+        "main": [
+          [
+            "天相",
+            "得"
+          ]
+        ],
+        "aux": [
+          [
+            "陀罗",
+            "陷"
+          ],
+          [
+            "地劫",
+            ""
+          ],
+          [
+            "地空",
+            "陷"
+          ],
+          [
+            "天马",
+            "平"
+          ]
+        ],
+        "minor": [
+          [
+            "天刑",
+            "陷"
+          ],
+          [
+            "天使",
+            "旺"
+          ],
+          [
+            "天厨",
+            ""
+          ],
+          [
+            "旬空",
+            "平"
+          ],
+          [
+            "孤辰",
+            "陷"
+          ],
+          [
+            "蜚廉",
+            ""
+          ]
+        ]
+      },
+      "self_hua": {},
+      "shensha": {
+        "suixian": "小耗",
+        "jiangqian": "劫煞",
+        "zhangsheng": "绝",
+        "taishui_lu": "力士"
+      },
+      "limits": {
+        "major": "55~64",
+        "minor": [
+          5,
+          17,
+          29,
+          41,
+          53
+        ],
+        "yearly": [
+          3,
+          15,
+          27,
+          39,
+          51
+        ]
+      },
+      "is_body": false,
+      "is_origin": true,
+      "note": "来因宫",
+      "limits_overlap": {
+        "major": "子女宫",
+        "major_stars": [],
+        "yearly_palace": "交友宫",
+        "yearly_stars": [
+          "年魁"
+        ],
+        "minor_palace": "疾厄宫",
+        "minor_stars": [
+          "小魁",
+          "小鸾"
+        ]
+      }
+    }
+  ],
+  "major_limits_order": {
+    "direction": "逆行",
+    "reason": "癸酉年生人，癸为阴干，男命→阴男逆行",
+    "base_age": 5,
+    "sequence": [
+      {
+        "palace": "命宫",
+        "branch": "辰",
+        "age": "5~14",
+        "index": 0
+      },
+      {
+        "palace": "兄弟宫",
+        "branch": "卯",
+        "age": "15~24",
+        "index": 1
+      },
+      {
+        "palace": "夫妻宫",
+        "branch": "寅",
+        "age": "25~34",
+        "index": 2
+      },
+      {
+        "palace": "子女宫",
+        "branch": "丑",
+        "age": "35~44",
+        "index": 3
+      },
+      {
+        "palace": "财帛宫",
+        "branch": "子",
+        "age": "45~54",
+        "index": 4
+      },
+      {
+        "palace": "疾厄宫",
+        "branch": "亥",
+        "age": "55~64",
+        "index": 5
+      },
+      {
+        "palace": "迁移宫",
+        "branch": "戌",
+        "age": "65~74",
+        "index": 6
+      },
+      {
+        "palace": "交友宫",
+        "branch": "酉",
+        "age": "75~84",
+        "index": 7
+      },
+      {
+        "palace": "官禄宫",
+        "branch": "申",
+        "age": "85~94",
+        "index": 8
+      },
+      {
+        "palace": "田宅宫",
+        "branch": "未",
+        "age": "95~104",
+        "index": 9
+      },
+      {
+        "palace": "福德宫",
+        "branch": "午",
+        "age": "105~114",
+        "index": 10
+      },
+      {
+        "palace": "父母宫",
+        "branch": "巳",
+        "age": "115~124",
+        "index": 11
+      }
+    ]
+  },
+  "palace_opposition": {
+    "命宫": "迁移宫",
+    "兄弟宫": "交友宫",
+    "夫妻宫": "官禄宫",
+    "子女宫": "田宅宫",
+    "财帛宫": "福德宫",
+    "疾厄宫": "父母宫"
+  },
+  "triad_relationships": {
+    "命财官": [
+      "命宫",
+      "财帛宫",
+      "官禄宫"
+    ],
+    "福夫迁": [
+      "福德宫",
+      "夫妻宫",
+      "迁移宫"
+    ],
+    "父子友": [
+      "父母宫",
+      "子女宫",
+      "交友宫"
+    ],
+    "兄疾田": [
+      "兄弟宫",
+      "疾厄宫",
+      "田宅宫"
+    ]
+  },
+  "major_limits_detail": [
+    {
+      "index": 1,
+      "palace": "命宫",
+      "branch": "丙辰",
+      "age_range": "5~14",
+      "years": "1997~2006",
+      "si_hua": {
+        "lu": "天同",
+        "quan": "天机",
+        "ke": "文昌",
+        "ji": "廉贞"
+      },
+      "yearly": [
+        {
+          "year": 1997,
+          "stem_branch": "丁丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 1998,
+          "stem_branch": "戊寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 1999,
+          "stem_branch": "己卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2000,
+          "stem_branch": "庚辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2001,
+          "stem_branch": "辛巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2002,
+          "stem_branch": "壬午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2003,
+          "stem_branch": "癸未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2004,
+          "stem_branch": "甲申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2005,
+          "stem_branch": "乙酉",
+          "ming_gong": "辛酉",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2006,
+          "stem_branch": "丙戌",
+          "ming_gong": "壬戌",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "palace": "兄弟宫",
+      "branch": "乙卯",
+      "age_range": "15~24",
+      "years": "2007~2016",
+      "si_hua": {
+        "lu": "天机",
+        "quan": "天梁",
+        "ke": "紫微",
+        "ji": "太阴"
+      },
+      "yearly": [
+        {
+          "year": 2007,
+          "stem_branch": "丁亥",
+          "ming_gong": "癸亥",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2008,
+          "stem_branch": "戊子",
+          "ming_gong": "甲子",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2009,
+          "stem_branch": "己丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2010,
+          "stem_branch": "庚寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2011,
+          "stem_branch": "辛卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2012,
+          "stem_branch": "壬辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2013,
+          "stem_branch": "癸巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2014,
+          "stem_branch": "甲午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2015,
+          "stem_branch": "乙未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2016,
+          "stem_branch": "丙申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "palace": "夫妻宫",
+      "branch": "甲寅",
+      "age_range": "25~34",
+      "years": "2017~2026",
+      "si_hua": {
+        "lu": "廉贞",
+        "quan": "破军",
+        "ke": "武曲",
+        "ji": "太阳"
+      },
+      "yearly": [
+        {
+          "year": 2017,
+          "stem_branch": "丁酉",
+          "ming_gong": "辛酉",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2018,
+          "stem_branch": "戊戌",
+          "ming_gong": "壬戌",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2019,
+          "stem_branch": "己亥",
+          "ming_gong": "癸亥",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2020,
+          "stem_branch": "庚子",
+          "ming_gong": "甲子",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2021,
+          "stem_branch": "辛丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2022,
+          "stem_branch": "壬寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2023,
+          "stem_branch": "癸卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2024,
+          "stem_branch": "甲辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2025,
+          "stem_branch": "乙巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2026,
+          "stem_branch": "丙午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "palace": "子女宫",
+      "branch": "乙丑",
+      "age_range": "35~44",
+      "years": "2027~2036",
+      "si_hua": {
+        "lu": "天机",
+        "quan": "天梁",
+        "ke": "紫微",
+        "ji": "太阴"
+      },
+      "yearly": [
+        {
+          "year": 2027,
+          "stem_branch": "丁未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2028,
+          "stem_branch": "戊申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2029,
+          "stem_branch": "己酉",
+          "ming_gong": "辛酉",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2030,
+          "stem_branch": "庚戌",
+          "ming_gong": "壬戌",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2031,
+          "stem_branch": "辛亥",
+          "ming_gong": "癸亥",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2032,
+          "stem_branch": "壬子",
+          "ming_gong": "甲子",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2033,
+          "stem_branch": "癸丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2034,
+          "stem_branch": "甲寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2035,
+          "stem_branch": "乙卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2036,
+          "stem_branch": "丙辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "palace": "财帛宫",
+      "branch": "甲子",
+      "age_range": "45~54",
+      "years": "2037~2046",
+      "si_hua": {
+        "lu": "廉贞",
+        "quan": "破军",
+        "ke": "武曲",
+        "ji": "太阳"
+      },
+      "yearly": [
+        {
+          "year": 2037,
+          "stem_branch": "丁巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2038,
+          "stem_branch": "戊午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2039,
+          "stem_branch": "己未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2040,
+          "stem_branch": "庚申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2041,
+          "stem_branch": "辛酉",
+          "ming_gong": "辛酉",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2042,
+          "stem_branch": "壬戌",
+          "ming_gong": "壬戌",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2043,
+          "stem_branch": "癸亥",
+          "ming_gong": "癸亥",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2044,
+          "stem_branch": "甲子",
+          "ming_gong": "甲子",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2045,
+          "stem_branch": "乙丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2046,
+          "stem_branch": "丙寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "palace": "疾厄宫",
+      "branch": "癸亥",
+      "age_range": "55~64",
+      "years": "2047~2056",
+      "si_hua": {
+        "lu": "破军",
+        "quan": "巨门",
+        "ke": "太阴",
+        "ji": "贪狼"
+      },
+      "yearly": [
+        {
+          "year": 2047,
+          "stem_branch": "丁卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2048,
+          "stem_branch": "戊辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2049,
+          "stem_branch": "己巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2050,
+          "stem_branch": "庚午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2051,
+          "stem_branch": "辛未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2052,
+          "stem_branch": "壬申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2053,
+          "stem_branch": "癸酉",
+          "ming_gong": "辛酉",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2054,
+          "stem_branch": "甲戌",
+          "ming_gong": "壬戌",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2055,
+          "stem_branch": "乙亥",
+          "ming_gong": "癸亥",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2056,
+          "stem_branch": "丙子",
+          "ming_gong": "甲子",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "palace": "迁移宫",
+      "branch": "壬戌",
+      "age_range": "65~74",
+      "years": "2057~2066",
+      "si_hua": {
+        "lu": "天梁",
+        "quan": "紫微",
+        "ke": "左辅",
+        "ji": "武曲"
+      },
+      "yearly": [
+        {
+          "year": 2057,
+          "stem_branch": "丁丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2058,
+          "stem_branch": "戊寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2059,
+          "stem_branch": "己卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2060,
+          "stem_branch": "庚辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2061,
+          "stem_branch": "辛巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2062,
+          "stem_branch": "壬午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2063,
+          "stem_branch": "癸未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2064,
+          "stem_branch": "甲申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2065,
+          "stem_branch": "乙酉",
+          "ming_gong": "辛酉",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2066,
+          "stem_branch": "丙戌",
+          "ming_gong": "壬戌",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "palace": "交友宫",
+      "branch": "辛酉",
+      "age_range": "75~84",
+      "years": "2067~2076",
+      "si_hua": {
+        "lu": "巨门",
+        "quan": "太阳",
+        "ke": "文曲",
+        "ji": "文昌"
+      },
+      "yearly": [
+        {
+          "year": 2067,
+          "stem_branch": "丁亥",
+          "ming_gong": "癸亥",
+          "si_hua": {
+            "lu": "太阴",
+            "quan": "天同",
+            "ke": "天机",
+            "ji": "巨门"
+          }
+        },
+        {
+          "year": 2068,
+          "stem_branch": "戊子",
+          "ming_gong": "甲子",
+          "si_hua": {
+            "lu": "贪狼",
+            "quan": "太阴",
+            "ke": "右弼",
+            "ji": "天机"
+          }
+        },
+        {
+          "year": 2069,
+          "stem_branch": "己丑",
+          "ming_gong": "乙丑",
+          "si_hua": {
+            "lu": "武曲",
+            "quan": "贪狼",
+            "ke": "天梁",
+            "ji": "文曲"
+          }
+        },
+        {
+          "year": 2070,
+          "stem_branch": "庚寅",
+          "ming_gong": "甲寅",
+          "si_hua": {
+            "lu": "太阳",
+            "quan": "武曲",
+            "ke": "太阴",
+            "ji": "天同"
+          }
+        },
+        {
+          "year": 2071,
+          "stem_branch": "辛卯",
+          "ming_gong": "乙卯",
+          "si_hua": {
+            "lu": "巨门",
+            "quan": "太阳",
+            "ke": "文曲",
+            "ji": "文昌"
+          }
+        },
+        {
+          "year": 2072,
+          "stem_branch": "壬辰",
+          "ming_gong": "丙辰",
+          "si_hua": {
+            "lu": "天梁",
+            "quan": "紫微",
+            "ke": "左辅",
+            "ji": "武曲"
+          }
+        },
+        {
+          "year": 2073,
+          "stem_branch": "癸巳",
+          "ming_gong": "丁巳",
+          "si_hua": {
+            "lu": "破军",
+            "quan": "巨门",
+            "ke": "太阴",
+            "ji": "贪狼"
+          }
+        },
+        {
+          "year": 2074,
+          "stem_branch": "甲午",
+          "ming_gong": "戊午",
+          "si_hua": {
+            "lu": "廉贞",
+            "quan": "破军",
+            "ke": "武曲",
+            "ji": "太阳"
+          }
+        },
+        {
+          "year": 2075,
+          "stem_branch": "乙未",
+          "ming_gong": "己未",
+          "si_hua": {
+            "lu": "天机",
+            "quan": "天梁",
+            "ke": "紫微",
+            "ji": "太阴"
+          }
+        },
+        {
+          "year": 2076,
+          "stem_branch": "丙申",
+          "ming_gong": "庚申",
+          "si_hua": {
+            "lu": "天同",
+            "quan": "天机",
+            "ke": "文昌",
+            "ji": "廉贞"
+          }
+        }
+      ]
+    }
+  ]
+}

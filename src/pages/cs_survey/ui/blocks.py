@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from contextlib import contextmanager
 
@@ -46,7 +47,7 @@ def render_page_hero(
     chips_block = f'<div class="cs-hero-chip-row">{chip_html}</div>' if chip_html else ""
     stats_block = f'<div class="cs-hero-stat-grid">{stat_html}</div>' if stat_html else ""
     badge_html = f'<div class="cs-hero-badge">{badge}</div>' if badge else ""
-    if logo_path:
+    if logo_path and os.path.exists(logo_path) and os.path.getsize(logo_path) > 0:
         overview_layout = get_page_layout("overview")
         hero_columns = layout_get(overview_layout, "hero_columns", default=[1.55, 0.72])
         hero_gap = layout_get(overview_layout, "hero_gap", default="medium")
@@ -79,7 +80,7 @@ def render_page_hero(
                     </div>
                     """
                 )
-                st.image(logo_path, width="stretch")
+                st.image(logo_path)
                 render_html_block(
                     f"""
                     <div class="cs-hero-brand-caption">{logo_alt}</div>

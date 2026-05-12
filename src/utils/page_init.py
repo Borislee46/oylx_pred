@@ -1,3 +1,5 @@
+import os
+
 import streamlit as st
 
 from src.utils.data_safety.watermark import generate_watermark_css
@@ -6,6 +8,31 @@ from src.utils.page_auth import handle_e2_login
 from src.utils.session_manager import SessionManager
 
 page_init_logger = setup_logger("page3", "prediction")
+
+
+def _sync_auth_to_session(session_mgr: SessionManager) -> None:
+    """Sync E2 / debug auth tokens into the typed session model (once per render)."""
+    if session_mgr.get("user_info", {}).get("username"):
+        return  # already synced on a prior render
+
+    e2_email = st.session_state.get("e2_user_email")
+    if e2_email:
+        session_mgr.set(
+            user_info={
+                "username": e2_email,
+                "nickname": st.session_state.get("e2_user_nickname", e2_email),
+            },
+            is_logged_in=True,
+        )
+        return
+
+    if st.session_state.get("is_authenticated", False):
+        username = st.session_state.get("username", "")
+        if username:
+            session_mgr.set(
+                user_info={"username": username, "nickname": username},
+                is_logged_in=True,
+            )
 
 
 def init_page(
@@ -22,11 +49,12 @@ def init_page(
     admin_only: bool = False,
     hide_sidebar: bool = False,
 ):
+    favicon = "assets/favicon.ico" if os.path.exists("assets/favicon.ico") else ""
     st.set_page_config(
         page_title=page_title,
         layout=layout,
         initial_sidebar_state=initial_sidebar_state,
-        page_icon="assets/favicon.ico",
+        page_icon=favicon,
     )
 
     if hide_sidebar:
@@ -52,7 +80,8 @@ def init_page(
     if not skip_auth:
         handle_e2_login(current_page_path, module_name=module_name, admin_only=admin_only)
 
-    SessionManager()
+    session_mgr = SessionManager()
+    _sync_auth_to_session(session_mgr)
 
     user_nickname = st.session_state.get("e2_user_nickname", default_nickname)
     user_email = st.session_state.get("e2_user_email", "E2_USER_NOT_LOGGED_IN")

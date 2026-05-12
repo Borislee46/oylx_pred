@@ -44,6 +44,7 @@ def run_single_prediction(
     background_faculty: str | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
+    cached_combinations: list[tuple[str, str]] | None = None,
 ) -> tuple[
     list[dict[str, float | str]],
     list[dict[str, float | str]],
@@ -55,13 +56,25 @@ def run_single_prediction(
     bg_major = prediction_input.get("background_major", "")
     bg_major_orig = str(current_input_data.get("background_major_original") or bg_major)
 
-    combinations, meta = generate_prediction_combinations(
-        input_data=prediction_input,
-        all_universities_target=all_universities_target,
-        all_majors_target=all_majors_target,
-        bg_target_similarity_cache=bg_target_similarity_cache,
-        background_major_original=bg_major_orig,
-    )
+    if cached_combinations:
+        combinations = cached_combinations
+        meta = {
+            "combination_count": len(combinations),
+            "cached": True,
+            "progress_hints": {
+                "target_unis": list({u for u, _ in combinations}),
+                "target_majors": list({m for _, m in combinations}),
+                "user_locked_majors": True,
+            },
+        }
+    else:
+        combinations, meta = generate_prediction_combinations(
+            input_data=prediction_input,
+            all_universities_target=all_universities_target,
+            all_majors_target=all_majors_target,
+            bg_target_similarity_cache=bg_target_similarity_cache,
+            background_major_original=bg_major_orig,
+        )
 
     meta = meta or {}
     if not combinations:

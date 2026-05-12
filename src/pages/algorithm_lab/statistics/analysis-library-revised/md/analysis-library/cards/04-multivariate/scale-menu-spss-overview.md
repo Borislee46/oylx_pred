@@ -1,0 +1,101 @@
+---
+source: analysis-library/cards/04-multivariate/scale-menu-spss-overview.md
+improve_fingerprint: 6c0baface9f7ec305a98130f80a4dbdf9f3113df69ef5fc13bc73c2b44d630d5
+prompt_digest: bbf83924da02e3b0
+cached: false
+---
+
+# 刻度（Scale）— 菜单总览
+
+- **slug**: scale-menu-spss
+- **菜单**：**分析 → 刻度**（Analyze → Scale）
+- **说明**：SPSS 将两类统计目标截然不同的方法统归于此菜单下。子项以本机版本为准。
+
+## 1. 回答什么问题
+
+这一菜单族处理两大类分析需求，建议在概念与实操中严格区分：
+
+- **【A. 测量信度族】**：处理量表信度与评分者一致性。包括量表内部一致性（**Cronbach's α**）、连续变量的组内相关系数（**ICC**）、分类变量的评定者一致性（普通/加权 **Kappa**）。
+- **【B. 距离与降维族】**：处理基于邻近度（Proximity）或偏好数据的低维可视化。包括优先/相似性数据的多维展开（**PREFSCAL**），以及邻近度数据的多维标度分析（**PROXSCAL**、传统 **ALSCAL**）。
+
+## 2. 不适用 / 易滥用
+
+- **α 值高 ≠ 单维性**：这是一个极其常见的误区。高 α 值不代表量表测量的仅是单一概念，单维性必须由探索性/验证性因子分析（EFA/CFA）的结构来支持。
+- **Kappa 类型的误用**：**加权 Kappa** 仅适用于**有序分类（Ordinal）**变量（如：疾病严重程度的轻/中/重）。若为无序分类变量（如：血型、不同诊断类别），加权毫无意义，应使用普通 Cohen's Kappa 或 Fleiss' Kappa。
+- **MDS / 展开分析的过拟合**：若设定的维数过高（接近对象总数），会导致“应力（Stress）”虚假降低。MDS 的核心是降维，通常保留 2-3 维以供空间可视化解释。
+- **ALSCAL 的过时**：`ALSCAL`（基于交替最小二乘法）是历史遗留的旧算法。现代新项目应优先使用 **PROXSCAL / PREFSCAL**（基于更稳健的主化算法 SMACOF），并仔细核对输出定义。
+
+## 3. 数据与设计前提
+
+### 【A. 测量信度族（Reliability/Kappa）】
+- **数据结构**：通常为对象（行）× 题项/评分者（列）格式。缺失值处理规则影响重大（成列删除会导致样本量锐减，需根据机制评估）。
+- **ICC 专门设计**：必须在菜单中明确**随机/固定**设计模型（One-way random, Two-way random, Two-way mixed）及单位（Single rater vs. Average of raters），这决定了误差项的计算方式与结果推广范围。
+
+### 【B. 距离与降维族（MDS/Unfolding）】
+- **度量 vs 非度量**：若数据为区间/比率级（绝对距离），使用**度量 MDS**；若数据仅为次序级（如心理学的主观相似度排序），必须指定使用**非度量 MDS**，算法将仅保持距离的单调秩次。
+- **矩阵特征**：需明确 Proximity 矩阵是对称（Symmetric）还是非对称的。
+- **结（Ties）的处理**：针对非度量数据中出现相同秩次的评分，需提前设定惩罚或允许打破结的规则（Primary vs. Secondary approach）。
+
+## 4. 模型或检验统计量（含自由度逻辑）
+
+- **【A. 信度族】**：依赖基于方差的分解。**α** 反映各项方差与总方差的比例；**ICC** 基于 ANOVA 的均方（Mean Squares）构建；**Kappa** 比较观测一致率与期望一致率（$P_o - P_e$）。
+- **【B. 降维族】**：**PREFSCAL / PROXSCAL** 并不依赖 P 值检验，而是最优化问题。核心是通过迭代算法（如 SMACOF）最小化 **应力值（Stress，通常为 Stress-I 或 S-Stress）** 或同类损失函数。
+
+## 5. 假设与诊断
+
+| 族类 | 核心假设 | 检查方式 / 诊断指标 | 违背时的典型后果 |
+|---|---|---|---|
+| **信度** | **单维性** 与 **本质 $\tau$ 等价假设**（Essential Tau-equivalence） | EFA/CFA、项总计相关矩阵 | 若违背 $\tau$ 等价，α 系数实为信度的**下界**（严重低估真实信度）。 |
+| **降维** | 度量 MDS：变量级别达区间/比率<br>非度量 MDS：满足单调转换要求 | **Shepard 图**（观察散点是否紧贴阶梯线/拟合线）、应力值 | Shepard 图呈无规律散布，低维空间配置图无解释意义。 |
+
+## 6. 效应量与区间
+
+- **【A. 信度族】**：重点报告 **α、ICC、Kappa** 的点估计及其 **95% 置信区间 (CI)**。
+- **【B. 降维族】**：报告最终选定的 **维数**、归一化 **应力（Stress）** 以及 **解释散布值（Dispersion Accounted For, DAF）**。
+
+## 7. 与相关方法的取舍
+
+- **MDS/PREFSCAL vs 对应分析（CA）**：对应分析处理的是**列联表频数**数据（分类变量的联合分布）；MDS / 展开分析处理的是明确的**距离 / 相似度 / 偏好排序**矩阵。
+- **PROXSCAL vs 经典度量 MDS（如 R 的 `cmdscale`）**：经典 MDS 采用解析解（特征值分解），要求距离满足度量公理；PROXSCAL 采用迭代求解，能容忍一定的数据不完备，且对非度量数据的单调变换支持更好。
+
+## 8. 实现速查
+
+- **SPSS 语法**：`RELIABILITY`（α/ICC）、`WEIGHTED KAPPA`、`PREFSCAL`、`PROXSCAL`（见附录子菜单表）。
+- **R 生态**：
+  - 信度：`psych::alpha()`、`psych::ICC()`、`irr` 包。
+  - MDS：`smacof` 包（目前最强大的 MDS 现代实现，对应 PROXSCAL/PREFSCAL），`MASS::isoMDS`（基础非度量 MDS）。
+- **Python 生态**：`pingouin`（极佳的 α/ICC 实现）、`sklearn.manifold.MDS`（基础降维）。
+
+## 9. 报告清单
+
+建议在方法或结果部分完整报告以下要素，达到可复现和可评价标准：
+
+**【测量信度与一致性】**
+- **基本信息**：分析的题项数 / 评定者数、数据测量级别、样本量与缺失值处理机制。
+- **内部一致性（α）**：Cronbach's α 系数，推荐补充报告各项的**项总计相关（Item-total correlation）**，若有删题操作，须报告**删除该项后的 α 值（α if item deleted）**。
+- **评分者一致性（ICC/Kappa）**：**明确声明 ICC 模型类型**（如：ICC(2,1) 双向随机绝对一致性模型，或 ICC(3,k) 双向混合模型），报告点估计值及其 95% CI。加权 Kappa 需说明权重方案（线性或二次方）。
+
+**【多维标度与展开分析（MDS）】**
+- **模型设定**：具体算法（PROXSCAL / PREFSCAL）、数据类型声明（度量 / 非度量，对称 / 非对称）、初始配置的生成方式。
+- **拟合优度**：最终选定的**维数**、**应力值（Stress）** 或散布值（DAF），以及对 **Shepard 图** 拟合表现的文字描述。
+- **解释与可视化**：必须报告**低维空间配置图（Configuration Plot）**，并结合业务或心理学背景对各坐标轴/维度进行命名与解释。
+
+## 10. 参考文献与手册
+
+- Nunnally, J. C., & Bernstein, I. H. (1994). *Psychometric theory* (3rd ed.). McGraw-Hill. (信度分析领域的基石)
+- Borg, I., & Groenen, P. J. F. (2005). *Modern Multidimensional Scaling: Theory and Applications* (2nd ed.). Springer. (MDS 与 smacof/PROXSCAL 算法的权威著作)
+- IBM SPSS 官方算法手册（Command Syntax Reference）：注明运行版本。
+
+---
+
+## 附录：子菜单一览
+
+此表解耦“刻度”大菜单下的各项专门工具，点击专卡获取数学公式与对话框操作指南。
+
+| 子菜单项 | 英文对应 | 一句话说明 | 专卡链接 |
+|---|---|---|---|
+| **可靠性分析** | Reliability Analysis | 内部一致性 α、项分析、ICC、Hotelling $T^2$ 与 Tukey 可加性检验 | [reliability-analysis-statistics-spss.md](reliability-analysis-statistics-spss.md) |
+| **加权 Kappa** | Weighted Kappa | 针对**有序类别**变量的评定者加权一致性检验 | *(待补充)* |
+| **多维展开 (PREFSCAL)** | Multidimensional Unfolding | 处理行与列源自不同集合（如：消费者偏好评级）的展开模型与应力求解 | [prefscal-spss-dialogs.md](prefscal-spss-dialogs.md) |
+| **多维标度 (PROXSCAL)** | Multidimensional Scaling | 处理同一集合内部邻近度（相似/相异）的现代主化 MDS 算法 | *(待补充)* |
+| **多维标度 (ALSCAL)** | Multidimensional Scaling | 经典交替最小二乘法 MDS（旧版遗留，新项目不推荐） | *(待补充)* |

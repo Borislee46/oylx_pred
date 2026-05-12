@@ -61,11 +61,11 @@ def _normalize_keywords(items: list[str]) -> list[str]:
 
 
 def _get_config_path() -> Path:
-    config_path = SIMILARITY_ADJUSTMENT_RULES_PATH
-    if not config_path.is_absolute():
-        project_root = Path.cwd()
-        config_path = project_root / config_path
-    return config_path
+    start = Path(__file__).resolve()
+    for p in (start, *start.parents):
+        if (p / "pyproject.toml").exists():
+            return p / SIMILARITY_ADJUSTMENT_RULES_PATH
+    return SIMILARITY_ADJUSTMENT_RULES_PATH
 
 
 @cache_resource(show_spinner=False, ttl=3600)

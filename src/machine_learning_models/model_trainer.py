@@ -26,6 +26,28 @@ from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedShuffleSp
 from xgboost import XGBClassifier
 
 
+# =============================================================================
+# 设计决策：概率校准 (Probability Calibration)
+# ─────────────────────────────────────────────────────────────────────────────
+# XGBoost 的 predict_proba 输出不是真实概率。树模型通过叶子节点样本比例
+# 估计概率，天然存在偏置：高信心预测倾向于极端值（接近0或1），中间概率
+# 不可靠。这是因为 boosting 每轮拟合残差，没有概率校准约束。
+#
+# 录取预测场景下，概率必须可解释（"你有68%的录取概率"），所以校准是必要的。
+#
+# 为什么选 sigmoid 而不是 isotonic？
+# - Sigmoid (Platt scaling): 假设概率偏差是 sigmoid 形状，参数少（两个参数
+#   a, b），不容易过拟合。适合中小规模校准集。
+# - Isotonic: 非参数，更灵活但容易过拟合，需要较大校准集。录取数据量不够。
+# - 实际差异通常很小，sigmoid 更稳健，是安全默认。
+#
+# 为什么用 FrozenEstimator？
+# - CalibratedClassifierCV 内部会 clone 并重新 fit base estimator。
+#   我们已经 fit 过了，用 FrozenEstimator 阻止重复 fit，只做校准。
+#   prefit 模式要求校准数据与训练数据独立，我们在下方用 StratifiedShuffleSplit
+#   预留了 20% 校准集。
+# =============================================================================
+
 def extract_calibration_params(model):
     if not hasattr(model, "calibrated_classifiers_") or not model.calibrated_classifiers_:
         return None
@@ -106,6 +128,26 @@ def evaluate_model(
     feature_names=None,
     prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
 ):
+    # ─────────────────────────────────────────────────────────────────────────
+    # 评估指标选择 (Metric Selection Rationale)
+    # ─────────────────────────────────────────────────────────────────────────
+    # 为什么这些指标，为什么 accuracy 不加粗、不重点？
+    #
+    # Accuracy 在偏态分布下不可靠：
+    #   如果录取率 20%，全猜"不录"也有 80% accuracy。
+    #   这在 DS 面试中是一个经典陷阱 — 必须对偏态分布用合适的指标。
+    #
+    # 我们用：
+    #   ROC-AUC: 排序能力，不依赖阈值。但同样对偏态乐观（容易高分）。
+    #   Average Precision: 更诚实 — 对正例的召回加权，偏态下比 AUC 更真实。
+    #   Brier Score: 概率校准质量。MSE(proba, y_true)，对"概率可解释"场景最直接。
+    #   Log Loss: 严格 proper scoring rule，惩罚 confident-wrong 预测。
+    #   F1/Precision/Recall @ threshold: 业务阈值下的实用指标（threshold=0.24）。
+    #
+    # 面试要点：Brier Score 和 Log Loss 衡量的是"概率本身好不好"，
+    # 而不仅仅"排序好不好"。这是概率预测 vs 分类的本质区别。
+    # ─────────────────────────────────────────────────────────────────────────
+
     y_score = _predict_positive_class_proba(model, X_test)
     y_pred = (y_score >= prediction_threshold).astype(int)
     tn, fp, fn, tp = confusion_matrix(y_test, y_pred, labels=[0, 1]).ravel()
@@ -235,6 +277,29 @@ def _build_importance_dict(importances, feature_names):
     }
 
 
+# =============================================================================
+# 设计决策：单调约束 (Monotonic Constraints)
+# ─────────────────────────────────────────────────────────────────────────────
+# 录取预测场景下，以下特征与录取概率存在业务上的单调关系：
+#   GPA ↑ → 录取概率 ↑（不会出现"分高了反而差"）
+#   语言成绩 ↑ → 录取概率 ↑
+#   四段经历数量 ↑ → 录取概率 ↑
+#
+# 为什么这很重要？
+# 1. 业务可信度：如果一个模型告诉用户"你GPA提高0.2但录取概率下降了"，
+#    用户（和顾问）会立刻失去信任。模型必须输出 monotonically reasonable 的结果。
+# 2. 外推稳健性：训练数据可能缺少极端高分/低分样本。单调约束让模型
+#    在这些区域也能保持合理行为，不会学出反转的虚假模式。
+# 3. 正则化效果：单调约束减少了模型可拟合的假设空间，相当于一种
+#    业务先验约束，降低了过拟合风险。
+#
+# XGBoost 实现："monotone_constraints" 参数，1=递增，-1=递减，0=无约束
+# 约束作用于叶子权重 w，split finding 会检查增益是否违反单调性。
+#
+# 分类特征设 0 约束（无单调意义，"香港大学" > "中文大学" 无意义）。
+# 在 MONOTONE_INCREASING_WHITELIST / MONOTONE_DECREASING_WHITELIST 中配置。
+# =============================================================================
+
 def _build_monotone_constraints(feature_names, categorical_features):
     constraints = []
     for feature in feature_names:
@@ -248,6 +313,24 @@ def _build_monotone_constraints(feature_names, categorical_features):
             constraints.append(0)
     return tuple(constraints)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 设计决策：scale_pos_weight — 类别不均衡处理
+# ─────────────────────────────────────────────────────────────────────────────
+# 录取是偏态分布：正例（录取）远少于负例（未录取），典型正负比 1:3 ~ 1:5。
+#
+# 为什么选 scale_pos_weight 而不是过采样（SMOTE/ADASYN）或降采样？
+# 1. scale_pos_weight = n_negative / n_positive，直接修改 XGBoost 的损失
+#    函数中正负样本的梯度权重。数学上等价于加权 log loss。
+# 2. 不需要生成合成样本（SMOTE 在高维分类特征上容易生成无意义样本），
+#    也不丢弃信息（降采样会浪费已有数据）。
+# 3. 与单调约束兼容 — 采样方法不改变梯度结构，但 scale_pos_weight
+#    只是缩放，单调性保证不受影响。
+# 4. 简单、确定、可复现。
+#
+# 为什么不选 AUC 最优化？AUC 对正负比不敏感，但录取场景下我们希望
+# 概率尽量校准（close to true probability），不只是排序好。
+# =============================================================================
 
 def _calculate_scale_pos_weight(y_train):
     if hasattr(y_train, "iloc") and not y_train.empty:
@@ -287,6 +370,22 @@ def train_model(
     sample_weight=None,
     prediction_threshold=DEFAULT_PREDICTION_THRESHOLD,
 ):
+    # ─────────────────────────────────────────────────────────────────────────
+    # 训练-校准分离 (Train-Calibrate Split)
+    # ─────────────────────────────────────────────────────────────────────────
+    # 用 StratifiedShuffleSplit 从训练集中预留 20% 作为校准集。
+    #
+    # 为什么必须分离？校准集必须是模型未见过且独立同分布的数据。
+    # 如果在训练集上同时 fit + calibrate：
+    #   - XGBoost 已经过拟合（叶子节点纯度高 → proba 接近 0/1）
+    #   - sigmoid calibration 会"修正"出一个几乎完美的 calibration curve
+    #   - 但这是虚假的 — 实际泛化时校准效果大幅下降
+    #
+    # 为什么是 Stratified（分层）？
+    #   - 保持录取/未录取比例与原始一致（偏态分布需要）
+    #   - 避免校准集中正例太少无法拟合 sigmoid
+    # ─────────────────────────────────────────────────────────────────────────
+
     categorical_feature_names = [col for col in CATEGORICAL_COLUMNS if col in X_train.columns]
 
     monotone_constraints = (

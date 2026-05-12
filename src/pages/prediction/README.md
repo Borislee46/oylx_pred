@@ -2,144 +2,358 @@
 
 ## 1. 模块概述
 
-`prediction` 是录取概率预测页面的完整实现，涵盖表单输入、数据校验、模型推理、结果修饰、跨学部确认、结果展示等全流程。用户填写背景信息与目标选择后，系统基于 XGBoost 模型与历史案例，输出相似专业、跨专业、用户指定三类推荐结果，并应用 GPA/语言惩罚、背提文本加成、Agent 边界微调等多维度调整。
+`prediction` 是 Signals 留学选校系统的核心预测页面，完整覆盖：LeadIn 背景提取 → 三步式步骤条引导 → 表单填写/核验 → XGBoost 并行推理 → 多阶段概率调整 → 合并去重 → AI 流式解读（ExplainAgent）→ 数据对比。用户填写背景信息与目标选择后，系统输出相似专业、跨专业、用户指定三类推荐结果。
+
+---
 
 ## 2. 目录结构
 
 ```
 prediction/
-├── README.md                    # 本文档
-├── input_form.py                # 表单入口与提交逻辑
-├── page_data_loader.py          # 模型与资源加载
-├── handler_config.py            # 会话 key、FormSubmissionContext
-├── results_handler.py           # 结果合并去重、状态重置
+├── README.md                       # 本文档
+├── input_form.py                   # 表单入口（create_input_form）
+├── page_data_loader.py             # @st.cache_resource 全局模型单例
+├── handler_config.py               # Session key 常量、FormSubmissionContext
+├── results_handler.py              # 合并去重、状态重置
+├── ai_report.py                    # AI 选校报告：匹配度环+梯度条+产品卡+解读渲染
+├── ai_report_sections.py           # 流式渲染组件（overview/insight/school_notes/products）
+├── ai_report_styles.py             # AI 报告全部 CSS（字体/动画/响应式）
+├── ai_report_catalog.py            # 产品目录（PRODUCTS dict）
+├── ai_school_stats.py              # Phase 2 数据对比：分位数排名+院校特征描述
+├── api/
+│   ├── __init__.py                 # predict, validate_and_normalize
+│   └── json_api.py                 # 非 Streamlit 后端 API（表单校验→预测→调整）
 ├── config/
-│   └── ui_messages.py           # 流水线提示文案
+│   └── ui_messages.py              # 流水线提示文案
 ├── core/
-│   ├── types.py                # PredictionInput
-│   ├── utils.py                # 通用工具
-│   └── exceptions.py            # MissingInputError
-├── input_form_components/      # 表单组件（详见 input_form_components/README.md）
-├── prediction_preparation/     # 输入校验与准备
-│   ├── preparer.py
-│   └── form_normalizer.py
-├── prediction_execution/       # 模型并行执行
-│   └── executor.py
-├── modeling/                    # XGBoost 模型封装
-│   └── model.py
-├── flow/                        # 预测流水线（详见 flow/README.md）
-├── result_modifier/             # 结果修饰（详见 result_modifier/README.md）
-├── result_display/              # 结果展示
-│   └── results_display.py
-├── page_components/             # 页面区块
-│   ├── content_display.py       # 内容区调度
-│   ├── result_section.py        # 结果区渲染
-│   ├── ui_elements.py
-│   └── submission_logger.py
-├── data_sort_config/            # 结果排序与列配置
-│   └── config.py
-└── ui/
-    └── handler.py               # 提交处理与跨学部确认
+│   ├── types.py                    # PredictionInput dataclass
+│   ├── utils.py                    # 通用工具
+│   └── exceptions.py               # MissingInputError
+├── input_form_components/          # 表单子组件（详见子模块 README）
+├── prediction_preparation/         # 输入校验与归一化
+│   ├── __init__.py
+│   ├── preparer.py                 # prepare_input_data, validate_and_clean_input
+│   └── form_normalizer.py          # normalize_form_data_for_prediction
+├── prediction_execution/           # 并行推理执行器
+├── modeling/                       # XGBoost 模型封装
+├── flow/                           # 预测流水线（详见 flow/README.md）
+│   ├── pipeline.py                 # 主编排入口
+│   ├── run_prediction.py           # 单次预测执行
+│   ├── processor.py                # 组合生成 + 结果处理
+│   ├── progress_reporter.py        # 进度上报
+│   └── result_processor.py         # 相似度 + 语言惩罚
+├── result_modifier/                # 5层概率调整链（详见子模块 README）
+│   ├── adjustment_pipeline.py      # 管道主入口
+│   ├── probability_adjuster.py     # GPA/语言偏差惩罚
+│   ├── arbitrator.py               # 多因子仲裁（衰减合并）
+│   ├── counterfactual.py           # 反事实扰动分析（"如果背景调整..."）
+│   ├── filters.py                  # 同专业/跨专业推荐过滤
+│   ├── faculty_filters.py          # 学部范围过滤
+│   ├── text_boost_provider.py      # 背提文本加成接口
+│   └── ...
+├── result_display/                 # 结果表格 + trace 可视化 + delta 对比
+│   ├── __init__.py
+│   ├── results_display.py          # 表格配置与渲染（含 ±% delta 列）
+│   ├── delta_calculator.py         # 跨提交概率对比（(uni,major) key 匹配）
+│   ├── trace_display.py            # 概率调整链瀑布图 + 反事实
+│   └── trace_assets.py             # trace CSS + 文案
+├── usage_stats.py                  # 轻量使用计数 → cache/usage_stats.json
+├── page_components/
+│   ├── content_display.py          # 内容区调度：AI 解读 + Phase2 数据对比
+│   ├── result_section.py           # 预测结果区（三类推荐表格）
+│   ├── ui_elements.py              # LeadIn 面板、步骤条、思想气泡
+│   ├── submission_logger.py        # 表单提交日志
+│   └── display_helpers.py          # 展示辅助
+├── ghost_input/                    # Cursor 风格灰字补全（详见子模块 README）
+│   ├── __init__.py                  # Streamlit 组件声明 + 院校白名单注入
+│   └── frontend/index.html          # 前端：缓存/规则/LLM 三层补全 + 分段逐出
+├── data_sort_config/               # 列配置与排序
+├── ui/
+│   └── handler.py                  # handle_form_submission + 跨学部确认
+└── result_modifier/providers/      # logit_uplift / text_boost（详见子模块 README）
+    ├── logit_uplift_provider.py     # TextBoostProvider 主实现
+    └── logit_uplift/               # TF-IDF + 信号评分 + Δ 计算
 ```
+
+---
 
 ## 3. 端到端流程
 
 ```
-用户填写表单 (input_form.py)
-        │
-        ├── FormUIComponents 渲染各区块
-        ├── FormValidator 校验
-        └── normalize_form_data_for_prediction
-        │
-        ▼
-提交 (submit_button)
-        │
-        ├── 跨学部检测 (quick_cross_faculty_check)
-        │       └── 若跨学部且未确认 → cross_faculty_confirm_dialog
-        │
-        ├── handle_form_submission (ui/handler.py)
-        │       ├── prepare_input_data
-        │       ├── has_meaningful_experience_text (背提 LLM 校验)
-        │       └── run_prediction_with_guard
-        │
-        ▼
+顾问自由文本（LeadIn Panel）
+    │
+    ▼
+LeadInAgent.run(StudentContext)
+    ├── NLU：碎片文本 → extracted_background
+    ├── quick_assessment：方向性评估
+    └── suggested_questions：追问建议
+    │
+    ▼
+apply_lead_in_to_form(form_bridge.py)
+    ├── 模糊匹配院校/专业 → st.session_state widget
+    ├── 设 GPA / 语言 / 目标 / 经历 widget
+    └── 写 lead_in_form_summary → expander 标题
+    │
+    ▼
+[Expander: 核验/修改表单]
+    ├── FormUIComponents 渲染各区块
+    ├── FormValidator 校验
+    └── normalize_form_data_for_prediction
+    │
+    ▼
+用户点预测按钮
+    │
+    ├── st.rerun() 先重绘页面 → 步骤条 Step3 点亮 "active"
+    │     └── 二次渲染：hk_ui_phase="running" → _run_prediction()
+    │
+    ├── 跨学部检测 (quick_cross_faculty_check)
+    │     └── 若跨学部且未确认 → hk_ui_phase="awaiting_confirm"
+    │
+    ├── handle_form_submission (ui/handler.py)
+    │     ├── prepare_input_data
+    │     ├── has_meaningful_experience_text (背提 LLM 校验)
+    │     └── run_prediction_with_guard
+    │
+    ▼
 run_prediction_pipeline_with_progress (flow/pipeline.py)
-        │
-        ├── 加载模型、校验指纹
-        ├── run_single_prediction
-        │       ├── generate_prediction_combinations
-        │       ├── PredictionExecutor.execute_parallel
-        │       └── process_prediction_results
-        │               ├── SingleResultProcessor (相似度、语言惩罚)
-        │               ├── get_similar_major_recommendations
-        │               ├── get_cross_major_recommendations
-        │               └── Agent 平衡微调
-        │
-        ├── ProbabilityAdjustmentPipeline.adjust_batch (GPA/语言/跨专业/学部/背提)
-        ├── combine_and_deduplicate_results
-        └── 写入 session_manager.prediction_results
-        │
-        ▼
-display_content → display_results_section → ResultsDisplay
+    ├── 加载模型、校验 cases_df 指纹
+    ├── run_single_prediction
+    │     ├── generate_prediction_combinations
+    │     ├── PredictionExecutor.execute_parallel
+    │     └── process_prediction_results
+    │           ├── SingleResultProcessor (相似度 + 语言惩罚)
+    │           ├── get_similar_major_recommendations
+    │           ├── get_cross_major_recommendations
+    │           └── BoundaryCaseAgent 平衡微调
+    ├── ProbabilityAdjustmentPipeline.adjust_batch
+    │     (GPA惩罚→语言惩罚→跨专业×0.5→跨学部×0.3→职业学位→TF-IDF提升)
+    ├── combine_and_deduplicate_results
+    └── 写入 session: prediction_results + has_predicted=True
+    │
+    ▼
+[预测结果表格] (display_results_section)
+    │
+    ▼
+[AI 选校解读] 按钮 → 点击触发 ExplainAgent
+    ├── render_static_frame(): 匹配度环 + 选校梯度条 + 产品匹配卡
+    ├── ExplainAgent.stream(ctx):
+    │     ├── classify_profile() → 选择 System Prompt (strong_elite/medium_mixed/weak_gaps/cross_major)
+    │     ├── _build_explain_prompt(): 学生背景 + 预测结果 + 产品
+    │     └── DeepSeek 流式输出 JSON (overview/strengths/concerns/summary/school_notes/products)
+    ├── render_ai_section_streaming(): 逐段揭示（顾问解读→优势→需关注→总结→院校简析→推荐说明）
+    │     └── 卡片末尾 "AI解读中..." 脉冲动画
+    └── Phase 2: SchoolFeatureStats 数据对比
+    │     └── GPA/语言成绩在每所目标校录取者中的分位数排名
+    │
+    ▼
+[Trace 可视化] — 结果表格中展开单条结果
+    ├── 瀑布图：逐层展示概率调整链的各因子贡献
+    ├── 反事实：GPA/语言/实习扰动后重跑调整链
+    └── 校准指标：Brier / AUC / 阳性率偏差
 ```
+
+---
 
 ## 4. 核心组件
 
-### 4.1 input_form
+### 4.1 页面入口（pages/hk.py）
 
-**create_input_form**：创建完整表单，返回 `(submitted, input_data, all_unis, all_majors, original_form)` 或 `(False, input_data, ...)`。
+薄路由层，负责：
+- **步骤条状态机**：`_step_class()` 级联逻辑，Step1/2/3 的 active/done 由 `has_lead_in`、`form_expander`（`st.expander` 原生 key）、`hk_ui_phase` 三者驱动
+- **预测触发分离**：form submit → 设 `hk_ui_phase="running"` → `st.rerun()` → 二次渲染时执行 `_run_prediction()`，确保步骤条在预测阻塞前已更新到 Step3 active
+- **进度思想气泡**：`render_thought_bubble_with_wait_pulse()` 在 `st.status` 内逐条展示 pipeline 日志
 
-- 校验通过后：`_process_successful_submission` → `normalize_form_data_for_prediction`，将 `_input_form_pending_submission` 写入 session，`st.rerun()` 后由调用方取走
-- 校验失败：toast 提示，`reset_prediction_results`，`st.rerun()`
+### 4.2 input_form
 
-### 4.2 page_data_loader
+**create_input_form** → `(is_new_submission, input_data, all_unis, all_majors, original_form)`
+
+- 表单校验通过 → `_process_successful_submission` → `normalize_form_data_for_prediction` → `st.rerun()`
+- 校验失败 → toast 提示 → `reset_prediction_results`
+
+### 4.3 page_data_loader
 
 **machine_learning_model**：`@st.cache_resource` 全局单例，持有：
-- `prediction_model`：XGBoost 模型
-- `loaded_feature_names`：特征列表
-- `cases_df`、`cases_df_fingerprint`
+- `prediction_model`（XGBoost + CalibratedClassifierCV sigmoid prefit）
+- `loaded_feature_names`、`cases_df`、`cases_df_fingerprint`
 - `background_universities`、`target_base_df`、`university_country_map`
-- `boundary_agent`：BoundaryCaseAgent
+- `boundary_agent`（BoundaryCaseAgent 实例）
 
-**cached_get_prediction_model**：`@st.cache_resource` 缓存模型加载。
+预热策略（2026-05）：`resource_loader()` 内已调用 `load_bg_target_similarity_cache()`，相似度缓存在页面首次加载时即写入 `@st.cache_data`，上午/下午高峰第一个用户的首次预测无需额外等待。
 
-### 4.3 ui/handler
+### 4.4 ui/handler
 
-**handle_form_submission**：接收 `FormSubmissionContext`，执行跨学部检测、输入准备、`run_prediction_with_guard`，成功时写入 `prediction_results`、`has_predicted=True`。
+**handle_form_submission**：接收 `FormSubmissionContext`：
+- `session_manager`、`page_state`、`input_data_from_form`
+- `all_universities_target`、`all_majors_target`、`original_form_data`
+- 成功：写入 `prediction_results` + `has_predicted=True`
+- 失败：`reset_prediction_results`
 
-**run_prediction_with_guard**：组装 `_all_universities_target`、`_all_majors_target`、`_cross_faculty_confirmed`、`_has_valid_experience`，调用 `run_prediction_pipeline_with_progress`，失败时 `reset_prediction_results`。
+### 4.5 flow（预测流水线）
 
-### 4.4 prediction_preparation
+详见 `flow/README.md`。关键路径：
+1. `_execute_prediction_pipeline`：加载→校验→组合生成→并行推理→概率调整→去重
+2. 概率调整链：GPA 惩罚 → 语言惩罚 → 跨专业 ×0.5 → 跨学部 ×0.3 → 职业学位降级 → TF-IDF 文本提升
+3. `_adjustment_trace` 记录每条结果的调整历史，ExplainAgent 用其区分 penalty/boost
 
-- **validate_and_clean_input**：清洗为 `PredictionInput`
-- **prepare_input_data**：补充 `school_level`、`faculty`
-- **prepare_model_inputs**：按 `expected_features` 构建模型输入，返回缺失特征列表
-- **get_user_specified_combinations**：用户指定 (university, major) 组合
-- **compute_list_fingerprint** / **compute_df_fingerprint**：用于缓存 key
+### 4.6 page_components
 
-### 4.5 prediction_execution
+**content_display.py**：
+- `display_content()`：调度结果区 + AI 解读区 + Trace 可视化
+- `_render_ai_explanation()`：缓存检查 → 按钮门控（disabled 模式）→ 静态框架 → 流式生成 → 磁盘持久化
+- `_stream_explain_content()`：流式循环 + 局部 JSON 提取（括号计数）+ 25ms/6字双阈值节流 + 同步降级
+- `_render_unified_school_cards()`：统合渲染学校卡片（概率 + AI 备注 + 百分位数据）
 
-**PredictionExecutor**：组合数 ≤ `PREDICTION_SINGLE_THREAD_THRESHOLD`（默认 2048）时单线程；否则按 chunk 并行，支持 `ThreadPoolExecutor` 或 `ProcessPoolExecutor`。
+**ui_elements.py**：
+- `render_lead_in_panel()`：步骤条 + LeadIn 输入区 + 已提取信息展示
+- `render_thought_bubble()` / `render_thought_bubble_with_wait_pulse()`：预测进度气泡
+- 步骤条级联规则：
+  ```
+  Step1 ← has_lead_in | form_open | predicting → done（否则 active）
+  Step2 ← predicting → done | form_open → active
+  Step3 ← predicting → active
+  has_predicted → 全部 done
+  ```
 
-### 4.6 results_handler
+### 4.7 AI 选校报告（ai_report.py / ai_report_sections.py / ai_report_styles.py）
 
-**combine_and_deduplicate_results**：按 (university, major) 去重，优先级 `user_specified > cross_major > similarity`，同优先级取概率更高者。
+**render_static_frame()**：返回 `(html, products)` 元组
+- 匹配度环形图（`_compute_match`：top3 均值 + P90-P10 离散度 + 背景健康分）
+- 选校梯度条（较稳/适中/冲刺，动态分位点 `_p(probs, 33/66)`）
+- 产品匹配卡（`_build_products`：根据 GPA/语言/经历/跨专业自动推荐）
 
-**reset_prediction_results**：清空 `prediction_results`、`prediction_submit_lock` 等。
+**render_ai_section()**：最终渲染完整 AI 解读
+- `streaming=True` 时 overview 带 `ar-streaming` 类，末尾追加 "AI解读中..." 脉冲动画
+- `streaming=False` 时纯静态展示
 
-### 4.7 result_display
+**render_ai_section_streaming()**：流式逐段揭示
+- 字段级别的 `seen_fields` 追踪，首现时有 `ar-section-enter` 入场动画
+- 末尾始终追加 "AI解读中..." + 三点脉冲（复用 `hk-thought-wait-d1/2/3` CSS 动画）
 
-**ResultsDisplay**：将 sim/cross/user_specified 三类结果按配置列展示，支持 `TOP_SIM_RESULT_UI_CONFIG`、`TOP_CROSS_RESULT_UI_CONFIG`。
+**字号体系**：hero 1.25rem | body 0.8rem | label 0.68rem（3 档）
 
-### 4.8 page_components
+### 4.8 ai_school_stats.py（Phase 2 数据对比）
 
-**display_content**：当 `has_predicted` 时，从 session 取 `input_data`、`prediction_results`，调用 `display_results_section`。若 `form_data_changed` 且未提交，显示“输入已更改”提示。
+**SchoolFeatureStats**：
+- 从 `cases_df` 按 `target_university` 分组计算 `NUMERIC_FEATURES` (gpa/language_score/research_count/internship_count/award_count/paper_count) 的分位数（P5/P10/P25/P50/P75/P90/P95）
+- `get_percentile(university, feature, value)` → 分位数
+- `get_rank_label(university, feature, value)` → "偏低"/"中等"/"较高"
+- `generate_per_school_texts(student_feat, top_results, top_n=3)` → 对比文本列表
 
-## 5. 数据流
+### 4.9 results_handler
 
-**表单原始数据** → `normalize_form_data_for_prediction` → **PredictionInput**（含 `gpa`、`language_score` 归一化）→ **prepare_input_data** → **run_prediction_pipeline** → **PredictionResultModel**（similarity_results、cross_major_results、user_specified_results、unified_results、meta）。
+**combine_and_deduplicate_results**：优先级 `user_specified > cross_major > similarity`，同优先级取概率更高者。
 
-## 6. 子模块文档
+**reset_prediction_results**：清空所有预测相关 session state。
+
+### 4.10 result_display（表格 + Trace 可视化 + Delta 对比）
+
+**results_display.py**：
+- `get_column_config()`：动态列配置（概率、相似度、院校排序、专业详情）
+- 三类推荐表格：`TOP_SIM_RESULT_UI_CONFIG`、`TOP_CROSS_RESULT_UI_CONFIG`、`UNIVERSITY_SORT_ORDER`
+- **Delta 对比列**（2026-05）：复用上次预测结果的 `(university, major)` 匹配，在 dataframe 中追加 `±%` 列（pinned，紧挨概率条右侧），绿涨红跌蓝 NEW——纯展示层改动，不碰 pipeline 核心
+
+**delta_calculator.py**（2026-05 新增）：
+- `should_show_delta()`：判断是否有上次结果、目标是否重叠。海投模式（目标为空）默认全量比较。`result_section.py` 入口处 `_normalize_target_list()` 同时处理 list 和逗号分隔 string 两种 input_data 格式
+- `calculate_delta()`：`(university, major)` key 匹配，返回 `"+3.2%"` / `"-1.5%"` / `"NEW"` / `"—"`。diff < 0.5pp 视为不变
+- 所有 `float()` 转换经 `_safe_float()` 防护，`None`/非数字 → 0.0，不会因脏数据崩溃
+- 每次提交前在 `handle_form_submission` 中快照旧 `prediction_results` + `input_data` 到 `previous_*` session keys。快照在 `persist_input_state()` **之前**执行，保证拿到旧 input_data 而非已被覆盖的新值
+
+**trace_display.py**：
+- `render_trace_for_results()`：概率调整链可视化——对 top 3 结果展示瀑布图（GPA→语言→跨专业→跨学部→职业学位→文本提升各层贡献），含 baseline 历史录取率对比虚线
+- 反事实（counterfactual）：GPA/语言/实习维度小幅扰动后重跑核心调整链，回答"如果背景再好/差一点"
+- CSS 动画（`trace_assets.py`）：30 秒讲完一个 case 的完整链路故事
+- 标题标注「开发者 Trace (beta)」
+
+### 4.11 api/json_api（非 Streamlit 后端 API）
+
+**`predict()`**：独立于 Streamlit 的预测 API：
+- 表单校验（FormValidator）→ 归一化（normalize_form_data_for_prediction）→ 输入准备（prepare_input_data）→ 执行预测（run_single_prediction）→ 概率调整（ProbabilityAdjustmentPipeline）
+- 支持跨学部检测（quick_cross_faculty_check）、新专业识别（is_new_major）、录取组合缓存
+- 每次调用生成 `request_id`（UUID），记录总耗时
+
+**`validate_and_normalize()`**：仅校验 + 归一化，不执行预测。
+
+### 4.12 usage_stats（使用统计，2026-05 新增）
+
+轻量级预测组合计数器，为下版本 `hot_paths.json` 提供数据支撑。
+
+**设计要点**：
+- **触发**：每次预测成功后 `increment(unified_results)`，对每条结果的 `(university, major)` 计数 +1
+- **排除**：`lijiapeng8@xdf.cn`（开发/调试）不计数；写入失败记录 warning 不阻塞预测
+- **存储**：`cache/usage_stats.json`，格式 `{"香港中文大学|MSc Accounting": 42, ...}`，compact JSON（无空格换行）
+- **裁剪**：超过 2000 条唯一组合时，按计数降序保留前 2000，防止文件膨胀
+- **线程安全**：`threading.Lock()` 保护读写，Streamlit 多 session 并发安全
+- **消费**：admin 页面「使用统计」tab → 查看 Top 50 + 下载 JSON → 手动更新 `config/hot_paths.json` → git commit → 随下一版本部署生效
+
+---
+
+## 5. AI 解读数据流
+
+```
+用户点 "AI 选校解读"
+    │
+    ├── cache_key = _build_explain_cache_key(v=3, profile, compact_results)
+    │     └── MD5 hash，命中则直接渲染（跳过 LLM 调用）
+    │
+    ├── render_static_frame() → (html, products)
+    │     ├── _compute_match(): 匹配度 0-100
+    │     ├── _build_products(): 产品推荐列表
+    │     └── st.html() 渲染卡片 + st.session_state["_ar_match"] / "_ar_products"
+    │
+    ├── StudentContext(stage="match", ..., prediction_results, matched_products)
+    │
+    ├── classify_profile(sim, cross, unified)
+    │     ├── cross >= 40% → "cross_major"
+    │     ├── avg_prob >= 0.55 & penalty ≤ 1 → "strong_elite"
+    │     ├── avg_prob >= 0.30 & penalty ≤ 3 → "medium_mixed"
+    │     └── 否则 → "weak_gaps"
+    │
+    ├── ExplainAgent._prepare(ctx) → system_prompt (profile-specific) + data_prompt
+    │
+    ├── ExplainAgent.stream(ctx)
+    │     ├── _call_api_streaming(max_tokens=700, timeout=20s)
+    │     ├── _try_extract_partial(buffer): 括号计数 JSON 提取器
+    │     └── render_ai_section_streaming(merged): 每 25ms/6字刷新 UI
+    │
+    ├── 流式完成 → parse_stream_result()
+    │     ├── 四级 JSON 修复: direct → regex → json_repair lib → API repair
+    │     └── schema: {"overview","strengths","concerns","summary","school_notes","products"}
+    │
+    ├── 成功 → 磁盘持久化 + session_state 缓存
+    │     ├── _render_unified_school_cards(): 院校卡片（模糊匹配学校名）
+    │     └── render_ai_section(result): 最终静态渲染
+    │
+    └── 失败 → 流式无输出时自动降级到 ExplainAgent.run()（同步路径，timeout=20s）
+
+[Tail] Trace 可视化（与 AI 解读并列，结果表格内展开）
+    ├── counterfactual.baseline_admit_rate: 历史该专业平均录取率
+    ├── counterfactual.compute_counterfactuals(): GPA/语言/实习扰动 → 重跑调整链
+    └── render_trace_for_results(): 瀑布图 + 反事实 + 校准指标
+```
+
+---
+
+## 6. Session State 关键键值
+
+| Key | 类型 | 说明 |
+|-----|------|------|
+| `has_predicted` | bool | 预测是否已完成（驱动步骤条和结果区） |
+| `prediction_results` | PredictionResultModel | sim/cross/user/unified 四组结果 |
+| `hk_ui_phase` | str | idle / running / awaiting_confirm / done / error |
+| `form_expander` | bool | `st.expander(key="form_expander", on_change="rerun")` 原生开关状态 |
+| `lead_in_ctx` | StudentContext | LeadIn 全链路上下文（含 extracted_background） |
+| `lead_in_form_summary` | str | LeadIn 摘要文本，非空时 expander 展开 |
+| `explain_cache` | dict | AI 解读缓存（MD5 key → result dict），磁盘持久化 |
+| `explain_generating` | bool | 是否正在生成 AI 解读（控制按钮 disabled 状态） |
+| `_ar_match` | float | 最近一次匹配度分数 |
+| `_ar_products` | list[dict] | 最近一次产品推荐列表 |
+| `_pending_submission_data` | dict | st.rerun 前暂存的提交数据（预测触发分离） |
+| `previous_prediction_results` | PredictionResultModel | 上一次预测结果（delta 对比用） |
+| `previous_input_data` | dict | 上一次提交的表单数据（delta 对比用） |
+
+---
+
+## 7. 子模块文档
 
 | 子模块 | 文档路径 |
 |-------|----------|
@@ -148,12 +362,17 @@ display_content → display_results_section → ResultsDisplay
 | result_modifier | `result_modifier/README.md` |
 | result_modifier/providers | `result_modifier/providers/README.md` |
 
-## 7. 依赖
+---
 
-- `streamlit`：UI
-- `pandas`、`numpy`：数据处理
-- `xgboost`：模型
-- `rapidfuzz`：模糊匹配
-- `SessionManager`：会话状态
-- `school_level_service`：院校等级、海外判定
+## 8. 依赖
+
+- `streamlit==1.56.0`：UI 框架（`st.expander` on_change 跟踪、`st.status` 阻塞容器）
+- `pandas` / `numpy`：数据处理
+- `xgboost-cpu`：模型推理
+- `numba`：JIT 加速数值计算（result_modifier 调整链）
+- `rapidfuzz`：模糊匹配（院校/专业）
+- `json-repair`：LLM JSON 输出快速修复（<5ms，替代 API 兜底）
+- `SessionManager`：强类型 session state 封装
+- `ExplainAgent` / `LeadInAgent`：LLM Agent（DeepSeek）
 - `BoundaryCaseAgent`：边界案例决策
+- `SchoolFeatureStats`：院校历史数据分位数统计

@@ -8,9 +8,36 @@ from src.agent.schemas import ExtractedBackground, LeadInResult
 
 
 class LeadInAgent(BaseAgent):
+    _system_prompt_cache: str | None = None
+
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config=config, timeout=15, agent_name="前期LeadInAgent")
-        self._system_prompt = LEAD_IN_SYSTEM_PROMPT
+        self._system_prompt = self._build_system_prompt()
+
+    @classmethod
+    def _build_system_prompt(cls) -> str:
+        if cls._system_prompt_cache is not None:
+            return cls._system_prompt_cache
+
+        import json
+        from pathlib import Path
+
+        rules_path = Path(__file__).parent.parent.parent / "config" / "prediction_rules.json"
+        try:
+            rules = json.loads(rules_path.read_text(encoding="utf-8"))
+        except Exception:
+            rules = {}
+        country_map = rules.get("TARGET_COUNTRY_UNIVERSITY_MAP", {})
+        region_summary = "\n".join(
+            f"  - {region}：{' / '.join(schools[:8])}{' …等' if len(schools) > 8 else ''}"
+            for region, schools in country_map.items()
+        )
+
+        cls._system_prompt_cache = LEAD_IN_SYSTEM_PROMPT.format(
+            supported_regions="、".join(country_map.keys()),
+            school_list=region_summary,
+        )
+        return cls._system_prompt_cache
 
     def run(
         self,

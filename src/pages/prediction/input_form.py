@@ -130,27 +130,13 @@ def create_input_form(
                     gpa_converter,
                 )
             )
-
-            session_manager.set(
-                _input_form_pending_submission={
-                    "input_data": processed_input_data,
-                    "all_unis": all_unis,
-                    "all_majors": all_majors,
-                    "original_form": original_form_data,
-                }
+            return (
+                True,
+                processed_input_data,
+                all_unis,
+                all_majors,
+                original_form_data,
             )
-            st.rerun()
-
-    pending_submission = session_manager.get("_input_form_pending_submission")
-    if pending_submission:
-        session_manager.set(_input_form_pending_submission=None)
-        return (
-            True,
-            pending_submission["input_data"],
-            pending_submission["all_unis"],
-            pending_submission["all_majors"],
-            pending_submission["original_form"],
-        )
 
     return _get_current_form_state(
         session_manager,

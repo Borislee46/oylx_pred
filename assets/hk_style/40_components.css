@@ -70,7 +70,7 @@ footer {
 .stApp label[data-baseweb="radio"] p {
   font-family: var(--hk-font-sans) !important;
   color: var(--hk-slate-700) !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   font-size: var(--hk-text-sm) !important;
   line-height: 1.5 !important;
 }
@@ -430,6 +430,24 @@ div[data-baseweb="menu"] > div:only-child {
 .stApp div[data-testid="stExpander"] details,
 .stApp div[data-testid="stExpander"] details > summary {
   background-color: transparent !important;
+}
+
+.stApp div[data-testid="stExpander"] details > summary {
+  font-family: var(--hk-font-sans) !important;
+  font-size: 0.84rem !important;
+  font-weight: 500 !important;
+  color: var(--hk-slate-600) !important;
+  letter-spacing: 0.01em !important;
+  transition: color var(--hk-transition-fast) !important;
+}
+
+.stApp div[data-testid="stExpander"] details > summary:hover {
+  color: var(--hk-cyan-dark) !important;
+}
+
+.stApp div[data-testid="stExpander"] details[open] > summary {
+  color: var(--hk-slate-800) !important;
+  font-weight: 600 !important;
 }
 
 .stApp div[data-testid="stExpanderDetails"] {

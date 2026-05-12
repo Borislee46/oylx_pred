@@ -10,9 +10,8 @@ from src.pages.prediction.config.ui_messages import (
     FIELD_NAME_MAP,
 )
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
-from src.pages.prediction.result_modifier.streamlit_cache import cache_data, cache_resource
+from src.pages.prediction.result_modifier.streamlit_cache import cache_resource
 from src.pages.prediction.result_modifier.utils import (
-    generate_content_hash,
     has_streamlit_runtime,
     is_effectively_empty,
 )
@@ -28,23 +27,6 @@ def _get_streamlit():
 @cache_resource
 def _get_text_agent():
     return TextPreprocessingAgent()
-
-
-@cache_data(ttl=3600, show_spinner=False)
-def _validate_field_with_llm_cached(field_type: str, content_hash: str, content: str) -> bool:
-    if is_effectively_empty(content):
-        return False
-
-    agent = _get_text_agent()
-    return agent.validate_field(field_type, content, default_on_error=True)
-
-
-def _validate_field_with_llm(field_type: str, content: str) -> bool:
-    if is_effectively_empty(content):
-        return False
-
-    content_hash = generate_content_hash(f"{field_type}:{content}")
-    return _validate_field_with_llm_cached(field_type, content_hash, content)
 
 
 def _get_analysis_message(field_names: list[str]) -> str:
@@ -110,27 +92,40 @@ def has_meaningful_experience_text(
             animator.show(_get_analysis_message(field_names), force=True)
 
     validated_keys: list[str] = []
-    total = len(fields_to_validate)
-    for idx0, (k, content) in enumerate(fields_to_validate):
-        field_name = FIELD_NAME_MAP.get(k, k)
-        msg = _build_validation_status_message(
-            field_name=field_name,
-            idx=idx0 + 1,
-            total=total,
-            content_len=len(content),
-            llm_enabled=llm_enabled,
-        )
+    if llm_enabled:
+        fields_dict = dict(fields_to_validate)
         if animator is not None:
-            animator.show(msg, force=True)
+            animator.show("正在核验软背景信息（批量LLM校验）", force=True)
 
-        is_valid = _validate_field_with_llm(k, content)
+        agent = _get_text_agent()
+        batch_result = agent.validate_fields_batch(fields_dict)
 
-        if not is_valid:
-            st = _get_streamlit()
-            if st is not None and has_streamlit_runtime():
-                st.toast(f"{FIELD_NAME_MAP.get(k, k)}填写的内容无效")
-            continue
-        validated_keys.append(k)
+        for k, _ in fields_to_validate:
+            is_valid = batch_result.get(k, False)
+            if is_valid:
+                validated_keys.append(k)
+            else:
+                st = _get_streamlit()
+                if st is not None and has_streamlit_runtime():
+                    st.toast(f"{FIELD_NAME_MAP.get(k, k)}填写的内容无效")
+    else:
+        for k, content in fields_to_validate:
+            field_name = FIELD_NAME_MAP.get(k, k)
+            if animator is not None:
+                msg = _build_validation_status_message(
+                    field_name=field_name,
+                    idx=1,
+                    total=1,
+                    content_len=len(content),
+                    llm_enabled=False,
+                )
+                animator.show(msg, force=True)
+            stripped = content.strip()
+            if stripped and len(stripped) >= 6:
+                alpha_chars = sum(1 for c in stripped if "a" <= c.lower() <= "z")
+                cjk_chars = sum(1 for c in stripped if "一" <= c <= "鿿")
+                if alpha_chars + cjk_chars >= 4:
+                    validated_keys.append(k)
 
     if animator is not None:
         animator.clear()

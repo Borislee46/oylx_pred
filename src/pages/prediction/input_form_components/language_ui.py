@@ -2,6 +2,12 @@ from functools import partial
 
 import streamlit as st
 
+from src.pages.prediction.config.ui_messages import (
+    FORM_LABELS,
+    FORM_PLACEHOLDERS,
+    FORM_WARNING_MESSAGES,
+)
+from src.pages.prediction.handler_config import DEFAULT_WIDGET_KEYS
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_LANGUAGE_SCORES,
     LANGUAGE_SCORE_RANGES,
@@ -32,7 +38,9 @@ def _check_and_show_language_warning(session_manager):
         warning_key = f"lang_warning_{score_display}_{language_type}"
         if session_manager.get("last_lang_warning_key") != warning_key:
             st.toast(
-                f"注意：当前{language_type}成绩 {score_display} 低于提示线 {threshold_display}，预测结果可能会明显下调"
+                FORM_WARNING_MESSAGES["language_score_below_threshold"].format(
+                    language_type=language_type, score=score_display, threshold=threshold_display
+                )
             )
             session_manager.set(last_lang_warning_key=warning_key)
 
@@ -47,7 +55,7 @@ def _check_and_show_ielts_step_warning(session_manager):
     ):
         warning_key = f"ielts_step_warning_{language_score_input}"
         if session_manager.get("last_ielts_step_warning_key") != warning_key:
-            st.toast("雅思成绩必须是0.5的倍数")
+            st.toast(FORM_WARNING_MESSAGES["ielts_step_warning"])
             session_manager.set(last_ielts_step_warning_key=warning_key)
 
 
@@ -123,7 +131,7 @@ def _render_domestic_language_input(
                 )
 
     language_score = st.number_input(
-        f"{language_type}成绩",
+        FORM_LABELS["language_score_label"].format(language_type=language_type),
         min_value=score_config["min"],
         max_value=score_config["max"],
         step=score_config["step"],
@@ -131,7 +139,7 @@ def _render_domestic_language_input(
         on_change=lambda: (
             session_manager.set(
                 language_score_input=session_manager.get_widget_value(
-                    "language_score_input_widget"
+                    DEFAULT_WIDGET_KEYS.language_score
                 ),
                 language_score_input_error=False,
             ),
@@ -148,7 +156,7 @@ def _render_domestic_language_input(
 
 
 def render_language_section(session_manager, form_state_manager, logger):
-    st.markdown("**语言成绩**")
+    st.markdown(FORM_LABELS["language_score"])
 
     background_university = session_manager.get("background_university")
     school_service = get_school_level_service()
@@ -169,24 +177,28 @@ def render_language_section(session_manager, form_state_manager, logger):
             session_manager.set(language_type=language_type)
 
     if (
-        "language_type_widget_key" not in st.session_state
-        or st.session_state.get("language_type_widget_key") not in LANGUAGE_TYPES
+        DEFAULT_WIDGET_KEYS.language_type not in st.session_state
+        or st.session_state.get(DEFAULT_WIDGET_KEYS.language_type) not in LANGUAGE_TYPES
     ):
-        st.session_state["language_type_widget_key"] = language_type
+        st.session_state[DEFAULT_WIDGET_KEYS.language_type] = language_type
 
     st.segmented_control(
-        "语言成绩类型",
+        FORM_LABELS["language_type_label"],
         LANGUAGE_TYPES,
         selection_mode="single",
         on_change=partial(form_state_manager.on_language_type_change, session_manager),
-        key="language_type_widget_key",
+        key=DEFAULT_WIDGET_KEYS.language_type,
     )
 
     score_config = LANGUAGE_SCORE_RANGES[language_type]
-    widget_key = "language_score_input_widget"
+    widget_key = DEFAULT_WIDGET_KEYS.language_score
 
-    label_suffix = "（选填）" if is_overseas else ""
-    placeholder_text = "海外院校背景语言成绩为选填" if is_overseas else "请输入成绩"
+    label_suffix = FORM_LABELS["language_score_optional"] if is_overseas else ""
+    placeholder_text = (
+        FORM_PLACEHOLDERS["language_score_overseas"]
+        if is_overseas
+        else FORM_PLACEHOLDERS["language_score_domestic"]
+    )
 
     if is_overseas:
         _render_overseas_language_input(

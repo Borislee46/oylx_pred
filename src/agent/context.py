@@ -27,11 +27,17 @@ class StudentContext:
     conversation_turns: list[dict[str, Any]] = field(default_factory=list)
     # [{role: "user"|"agent", content: str, ts: float}, ...]
 
+    # ---------- 中期：MatchAnalyzer 填充 ----------
+    match_analysis: dict[str, Any] = field(default_factory=dict)
+
     # ---------- 中期：MatchAdvisor 填充 ----------
     gpa: float = 0.0
     language_score: float = 0.0
     language_score_raw: float = 0.0
     language_type: str = ""
+    gpa_raw: float = 0.0
+    standardized_test_type: str = ""
+    standardized_test_score: float = 0.0
     background_university: str = ""
     background_major: str = ""
     target_country: str = ""
@@ -41,9 +47,10 @@ class StudentContext:
 
     prediction_results: dict[str, Any] = field(default_factory=dict)
     ai_explanation: str = ""
+    profile_type: str = ""
+    matched_products: list[dict[str, Any]] = field(default_factory=list)
 
     # ---------- 后期：ApplicationAgent 填充 ----------
-    signed: bool = False
     application_plan: dict[str, Any] = field(default_factory=dict)
 
     # ---------- 审计追踪 ----------

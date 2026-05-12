@@ -32,6 +32,29 @@ from src.pages.prediction.result_modifier.filters import (
 )
 from src.pages.prediction.result_modifier.ranker import adjust_similarity_results_with_agent
 
+# ── Hot-path optimisations ──
+# Load hot major substrings from config lazily; fallback to hard-coded defaults.
+_HOT_MAJOR_SUBSTRINGS: tuple | None = None
+
+
+def _load_hot_paths():
+    global _HOT_MAJOR_SUBSTRINGS
+    if _HOT_MAJOR_SUBSTRINGS is not None:
+        return
+    import json
+    from pathlib import Path
+
+    cfg_path = Path(__file__).parent.parent.parent.parent.parent / "config" / "hot_paths.json"
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        _HOT_MAJOR_SUBSTRINGS = tuple(cfg.get("hot_major_substrings", []))
+    except Exception:
+        _HOT_MAJOR_SUBSTRINGS = (
+            "smart manufacturing",
+            "accounting and finance analytics",
+            "information technology",
+        )
+
 
 def _is_major_match(
     m_lower: str,
@@ -39,6 +62,9 @@ def _is_major_match(
     bg_orig: str,
     bg_target_similarity_cache: dict[tuple[str, str], float] | None,
 ) -> bool:
+    _load_hot_paths()
+    if any(kw in m_lower for kw in _HOT_MAJOR_SUBSTRINGS):
+        return True
     sim = float((bg_target_similarity_cache or {}).get((bg_mapped, m_lower), 0.0))
     if sim >= COMBINATION_POOL_SEMANTIC_MIN:
         return True

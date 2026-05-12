@@ -1,0 +1,13 @@
+{
+  "raw_xgboost": {
+    "ece": 0.117875,
+    "n_bins": 10,
+    "n_samples": 12344
+  },
+  "sigmoid_calibrated": {
+    "ece": 0.026268,
+    "n_bins": 10,
+    "n_samples": 12344
+  },
+  "ece_improvement": 0.091607
+}

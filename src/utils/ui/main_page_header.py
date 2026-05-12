@@ -9,6 +9,18 @@ from src.utils.ui.ui_utils import load_component_assets
 LOGO_PATH = "assets/company_logo.png"
 
 
+@st.cache_resource(show_spinner=False)
+def _get_main_page_header_component():
+    assets_dir = Path("assets/ui/main_page_header")
+    _, script_js, _ = load_component_assets(assets_dir)
+
+    return st.components.v2.component(
+        "main_page_header_parallax",
+        js=script_js,
+        html="",
+    )
+
+
 def render_header(
     user_nickname: str,
     *,
@@ -18,25 +30,21 @@ def render_header(
     assets_dir = Path("assets/ui/main_page_header")
     style_css, script_js, template_html = load_component_assets(assets_dir)
 
-    st.markdown('<div id="main-page-header-anchor"></div>', unsafe_allow_html=True)
+    st.html('<div id="main-page-header-anchor"></div>')
 
-    st.markdown(f"<style>{style_css}</style>", unsafe_allow_html=True)
+    st.html(f"<style>{style_css}</style>")
 
-    if os.path.exists(LOGO_PATH):
+    if os.path.exists(LOGO_PATH) and os.path.getsize(LOGO_PATH) > 0:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.image(LOGO_PATH, width="stretch")
+            st.image(LOGO_PATH)
 
     title = page_title or "欧亚数据科学平台"
     subtitle = page_subtitle or "AI驱动的智能决策与个性化数据服务"
     header_html = template_html.replace("{{PAGE_TITLE}}", html.escape(title)).replace(
         "{{PAGE_SUBTITLE}}", html.escape(subtitle)
     )
-    st.markdown(header_html, unsafe_allow_html=True)
+    st.html(header_html)
 
-    st.iframe(
-        f"<script>{script_js}</script>",
-        width=1,
-        height=1,
-        tab_index=-1,
-    )
+    comp = _get_main_page_header_component()
+    comp(key="main_page_header_parallax", height=0)

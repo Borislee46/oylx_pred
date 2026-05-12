@@ -193,7 +193,7 @@ def load_model_dependencies(
     )
 
 
-@st.cache_resource(show_spinner=False, scope="global")
+@st.cache_resource(show_spinner=False)
 def load_model(
     model_name: str = "xgboost",
 ) -> tuple[Any | None, list[str] | None, dict[str, str] | None, dict[str, Any] | None, float]:

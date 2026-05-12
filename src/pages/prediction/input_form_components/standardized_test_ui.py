@@ -1,23 +1,25 @@
 import streamlit as st
 
+from src.pages.prediction.handler_config import DEFAULT_FORM_KEYS, DEFAULT_WIDGET_KEYS
 from src.pages.prediction.input_form_components.form_config import STANDARDIZED_TEST_TYPES
 from src.pages.prediction.input_form_components.form_validator import FormValidator
 
 
 def render_standardized_test_section(session_manager, form_state_manager, logger):
-    current_test_type = session_manager.get("standardized_test_type")
+    current_test_type = session_manager.get(DEFAULT_FORM_KEYS.standardized_test_type)
     if current_test_type is None or current_test_type not in STANDARDIZED_TEST_TYPES:
         current_test_type = "GRE"
         session_manager.set(standardized_test_type="GRE")
 
     if (
-        "standardized_test_type_widget" not in st.session_state
-        or st.session_state.get("standardized_test_type_widget") not in STANDARDIZED_TEST_TYPES
+        DEFAULT_WIDGET_KEYS.standardized_test_type not in st.session_state
+        or st.session_state.get(DEFAULT_WIDGET_KEYS.standardized_test_type)
+        not in STANDARDIZED_TEST_TYPES
     ):
-        st.session_state["standardized_test_type_widget"] = current_test_type
+        st.session_state[DEFAULT_WIDGET_KEYS.standardized_test_type] = current_test_type
 
     def on_test_type_change():
-        new_type = session_manager.get_widget_value("standardized_test_type_widget")
+        new_type = session_manager.get_widget_value(DEFAULT_WIDGET_KEYS.standardized_test_type)
         if new_type and new_type in STANDARDIZED_TEST_TYPES:
             session_manager.set(standardized_test_type=new_type)
 
@@ -25,7 +27,7 @@ def render_standardized_test_section(session_manager, form_state_manager, logger
         "标化成绩 (选填)",
         options=STANDARDIZED_TEST_TYPES,
         selection_mode="single",
-        key="standardized_test_type_widget",
+        key=DEFAULT_WIDGET_KEYS.standardized_test_type,
         on_change=on_test_type_change,
     )
 

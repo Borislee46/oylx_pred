@@ -3,27 +3,6 @@
 import pandas as pd
 
 
-def calculate_funnel(kehu: pd.DataFrame, tmk: pd.DataFrame, qianyue: pd.DataFrame) -> dict:
-    """Compute 4-stage conversion funnel counts."""
-    total = len(kehu)
-    # Resources that have outbound calls in TMK
-    called = tmk["外呼次数"].notna().sum() if "外呼次数" in tmk.columns else 0
-    # Resources that generated a work order (工单状态 is not null)
-    has_workorder = tmk["工单状态"].notna().sum() if "工单状态" in tmk.columns else 0
-    # Resources that resulted in a signed contract
-    signed = qianyue["签约单id"].notna().sum() if "签约单id" in qianyue.columns else 0
-
-    return {
-        "总资源数": total,
-        "已外呼": int(called),
-        "有工单": int(has_workorder),
-        "已签约": int(signed),
-        "外呼率": f"{called / total * 100:.1f}%" if total else "0%",
-        "外呼→工单率": f"{has_workorder / called * 100:.1f}%" if called else "0%",
-        "工单→签约率": f"{signed / has_workorder * 100:.1f}%" if has_workorder else "0%",
-    }
-
-
 def consultant_ranking(qianyue: pd.DataFrame) -> pd.DataFrame:
     df = qianyue.copy()
     df["学费_num"] = pd.to_numeric(df["学费"], errors="coerce")
@@ -38,9 +17,9 @@ def consultant_ranking(qianyue: pd.DataFrame) -> pd.DataFrame:
 def channel_breakdown(kehu: pd.DataFrame) -> pd.DataFrame:
     if "一级渠道" not in kehu.columns:
         return pd.DataFrame()
-    return (
-        kehu["一级渠道"].value_counts().reset_index(name="count").rename(columns={"index": "渠道"})
-    )
+    result = kehu["一级渠道"].value_counts().reset_index(name="count")
+    result.columns = ["渠道", "count"]
+    return result
 
 
 def class_capacity_metrics(class_master: pd.DataFrame) -> dict:

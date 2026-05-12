@@ -3,6 +3,8 @@ from typing import Any, Literal
 
 import streamlit as st
 
+from src.pages.prediction.config.ui_messages import FORM_PLACEHOLDERS
+
 _FilterMode = Literal["fuzzy", "contains", "prefix"] | None
 
 _FILTER_MODE_MIN_OPTIONS = 15
@@ -61,7 +63,7 @@ class SelectBoxHelper:
                 all_options,
                 index=default_index,
                 on_change=on_change_callback,
-                placeholder="请选择...",
+                placeholder=FORM_PLACEHOLDERS["selectbox_default"],
                 key=widget_key,
                 filter_mode=fm,
             )
@@ -70,14 +72,14 @@ class SelectBoxHelper:
             toast_key = f"_selectbox_error_toast_{widget_key}"
             err_sig = f"{type(e).__name__}:{e}"
             if st.session_state.get(toast_key) != err_sig:
-                st.toast("选项加载失败，请稍后重试")
+                st.toast(FORM_PLACEHOLDERS["selectbox_error"])
                 st.session_state[toast_key] = err_sig
             return st.selectbox(
                 label,
                 [],
                 index=0,
                 on_change=on_change_callback,
-                placeholder="请选择...",
+                placeholder=FORM_PLACEHOLDERS["selectbox_default"],
                 key=widget_key,
             )
 

@@ -33,3 +33,54 @@ def get_admitted_combinations_from_dataframe(
 
     df_hash = compute_dataframe_hash(cases_df[required_cols])
     return get_admitted_combinations_cached(df_hash, cases_df[required_cols], background_major)
+
+
+@cache_data(show_spinner=False)
+def get_cross_major_stats_cached(
+    df_hash: str, cases_df: pd.DataFrame, background_major: str
+) -> dict[tuple[str, str], dict]:
+    """Per-target admission statistics for shrinkage-adjusted cross-major penalty.
+
+    Returns dict keyed by (university, major) with per-target:
+      n_total, admitted_total  — all applicants to this target
+      n_cross, admitted_cross   — applicants with this background_major
+    """
+    bg = str(background_major).strip()
+    df = cases_df[["background_major", "target_university", "target_major", "admitted"]]
+
+    total = df.groupby(["target_university", "target_major"], as_index=True)
+    total_agg = total.agg(n_total=("admitted", "count"), admitted_total=("admitted", "sum"))
+
+    cross = df[df["background_major"] == bg]
+    if cross.empty:
+        cross_agg = pd.DataFrame(columns=["n_cross", "admitted_cross"])
+    else:
+        cross_agg = cross.groupby(["target_university", "target_major"], as_index=True).agg(
+            n_cross=("admitted", "count"), admitted_cross=("admitted", "sum")
+        )
+
+    result: dict[tuple[str, str], dict] = {}
+    for idx, t_row in total_agg.iterrows():
+        univ, major = str(idx[0]), str(idx[1])
+        key = (univ, major)
+        c_row = cross_agg.loc[idx] if idx in cross_agg.index else None
+        result[key] = {
+            "n_total": int(t_row["n_total"]),
+            "admitted_total": int(t_row["admitted_total"]),
+            "n_cross": int(c_row["n_cross"]) if c_row is not None else 0,
+            "admitted_cross": int(c_row["admitted_cross"]) if c_row is not None else 0,
+        }
+
+    return result
+
+
+def get_cross_major_admission_stats(
+    cases_df: pd.DataFrame, background_major: str
+) -> dict[tuple[str, str], dict]:
+    if cases_df is None or cases_df.empty:
+        return {}
+    required = ["background_major", "target_university", "target_major", "admitted"]
+    if not all(c in cases_df.columns for c in required):
+        return {}
+    df_hash = compute_dataframe_hash(cases_df[required])
+    return get_cross_major_stats_cached(df_hash, cases_df[required], background_major)

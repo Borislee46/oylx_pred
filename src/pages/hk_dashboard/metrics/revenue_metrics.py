@@ -3,10 +3,6 @@
 import pandas as pd
 
 
-def total_cash_income(revenue: pd.DataFrame) -> float:
-    return pd.to_numeric(revenue["现金收入"], errors="coerce").sum()
-
-
 def cash_income_by_project(revenue: pd.DataFrame) -> pd.DataFrame:
     return (
         revenue.assign(_amt=pd.to_numeric(revenue["现金收入"], errors="coerce"))
@@ -76,12 +72,13 @@ def cash_income_by_capacity(revenue: pd.DataFrame, class_master: pd.DataFrame) -
         return pd.DataFrame()
     merged = revenue.merge(cap_map, on="班级编码", how="inner")
     merged["_amt"] = pd.to_numeric(merged["现金收入"], errors="coerce")
-    return (
+    result = (
         merged.groupby("班容名称", as_index=False)["_amt"]
         .sum()
-        .rename(columns={"_amt": "现金收入"})
+        .rename(columns={"_amt": "现金收入", "班容名称": "班容"})
         .sort_values("现金收入", ascending=False)
     )
+    return result
 
 
 def cash_income_by_school(revenue: pd.DataFrame) -> pd.DataFrame:
@@ -164,3 +161,17 @@ def mom_yoy_kpi(revenue: pd.DataFrame) -> dict:
         "mom_pct": mom_pct,
         "yoy_pct": yoy_pct,
     }
+
+
+def coverage_note(total: float, subset_sum: float, label: str = "收入") -> str:
+    """Return a one-line annotation showing what % of total is covered and the gap.
+
+    Example: "覆盖 74.9% 现金收入 | 未匹配 ¥114.9 万"
+    """
+    if total == 0:
+        return f"{label}: 无数据"
+    pct = subset_sum / total * 100
+    gap = total - subset_sum
+    if gap < 0.01:
+        return f"覆盖 100% {label}"
+    return f"覆盖 {pct:.1f}% {label} | 未匹配 ¥{gap / 1e4:.1f} 万"

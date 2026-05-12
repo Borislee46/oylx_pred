@@ -1,5 +1,5 @@
 import uuid
-from dataclasses import dataclass, field, fields
+from dataclasses import MISSING, dataclass, field, fields
 from typing import Any
 
 import streamlit as st
@@ -26,15 +26,34 @@ class UserDataModel:
 
 
 class SessionManager:
+    """Thin typed wrapper over st.session_state.
+
+    Instantiation is idempotent — safe to call SessionManager() anywhere.
+    All state lives in st.session_state, so every instance reads/writes the
+    same underlying store.
+    """
+
     _STATE_KEY = "user_data_model"
     _MODEL_FIELDS = {f.name for f in fields(UserDataModel)}
+
+    @staticmethod
+    def _build_field_defaults() -> dict[str, Any]:
+        defaults: dict[str, Any] = {}
+        for f in fields(UserDataModel):
+            if f.default is not MISSING:
+                defaults[f.name] = f.default
+            elif f.default_factory is not MISSING:
+                defaults[f.name] = f.default_factory()
+            else:
+                defaults[f.name] = None
+        return defaults
+
+    _FIELD_DEFAULTS = _build_field_defaults.__func__()  # type: ignore[attr-defined]
 
     def __init__(self) -> None:
         if self._STATE_KEY not in st.session_state:
             st.session_state[self._STATE_KEY] = UserDataModel()
-
-        if "session_id" not in st.session_state:
-            st.session_state["session_id"] = self._model.session_id[:8]
+            st.session_state["session_id"] = self.session_id_short
 
     @property
     def _model(self) -> UserDataModel:
@@ -57,45 +76,35 @@ class SessionManager:
                 self._model.other_states[key] = value
 
     def batch_set(self, updates: dict[str, Any]) -> None:
-        for key, value in updates.items():
-            if key in self._MODEL_FIELDS:
-                setattr(self._model, key, value)
-            else:
-                self._model.other_states[key] = value
+        self.set(**updates)
 
     def delete(self, key: str) -> None:
         if key in self._model.other_states:
             del self._model.other_states[key]
         elif key in self._MODEL_FIELDS and key != "session_id":
-            default_model = UserDataModel()
-            default_value = getattr(default_model, key)
-            setattr(self._model, key, default_value)
+            setattr(self._model, key, self._FIELD_DEFAULTS.get(key))
 
     def clear_session(self) -> None:
         current_id = self._model.session_id
         st.session_state[self._STATE_KEY] = UserDataModel(session_id=current_id)
+        st.session_state["session_id"] = current_id[:8]
+
+    def prune_states(self, prefixes: list[str]) -> int:
+        """Delete other_states keys starting with any of the given prefixes.
+
+        Returns count of removed keys.
+        """
+        to_delete = [k for k in self._model.other_states if any(k.startswith(p) for p in prefixes)]
+        for k in to_delete:
+            del self._model.other_states[k]
+        return len(to_delete)
 
     def get_widget_value(self, key: str, default: Any = None) -> Any:
         return st.session_state.get(key, default)
 
-    def get_current_user_info(self) -> dict[str, Any]:
-        if self._model.user_info.get("username"):
-            return self._model.user_info
+    def ensure_user_info(self) -> dict[str, Any]:
+        """Return cached user_info, or {} if not yet synced.
 
-        e2_email = st.session_state.get("e2_user_email")
-        if e2_email:
-            info = {
-                "username": e2_email,
-                "nickname": st.session_state.get("e2_user_nickname", e2_email),
-            }
-            self.set(user_info=info, is_logged_in=True)
-            return info
-
-        if st.session_state.get("is_authenticated", False):
-            username = st.session_state.get("username", "")
-            if username:
-                info = {"username": username, "nickname": username}
-                self.set(user_info=info, is_logged_in=True)
-                return info
-
-        return {}
+        Auth→model sync happens once in init_page(); this is a pure read.
+        """
+        return self._model.user_info if self._model.user_info.get("username") else {}

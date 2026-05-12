@@ -5,6 +5,7 @@ from typing import Any
 
 import streamlit as st
 
+from src.pages.prediction.handler_config import DEFAULT_WIDGET_KEYS
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_GPA_SCALE,
     GPA_SCALES,
@@ -32,7 +33,7 @@ class FormStateManager:
 
     @staticmethod
     def initialize_session_state(session_manager: SessionManager) -> None:
-        current_user = session_manager.get_current_user_info()
+        current_user = session_manager.ensure_user_info()
         user_id = current_user.get("username") if current_user else None
 
         default_states: dict[str, Any] = {
@@ -91,22 +92,32 @@ class FormStateManager:
             "language_type": session_manager.get("language_type"),
             "language_score_raw": session_manager.get("language_score_input"),
             "background_university": session_manager.get_widget_value(
-                "background_university_selectbox"
+                DEFAULT_WIDGET_KEYS.background_university
             ),
             "background_major_original": session_manager.get_widget_value(
-                "background_major_selectbox"
+                DEFAULT_WIDGET_KEYS.background_major
             ),
-            "research_count": session_manager.get_widget_value("research_count_input", 0),
-            "award_count": session_manager.get_widget_value("award_count_input", 0),
-            "internship_count": session_manager.get_widget_value("internship_count_input", 0),
-            "paper_count": session_manager.get_widget_value("paper_count_input", 0),
+            "research_count": session_manager.get_widget_value(
+                DEFAULT_WIDGET_KEYS.research_count, 0
+            ),
+            "award_count": session_manager.get_widget_value(DEFAULT_WIDGET_KEYS.award_count, 0),
+            "internship_count": session_manager.get_widget_value(
+                DEFAULT_WIDGET_KEYS.internship_count, 0
+            ),
+            "paper_count": session_manager.get_widget_value(DEFAULT_WIDGET_KEYS.paper_count, 0),
             "experience_details": {
-                "research_details": session_manager.get_widget_value("research_details_input", ""),
-                "award_details": session_manager.get_widget_value("award_details_input", ""),
-                "internship_details": session_manager.get_widget_value(
-                    "internship_details_input", ""
+                "research_details": session_manager.get_widget_value(
+                    DEFAULT_WIDGET_KEYS.research_details, ""
                 ),
-                "paper_details": session_manager.get_widget_value("paper_details_input", ""),
+                "award_details": session_manager.get_widget_value(
+                    DEFAULT_WIDGET_KEYS.award_details, ""
+                ),
+                "internship_details": session_manager.get_widget_value(
+                    DEFAULT_WIDGET_KEYS.internship_details, ""
+                ),
+                "paper_details": session_manager.get_widget_value(
+                    DEFAULT_WIDGET_KEYS.paper_details, ""
+                ),
             },
         }
 

@@ -1,8 +1,8 @@
 .hk-header {
   display: flex;
   align-items: center;
-  gap: var(--hk-space-lg);
-  padding: var(--hk-space-md) 0;
+  gap: 0.9rem;
+  padding: 0.4rem 0;
 }
 
 .hk-logo-container {
@@ -10,6 +10,7 @@
   display: inline-block;
   cursor: pointer;
   overflow: hidden;
+  border-radius: var(--hk-radius);
 }
 
 .hk-logo-shine {
@@ -36,10 +37,11 @@
   pointer-events: none;
   z-index: 10;
   mix-blend-mode: overlay;
+  opacity: 0;
 }
 
 .hk-logo-container:hover .hk-logo-shine {
-  animation: metal-shine 1.2s ease-in-out infinite;
+  animation: metal-shine 1.4s ease-in-out;
 }
 
 @keyframes metal-shine {
@@ -47,10 +49,10 @@
     transform: translateX(-220%) skewX(-25deg);
     opacity: 0;
   }
-  5% {
+  10% {
     opacity: 1;
   }
-  95% {
+  90% {
     opacity: 1;
   }
   100% {
@@ -59,50 +61,19 @@
   }
 }
 
-@keyframes logo-glow-breath {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 2px var(--hk-cyan-alpha-10));
-  }
-  50% {
-    filter: drop-shadow(0 0 8px var(--hk-cyan-alpha-20));
-  }
-}
-
 .hk-header-logo {
-  width: 70px;
+  width: 44px;
   height: auto;
   display: block;
-  transform: scale(1);
-  filter: drop-shadow(0 0 2px var(--hk-glow));
-  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: logo-glow-breath 4s ease-in-out infinite;
+  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .hk-logo-container:hover .hk-header-logo {
-  transform: scale(1.08) rotate(2deg);
-  filter: drop-shadow(0 0 8px var(--hk-cyan-alpha-30))
-    drop-shadow(0 0 20px var(--hk-cyan-alpha-15));
-  animation-play-state: paused;
+  transform: scale(1.04);
 }
 
-.hk-logo-container:active .hk-header-logo {
-  animation: logo-pulse 0.15s ease-out;
-}
-
-@keyframes logo-pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(0.95);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes title-gradient-flow {
+@keyframes hk-title-gradient-flow {
   0% {
     background-position: 0% 50%;
   }
@@ -114,23 +85,14 @@
   }
 }
 
-@keyframes title-glow-pulse {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 0.5px var(--hk-cyan-alpha-10));
-  }
-  50% {
-    filter: drop-shadow(0 0 2px var(--hk-cyan-alpha-15))
-      drop-shadow(0 0 4px var(--hk-cyan-alpha-10));
-  }
-}
-
 .hk-header-title {
   font-family: var(--hk-font-display);
-  font-size: var(--hk-text-3xl);
-  font-weight: 800;
+  font-size: var(--hk-text-2xl);
+  font-weight: 600;
   margin: 0;
   line-height: var(--hk-leading-tight);
+  padding-bottom: 0.06em;
+  letter-spacing: -0.015em;
   background: linear-gradient(
     135deg,
     var(--hk-dark-slate) 0%,
@@ -141,31 +103,62 @@
   );
   background-size: 200% auto;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.02em;
-  animation: title-gradient-flow 8s linear infinite;
+  -webkit-text-fill-color: transparent;
+  color: var(--hk-dark-slate);
+  animation: hk-title-gradient-flow 8s linear infinite;
 }
 
 .hk-header-title:hover {
-  animation: title-gradient-flow 3s linear infinite;
+  animation: hk-title-gradient-flow 3s linear infinite;
 }
 
 .hk-header-subtitle {
   font-family: var(--hk-font-sans);
-  font-size: var(--hk-text-base);
-  margin: 0;
-  line-height: var(--hk-leading-tight);
-  color: var(--hk-slate-500);
+  font-size: 0.78rem;
+  margin: 0.35rem 0 0 0;
+  line-height: 1.2;
+  color: var(--hk-slate-400);
   font-weight: 500;
-  letter-spacing: 1px;
+  letter-spacing: 0.04em;
+}
+
+.hk-header-subtitle-en {
+  font-family: var(--hk-font-display);
+  font-weight: 500;
+  color: var(--hk-slate-500);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hk-header-subtitle-zh {
+  margin-left: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--hk-slate-200);
+  letter-spacing: 0.08em;
+}
+
+.hk-header-divider {
+  height: 1px;
+  border: none;
+  margin: 0.6rem 0 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hk-slate-200) 30%,
+    var(--hk-slate-200) 70%,
+    transparent 100%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hk-logo-container:hover .hk-logo-shine,
-  .hk-logo-container:active .hk-header-logo,
   .hk-logo-container:hover .hk-header-logo {
     animation: none;
+    transform: none;
     transition: none;
+  }
+  .hk-header-title {
+    animation: none;
   }
 }
