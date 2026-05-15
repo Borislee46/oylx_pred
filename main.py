@@ -80,6 +80,10 @@ def _collect_available_buttons(accessible_modules: dict, is_user_admin: bool, us
 
     if accessible_modules.get("hk", False):
         available_buttons.append(("Signals 留学择校系统", "pages/hk.py", False))
+        available_buttons.append(("test1", "pages/test1.py", False))
+        available_buttons.append(("test2", "pages/test2.py", False))
+        available_buttons.append(("test3", "pages/test3.py", False))
+        available_buttons.append(("test4", "pages/test4.py", False))
 
     if is_user_admin:
         available_buttons.append(("权限管理", "pages/admin.py", False))
