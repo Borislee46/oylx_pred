@@ -1,5 +1,6 @@
 {
   "DEBUG_MODE": true,
+  "ACCESS_CODE": "SIGNALS2026",
   "DEBUG_USER": {
     "email": "demo@signals-app.com",
     "nickname": "访客"

@@ -26,6 +26,43 @@ def handle_e2_login(
         st.session_state.e2_user_email = debug_user.get("email", "developer@example.com")
         st.session_state.e2_user_nickname = debug_user.get("nickname", "开发者")
         st.session_state.is_authenticated = True
+
+        access_code = dev_config.get("ACCESS_CODE", "")
+        if access_code and not st.session_state.get("_demo_access_granted"):
+            st.markdown(
+                """
+                <style>
+                .access-gate-wrap {
+                    display: flex; justify-content: center; align-items: center;
+                    min-height: 80vh; font-family: "Inter", "Noto Sans SC", sans-serif;
+                }
+                .access-gate-box {
+                    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+                    border-radius: 16px; padding: 48px 40px; text-align: center; max-width: 400px; width: 100%;
+                }
+                .access-gate-box h2 { font-size: 1.3rem; font-weight: 600; margin: 0 0 8px; color: #e0e0e0; }
+                .access-gate-box p { font-size: 0.85rem; color: #888; margin: 0 0 28px; }
+                </style>
+                <div class="access-gate-wrap">
+                <div class="access-gate-box">
+                <h2>Signals 留学择校系统</h2>
+                <p>演示版本 · 请输入访问码</p>
+                </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            user_input = st.text_input(
+                "访问码", type="password", placeholder="输入访问码",
+                label_visibility="collapsed", key="demo_access_input",
+            )
+            if user_input:
+                if user_input.strip() == access_code:
+                    st.session_state._demo_access_granted = True
+                    st.rerun()
+                else:
+                    st.error("访问码错误")
+            st.stop()
     else:
         TTL_SECONDS = 24 * 3600
         is_authenticated = st.session_state.get("is_authenticated", False)
