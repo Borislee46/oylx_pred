@@ -1,4 +1,5 @@
 from src.utils.auth.config_processor import get_processed_auth_config
+from src.utils.auth.dev_config_loader import load_dev_config
 
 MODULE_IDS = (
     "hk",
@@ -14,6 +15,9 @@ MODULE_IDS = (
 def check_user_access_permission(user_email: str) -> bool:
     if not user_email:
         return False
+
+    if load_dev_config().get("DEBUG_MODE", False):
+        return True
 
     if is_admin(user_email):
         return True
@@ -38,6 +42,9 @@ def _check_standard_module(user_email_lower: str, module_name: str, processed_co
 
 
 def check_module_permission(user_email: str, module_name: str) -> bool:
+    if load_dev_config().get("DEBUG_MODE", False):
+        return True
+
     if not check_user_access_permission(user_email):
         return False
 
@@ -55,6 +62,9 @@ def is_admin(user_email: str) -> bool:
     if not user_email:
         return False
 
+    if load_dev_config().get("DEBUG_MODE", False):
+        return True
+
     processed_config = get_processed_auth_config()
     user_email_lower = user_email.lower()
 
@@ -62,6 +72,9 @@ def is_admin(user_email: str) -> bool:
 
 
 def get_user_accessible_modules(user_email: str) -> dict:
+    if load_dev_config().get("DEBUG_MODE", False):
+        return dict.fromkeys(MODULE_IDS, True)
+
     empty = dict.fromkeys(MODULE_IDS, False)
 
     if not check_user_access_permission(user_email):

@@ -1,7 +1,7 @@
 {
-  "DEBUG_MODE": false,
+  "DEBUG_MODE": true,
   "DEBUG_USER": {
-    "email": "lijiapeng8@xdf.cn",
-    "nickname": "李佳鹏"
+    "email": "demo@signals-app.com",
+    "nickname": "访客"
   }
 }

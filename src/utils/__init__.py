@@ -17,7 +17,7 @@ from .page_auth import handle_e2_login
 from .page_init import init_page
 from .school_constants import SCHOOL_LEVEL_PRIORITY
 
-SUPPORT_EMAIL = "lijiapeng8@xdf.cn"
+SUPPORT_EMAIL = "support@signals-app.com"
 from .school_level_service import get_school_level_service
 from .session_manager import (
     PredictionResultModel,
