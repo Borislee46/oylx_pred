@@ -99,19 +99,19 @@ def filter_theme_feedback(
     df_feedback: pd.DataFrame,
     *,
     state_prefix: str,
-    label: str = "主题范围",
+    label: str = "维度",
     group_col: str = "三大类",
     fixed_group: str | None = None,
 ) -> tuple[pd.DataFrame, str, str]:
     view = df_feedback.copy()
     options = ["全部"] + _text_options(view.get(group_col))
     if fixed_group is None:
-        reset_col, select_col, theme_col = st.columns([0.16, 0.42, 0.42])
+        reset_col, select_col, product_col = st.columns([0.16, 0.42, 0.42])
         with reset_col:
             _control_spacer()
             if st.button("重置", key=f"{state_prefix}_theme_reset", width="stretch"):
                 st.session_state.pop(f"{state_prefix}_theme_group", None)
-                st.session_state.pop(f"{state_prefix}_theme_value", None)
+                st.session_state.pop(f"{state_prefix}_product_value", None)
         with select_col:
             if len(options) > 1:
                 selected_group = _selectbox_with_state(
@@ -119,25 +119,25 @@ def filter_theme_feedback(
                 )
             else:
                 selected_group = "全部"
-        theme_options = ["全部"] + [x for x in _text_options(view.get("主题")) if x and x != "其他"]
-        with theme_col:
-            selected_theme = _selectbox_with_state(
-                "主题定位", theme_options, f"{state_prefix}_theme_value"
+        product_options = ["全部"] + _text_options(view.get("子类"))
+        with product_col:
+            selected_product = _selectbox_with_state(
+                "产品分类", product_options, f"{state_prefix}_product_value"
             )
     else:
         selected_group = fixed_group if fixed_group in options else "全部"
-        theme_options = ["全部"] + [x for x in _text_options(view.get("主题")) if x and x != "其他"]
-        if len(theme_options) > 1:
-            selected_theme = _selectbox_with_state(
-                "主题定位", theme_options, f"{state_prefix}_theme_value"
+        product_options = ["全部"] + _text_options(view.get("子类"))
+        if len(product_options) > 1:
+            selected_product = _selectbox_with_state(
+                "产品分类", product_options, f"{state_prefix}_product_value"
             )
         else:
-            selected_theme = "全部"
+            selected_product = "全部"
     if selected_group != "全部" and group_col in view.columns:
         view = view[view[group_col].astype(str).str.strip() == selected_group].copy()
-    if selected_theme != "全部" and "主题" in view.columns:
-        view = view[view["主题"].astype(str).str.strip() == selected_theme].copy()
-    return view, selected_group, selected_theme
+    if selected_product != "全部" and "子类" in view.columns:
+        view = view[view["子类"].astype(str).str.strip() == selected_product].copy()
+    return view, selected_group, selected_product
 
 
 def render_evidence_filters(

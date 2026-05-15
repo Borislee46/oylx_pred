@@ -43,6 +43,16 @@ std=0.63，95% CI 跨度 3 个排名位次。这可能因为 language_score 是 
 
 > "我做了 bootstrap 特征重要性分析——1000 轮采样训练，target_major 的 top-1 地位非常稳定（95% CI rank 1-3），但 paper_count 和 internship_count 的排名 CI 几乎完全重叠，不能严格说谁更重要。这对 feature selection 有直接指导——如果要砍特征，论文和实习可以二选一。"
 
+## DS 批判反思 (2026-05-13)
+
+Bootstrap 给了特征排名的置信区间——这是标准做法，正确。但有两个前提未被质疑：
+
+1. **Gain-based importance ≠ causal importance**。XGBoost 的 gain-based importance 反映的是"特征对 loss reduction 的贡献"，不是"特征对录取的因果重要性"。target_major 排名第一可能是因为它在树结构中获得了最多的分裂机会（类别多、信息增益大），而不是因为它对录取的因果关系最强。如果要回答"应该优先提升 GPA 还是攒实习"（TODO-4），importance 不是答案——需要 causal inference。
+
+2. **Bootstrap stability ≠ robustness to model specification**。Bootstrap 只重采样了训练数据，没变超参数。如果换 max_depth=6/8/10 或 learning_rate=0.03/0.05/0.1，特征排名还稳吗？当前报告不能回答这个问题。Bootstrap 测的是"给定超参下数据采样的稳定性"，不是"给定数据下超参选择的敏感性"。后者对于判断"这个排名在生产中是否可靠"同样重要。
+
+另外 language_score 排名最不稳定（std=0.63）呼应了 DEC-013 的观察：TOEFL 和 IELTS 合并为单一特征可能丢了信号。如果未来做特征工程重构，language_score 值得优先重考虑。
+
 ## 产物
 
 - `feature_rank_box.png` — 排名箱线图 + 95% CI

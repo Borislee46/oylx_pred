@@ -31,7 +31,6 @@ from ..ui.theme_css import format_metric, inject_detail_css
 from .detail_shared import (
     filter_theme_feedback,
     render_detail_hero,
-    render_detail_kpis,
     render_evidence_filters,
     render_theme_bar,
 )
@@ -148,20 +147,8 @@ def render(cfg: SurveyConfig) -> None:
             },
         ],
     )
-    with panel("切换分析路径", "当你想换一个切片角度时，直接从这里进入其它分析视图。"):
+    with panel("切换分析路径", ""):
         render_view_nav(cfg, current_view="by_pillar", key_prefix=f"detail_nav_{cfg.id}")
-
-    render_section_header(
-        "Current Slice",
-        "先判断当前维度切片的整体状态",
-        "这一页重点回答某个三大块下，产品表现与反馈结构的差异来自哪里。",
-    )
-    render_detail_kpis(
-        kpi,
-        scope_label=f"{src.label} / {pillar_name}",
-        focus_label="三大块",
-        columns=int(layout_get(layout, "detail_kpi_columns", default=3)),
-    )
 
     tab_main, tab_evidence = st.tabs(["核心洞察", "反馈证据"])
 
@@ -203,11 +190,11 @@ def render(cfg: SurveyConfig) -> None:
             with panel("业务线对比摘要", "对比表已与当前三大块筛选保持一致，方便横向验证判断。"):
                 render_table(df_compare, detail_h)
         with lower_right:
-            with panel("反馈主题", "意见主题和表扬主题均完整展示，便于直接查看全量结构。"):
-                theme_feedback_view, _, selected_theme = filter_theme_feedback(
+            with panel("反馈主题", "按维度与产品分类筛选后，查看意见与表扬的主题分布。"):
+                theme_feedback_view, _, _ = filter_theme_feedback(
                     df_feedback_detail,
                     state_prefix="cs_survey_by_pillar",
-                    label="主题范围",
+                    label="维度",
                     fixed_group=pillar_name if pillar_name != "全部" else None,
                 )
                 df_theme = pd.DataFrame(
@@ -240,7 +227,6 @@ def render(cfg: SurveyConfig) -> None:
             state_prefix="cs_survey_by_pillar",
             group_label="产品分组",
             detail_label="产品类型",
-            theme_value=selected_theme,
         )
         ev_left, ev_right = st.columns(
             layout_get(layout, "evidence_row_columns", default=[0.84, 1.16])

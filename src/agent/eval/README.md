@@ -2,7 +2,7 @@
 
 ## Why
 
-We have 5 LLM agents in production. When we change a prompt, we need to know: did it actually improve things, or did it silently break edge cases? LLM outputs are non-deterministic, so a single manual test is insufficient.
+We have 7 LLM agents in production. When we change a prompt, we need to know: did it actually improve things, or did it silently break edge cases? LLM outputs are non-deterministic, so a single manual test is insufficient.
 
 ## Architecture
 
@@ -67,6 +67,13 @@ python -m src.agent.eval.regression_test                  # after prompt change
 ## Interview Narrative
 
 > "I built an eval framework for my 5 LLM agents. Each agent has annotated test cases, per-agent metrics, and a regression test that blocks prompt changes from silently degrading. The regression test catches Goodhart failures — when a prompt change improves the eval metric but hurts actual quality on edge cases."
+
+## Critical Questions
+
+- **Eval dataset 还没灌数据**：框架搭好了，但 0 条标注数据。没有 baseline，regression test 跑不了——prompt 改了不知道有没有退化。
+- **"手动标注 expected 值"这个环节本身有 bias**：注释者看到 agent 输出后再标注 expected，确认偏误会让人倾向于认为 agent 的输出"差不多对"。应该先定义 expected 再跑 agent，或者 blind annotation。
+- **Per-field F1 只测了提取是否准确，没测提取是否完整**：LeadInAgent 可能只提取了 2 个目标学校但实际用户说了 5 个——F1 的 recall 会很低但 agent 不报错。
+- **Must-not-mention 规则是静态的**：比如"无希望"被禁止，但 agent 可能换说法（"希望甚微""前景不佳"）绕过。静态关键词覆盖不了语义级别的安全问题。
 
 ## Current State
 

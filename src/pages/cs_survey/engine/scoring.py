@@ -27,12 +27,6 @@ def _rid_series(df: pd.DataFrame) -> pd.Series:
     return pd.Series(df.index, index=df.index)
 
 
-def _has_text(df: pd.DataFrame, col: str) -> pd.Series:
-    if col not in df.columns:
-        return pd.Series(False, index=df.index)
-    return meaningful_text_mask(df[col])
-
-
 def _reverse_low_good(value: float) -> float:
     return 6.0 - value
 
@@ -50,28 +44,25 @@ def score_likert(
     op_n = 0
     pr_n = 0
     rid = _rid_series(df)
-    for code_col, text_col in pairs:
+    for code_col, _text_col in pairs:
         if code_col not in df.columns:
             continue
         sc = pd.to_numeric(df[code_col], errors="coerce")
-        has = _has_text(df, text_col)
         for idx in df.index:
             v = sc.loc[idx]
             if pd.isna(v):
                 continue
             scores.append(float(v))
-            if not bool(has.loc[idx]):
-                continue
             if v <= opinion_max:
                 op_n += 1
                 op_rids.add(rid.loc[idx])
             elif v >= praise_min:
                 pr_n += 1
                 pr_rids.add(rid.loc[idx])
-    n = len(df)
+    n = len(scores)
     mean = float(np.mean(scores)) if scores else float("nan")
-    op_r = (len(op_rids) / n * 100) if n else 0.0
-    pr_r = (len(pr_rids) / n * 100) if n else 0.0
+    op_r = (op_n / n * 100) if n else 0.0
+    pr_r = (pr_n / n * 100) if n else 0.0
     return ScoreResult(mean, op_r, pr_r, op_n, pr_n, op_rids, pr_rids, scores)
 
 
@@ -98,10 +89,10 @@ def score_ordinal_low_good(df: pd.DataFrame, cols: list[str]) -> ScoreResult:
             elif fv <= 2:
                 pr_n += 1
                 pr_rids.add(rid.loc[idx])
-    n = len(df)
+    n = len(aligned)
     mean = float(np.mean(aligned)) if aligned else float("nan")
-    op_r = (len(op_rids) / n * 100) if n else 0.0
-    pr_r = (len(pr_rids) / n * 100) if n else 0.0
+    op_r = (op_n / n * 100) if n else 0.0
+    pr_r = (pr_n / n * 100) if n else 0.0
     return ScoreResult(mean, op_r, pr_r, op_n, pr_n, op_rids, pr_rids, aligned)
 
 
@@ -142,10 +133,10 @@ def score_coded_pair(df: pd.DataFrame, code_col: str, text_col: str) -> ScoreRes
         if pr_num or pr_t:
             pr_n += 1
             pr_rids.add(rid.loc[idx])
-    n = len(df)
+    n = len(scores)
     mean = float(np.mean(scores)) if scores else float("nan")
-    op_r = (len(op_rids) / n * 100) if n else 0.0
-    pr_r = (len(pr_rids) / n * 100) if n else 0.0
+    op_r = (op_n / n * 100) if n else 0.0
+    pr_r = (pr_n / n * 100) if n else 0.0
     return ScoreResult(mean, op_r, pr_r, op_n, pr_n, op_rids, pr_rids, scores)
 
 
@@ -176,27 +167,3 @@ def score(df: pd.DataFrame, spec: ScoringSpec) -> ScoreResult:
             praise_min=float(p.get("praise_min", 4.0)),
         )
     raise ValueError(f"unsupported scoring type: {t}")
-
-
-def merge(results: list[ScoreResult]) -> ScoreResult:
-    op_rids: set = set()
-    pr_rids: set = set()
-    op_n = 0
-    pr_n = 0
-    scores: list[float] = []
-    for r in results:
-        op_rids |= r.op_rids
-        pr_rids |= r.pr_rids
-        op_n += r.op_n
-        pr_n += r.pr_n
-        scores.extend(r.scores)
-    return ScoreResult(
-        mean=float(np.mean(scores)) if scores else float("nan"),
-        op_rate=0.0,
-        pr_rate=0.0,
-        op_n=op_n,
-        pr_n=pr_n,
-        op_rids=op_rids,
-        pr_rids=pr_rids,
-        scores=scores,
-    )

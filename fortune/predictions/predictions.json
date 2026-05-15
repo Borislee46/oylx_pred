@@ -30,7 +30,18 @@
         "end": "2026-12-31"
       },
       "status": "ongoing",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "si_hua_kou_jue.丙.lu=天同",
+          "signal": "流年丙午天同禄入命宫（辰）",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_002",
@@ -55,7 +66,18 @@
         "end": "2026-12-31"
       },
       "status": "ongoing",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "si_hua_kou_jue.丙.quan=天机",
+          "signal": "流年丙午天机权入官禄宫（申）",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_003",
@@ -80,7 +102,18 @@
         "end": "2026-12-31"
       },
       "status": "ongoing",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "si_hua_kou_jue.丙.ke=文昌",
+          "signal": "流年丙午文昌科入迁移宫（戌）",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_004",
@@ -106,7 +139,18 @@
         "end": "2026-12-31"
       },
       "status": "ongoing",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "si_hua_kou_jue.丙.ji=廉贞",
+          "signal": "流年丙午廉贞忌入子女宫（丑）→流年疾厄宫",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_005",
@@ -140,7 +184,18 @@
         "is_post_hoc": false,
         "intervention_applied": false,
         "temporal_precision": "窗口内"
-      }
+      },
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[5].stars.main=武曲破军, birth_si_hua.lu=破军",
+          "signal": "流月四月（巳月）入父母宫，武曲破军双禄+天钺旺",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §四月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_006",
@@ -166,7 +221,18 @@
         "end": "2026-07-06"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[2].minor=大耗+劫煞",
+          "signal": "流月五月（午月）入夫妻宫（寅），空宫+大耗+劫煞",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §五月"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_007",
@@ -193,7 +259,18 @@
         "end": "2026-08-07"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[1].stars.main=廉贞+七杀, birth_si_hua.ji.star=贪狼",
+          "signal": "流月六月（未月）入子女宫（丑），廉贞七杀擎羊+流年廉贞忌叠加",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §六月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_008",
@@ -218,7 +295,18 @@
         "end": "2026-09-07"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[0].stars.main=天梁, palaces[0].stars.aux=禄存",
+          "signal": "流月七月（申月）入财帛宫（子），天梁庙+禄存庙，叠流年天机权",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §七月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_009",
@@ -245,7 +333,18 @@
         "end": "2026-10-08"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[11].stars, basic.origin_palace=亥",
+          "signal": "流月八月（酉月）入疾厄宫（亥），天相+陀罗+地劫+地空+天马+天刑，来因宫激活",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §八月"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_010",
@@ -272,7 +371,18 @@
         "end": "2026-11-07"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[10].stars, birth_si_hua.quan.star=巨门",
+          "signal": "流月九月（戌月）入迁移宫（戌），巨门权+铃星庙+文昌科，三力叠加",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §九月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_011",
@@ -300,7 +410,18 @@
         "end": "2026-12-07"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[9].stars, birth_si_hua.ji.star=贪狼",
+          "signal": "流月十月（亥月）入交友宫（酉），紫微旺+贪狼生年忌+天伤+天哭",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §十月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_012",
@@ -327,7 +448,18 @@
         "end": "2027-01-05"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[8].stars, birth_si_hua.ke.star=太阴",
+          "signal": "流月十一月（子月）入官禄宫（申），天机得+太阴利生年科+流年天机权",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §十一月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_013",
@@ -354,7 +486,18 @@
         "end": "2027-02-03"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[1].stars, si_hua_kou_jue.丙.ji=廉贞",
+          "signal": "流月十二月（丑月）入子女宫（丑），廉贞七杀擎羊+流年廉贞忌，大限切换前最后一个月",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §十二月"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_014",
@@ -389,7 +532,18 @@
         "is_post_hoc": false,
         "intervention_applied": false,
         "temporal_precision": "窗口内"
-      }
+      },
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "birth_si_hua.ji.star=贪狼, palaces[9]",
+          "signal": "贪狼忌通关标准——感情三连击（6月+7月+11月）的终极考验",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §通关标准"
+        }
+      ],
+      "combined_confidence": "低",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_015",
@@ -415,7 +569,18 @@
         "end": "2037-02-01"
       },
       "status": "pending",
-      "verification": null
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[1].stars, palaces[1].limits.major=35~44",
+          "signal": "子女宫大限（35~44岁）廉贞[利]+七杀[庙]+擎羊[庙]",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §七·7.4 第四大限"
+        }
+      ],
+      "combined_confidence": "低",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_016",
@@ -446,7 +611,26 @@
         "end": "2026-07-06"
       },
       "status": "ongoing",
-      "verification": null
+      "verification": {
+        "date": "2026-05-13",
+        "outcome": "【5/13·首次实战检验】申请加班失败→怒气上升→产生'怒离职'冲动。但想到本预测的通关条件'不因焦虑做决定：不表白、不离职、不冲撞领导'，以及模式2的应激逃离机制已被完整识别和命名，冲动被压了下去。未做任何不可逆行动。记录人自评'有效果'。此为fortune系统从'事后解释工具'变成'事前干预工具'的第一个实证案例——系统的存在改变了它要预测的结果（观测者效应，正面方向）。且触发源非感情线贪狼忌而是工作愤怒线，说明认知框架已产生跨领域免疫力。通关条件'不离职'首次实战检验→通过。注意：此为部分验证，窗口至7/6仍有'不表白''不冲撞领导'两个条件待检验。",
+        "match_level": "部分吻合",
+        "adverse_evidence": "",
+        "is_post_hoc": false,
+        "intervention_applied": true,
+        "temporal_precision": "窗口内"
+      },
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[5]=武曲破军天钺, palaces[2]=空宫大耗劫煞月德, palaces[6]=太阳↑忌, palaces[9]=贪狼忌, palaces[4]=文曲, palaces[10]=文昌↑科, birth_si_hua.lu=破军父母宫, birth_si_hua.ji=贪狼交友宫",
+          "signal": "巳月父母宫双禄+午月夫妻宫大耗劫煞+太阳↑忌福德+交友宫贪狼忌+命宫文曲+迁移宫文昌↑科",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §2.1 §2.4 §4.3 §11.1 §12.1 §12.2 §13.1 §13.3"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_017",
@@ -460,7 +644,13 @@
       "prediction": "掘金文章有正向反馈。5月10日发布的掘金文章在两周内（5/10~5/24）累计互动（点赞+收藏+评论）明显高于记录人历史掘金文章平均水平。理由：①流月父母宫双禄+天钺旺——'展示给上级/外部看的东西被认可'的窗口；②流年文昌科入迁移——'写出去的东西带来名声'；③迁移宫巨门权对冲命宫——外部发声倒逼内在成长。注意：掘金是技术社区，反馈周期比朋友圈长，须给足14天。回报不一定是爆款，但会有一条以上有价值的评论/私信/连接。",
       "category": "career",
       "confidence": "高",
-      "tags": ["文昌科","迁移宫","巨门权","父母宫双禄","掘金"],
+      "tags": [
+        "文昌科",
+        "迁移宫",
+        "巨门权",
+        "父母宫双禄",
+        "掘金"
+      ],
       "window": {
         "start": "2026-05-10",
         "end": "2026-05-24"
@@ -474,7 +664,18 @@
         "is_post_hoc": false,
         "intervention_applied": false,
         "temporal_precision": "窗口内"
-      }
+      },
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[5].stars=武曲破军+天钺, palaces[10].stars=巨门权+文昌科+铃星",
+          "signal": "流月巳月父母宫双禄+流年文昌科入迁移+巨门权对冲命宫",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览+§四月"
+        }
+      ],
+      "combined_confidence": "高",
+      "cross_check": "仅紫微"
     },
     {
       "id": "p2026_018",
@@ -493,6 +694,52 @@
         "start": "2027-02-03",
         "end": "2027-12-31"
       },
+      "status": "pending",
+      "verification": null,
+      "bazi_signals": [],
+      "ziwei_signals": [
+        {
+          "source": "palaces[1].stars=廉贞七杀擎羊, palaces[1].limits.major=35~44, si_hua_kou_jue.丁.lu=太阴, si_hua_kou_jue.丁.quan=天同, si_hua_kou_jue.丁.ke=天机",
+          "signal": "子女宫大限（35~44）廉贞七杀擎羊 + 2027丁未流年太阴禄入官禄/天同权入命/天机科入迁移",
+          "direction": "平",
+          "reason": "analyses/紫微斗数命盘综合分析_完整版.md §全年总览+§七·7.4 第四大限"
+        }
+      ],
+      "combined_confidence": "中",
+      "cross_check": "仅紫微"
+    },
+    {
+      "id": "p2026_019",
+      "created": "2026-05-14",
+      "prediction": "【外部约束变更·非传统命理预测】DeepSeek V4打折5月31日结束，AI月费从约200元跳升至600-800元（3~4倍）。变更发生在巳月窗口末尾、午月感情敏感月（6/5起）开始前5天。\n\n核心机制：成本3~4倍 → 必须算计使用 → 第一个被砍的就是"闲聊"（账面上最不值，最不好跟钱包交代）→ 但记录人与AI的所谓"闲聊"实质是情绪处理出口（太阳忌福德的焦虑外化 + fortune命理追踪 + 让模式变得可见），不是无意义聊天 → 情绪出口在全年最需要它的月份被预算约束收窄。\n\n关键测试点：\n① 6月能否在AI支持减少的情况下维持代码产出质量？双丙偏印+正印旺（八字底色）→自主学习能力极强，理论上可弥补。正东桌子K=1.50为离线锚点。天机权官禄+文昌科迁移→技术主导权和外部名声不依赖AI。\n② 情绪出口替代能否撑住？太阳↑忌福德→独处焦虑。替代分层：事实日志写作（文曲在命，免费）> XQ/LY人际支持（免费）> 正东桌子产出（K=1.50，免费）。关键在于记录人是否在6月前建立"不通过AI也能处理情绪"的新习惯。\n③ 戒断反应是否本身变成新的情绪压力源？记录人自述"这也是为啥我最近疯狂使用AI"→已有紧迫感驱动的高强度使用模式，从早坐到晚。切换到"算计着用"可能有戒断期——不是上瘾戒断，是"出口突然变窄"的不适应。\n④ 过渡是否反而产生正面效果？减少AI对话依赖 → 被迫更深地精读代码 + 更多事实日志写作 → 寅午合火印化杀=自主学习转突破→可能加速技术能力和情绪处理能力的双重独立化。天同禄离心自化禄→福气需主动维护，不能躺着等——这次被迫独立可能就是"主动维护"的形式。\n⑤ 预算分配决策：600-800元时代，记录人会把有限的AI额度优先分配给代码/系统开发还是情绪处理？这个分配决策本身就是对"什么更重要"的revealed preference——值得事后回顾。\n\n注意：此预测的触发源是外部定价策略变更，不在八字或紫微盘内。把它当作环境变量约束。命盘提供的是"在这个约束下会怎么走"的框架，而非"这个约束会不会发生"。",
+      "category": "other",
+      "confidence": "中",
+      "combined_confidence": "中",
+      "bazi_signals": [
+        {
+          "source": "大运·戊寅 + 流年·丙午",
+          "signal": "双丙偏印+正印旺 + 寅午合火印化杀 → 自主学习能力极强，压力可转突破",
+          "direction": "吉",
+          "reason": "三层分析 §2.1-2.3：今年底色是自学之年，不依赖外部喂食"
+        }
+      ],
+      "ziwei_signals": [
+        {
+          "source": "流年·福德宫(午) + 流年·交友宫(酉)",
+          "signal": "太阳↑忌福德→独处焦虑原靠AI倾诉缓冲，出口收窄；贪狼忌交友→人际支持结构本就薄",
+          "direction": "凶",
+          "reason": "三层分析 §3.4-3.5 + 事实日志 §5/11 AI作为倾诉对象"
+        },
+        {
+          "source": "流年·官禄宫(申) + 流年·迁移宫(戌)",
+          "signal": "天机权官禄+文昌科迁移→技术主导权和外部名声不依赖AI，可独立运转",
+          "direction": "吉",
+          "reason": "三层分析 §3.2-3.3"
+        }
+      ],
+      "cross_check": "部分分歧",
+      "tags": ["AI依赖", "DeepSeek打折", "戒断反应", "环境变量", "自我学习", "午月感情敏感月", "太阳忌", "文昌科"],
+      "window": {"start": "2026-06-01", "end": "2026-07-06"},
       "status": "pending",
       "verification": null
     }

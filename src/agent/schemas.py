@@ -95,10 +95,36 @@ def _jenks_breaks_1d(values: list[float], k: int = 3) -> list[int]:
     return list(best) if best else [n // 3, 2 * n // 3]
 
 
-def compute_tiers(probs: list[float]) -> list[str]:
-    """Return tier label per probability using Jenks breaks (n≥3) or absolute
-    thresholds (n<3). Labels: 保底 / 适中 / 冲刺."""
+def compute_tiers(probs: list[float], difficulties: dict[int, float] | None = None) -> list[str]:
+    """Return tier label per probability.
+
+    Labels: 保底 / 适中 / 冲刺.
+
+    When *difficulties* (index → difficulty score 0–1) is provided, uses
+    difficulty-weighted thresholds per school:
+
+        safety = 0.50 + 0.15 × difficulty    (0.50–0.65)
+        target = 0.25 + 0.10 × difficulty    (0.25–0.35)
+
+    Without difficulties, falls back to Jenks natural breaks capped by
+    absolute sanity thresholds (保底 ≥ 0.55, 冲刺 < 0.30)."""
     n = len(probs)
+
+    # ── Difficulty-weighted path ──
+    if difficulties:
+        labels = []
+        for i, p in enumerate(probs):
+            d = difficulties.get(i, 0.5)  # default: mid-difficulty
+            safety, target = 0.50 + 0.15 * d, 0.25 + 0.10 * d
+            if p >= safety:
+                labels.append("保底")
+            elif p >= target:
+                labels.append("适中")
+            else:
+                labels.append("冲刺")
+        return labels
+
+    # ── Fallback: Jenks + absolute caps ──
     if n < 3:
         labels = []
         for p in probs:
@@ -116,11 +142,23 @@ def compute_tiers(probs: list[float]) -> list[str]:
 
     abv = dict(zip(sorted_probs, [""] * n, strict=True))
     for idx in range(n):
+        p = sorted_probs[idx]
         if idx < i:
-            abv[sorted_probs[idx]] = "冲刺"
+            abv[p] = "冲刺"
         elif idx < j:
-            abv[sorted_probs[idx]] = "适中"
+            abv[p] = "冲刺" if p < TIER_THRESHOLD_MATCH else "适中"
         else:
-            abv[sorted_probs[idx]] = "保底"
+            abv[p] = "保底" if p >= TIER_THRESHOLD_SAFETY else "适中"
 
-    return [abv[p] for p in probs]
+    result = [abv[p] for p in probs]
+    if len(set(result)) < 2:
+        abv_fb = dict(zip(sorted_probs, [""] * n, strict=True))
+        for idx in range(n):
+            if idx < i:
+                abv_fb[sorted_probs[idx]] = "冲刺"
+            elif idx < j:
+                abv_fb[sorted_probs[idx]] = "适中"
+            else:
+                abv_fb[sorted_probs[idx]] = "保底"
+        return [abv_fb[p] for p in probs]
+    return result

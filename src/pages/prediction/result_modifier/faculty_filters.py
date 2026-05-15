@@ -23,7 +23,12 @@
 
 from typing import Any
 
-from src.pages.prediction.result_modifier.config import FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR
+from src.pages.prediction.result_modifier.config import (
+    FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR,
+    FACULTY_PENALTY_HEAVY,
+    FACULTY_PENALTY_LIGHT,
+    FACULTY_PENALTY_MEDIUM,
+)
 from src.pages.prediction.result_modifier.utils import clip_probability
 
 CROSS_FACULTY_RULES: dict[str, set[str]] = {
@@ -62,6 +67,101 @@ CROSS_FACULTY_RULES: dict[str, set[str]] = {
     "建筑学院": {"建筑学院", "工程学院", "设计学院", "艺术学院"},
     "设计学院": {"设计学院", "艺术学院", "建筑学院", "社会科学院"},
 }
+
+# Cross-faculty severity for pairs NOT in the whitelist above.
+# Only light and medium pairs are listed; unlisted out-of-scope pairs default to heavy (×0.30).
+# Design rationale: faculty distance is not binary — some cross-faculty moves have
+# genuine methodological bridges (quantitative methods, applied paths) and should not
+# be penalized as harshly as fundamental domain switches.
+CROSS_FACULTY_SEVERITY: dict[tuple[str, str], str] = {
+    # ── Light (×0.70): quantitative/methodological bridges ──
+    ("理学院", "社会科学院"): "light",
+    ("理学院", "医学院"): "light",
+    ("理学院", "教育学院"): "light",
+    ("工程学院", "经济金融学院"): "light",
+    ("工程学院", "医学院"): "light",
+    ("计算机学院", "经济金融学院"): "light",
+    ("计算机学院", "社会科学院"): "light",
+    ("计算机学院", "设计学院"): "light",
+    ("计算机学院", "医学院"): "light",
+    ("计算机学院", "教育学院"): "light",
+    ("计算机学院", "艺术学院"): "light",
+    ("社会科学院", "商学院"): "light",
+    ("社会科学院", "法学院"): "light",
+    ("商学院", "经济金融学院"): "light",
+    ("商学院", "计算机学院"): "light",
+    ("商学院", "社会科学院"): "light",
+    ("商学院", "教育学院"): "light",
+    ("艺术学院", "商学院"): "light",
+    ("医学院", "理学院"): "light",
+    ("医学院", "工程学院"): "light",
+    ("医学院", "计算机学院"): "light",
+    ("教育学院", "商学院"): "light",
+    ("教育学院", "计算机学院"): "light",
+    ("教育学院", "社会科学院"): "light",
+    ("设计学院", "计算机学院"): "light",
+    ("设计学院", "商学院"): "light",
+    ("建筑学院", "计算机学院"): "light",
+    # ── Medium (×0.50): partial overlap, applied path possible ──
+    ("理学院", "法学院"): "medium",
+    ("理学院", "经济金融学院"): "medium",
+    ("理学院", "建筑学院"): "medium",
+    ("工程学院", "社会科学院"): "medium",
+    ("工程学院", "教育学院"): "medium",
+    ("工程学院", "艺术学院"): "medium",
+    ("工程学院", "设计学院"): "medium",
+    ("计算机学院", "建筑学院"): "medium",
+    ("社会科学院", "医学院"): "medium",
+    ("社会科学院", "计算机学院"): "medium",
+    ("商学院", "法学院"): "medium",
+    ("商学院", "医学院"): "medium",
+    ("文学院", "法学院"): "medium",
+    ("文学院", "计算机学院"): "medium",
+    ("文学院", "社会科学院"): "medium",
+    ("文学院", "商学院"): "medium",
+    ("艺术学院", "计算机学院"): "medium",
+    ("艺术学院", "社会科学院"): "medium",
+    ("艺术学院", "教育学院"): "medium",
+    ("法学院", "商学院"): "medium",
+    ("法学院", "社会科学院"): "medium",
+    ("医学院", "社会科学院"): "medium",
+    ("医学院", "教育学院"): "medium",
+    ("建筑学院", "商学院"): "medium",
+    ("设计学院", "社会科学院"): "medium",
+    ("设计学院", "教育学院"): "medium",
+}
+
+
+def get_cross_faculty_penalty_factor(
+    background_faculty: str | None,
+    target_faculty: str | None,
+) -> float:
+    """Return the penalty multiplier for a cross-faculty pair.
+
+    Returns 1.0 if the pair is in-scope (no penalty).
+    For out-of-scope pairs, returns 0.70 (light) / 0.50 (medium) / 0.30 (heavy)
+    based on CROSS_FACULTY_SEVERITY, defaulting to heavy if not listed.
+    """
+    if not background_faculty or not target_faculty:
+        return 1.0
+
+    bg = background_faculty.strip()
+    tg = target_faculty.strip()
+
+    if not bg or not tg:
+        return 1.0
+
+    allowed = get_allowed_target_faculties(bg)
+    if tg in allowed:
+        return 1.0
+
+    severity = CROSS_FACULTY_SEVERITY.get((bg, tg))
+    if severity == "light":
+        return FACULTY_PENALTY_LIGHT
+    elif severity == "medium":
+        return FACULTY_PENALTY_MEDIUM
+    else:
+        return FACULTY_PENALTY_HEAVY
 
 
 def get_allowed_target_faculties(background_faculty: str | None) -> set[str]:

@@ -14,6 +14,8 @@ config/
 ├── auth_config.json                 # 认证配置：白名单（~730人）、模块权限、维护模式
 ├── dev_config.json                  # 开发配置：DEBUG_MODE + debug 用户身份
 ├── prediction_rules.json            # 预测规则：23所学校难度排序、国家-学校映射、专业列表
+├── hot_paths.json                   # 热门组合快速路径（hot_major_substrings + hot_schools，2026-05 新增）
+├── major_name_mapping.json          # 专业名别名 → 标准名归一化映射（2026-05 新增）
 ├── gpa_conversion_rules.json        # GPA 转换规则：北大/中科大/上交等校特定转换
 ├── similarity_adjustment_rules.json  # 相似度调整规则
 ├── text_high_signal_terms.json      # 文本高信号词（TF-IDF 文本提升）
@@ -49,7 +51,22 @@ config/
 - 专业学位类型（授课型/研究型）列表
 - 职业学位降级规则
 
-### 3.4 gpa_conversion_rules.json
+### 3.4 hot_paths.json（2026-05 新增）
+
+热门组合快速路径配置，用于跳过语义相似度计算，加速组合生成：
+- **hot_major_substrings**：热门专业子串列表（如 SMART、ACCT、IT、Finance），命中即直接纳入候选
+- **hot_schools**：热门院校列表（预留，当前仅 major_substrings 生效）
+- 数据来源：`cache/usage_stats.json` 的使用统计 → admin 页面手动更新 → git commit 部署
+- 加载：`_load_hot_paths()` 在模块导入时读取，文件不存在或损坏时 fallback 到硬编码默认值
+
+### 3.5 major_name_mapping.json（2026-05 新增）
+
+专业名别名归一化映射表，解决 LLM 提取 / 用户输入的专业名不统一问题：
+- 格式：`{"别名": "标准专业名", "CS": "Computer Science", ...}`
+- 使用方：`form_bridge._fuzzy_match_major()` 在 fuzzy 匹配前先查映射表
+- 与 `school_major_details.feather` 中的英文专业名保持同步
+
+### 3.6 gpa_conversion_rules.json
 
 GPA 转换规则：
 - 院校级规则：如北京大学特定转换表

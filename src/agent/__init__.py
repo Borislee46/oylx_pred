@@ -1,6 +1,7 @@
 from .application_agent import ApplicationAgent
 from .background_faculty_agent import BackgroundFacultyAgent
 from .base_agent import BaseAgent
+from .blind_eval_agent import BlindEvalAgent
 from .boundary_case_agent import BoundaryCaseAgent
 from .context import StudentContext
 from .explain_agent import ExplainAgent
@@ -20,6 +21,7 @@ from .text_preprocessing_agent import TextPreprocessingAgent
 def _register_all_agents() -> None:
     AgentRegistry.register("lead_in", LeadInAgent)
     AgentRegistry.register("explain", ExplainAgent)
+    AgentRegistry.register("blind_eval", BlindEvalAgent)
     AgentRegistry.register("boundary_case", BoundaryCaseAgent)
     AgentRegistry.register("text_preprocessing", TextPreprocessingAgent)
     AgentRegistry.register("background_faculty", BackgroundFacultyAgent)
@@ -34,6 +36,7 @@ __all__ = [
     "ApplicationAgent",
     "BackgroundFacultyAgent",
     "BaseAgent",
+    "BlindEvalAgent",
     "BoundaryCaseAgent",
     "ExplainAgent",
     "ExplainResult",

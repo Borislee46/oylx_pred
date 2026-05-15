@@ -1,0 +1,96 @@
+"""Shared constants and helpers for competitiveness panel. No internal imports."""
+
+import base64
+from functools import lru_cache
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from src.pages.prediction.admission_probability_calculator_components.school_logo_loader import (
+    get_logo_path,
+)
+
+PROFILE_FEATURES = ["gpa", "language_score", "research_count", "internship_count"]
+FEATURE_LABELS = {
+    "gpa": "GPA",
+    "language_score": "语言",
+    "research_count": "科研",
+    "internship_count": "实习",
+}
+MIN_SAMPLES_FOR_PROFILE = 5
+
+_TIER_COLORS = {"保底": "#22c55e", "目标": "#3b82f6", "冲刺": "#f97316"}
+
+# compute_tiers() returns "适中", our display uses "目标". Normalise here.
+_TIER_LABEL_NORMALISE = {"保底": "保底", "适中": "目标", "冲刺": "冲刺"}
+
+# ── School difficulty ────────────────────────────────────────────────────
+
+SCHOOL_DIFFICULTY_CACHE: dict[str, float] | None = None
+
+
+def compute_school_difficulty(cases_df: pd.DataFrame) -> dict[str, float]:
+    """Per-school difficulty score (0–1, 1 = hardest) from historical admit data.
+
+    Composite: 50% admit rate + 50% admitted-student GPA, min-max normalised.
+    Cached globally so it's computed once per process lifetime.
+    """
+    global SCHOOL_DIFFICULTY_CACHE
+    if SCHOOL_DIFFICULTY_CACHE is not None:
+        return SCHOOL_DIFFICULTY_CACHE
+
+    df = cases_df
+    if "target_university" not in df.columns or "admitted" not in df.columns:
+        SCHOOL_DIFFICULTY_CACHE = {}
+        return {}
+
+    schools = df.groupby("target_university").agg(
+        admit_rate=("admitted", "mean"),
+        avg_gpa_admitted=("gpa", lambda x: x[df.loc[x.index, "admitted"] == 1].mean()),
+    )
+    schools["d_admit"] = 1.0 - schools["admit_rate"]
+    gpa_col = schools["avg_gpa_admitted"]
+    schools["d_gpa"] = (gpa_col - gpa_col.min()) / (gpa_col.max() - gpa_col.min()) if gpa_col.max() > gpa_col.min() else 0
+    schools["d_raw"] = (schools["d_admit"] + schools["d_gpa"]) / 2
+    d_min, d_max = schools["d_raw"].min(), schools["d_raw"].max()
+    schools["difficulty"] = (schools["d_raw"] - d_min) / (d_max - d_min) if d_max > d_min else schools["d_raw"]
+
+    SCHOOL_DIFFICULTY_CACHE = schools["difficulty"].to_dict()
+    return SCHOOL_DIFFICULTY_CACHE
+
+
+def get_tier_thresholds(difficulty: float) -> tuple[float, float]:
+    """Return (safety_threshold, target_threshold) for a given school difficulty.
+
+    Harder schools need higher probability to be considered 保底/目标.
+    safety = 0.50 + 0.15 × difficulty   (range 0.50–0.65)
+    target = 0.25 + 0.10 × difficulty   (range 0.25–0.35)
+    """
+    safety = 0.50 + 0.15 * difficulty
+    target = 0.25 + 0.10 * difficulty
+    return safety, target
+
+
+def tier_color_for(label: str) -> str:
+    return _TIER_COLORS.get(_TIER_LABEL_NORMALISE.get(label, label), "#64748b")
+
+
+@lru_cache(maxsize=64)
+def logo_b64(school: str) -> str | None:
+    p = Path(get_logo_path(school))
+    if not p.exists() or p.name == "product_logo.png":
+        return None
+    return base64.b64encode(p.read_bytes()).decode()
+
+
+def escape_html(s: str) -> str:
+    return s.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;").replace("'", "&#39;")
+
+
+def safe_float(v, default=0.0):
+    """Convert to float, returning *default* on failure. Safer than float(x or 0)."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return default

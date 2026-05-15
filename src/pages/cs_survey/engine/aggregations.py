@@ -154,17 +154,6 @@ def pool_scores(df: pd.DataFrame, cfg: SurveyConfig, source_id: str) -> list[flo
                     if 1.0 <= fv <= 5.0:
                         vals.append(_reverse_low_good(fv))
 
-    product_cfg = cfg.products.get(source_id)
-    if product_cfg is not None and product_cfg.type == "coded_pair_praise_suggestion":
-        for pair in product_cfg.params.get("pairs", []):
-            r = score(
-                df,
-                ScoringSpec(
-                    type="coded_pair_praise_suggestion",
-                    params={"code": pair["code"], "text": pair["text"]},
-                ),
-            )
-            vals.extend(r.scores)
     return vals
 
 

@@ -6,6 +6,14 @@
 
 ---
 
+## DS 视角
+
+预测流水线本质上是把原始输入送进一个 9 步变换链，每一步都在叠加新假设：XGBoost 假设 IID、CalibratedClassifierCV 假设训练集的标签分布代表真实世界、5 层调整链假设每种偏差可以用乘法因子独立修正。每一步单独看都有道理，但联合行为从未被当成一个整体来设计——这是典型的"不确定性叠加"，每个环节在解决自己那个问题时引入的误差，到链末端已经被放大到不可忽视。
+
+一个关键数据事实：99.4% 的（院校 × 专业）组合只有 4 条或更少样本。这意味着模型几乎永远在做外推而非内插——它看到一个"港中文 + MSc Marketing"组合时，几乎不可能是从同组合的历史案例学到的，而是靠院校特征、专业相似度、GPA/语言等特征的泛化能力在猜。XGBoost 对稀疏组合的预测方差本身就不低，再叠上 5 层惩罚链，结果的不确定性会很大。
+
+调整链的设计方式是逐层叠加的——今天加 GPA 惩罚、下个月加跨专业惩罚、再下个月加跨学部惩罚，每层上线时只验证了该层单独的表现（修复了当时的一个具体 bad case），但从未有人跑过全链路的系统性验证，直到 2026 年 5 月才第一次测 ECE。这意味着很多参数是在没有全局校准约束的情况下选定的，只保证了单层"看起来合理"。
+
 ## 2. 目录结构
 
 ```
@@ -55,21 +63,25 @@ prediction/
 │   ├── __init__.py
 │   ├── results_display.py          # 表格配置与渲染（含 ±% delta 列）
 │   ├── delta_calculator.py         # 跨提交概率对比（(uni,major) key 匹配）
+│   ├── hero_summary.py             # 顶部摘要横幅：校徽墙 + 梯度分布条
 │   ├── trace_display.py            # 概率调整链瀑布图 + 反事实
 │   └── trace_assets.py             # trace CSS + 文案
-├── usage_stats.py                  # 轻量使用计数 → cache/usage_stats.json
+├── usage_stats.py                  # 轻量使用计数 → cache/usage_stats.json（为 hot_paths 提供数据）
 ├── page_components/
 │   ├── content_display.py          # 内容区调度：AI 解读 + Phase2 数据对比
-│   ├── result_section.py           # 预测结果区（三类推荐表格）
+│   ├── result_section.py           # 预测结果区（三类推荐表格 + hero_summary）
 │   ├── ui_elements.py              # LeadIn 面板、步骤条、思想气泡
 │   ├── submission_logger.py        # 表单提交日志
-│   └── display_helpers.py          # 展示辅助
+│   ├── display_helpers.py          # 展示辅助
+│   └── pdf_generation/             # PDF 报告生成器（基于 reportlab）
 ├── ghost_input/                    # Cursor 风格灰字补全（详见子模块 README）
 │   ├── __init__.py                  # Streamlit 组件声明 + 院校白名单注入
 │   └── frontend/index.html          # 前端：缓存/规则/LLM 三层补全 + 分段逐出
 ├── data_sort_config/               # 列配置与排序
 ├── ui/
 │   └── handler.py                  # handle_form_submission + 跨学部确认
+├── school_combination_optimizer_algorithm/  # NSGA-III 选校优化器（实验性）
+│   └── optimizer/                  # 优化器子模块（10 文件，2026-05 新增）
 └── result_modifier/providers/      # logit_uplift / text_boost（详见子模块 README）
     ├── logit_uplift_provider.py     # TextBoostProvider 主实现
     └── logit_uplift/               # TF-IDF + 信号评分 + Δ 计算
@@ -147,12 +159,34 @@ run_prediction_pipeline_with_progress (flow/pipeline.py)
     │
     ▼
 [Trace 可视化] — 结果表格中展开单条结果
-    ├── 瀑布图：逐层展示概率调整链的各因子贡献
+    ├── 瀑布图：逐层展示概率调整链的各因子贡献（51_trace.css 动画）
     ├── 反事实：GPA/语言/实习扰动后重跑调整链
     └── 校准指标：Brier / AUC / 阳性率偏差
+
+[ApplicationAgent] 申请策略生成（待集成到 UI）
+    └── 基于全量背景 + 预测结果 → 行动建议 + 时间线
 ```
 
 ---
+
+### 3.1 关键假设 & 批判性问题
+
+以下不是 bug，而是设计决策。每个在当时都有理由，但从 DS 视角需要追问：
+
+- **GPA 惩罚用二次函数（系数 0.15），语言惩罚用阶梯函数——为什么不同？** 二次函数意味着"GPA 越低惩罚加速越快"，阶梯函数意味着"IELTS 6.0 和 6.5 之间没区别，但 5.5 到 6.0 有一条硬线"。两种函数形式选择有 DS 层面的统一逻辑吗？
+- **5 层调整链的联合效应是否验证过？** DEC-007 仲裁器加进来之前，有没有人跑过全链路乘法叠加的 worst-case 分析？五层最坏情况折到 0.7×0.5×0.3 = 0.105——这个极端衰减是有意的还是意外的？
+- **跨专业阈值 similarity < 0.89 从哪来的？** 是数据驱动还是经验拍板？similarity=0.88 和 0.90 两条结果经历完全不同的惩罚路径，这个 cliff effect 有没有做过敏感性分析？
+- **缺失 GPA/语言用中位数填充——缺失性本身可能是信号。** 不填 GPA 的学生更可能是 GPA 低才不填。用中位数等于默认给他们一个"平均生"的 GPA。有没有对比过缺失 GPA 学生和已知低 GPA 学生的录取率？
+- **没有 held-out test set。** CalibratedClassifierCV 的校准、ECE 的测量、所有调整链参数的选择，全在训练数据上完成。在未见过的组合上——占 99.4%——参数表现是未知的。
+
+### 3.2 DS Known Issues
+
+- **ECE=0.1155 严重失校准**：模型输出"40%"实际只对应约 29% 录取率——一个未校准的概率比没有概率更有害，制造虚假精确感
+- **偏差不对称**：C9 被低估 18pp，双非只被低估 6pp——乘法惩罚对高基础概率区间影响更大，从公平性角度产生反向偏差
+- **外部 ApplySquare -67pp**：外部数据相似度匹配差 → 更多惩罚触发 → 乘性衰减放大——调整链在未见过的数据上问题加速恶化。Compass 17K 行外部验证已纳入 `data_quality/` 测试套件
+- **模型天花板 0.72**：仲裁器 70% 上限人为压制了所有输出——没有任何学生能拿到 >72% 的概率，不管背景多强
+- **Trace 只解释调整链，不解释模型**：用户看到的是"因为惩罚了你的 GPA"，而不是"历史上类似背景的学生有 X% 被录取"。`boundary_explainer_design.md` 设计了边界解释器但未实现
+- **6% 完全预测失败**：无 GPA + 冷门背景 → 静默失败，`fallback.py` 已提供基于 Wilson CI 的级联兜底（TODO-1 Item 5），但尚未集成到 UI
 
 ## 4. 核心组件
 
@@ -178,7 +212,7 @@ run_prediction_pipeline_with_progress (flow/pipeline.py)
 - `background_universities`、`target_base_df`、`university_country_map`
 - `boundary_agent`（BoundaryCaseAgent 实例）
 
-预热策略（2026-05）：`resource_loader()` 内已调用 `load_bg_target_similarity_cache()`，相似度缓存在页面首次加载时即写入 `@st.cache_data`，上午/下午高峰第一个用户的首次预测无需额外等待。
+预热策略（2026-05）：`resource_loader()` 内已调用 `load_bg_target_similarity_cache()`，相似度缓存 + 相关性矩阵（`cache/correlation_matrix.feather`）+ pair weight 矩阵在页面首次加载时即写入 `@st.cache_data`，上午/下午高峰第一个用户的首次预测无需额外等待。
 
 ### 4.4 ui/handler
 
@@ -192,8 +226,10 @@ run_prediction_pipeline_with_progress (flow/pipeline.py)
 
 详见 `flow/README.md`。关键路径：
 1. `_execute_prediction_pipeline`：加载→校验→组合生成→并行推理→概率调整→去重
-2. 概率调整链：GPA 惩罚 → 语言惩罚 → 跨专业 ×0.5 → 跨学部 ×0.3 → 职业学位降级 → TF-IDF 文本提升
+2. 概率调整链：GPA 惩罚 → 语言惩罚（含 L3.5 新档位） → 跨专业 ×0.5 → 跨学部 ×0.3 → 职业学位降级 → TF-IDF 文本提升
 3. `_adjustment_trace` 记录每条结果的调整历史，ExplainAgent 用其区分 penalty/boost
+4. **热门组合快速路径**（2026-05）：`config/hot_paths.json` 中的热门专业子串直接命中，跳过语义相似度查表 + fuzzy 匹配
+5. **增量计算**（2026-05）：目标院校/专业未变时，复用上次组合列表跳过 `generate_prediction_combinations()`，仅重跑 XGBoost 推理 + 调整链
 
 ### 4.6 page_components
 
@@ -350,6 +386,10 @@ run_prediction_pipeline_with_progress (flow/pipeline.py)
 | `_pending_submission_data` | dict | st.rerun 前暂存的提交数据（预测触发分离） |
 | `previous_prediction_results` | PredictionResultModel | 上一次预测结果（delta 对比用） |
 | `previous_input_data` | dict | 上一次提交的表单数据（delta 对比用） |
+| `cached_combinations` | list | 增量计算：上次预测的 (uni, major) 组合缓存 |
+| `prediction_submit_lock` | bool | 提交锁，防止重复提交 |
+| `cross_faculty_confirmed` | bool | 跨学部确认状态 |
+| `explain_cache` | dict | AI 解读磁盘缓存（MD5 → result） |
 
 ---
 
@@ -361,6 +401,10 @@ run_prediction_pipeline_with_progress (flow/pipeline.py)
 | flow | `flow/README.md` |
 | result_modifier | `result_modifier/README.md` |
 | result_modifier/providers | `result_modifier/providers/README.md` |
+| result_display | `result_display/README.md` |
+| ghost_input | `ghost_input/README.md` |
+| school_combination_optimizer_algorithm | `school_combination_optimizer_algorithm/README.md` |
+| page_components/pdf_generation | `page_components/pdf_generation/README.md` |
 
 ---
 
@@ -373,6 +417,9 @@ run_prediction_pipeline_with_progress (flow/pipeline.py)
 - `rapidfuzz`：模糊匹配（院校/专业）
 - `json-repair`：LLM JSON 输出快速修复（<5ms，替代 API 兜底）
 - `SessionManager`：强类型 session state 封装
-- `ExplainAgent` / `LeadInAgent`：LLM Agent（DeepSeek）
+- `ExplainAgent` / `LeadInAgent` / `ApplicationAgent`：LLM Agent（DeepSeek）
 - `BoundaryCaseAgent`：边界案例决策
 - `SchoolFeatureStats`：院校历史数据分位数统计
+- `school_alias_resolver`：院校别名解析（985→北京大学，港3→港校列表）
+- `config/hot_paths.json`：热门组合快速路径配置
+- `cache/correlation_matrix.feather`：Monte Carlo 相关性矩阵（选校优化器）

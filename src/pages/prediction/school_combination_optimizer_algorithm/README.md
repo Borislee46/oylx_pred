@@ -6,39 +6,28 @@
 ## 目录结构
 
 ```
-exported_optimizer/
-├── school_combination_optimizer_algorithm/   # 核心算法
-│   ├── __init__.py              # 公共 API 导出
-│   ├── config.py                # 全局配置常量（阈值/权重/规则）
-│   ├── problem.py               # NSGA-III 问题定义（5目标 × 多约束）
-│   ├── filters.py               # 候选池预过滤（背景/样本量/优先级/保底）
-│   ├── school_selector.py       # 平衡选校：reduce + generate（fallback用）
-│   ├── metrics_calculator.py    # 方案评分（全拒率/多样性/平衡度等10项）
-│   ├── monte_carlo.py           # Sobol QMC + Cholesky 相关性模拟
-│   ├── utils.py                 # 工具：LRU缓存/prob裁剪/名称规范化
-│   ├── visualizer.py            # Streamlit 可视化（仪表盘+学校表格）
-│   └── optimizer/               # 优化器子模块（10文件）
-│       ├── __init__.py          # 导出 SchoolSelectionOptimizer
-│       ├── context.py           # OptimizationContext 数据类
-│       ├── cache_manager.py     # 输入哈希 → 结果缓存
-│       ├── filters_handler.py   # 优化前后过滤管道
-│       ├── optimization_runner.py   # NSGA-III 参数动态计算 + 执行
-│       ├── optimizer.py         # 主类 SchoolSelectionOptimizer（453行）
-│       ├── metrics_calculator_wrapper.py  # 指标计算包装
-│       ├── recommendation_builder.py      # 结果 → 推荐构建 + fallback
-│       ├── school_adjuster.py   # 学校难度概率纠偏
-│       ├── solution_selector.py # Pareto 前沿 → 最佳解选择
-│       └── threshold_calculator.py  # 自适应阈值（冲/稳/保分界）
-└── admission_probability_calculator_components/
-    ├── optimization_ui.py       # Streamlit "智能优化" Tab UI
-    └── optimization/            # 优化 UI 子组件（6文件）
-        ├── __init__.py
-        ├── cache_builder.py     # bg_target_similarity 缓存
-        ├── optimization_executor.py  # 前端触发 → 优化器调用（365行）
-        ├── pdf_generator.py     # 优化结果 → PDF 报告入口
-        ├── result_handler.py    # 结果序列化/会话同步
-        ├── ui_animation.py      # 加载动画
-        └── ui_controls.py       # 参数控件（pop_size/n_gen/plan_config）
+school_combination_optimizer_algorithm/   # 核心算法（2026-05 重构）
+├── __init__.py              # 公共 API 导出
+├── config.py                # 全局配置常量（阈值/权重/规则）
+├── problem.py               # NSGA-III 问题定义（5目标 × 多约束）
+├── filters.py               # 候选池预过滤（背景/样本量/优先级/保底）
+├── school_selector.py       # 平衡选校：reduce + generate（fallback用）
+├── metrics_calculator.py    # 方案评分（全拒率/多样性/平衡度等10项）
+├── monte_carlo.py           # Sobol QMC + Cholesky 相关性模拟
+├── utils.py                 # 工具：LRU缓存/prob裁剪/名称规范化
+├── visualizer.py            # Streamlit 可视化（仪表盘+学校表格）
+└── optimizer/               # 优化器子模块（10文件，2026-05 新增）
+    ├── __init__.py          # 导出 SchoolSelectionOptimizer
+    ├── context.py           # OptimizationContext 数据类
+    ├── cache_manager.py     # 输入哈希 → 结果缓存
+    ├── filters_handler.py   # 优化前后过滤管道
+    ├── optimization_runner.py   # NSGA-III 参数动态计算 + 执行
+    ├── optimizer.py         # 主类 SchoolSelectionOptimizer
+    ├── metrics_calculator_wrapper.py  # 指标计算包装
+    ├── recommendation_builder.py      # 结果 → 推荐构建 + fallback
+    ├── school_adjuster.py   # 学校难度概率纠偏
+    ├── solution_selector.py # Pareto 前沿 → 最佳解选择
+    └── threshold_calculator.py  # 自适应阈值（冲/稳/保分界）
 ```
 
 ## 端到端流程

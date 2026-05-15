@@ -7,7 +7,7 @@
 # 核心问题：多个惩罚不能累加过度
 #   假设 GpaPenalty ×0.85 + CrossMajorPenalty ×0.7 + FacultyPenalty ×0.3
 #   如果直接连乘: prob × 0.85 × 0.7 × 0.3 = prob × 0.1785 (过重！)
-#   仲裁器用衰减机制让后续因子影响递减，保证总惩罚不超过 MAX_TOTAL_PENALTY_RATIO (70%)
+#   仲裁器用衰减机制让后续因子影响递减，上限按活跃惩罚层数分段（PENALTY_CEILING_BY_LAYERS）
 #
 # 设计决策：惩罚-先于-提升 的顺序
 #   1. 先降分（惩罚）再提分（提升）→ 防止"先提再降"把提升也打折了
@@ -20,7 +20,7 @@ from src.pages.prediction.result_modifier.config import (
     ARBITRATION_MIN_PROBABILITY,
     BOOST_DECAY_FACTOR,
     MAX_TOTAL_BOOST_RATIO,
-    MAX_TOTAL_PENALTY_RATIO,
+    PENALTY_CEILING_BY_LAYERS,
     PENALTY_DECAY_FACTOR,
 )
 from src.pages.prediction.result_modifier.types import AdjustmentFactor, AdjustmentFactorType
@@ -55,7 +55,8 @@ class AdjustmentArbitrator:
     #   1. 惩罚因子按 severity 降序排列（最严重的先影响）
     #   2. 每个后续惩罚 × 衰减因子 (PENALTY_DECAY_FACTOR = 0.85)
     #      第1个: ×1.0, 第2个: ×0.85, 第3个: ×0.72, ...
-    #   3. 总惩罚上限 70% (MAX_TOTAL_PENALTY_RATIO) — 无论如何保留 30% 底线
+    #   3. 总惩罚上限按层数分段 (PENALTY_CEILING_BY_LAYERS):
+    #      1层:70%, 2层:55%, 3+层:45% — V5发现2-3层case校准最差
     #   4. 提升因子同理，衰减 + 上限 30%
     #
     # 为什么是 0.85 衰减（不是 0.5 或 0.9）？
@@ -88,6 +89,9 @@ class AdjustmentArbitrator:
         if len(boosts) > 1:
             boosts.sort(key=lambda x: x.value, reverse=True)
 
+        n_penalties = len(penalties)
+        penalty_ceiling = PENALTY_CEILING_BY_LAYERS.get(n_penalties, 0.45)
+
         if self.include_trace:
             self.trace = {"base": base_probability}
             self.steps = []
@@ -96,9 +100,9 @@ class AdjustmentArbitrator:
         p_decay = 1.0
         for p in penalties:
             contribution = p.value * p_decay * p.weight
-            before = base_probability * (1 - min(total_penalty_ratio, MAX_TOTAL_PENALTY_RATIO))
+            before = base_probability * (1 - min(total_penalty_ratio, penalty_ceiling))
             total_penalty_ratio += contribution
-            effective_cumulative = min(total_penalty_ratio, MAX_TOTAL_PENALTY_RATIO)
+            effective_cumulative = min(total_penalty_ratio, penalty_ceiling)
             after = base_probability * (1 - effective_cumulative)
             if self.include_trace:
                 self.trace[f"penalty_{p.name}"] = -base_probability * contribution
@@ -114,7 +118,7 @@ class AdjustmentArbitrator:
                 )
             p_decay *= PENALTY_DECAY_FACTOR
 
-        total_penalty_ratio = min(total_penalty_ratio, MAX_TOTAL_PENALTY_RATIO)
+        total_penalty_ratio = min(total_penalty_ratio, penalty_ceiling)
         prob_after_penalty = base_probability * (1 - total_penalty_ratio)
 
         total_boost_ratio = 0.0

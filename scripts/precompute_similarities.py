@@ -31,6 +31,8 @@ CASES_DATA_PATH = os.path.join(
 SCHOOL_MAJOR_DETAILS_PATH = os.path.join(
     project_root, "src", "machine_learning_models", "data", "school_major_details.feather"
 )
+APPLYSQUARE_PATH = os.path.join(project_root, "data", "external", "applysquare.feather")
+COMPASS_PATH = os.path.join(project_root, "data", "external", "compass.feather")
 BG_TARGET_CACHE_PATH = os.path.join(project_root, "cache", "background_target_similarity.feather")
 
 
@@ -70,6 +72,27 @@ def precompute_similarities():
             raw_case_target_majors.update(
                 [str(m).strip().lower() for m in cases_df["target_major"].dropna()]
             )
+
+    # Also read external data to improve cache coverage (V6 finding: only 22.8% hit rate)
+    ext_bg_majors = set()
+    ext_target_majors = set()
+    for ext_path in [APPLYSQUARE_PATH, COMPASS_PATH]:
+        if os.path.exists(ext_path):
+            ext_df = pd.read_feather(ext_path)
+            if "background_major" in ext_df.columns:
+                ext_bg_majors.update(
+                    [str(m).strip().lower() for m in ext_df["background_major"].dropna()]
+                )
+            if "target_major" in ext_df.columns:
+                ext_target_majors.update(
+                    [str(m).strip().lower() for m in ext_df["target_major"].dropna()]
+                )
+
+    raw_case_background_majors.update(ext_bg_majors)
+    raw_case_target_majors.update(ext_target_majors)
+    if ext_bg_majors or ext_target_majors:
+        print(f"  Added {len(ext_bg_majors)} external bg majors, "
+              f"{len(ext_target_majors)} external target majors")
 
     for s in [raw_case_background_majors, raw_case_target_majors, raw_school_english_majors]:
         for val in ["无", "", "nan", "None"]:

@@ -75,12 +75,14 @@ class ResultsDisplay:
         user_specified_results=None,
         prev_prob_map: dict | None = None,
         delta_calculator=None,
+        cases_df=None,
     ):
         self.top_similarity_results = top_similarity_results or []
         self.top_cross_major_results = top_cross_major_results or []
         self.user_specified_results = user_specified_results or []
         self.prev_prob_map = prev_prob_map
         self.delta_calculator = delta_calculator
+        self.cases_df = cases_df
 
         session_manager = SessionManager()
         is_cross_faculty = session_manager.get(DEFAULT_UI_KEYS.cross_faculty_confirmed, False)
@@ -118,25 +120,37 @@ class ResultsDisplay:
             title = self.result_types[result_type]["title"]
             label_map["推荐专业"] = title if title == "指定专业" else f"{title}推荐"
 
-        styled_df = df
         major_col = next((c for c in df.columns if c.startswith("推荐专业")), None)
-        has_new_major = bool(major_col and df[major_col].str.contains("(new!)", regex=False).any())
         has_delta_col = "±%" in df.columns
+        has_confidence = "_样本数" in df.columns and major_col
 
-        if has_new_major or has_delta_col:
-            styled_df = df.style
-            if has_new_major:
-                styled_df = styled_df.map(
-                    lambda v: "color: #06b6d4;" if isinstance(v, str) and "(new!)" in v else "",
-                    subset=[major_col],
-                )
-            if has_delta_col:
-                styled_df = styled_df.map(_delta_cell_style, subset=["±%"])
+        styled_df = df.style
+
+        if has_confidence:
+            major_idx = list(df.columns).index(major_col)
+
+            def _major_style(row):
+                n = row.get("_样本数", -1)
+                styles = [""] * len(row)
+                if isinstance(n, (int, float)):
+                    if n == 0:
+                        styles = ["background-color: rgba(220, 38, 38, 0.08);"] * len(row)
+                    elif n <= 4:
+                        styles = ["background-color: rgba(217, 119, 6, 0.07);"] * len(row)
+                return styles
+
+            styled_df = styled_df.apply(_major_style, axis=1)
+
+        if has_delta_col:
+            styled_df = styled_df.map(_delta_cell_style, subset=["±%"])
+
+        display_cols = [c for c in df.columns if not c.startswith("_")]
 
         st.dataframe(
             styled_df,
             hide_index=True,
             column_config=get_column_config(df, column_widths, label_map=label_map),
+            column_order=display_cols,
             key=f"prediction_result_df_{result_type or 'default'}",
         )
 
@@ -163,6 +177,7 @@ class ResultsDisplay:
                 for r in sorted_results
             ],
             "录取概率": [get_probability(r) for r in sorted_results],
+            "_样本数": [int(r.get("_baseline_sample_count", 0) or 0) for r in sorted_results],
         }
 
         if self.prev_prob_map and self.delta_calculator:
@@ -197,7 +212,7 @@ class ResultsDisplay:
             key=lambda r: float(r.get("probability", 0.0) or 0.0),
             reverse=True,
         )
-        render_hero_summary(all_candidates)
+        render_hero_summary(all_candidates, cases_df=self.cases_df)
 
         if has_user_specified:
             self._display_table("user_specified")
@@ -214,11 +229,12 @@ class ResultsDisplay:
 
         st.html(
             '<div class="hk-disclaimer">'
+            "红色/橙色底色行表示该组合历史样本不足5个，预测为统计外推；"
             "机器学习算法未将时政变化、最新校方招生政策等作为特征因子，预测的录取概率仅供参考。"
             "</div>"
         )
 
-        with st.expander("这分数怎么来的？（top 3 召回算法链路trace）", key="trace_expander"):
+        with st.expander("这录取率怎么来的？（top 3 召回算法链路trace）", key="trace_expander"):
             render_trace_for_results(all_candidates)
 
     def _display_table(self, result_type: str):

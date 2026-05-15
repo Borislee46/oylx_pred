@@ -29,9 +29,9 @@
       "internal_door": "室友主卧门 (位于房屋中心中轴线)"
     },
     "functional_areas": [
-      { "name": "厨房 (Kitchen)", "location": "正东偏北" },
-      { "name": "厕所/洗浴间 (Bathroom)", "location": "正北偏西" },
-      { "name": "洗衣机 (Washer)", "location": "正北" }
+      { "name": "厨房 (Kitchen)", "location": "东北角（艮宫）" },
+      { "name": "厕所/洗浴间 (Bathroom)", "location": "西北角（乾宫·压兑命生气位）" },
+      { "name": "洗衣机 (Washer)", "location": "正北（坎宫）" }
     ],
     "furniture": [
       { "name": "冰箱 (Fridge)", "location": "房屋中心偏东南" },
@@ -39,11 +39,12 @@
       { "name": "沙发 (Sofa)", "location": "正东偏北 (靠近厨房)" }
     ],
     "openings": {
-      "windows": ["正南向窗口", "正东向大窗", "正东向厨房窗口"]
+      "windows": ["正东向大窗", "正东向厨房窗口"],
+      "doors": ["正南·室友主卧门（五黄位·每天进出）"]
     }
   },
   "spatial_features": {
     "bed_positions": "使用者与室友的床位呈'L'型分布，中间隔有隔断墙/门",
-    "water_fire_relation": "厨房(东偏北)与厕所(西偏北)处于房屋北侧侧翼"
+    "water_fire_relation": "厨房(东北·艮)与厕所(西北·乾)分列北侧两端，水火不直接相冲"
   }
 }

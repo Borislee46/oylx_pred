@@ -81,5 +81,6 @@ result_display/
 
 - [prediction 模块](../README.md) — `data_sort_config`、`result_modifier`、`handler_config`
 - `src/utils/session_manager.py` — SessionManager
-- `assets/hk_style/51_trace.css` — Trace 专属样式
-- `assets/school_logos/` — 校徽 PNG（hero_summary）
+- `assets/hk_style/51_trace.css` — Trace 专属动画样式（2026-05 新增）
+- `assets/hk_style/50_ux.css` — Hero 摘要 UX 微交互（2026-05 新增）
+- `assets/school_logos/` — 26 所院校校徽 PNG（港/新/澳/马，2026-05 新增）

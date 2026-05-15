@@ -22,6 +22,7 @@ from src.pages.prediction.admission_probability_calculator_components.school_log
     get_logo_path,
     get_school_url,
 )
+from src.pages.prediction.result_display._comp_core import compute_school_difficulty
 
 _MAX_VISIBLE_LOGOS = 5
 
@@ -82,11 +83,12 @@ def _render_breakdown(tier_counts: dict[str, int], total: int) -> str:
     return '<span class="hk-hero-dot">·</span>'.join(parts)
 
 
-def render_hero_summary(all_candidates: list[dict]) -> None:
+def render_hero_summary(all_candidates: list[dict], cases_df=None) -> None:
     """Render the hero summary banner.
 
     No-op when candidate list is empty so this is safe to call at the top of
-    every render path.
+    every render path.  When *cases_df* is provided, uses difficulty-weighted
+    tier thresholds per school.
     """
     if not all_candidates:
         return
@@ -97,7 +99,15 @@ def render_hero_summary(all_candidates: list[dict]) -> None:
 
     total = len(schools)
     probs = [float(s.get("probability") or 0) for s in schools]
-    tier_labels = compute_tiers(probs)
+
+    difficulties: dict[int, float] | None = None
+    if cases_df is not None:
+        diff_map = compute_school_difficulty(cases_df)
+        if diff_map:
+            difficulties = {i: diff_map.get(s.get("university", ""), 0.5)
+                            for i, s in enumerate(schools)}
+
+    tier_labels = compute_tiers(probs, difficulties=difficulties)
     tier_counts: dict[str, int] = {"保底": 0, "适中": 0, "冲刺": 0}
     for label in tier_labels:
         tier_counts[label] += 1

@@ -1,24 +1,42 @@
+"""
+HK 预测页面的输入表单编排层。
+
+职责：组装表单 UI 组件，处理提交/校验/归一化流程。
+不包含具体 widget 渲染逻辑（见 input_form_components/）。
+
+表单提交流程：
+  1. FormStateManager 初始化 session_state
+  2. 渲染双层布局（左：背景+GPA+目标，右：语言+经历）
+  3. 用户点击提交 → FormValidator 校验
+  4. 校验通过 → normalize_form_data_for_prediction 归一化
+  5. 返回 (is_new_submission, input_data, all_unis, all_majors, original_form)
+
+返回值语义：
+  - is_new_submission=True：新提交，调用方应触发预测
+  - is_new_submission=False：返回当前表单快照（用于 lead-in auto-submit）
+"""
+
 import time
 from contextlib import nullcontext
 
 import streamlit as st
 
 from src.pages.prediction.input_form_components import (
-    FormStateManager,
-    FormUIComponents,
-    FormValidator,
-    GPAConverter,
+    FormStateManager,   # session_state 初始化 + 表单状态管理
+    FormUIComponents,   # 表单 UI 组件渲染器（背景/GPA/语言/目标/经历/提交按钮）
+    FormValidator,      # 表单数据校验规则
+    GPAConverter,       # GPA 分制转换（4.0/5.0/100 → 归一化）
 )
 from src.pages.prediction.prediction_preparation.form_normalizer import (
-    calculate_processed_gpa,
-    calculate_processed_language_score,
-    get_background_university_for_model,
-    normalize_form_data_for_prediction,
+    calculate_processed_gpa,                  # GPA 原始值 → 归一化值（考虑院校、标化考试）
+    calculate_processed_language_score,       # 语言原始值 → 归一化值（考虑海本豁免）
+    get_background_university_for_model,      # 院校名 → 模型可识别的院校名（模糊匹配）
+    normalize_form_data_for_prediction,       # 表单数据 → 模型输入格式（完整归一化）
 )
 from src.pages.prediction.results_handler import reset_prediction_results
-from src.utils.app_data_loader import load_school_base_data
+from src.utils.app_data_loader import load_school_base_data  # 院校基础数据（排名、分类等）
 from src.utils.logger import setup_logger
-from src.utils.school_level_service import get_school_level_service
+from src.utils.school_level_service import get_school_level_service  # 院校等级服务（985/211/双非/海本）
 from src.utils.session_manager import SessionManager
 
 form_logger = setup_logger("page3", "prediction")
@@ -32,24 +50,44 @@ def create_input_form(
     wrap_container: bool = True,
     border: bool = True,
 ):
+    """渲染完整的输入表单并处理提交逻辑。
+
+    Args:
+        session_manager: SessionManager 实例
+        cases_df: 历史案例 DataFrame（用于院校/专业下拉选项）
+        parent_container: 外部容器（如 st.expander），None 则直接渲染
+        wrap_container: 是否在表单外包裹 st.container(border=True)
+        border: 容器是否带边框
+
+    Returns:
+        tuple: (is_new_submission, input_data, all_unis, all_majors, original_form)
+        - is_new_submission=True → 用户刚提交，input_data 是归一化后的模型输入
+        - is_new_submission=False → 返回当前表单快照（用于 lead-in auto-submit）
+    """
+    # 1. 初始化表单 session_state（幂等：首次加载初始化默认值，后续重跑跳过）
     FormStateManager.initialize_session_state(session_manager)
 
+    # 2. 提交互斥锁：预测进行中时禁用表单，防止重复提交
     disabled_status = session_manager.get("prediction_submit_lock", False)
 
+    # 3. 延迟加载院校基础数据（首次加载后缓存到 session_state）
     if session_manager.get("school_base_df") is None:
         session_manager.set(school_base_df=load_school_base_data())
 
+    # 4. GPA 转换器（依赖 school_base_df，因此需要在加载后实例化）
     if session_manager.get("gpa_converter") is None:
         session_manager.set(gpa_converter=GPAConverter(session_manager.get("school_base_df")))
     gpa_converter = session_manager.get("gpa_converter")
 
     ui_components = FormUIComponents(session_manager)
 
+    # 5. 容器层级：parent_container（expander/fragment）→ input_ctx（带边框容器）→ 双列
     outer_ctx = parent_container if parent_container is not None else nullcontext()
 
     with outer_ctx:
         input_ctx = st.container(border=border) if wrap_container else nullcontext()
         with input_ctx:
+            # 双列布局：左列（背景+GPA+目标），右列（语言+经历+提交）
             col1, col2 = st.columns([1, 1], gap="small")
 
             with col1:
@@ -84,6 +122,7 @@ def create_input_form(
 
             submit_button = ui_components.render_submit_button(disabled_status)
 
+    # 6. 提交处理：校验 → 归一化 → 返回
     if submit_button:
         form_data = {
             "target_majors": final_target_majors,
@@ -108,17 +147,19 @@ def create_input_form(
         validation_errors = FormValidator.validate_form_data(form_data, gpa_converter)
 
         if validation_errors:
+            # 校验失败：逐个展示 toast 后 rerun 重置提交状态
             error_messages = [str(err) for err in validation_errors]
             form_logger.warning(f"表单验证失败 - 错误信息: {error_messages}")
             for err in validation_errors:
                 st.toast(str(err))
-                time.sleep(0.3)
+                time.sleep(0.3)  # 逐个显示 toast，避免叠加
             session_manager.set(
                 submitted=False, form_data_changed=False, prediction_submit_lock=False
             )
             reset_prediction_results(session_manager)
             st.rerun()
         else:
+            # 校验通过：加锁 → 归一化 → 返回
             session_manager.set(prediction_submit_lock=True)
             success, processed_input_data, all_unis, all_majors, original_form_data = (
                 _process_successful_submission(
@@ -138,6 +179,7 @@ def create_input_form(
                 original_form_data,
             )
 
+    # 7. 非提交路径：返回当前表单快照（用于 lead-in auto-submit 读取当前值）
     return _get_current_form_state(
         session_manager,
         background_university,
@@ -168,6 +210,17 @@ def _process_successful_submission(
     all_majors_target,
     gpa_converter,
 ):
+    """校验通过后的数据处理：归一化表单数据为模型输入格式。
+
+    关键步骤：
+    1. 重新加载 page_state（获取 background_universities 白名单）
+    2. normalize_form_data_for_prediction 执行完整归一化：
+       - GPA 分制转换（4.0/5.0/100 → 归一化值）
+       - 语言成绩标准化
+       - 院校名模糊匹配 → 模型可识别的标准名
+       - 专业名映射
+       - 四段经历文本向量化准备
+    """
     from src.pages.prediction.page_data_loader import machine_learning_model
 
     page_state = machine_learning_model.resource_loader()
@@ -203,6 +256,17 @@ def _get_current_form_state(
     exam_type=None,
     exam_score=None,
 ):
+    """构建当前表单状态的快照（非提交路径）。
+
+    用于 lead-in auto-submit：当 AI 提取完成并自动展开表单后，
+    _form_fragment 调用此函数获取当前 widget 值构建 input_data，
+    而不需要用户手动点击提交按钮。
+
+    与 _process_successful_submission 的区别：
+    - 此函数做"尽力归一化"（calculate_processed_gpa），不完全校验
+    - 不设置 submitted=True，不触发锁
+    - is_new_submission=False
+    """
     from src.pages.prediction.page_data_loader import machine_learning_model
 
     page_state = machine_learning_model.resource_loader()
@@ -247,9 +311,9 @@ def _get_current_form_state(
     }
 
     return (
-        False,
-        input_data,
+        False,              # is_new_submission=False
+        input_data,         # 尽力归一化的快照数据
         all_universities_target,
         all_majors_target,
-        None,
+        None,               # original_form=None（非提交路径无原始表单）
     )

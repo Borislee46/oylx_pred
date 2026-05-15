@@ -4,6 +4,13 @@
 
 `flow` 是预测页面的执行流程模块，负责从输入数据到最终推荐结果的完整流水线：组合生成、模型推理、结果处理、过滤排序、概率调整、Agent 微调等，并通过 `ProgressReporter` 向 UI 反馈进度。
 
+### DS 视角
+
+流水线的两个 DS 关键点：
+
+- **组合生成的质量决定预测覆盖的上限**：`generate_prediction_combinations` 用相似度 ≥0.6 或 fuzzy >90 做筛选——如果这个过滤太严，会漏掉合理的 (院校, 专业) 组合（用户看到空结果）；太松则生成过多组合拖慢推理。hot_paths 快速路径是工程优化但引入了硬编码的"热门专业"假设——万一用户申的是冷门但有潜力的专业呢？
+- **增量计算的 trade-off**：`cached_combinations` 跳过组合生成只重跑推理，效率高但有一个前提——组合空间没变。这个假设在"不改目标只调 GPA/语言"的场景是对的，但如果在"调 GPA 后触发不同的跨专业惩罚路径"的情况，理论上调整链的路径可能不同——虽然当前不影响因为调整链不依赖组合生成。
+
 ## 2. 目录结构
 
 ```
@@ -83,7 +90,7 @@ _execute_prediction_pipeline
 - 目标专业：用户指定则用 `target_majors`；否则从 `all_majors_target` 中筛选，语义相似度 ≥ 0.6 或 fuzzy 匹配 > 90 的纳入
 - 目标院校：`target_universities` 或 `all_universities_target`
 - 过滤：仅保留 `_data_manager.valid_combinations` 中的 (u, m)
-- **热门组合快速路径**（2026-05）：`_is_major_match()` 对命中 `config/hot_paths.json` 中 `hot_major_substrings` 的专业直接返回 True，跳过语义相似度查表 + fuzzy 匹配。配置由 `_load_hot_paths()` 在模块加载时读取，文件不存在或损坏时 fallback 到硬编码默认值（港三 × SMART/ACCT/IT）。`hot_schools` 字段已预留，当前仅 `hot_major_substrings` 生效——学校级快速路径待 usage_stats 积累足够数据后启用
+- **热门组合快速路径**（2026-05）：`_is_major_match()` 对命中 `config/hot_paths.json` 中 `hot_major_substrings` 的专业直接返回 True，跳过语义相似度查表 + fuzzy 匹配。配置由 `_load_hot_paths()` 在模块加载时读取，文件不存在或损坏时 fallback 到硬编码默认值（港三 × SMART/ACCT/IT）。`hot_schools` 字段已预留，当前仅 `hot_major_substrings` 生效——学校级快速路径待 `usage_stats` 积累足够数据后启用。热门路径大幅降低了下游语义计算量（B5），是 bulk 模式性能优化的关键
 
 **process_prediction_results**：
 - 构建 `SingleResultProcessor`，逐条处理

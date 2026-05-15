@@ -4,6 +4,15 @@
 
 `src/machine_learning_models` 是离线 XGBoost 训练流水线，负责从历史案例数据训练录取概率预测模型。完整流程覆盖数据加载 → 特征工程（含 monotonic constraints 特征）→ SMOTE/SMOTENC 不平衡采样 → XGBoost 训练 → CalibratedClassifierCV(sigmoid) 概率校准 → 可选 Optuna 超参调优 → 模型评估 → 保存为 `.ubj` 格式。
 
+### DS 视角
+
+训练流水线的几个关键 DS 决策值得追问：
+
+- **Monotonic constraints 是双刃剑**：强制 GPA/语言/经历单调递增保证了业务可解释性（DEC-006），但也限制了模型学习非线性模式。如果真实录取中存在"GPA 太高反而减分"的现象（overqualified），约束会掩盖这个信号。有没有验证过无约束模型是否真的违反单调性？
+- **SMOTE 在类别特征上可能制造无意义样本**：DEC-005 明确不在一键推理时用 SMOTE，但训练时用了 SMOTENC。在 1051 个专业的稀疏空间中插值，可能生成"不存在的专业组合"——这对比 XGBoost 的 tree split 影响有多大？
+- **Platt scaling (sigmoid) 校准后输出范围被压缩到 [0.13, 0.72]**：这是 DEC-001 记录的已知行为（"nothing is certain in education"）。但从 DS 角度，训练集本身有 33.7% 的录取率，最高 72%、最低 13% 的校准输出意味着模型在最乐观时也只给 72%、最悲观时也给 13%——这对边界 case 的信息量很差。
+- **没有 held-out test set**：校准和评估都在训练数据上完成。外部 ApplySquare 数据上 -67pp 是唯一真正的 out-of-sample 检验。
+
 ## 2. 目录结构
 
 ```
@@ -15,8 +24,9 @@ machine_learning_models/
 ├── feature_engineer.py        # 特征工程：编码、归一化、monotonic 特征构建
 ├── model_trainer.py           # XGBoost 训练 + calibration
 ├── hyperparameter_tuning.py   # Optuna 超参搜索（auto_tune 模式）
-├── school_level_mapper.py     # 院校等级映射（训练用）
+├── school_level_mapper.py     # 院校等级映射（训练用，985/211/双非 → tier）
 ├── utils.py                   # 模型保存、评估结果导出
+├── data/                      # 训练数据（cases.feather + school_major_details.feather）
 └── pre-trained_models/        # 训练好的 .ubj 模型文件
 ```
 

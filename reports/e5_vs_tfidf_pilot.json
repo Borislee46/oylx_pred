@@ -1,0 +1,182 @@
+{
+  "phase1_summary": {
+    "n_pairs": 10,
+    "tfidf_mean": 0.1942,
+    "e5_mean": 0.8179,
+    "spearman_r": -0.4789
+  },
+  "phase1_details": [
+    {
+      "case": 1,
+      "field": "internship",
+      "tfidf": 0.1408,
+      "e5": 0.8135,
+      "delta": 0.6726
+    },
+    {
+      "case": 2,
+      "field": "research",
+      "tfidf": 0.1345,
+      "e5": 0.8135,
+      "delta": 0.679
+    },
+    {
+      "case": 2,
+      "field": "internship",
+      "tfidf": 0.2556,
+      "e5": 0.8306,
+      "delta": 0.575
+    },
+    {
+      "case": 2,
+      "field": "award",
+      "tfidf": 0.1274,
+      "e5": 0.8306,
+      "delta": 0.7032
+    },
+    {
+      "case": 3,
+      "field": "research",
+      "tfidf": 0.1016,
+      "e5": 0.8354,
+      "delta": 0.7339
+    },
+    {
+      "case": 3,
+      "field": "internship",
+      "tfidf": 0.1272,
+      "e5": 0.8501,
+      "delta": 0.7229
+    },
+    {
+      "case": 4,
+      "field": "internship",
+      "tfidf": 0.1828,
+      "e5": 0.8042,
+      "delta": 0.6214
+    },
+    {
+      "case": 4,
+      "field": "award",
+      "tfidf": 0.2269,
+      "e5": 0.7861,
+      "delta": 0.5593
+    },
+    {
+      "case": 5,
+      "field": "internship",
+      "tfidf": 0.2244,
+      "e5": 0.811,
+      "delta": 0.5867
+    },
+    {
+      "case": 5,
+      "field": "award",
+      "tfidf": 0.4206,
+      "e5": 0.8037,
+      "delta": 0.3831
+    }
+  ],
+  "phase2_results": [
+    {
+      "case": 1,
+      "variant": "instruct",
+      "major": "Master of Science in Financial Mathematics and Statistics",
+      "pos": 0.8413,
+      "neg_mean": 0.8049,
+      "neg_std": 0.0183,
+      "margin": 0.0364,
+      "rank": 1
+    },
+    {
+      "case": 1,
+      "variant": "plain",
+      "major": "Master of Science in Financial Mathematics and Statistics",
+      "pos": 0.7798,
+      "neg_mean": 0.7585,
+      "neg_std": 0.03,
+      "margin": 0.0213,
+      "rank": 2
+    },
+    {
+      "case": 2,
+      "variant": "instruct",
+      "major": "Master of Science in Robotics",
+      "pos": 0.8335,
+      "neg_mean": 0.796,
+      "neg_std": 0.0122,
+      "margin": 0.0375,
+      "rank": 1
+    },
+    {
+      "case": 2,
+      "variant": "plain",
+      "major": "Master of Science in Robotics",
+      "pos": 0.7856,
+      "neg_mean": 0.7581,
+      "neg_std": 0.0202,
+      "margin": 0.0275,
+      "rank": 2
+    },
+    {
+      "case": 3,
+      "variant": "instruct",
+      "major": "Master of Public Health",
+      "pos": 0.8091,
+      "neg_mean": 0.7841,
+      "neg_std": 0.0126,
+      "margin": 0.025,
+      "rank": 1
+    },
+    {
+      "case": 3,
+      "variant": "plain",
+      "major": "Master of Public Health",
+      "pos": 0.7671,
+      "neg_mean": 0.7344,
+      "neg_std": 0.0096,
+      "margin": 0.0327,
+      "rank": 1
+    },
+    {
+      "case": 4,
+      "variant": "instruct",
+      "major": "Master of Science in Financial Engineering",
+      "pos": 0.8452,
+      "neg_mean": 0.7938,
+      "neg_std": 0.019,
+      "margin": 0.0514,
+      "rank": 1
+    },
+    {
+      "case": 4,
+      "variant": "plain",
+      "major": "Master of Science in Financial Engineering",
+      "pos": 0.7944,
+      "neg_mean": 0.7568,
+      "neg_std": 0.0245,
+      "margin": 0.0376,
+      "rank": 2
+    },
+    {
+      "case": 5,
+      "variant": "instruct",
+      "major": "Master of Science in Intelligent Semiconductor Manufacturing",
+      "pos": 0.8433,
+      "neg_mean": 0.8034,
+      "neg_std": 0.0165,
+      "margin": 0.0398,
+      "rank": 1
+    },
+    {
+      "case": 5,
+      "variant": "plain",
+      "major": "Master of Science in Intelligent Semiconductor Manufacturing",
+      "pos": 0.7949,
+      "neg_mean": 0.7537,
+      "neg_std": 0.0132,
+      "margin": 0.0412,
+      "rank": 1
+    }
+  ]
+}

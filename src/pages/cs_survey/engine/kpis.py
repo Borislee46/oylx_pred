@@ -16,6 +16,7 @@ def kpi_source(df: pd.DataFrame, cfg: SurveyConfig, source_id: str) -> dict:
     pr_rids: set = set()
     op_n = 0
     pr_n = 0
+    pillar_score_n = 0
     for pillar in cfg.pillars:
         spec = pillar.scoring.get(source_id)
         if spec is None:
@@ -25,11 +26,13 @@ def kpi_source(df: pd.DataFrame, cfg: SurveyConfig, source_id: str) -> dict:
         pr_rids |= r.pr_rids
         op_n += r.op_n
         pr_n += r.pr_n
+        pillar_score_n += len(r.scores)
     n = len(df)
-    op_r = (len(op_rids) / n * 100) if n else 0.0
-    pr_r = (len(pr_rids) / n * 100) if n else 0.0
+    op_r = (op_n / pillar_score_n * 100) if pillar_score_n else 0.0
+    pr_r = (pr_n / pillar_score_n * 100) if pillar_score_n else 0.0
     return {
         "评分均值": round(mean, 3) if mean == mean else None,
+        "样本量": n,
         "评分量": len(vals),
         "意见率": round(op_r, 2),
         "表扬率": round(pr_r, 2),
@@ -48,6 +51,7 @@ def build_compare_lines(dfs: dict[str, pd.DataFrame], cfg: SurveyConfig) -> pd.D
         rows.append(
             {
                 "维度": src.label,
+                "样本量": k["样本量"],
                 "评分量": k["评分量"],
                 "评分均值": k["评分均值"],
                 "意见率": k["意见率"],

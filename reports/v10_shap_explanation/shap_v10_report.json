@@ -1,0 +1,455 @@
+{
+  "metadata": {
+    "version": "V10",
+    "date": "2026-05-14",
+    "method": "SHAP TreeExplainer (tree_path_dependent)",
+    "model": "xgboost_20260316_092608.ubj (375 trees, 10 features)",
+    "samples": 10000,
+    "hardware": "RTX 5090 Laptop GPU, 24GB",
+    "base_logodds": 0.020728742196572406,
+    "base_calibrated_prob": 0.137235454861591,
+    "calibration": {
+      "method": "sigmoid",
+      "a": -2.871485371132004,
+      "b": 1.897966001591031
+    },
+    "shap_version": "0.49.1"
+  },
+  "feature_importance": [
+    {
+      "rank": 1,
+      "feature": "background_major",
+      "mean_abs_shap": 1.19966459274292,
+      "pct_of_total": 25.491085052490234,
+      "tier": "categorical"
+    },
+    {
+      "rank": 2,
+      "feature": "target_major",
+      "mean_abs_shap": 0.7074668407440186,
+      "pct_of_total": 15.032617568969727,
+      "tier": "categorical"
+    },
+    {
+      "rank": 3,
+      "feature": "background_university",
+      "mean_abs_shap": 0.7028256058692932,
+      "pct_of_total": 14.93399715423584,
+      "tier": "categorical"
+    },
+    {
+      "rank": 4,
+      "feature": "target_university",
+      "mean_abs_shap": 0.6497301459312439,
+      "pct_of_total": 13.805797576904297,
+      "tier": "categorical"
+    },
+    {
+      "rank": 5,
+      "feature": "gpa",
+      "mean_abs_shap": 0.5298190116882324,
+      "pct_of_total": 11.257864952087402,
+      "tier": "numeric"
+    },
+    {
+      "rank": 6,
+      "feature": "award_count",
+      "mean_abs_shap": 0.2811681032180786,
+      "pct_of_total": 5.9744038581848145,
+      "tier": "numeric"
+    },
+    {
+      "rank": 7,
+      "feature": "research_count",
+      "mean_abs_shap": 0.27505362033843994,
+      "pct_of_total": 5.844479560852051,
+      "tier": "numeric"
+    },
+    {
+      "rank": 8,
+      "feature": "internship_count",
+      "mean_abs_shap": 0.15967826545238495,
+      "pct_of_total": 3.392925500869751,
+      "tier": "numeric"
+    },
+    {
+      "rank": 9,
+      "feature": "language_score",
+      "mean_abs_shap": 0.11294461786746979,
+      "pct_of_total": 2.39990496635437,
+      "tier": "numeric"
+    },
+    {
+      "rank": 10,
+      "feature": "paper_count",
+      "mean_abs_shap": 0.08786134421825409,
+      "pct_of_total": 1.8669227361679077,
+      "tier": "numeric"
+    }
+  ],
+  "tier_summary": {
+    "categorical_total_pct": 69.26350013506062,
+    "numeric_total_pct": 30.736499864939375,
+    "cat_to_num_ratio": 2.2534608832955754
+  },
+  "shap_sum_percentiles": {
+    "P1": {
+      "shap_sum": -4.798701763153076,
+      "calibrated_prob": 1.649133257011701e-07
+    },
+    "P5": {
+      "shap_sum": -3.3929624557495117,
+      "calibrated_prob": 9.339151858462291e-06
+    },
+    "P10": {
+      "shap_sum": -2.7580087184906006,
+      "calibrated_prob": 5.782535346272262e-05
+    },
+    "P25": {
+      "shap_sum": -1.843669056892395,
+      "calibrated_prob": 0.0007980727182539158
+    },
+    "P50": {
+      "shap_sum": -0.8016082644462585,
+      "calibrated_prob": 0.01566942967521435
+    },
+    "P75": {
+      "shap_sum": 0.43775784969329834,
+      "calibrated_prob": 0.35860397128683447
+    },
+    "P90": {
+      "shap_sum": 3.3668601512908936,
+      "calibrated_prob": 0.9996023123724307
+    },
+    "P95": {
+      "shap_sum": 9.319567680358887,
+      "calibrated_prob": 0.9999999999849938
+    },
+    "P99": {
+      "shap_sum": 11.934349060058594,
+      "calibrated_prob": 0.9999999999999918
+    }
+  },
+  "shap_vs_gain_spearman": {
+    "spearman_rho": 0.4787878787878787,
+    "spearman_p": 0.1615229280174558
+  },
+  "top_interactions": [
+    {
+      "feature_a": "background_university",
+      "feature_b": "target_university",
+      "mean_abs_interaction": 0.175026
+    },
+    {
+      "feature_a": "background_major",
+      "feature_b": "target_major",
+      "mean_abs_interaction": 0.164365
+    },
+    {
+      "feature_a": "background_major",
+      "feature_b": "target_university",
+      "mean_abs_interaction": 0.160196
+    },
+    {
+      "feature_a": "background_major",
+      "feature_b": "background_university",
+      "mean_abs_interaction": 0.138722
+    },
+    {
+      "feature_a": "background_university",
+      "feature_b": "gpa",
+      "mean_abs_interaction": 0.094807
+    },
+    {
+      "feature_a": "target_major",
+      "feature_b": "gpa",
+      "mean_abs_interaction": 0.092331
+    },
+    {
+      "feature_a": "target_major",
+      "feature_b": "target_university",
+      "mean_abs_interaction": 0.084725
+    },
+    {
+      "feature_a": "target_major",
+      "feature_b": "background_university",
+      "mean_abs_interaction": 0.084448
+    },
+    {
+      "feature_a": "background_university",
+      "feature_b": "award_count",
+      "mean_abs_interaction": 0.048687
+    },
+    {
+      "feature_a": "background_major",
+      "feature_b": "gpa",
+      "mean_abs_interaction": 0.046182
+    },
+    {
+      "feature_a": "target_university",
+      "feature_b": "gpa",
+      "mean_abs_interaction": 0.037949
+    },
+    {
+      "feature_a": "background_university",
+      "feature_b": "research_count",
+      "mean_abs_interaction": 0.03733
+    },
+    {
+      "feature_a": "background_major",
+      "feature_b": "research_count",
+      "mean_abs_interaction": 0.035193
+    },
+    {
+      "feature_a": "target_major",
+      "feature_b": "research_count",
+      "mean_abs_interaction": 0.033581
+    },
+    {
+      "feature_a": "target_major",
+      "feature_b": "award_count",
+      "mean_abs_interaction": 0.033117
+    },
+    {
+      "feature_a": "target_university",
+      "feature_b": "award_count",
+      "mean_abs_interaction": 0.031021
+    },
+    {
+      "feature_a": "target_major",
+      "feature_b": "internship_count",
+      "mean_abs_interaction": 0.030588
+    },
+    {
+      "feature_a": "background_major",
+      "feature_b": "award_count",
+      "mean_abs_interaction": 0.029629
+    },
+    {
+      "feature_a": "background_university",
+      "feature_b": "internship_count",
+      "mean_abs_interaction": 0.029406
+    },
+    {
+      "feature_a": "target_university",
+      "feature_b": "research_count",
+      "mean_abs_interaction": 0.021894
+    }
+  ],
+  "case_studies": {
+    "pushed_up": [
+      {
+        "gpa": NaN,
+        "language": NaN,
+        "major": "Master of Fine Arts in Creative Media",
+        "admitted": 0,
+        "base_expected": 0.0207,
+        "shap_sum": 22.7316,
+        "top5_drivers": [
+          {
+            "feature": "background_university",
+            "shap_value": 11.783058,
+            "direction": "positive"
+          },
+          {
+            "feature": "background_major",
+            "shap_value": 8.590132,
+            "direction": "positive"
+          },
+          {
+            "feature": "target_university",
+            "shap_value": 1.386844,
+            "direction": "positive"
+          },
+          {
+            "feature": "target_major",
+            "shap_value": 1.374357,
+            "direction": "positive"
+          },
+          {
+            "feature": "research_count",
+            "shap_value": 0.785207,
+            "direction": "positive"
+          }
+        ]
+      },
+      {
+        "gpa": NaN,
+        "language": NaN,
+        "major": "Master of Arts in Applied Social Sciences",
+        "admitted": 0,
+        "base_expected": 0.0207,
+        "shap_sum": 22.3,
+        "top5_drivers": [
+          {
+            "feature": "background_university",
+            "shap_value": 11.6638,
+            "direction": "positive"
+          },
+          {
+            "feature": "background_major",
+            "shap_value": 8.527079,
+            "direction": "positive"
+          },
+          {
+            "feature": "target_university",
+            "shap_value": 1.434634,
+            "direction": "positive"
+          },
+          {
+            "feature": "target_major",
+            "shap_value": 1.099163,
+            "direction": "positive"
+          },
+          {
+            "feature": "research_count",
+            "shap_value": 0.76731,
+            "direction": "positive"
+          }
+        ]
+      },
+      {
+        "gpa": NaN,
+        "language": NaN,
+        "major": "Master of Social Sciences in Sustainability and Development Studies",
+        "admitted": 0,
+        "base_expected": 0.0207,
+        "shap_sum": 22.0706,
+        "top5_drivers": [
+          {
+            "feature": "background_university",
+            "shap_value": 11.854844,
+            "direction": "positive"
+          },
+          {
+            "feature": "background_major",
+            "shap_value": 8.244967,
+            "direction": "positive"
+          },
+          {
+            "feature": "target_university",
+            "shap_value": 1.382537,
+            "direction": "positive"
+          },
+          {
+            "feature": "target_major",
+            "shap_value": 1.075418,
+            "direction": "positive"
+          },
+          {
+            "feature": "research_count",
+            "shap_value": 0.598068,
+            "direction": "positive"
+          }
+        ]
+      }
+    ],
+    "pushed_down": [
+      {
+        "gpa": 1.98,
+        "language": NaN,
+        "major": "Master of Science in AI and Digital Media",
+        "admitted": 0,
+        "base_expected": 0.0207,
+        "shap_sum": -7.1688,
+        "top5_drivers": [
+          {
+            "feature": "target_major",
+            "shap_value": -2.927568,
+            "direction": "negative"
+          },
+          {
+            "feature": "gpa",
+            "shap_value": -2.335148,
+            "direction": "negative"
+          },
+          {
+            "feature": "background_university",
+            "shap_value": -0.858679,
+            "direction": "negative"
+          },
+          {
+            "feature": "background_major",
+            "shap_value": -0.506654,
+            "direction": "negative"
+          },
+          {
+            "feature": "award_count",
+            "shap_value": -0.250339,
+            "direction": "negative"
+          }
+        ]
+      },
+      {
+        "gpa": 3.2,
+        "language": NaN,
+        "major": "Master of Science in Data Science and Machine Learning",
+        "admitted": 0,
+        "base_expected": 0.0207,
+        "shap_sum": -7.0208,
+        "top5_drivers": [
+          {
+            "feature": "target_major",
+            "shap_value": -2.462149,
+            "direction": "negative"
+          },
+          {
+            "feature": "target_university",
+            "shap_value": -1.626466,
+            "direction": "negative"
+          },
+          {
+            "feature": "background_major",
+            "shap_value": -0.664162,
+            "direction": "negative"
+          },
+          {
+            "feature": "background_university",
+            "shap_value": -0.581272,
+            "direction": "negative"
+          },
+          {
+            "feature": "gpa",
+            "shap_value": -0.540596,
+            "direction": "negative"
+          }
+        ]
+      },
+      {
+        "gpa": 2.73,
+        "language": NaN,
+        "major": "Master of Science in Financial Engineering",
+        "admitted": 1,
+        "base_expected": 0.0207,
+        "shap_sum": -6.816,
+        "top5_drivers": [
+          {
+            "feature": "target_major",
+            "shap_value": -1.834293,
+            "direction": "negative"
+          },
+          {
+            "feature": "background_major",
+            "shap_value": -1.597433,
+            "direction": "negative"
+          },
+          {
+            "feature": "gpa",
+            "shap_value": -1.36378,
+            "direction": "negative"
+          },
+          {
+            "feature": "background_university",
+            "shap_value": -0.862335,
+            "direction": "negative"
+          },
+          {
+            "feature": "research_count",
+            "shap_value": -0.541856,
+            "direction": "negative"
+          }
+        ]
+      }
+    ]
+  }
+}

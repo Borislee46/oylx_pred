@@ -4,6 +4,12 @@
 
 `src/agent` 是 LLM Agent 系统，基于 DeepSeek（OpenAI 兼容 API）。采用 Shared Context → Agent Registry → Orchestrator 三层架构，覆盖留学全链路：前期 NLU（碎片信息提取）→ 中期决策（边界 case + 预测解释）→ 后期（申请策略）。不依赖 LangChain，所有 Agent 继承 `BaseAgent`。
 
+## DS 视角
+
+LLM Agent 系统的工程指标很完善——4 级 JSON 修复覆盖 99.8% 的格式错误、缓存命中率、延迟追踪。但核心 DS 问题不是"JSON 能不能成功解析"，而是**Agent 做的决策对不对**。LeadInAgent 从碎片文本提取的结构化背景准确吗？ExplainAgent 的 profile 分类会不会把强学生分到 weak 组？BlindEvalAgent 作为独立 benchmark，但语言分数 prompt bug（0.72 被解读为 IELTS 0.72）已经证明 prompt 对数值输入的脆弱性——类似的维度理解偏差可能还有。
+
+评估体系当前是纯工程指标（延迟、parse 成功率）加一次对比研究（40 样本，Pearson r=0.44），缺少持续的 Agent 决策质量评估。`eval/` 框架已搭好但还没灌真实数据。Agent 输出会级联影响下游——LeadIn 提取错了 → 表单自动填充出错 → XGBoost 输入偏差 → ExplainAgent 基于错误输入做解读。
+
 ## 2. 目录结构
 
 ```
@@ -15,19 +21,24 @@ agent/
 ├── orchestrator.py                 # AgentOrchestrator（单 Agent + Pipeline 编排）
 ├── schemas.py                      # TypedDict 数据契约（12 个类型定义）
 ├── utils.py                        # Agent 共享工具（truncate、parse_bool 等）
-├── form_bridge.py                  # Agent → 表单桥接（5层 fuzzy match + 别名解析 + 学位后缀剥离）
+├── form_bridge.py                  # Agent → 表单桥接（5层 fuzzy match + school_alias_resolver + 学位后缀剥离）
 ├── lead_in_agent.py                # 前期 NLU Agent
 ├── lead_in_prompts.py              # LeadIn Prompt 模板
 ├── explain_agent.py                # ExplainAgent（流式 + 同步双路径）
 ├── explain_profiles.py             # 4 种 Profile System Prompt（strong_elite/medium_mixed/weak_gaps/cross_major）
 ├── boundary_case_agent.py          # 边界案例决策 Agent
 ├── boundary_case_prompts.py        # 边界案例 Prompt 模板
-├── text_preprocessing_agent.py     # 背提文本校验 Agent（含批量模式）
+├── text_preprocessing_agent.py     # 背提文本校验 Agent（含批量模式：单次 API 调用校验 4 字段）
 ├── text_preprocessing_prompts.py   # 文本校验 Prompt 模板（单字段 + 批量）
-├── background_faculty_agent.py     # 背景学部推断 Agent
+├── background_faculty_agent.py     # 背景学部推断 Agent（类级别 MD5 文件缓存）
 ├── background_faculty_prompts.py   # 学部推断 Prompt 模板
-├── application_agent.py            # 申请策略生成 Agent
-└── application_prompts.py          # 申请策略 Prompt 模板
+├── application_agent.py            # 申请策略生成 Agent（含 timeline + action_items）
+├── application_prompts.py          # 申请策略 Prompt 模板
+├── blind_eval_agent.py             # AI 专家盲评 Agent（独立概率评估，用于模型 benchmark）
+├── blind_eval_prompts.py           # 盲评 Prompt 模板
+├── pdf_agent.py                    # PDF 报告 AI 分析 Agent（DeepSeek 驱动文案生成）
+├── pdf_prompts.py                  # PDF 分析 Prompt 模板
+└── eval/                           # Agent 评估框架（F1 / coverage / regression test）
 ```
 
 ## 3. 架构
@@ -92,6 +103,13 @@ TextPreprocessingAgent → has_meaningful_experience_text 判定
 BackgroundFacultyAgent → faculty 分类
 ApplicationAgent → 申请策略 + 行动建议
 ```
+
+### 4.1 关键问题
+
+- **LeadInAgent 提取准确率从未系统评估**：碎片文本→结构化背景是 Agent 链路的第一步，提取错了整个下游都偏。没有 baseline accuracy 测量。
+- **ExplainAgent 的 `classify_profile()` 分四档——是数据驱动还是手调的？** strong_elite/medium_mixed/weak_gaps/cross_major 的分界阈值（avg_prob ≥0.55、cross ≥40% 等）有没有验证过分类准确率？
+- **4 级 JSON 修复修不了语义错误**：格式错误的 JSON 能修复（99.8%），但格式正确内容错误的 JSON（比如 probability 字段输出了一个超出 0-1 的值）不会被检测到。
+- **BlindEvalAgent 置信度偏差**：LLM 自评 confidence 100% 为 medium/high，从未自评 low——即使语言分数被误读时也自信满满。这表明 LLM 的 confidence 不适合作为可信度参考。
 
 ## 5. 核心组件
 
@@ -166,8 +184,9 @@ result = AgentOrchestrator.run("lead_in", context, user_input=text)
 前期 NLU Agent：
 - 输入：顾问自由文本 + StudentContext
 - 输出：`extracted_info`（JSON）+ `quick_assessment`（自然语言）+ `suggested_questions`
+- **多轮对话支持**（2026-05）：顾问可对提取结果逐字段确认/修正，Agent 根据反馈重新提取，支持追问补充信息
 - **动态院校约束**（2026-05）：`_build_system_prompt()` 从 `config/prediction_rules.json` 读取 `TARGET_COUNTRY_UNIVERSITY_MAP`，注入可用地区、院校列表。已集成到 `pages/hk.py`
-- **特殊别名**（2026-05）：Prompt 已包含 37 个院校/专业缩写（北大/港大/HKU/NUS/CS/金融…），遇到 "985"/"211"/"港3" 等类别别名保留原值，由 `form_bridge` + `school_alias_resolver` 展开
+- **特殊别名**（2026-05）：Prompt 已包含 37 个院校/专业缩写（北大/港大/HKU/NUS/CS/金融…），遇到 "985"/"211"/"港3" 等类别别名保留原值，由 `form_bridge` + `school_alias_resolver` 展开（`major_name_mapping.json` 处理专业别名归一化）
 
 ### 5.8 form_bridge — Agent → 表单桥接
 
@@ -181,6 +200,7 @@ exact → substring → rapidfuzz partial_ratio → char-order → alias map
 - `rapidfuzz` 替代 `difflib`：`partial_ratio` 做子串匹配，CJK 感知更好
 - `_chars_in_order`：中文缩写匹配（"港大" → "香港大学"）
 - `_UNIVERSITY_ALIAS_MAP`：英文缩写兜底（NUS/HKU/NTU...）
+- **院校别名解析**（2026-05）：集成 `school_alias_resolver`。背景院校 "985"/"211"/"双一流" → 自动解析为该类别在 cases 中频次最高的学校；目标院校 "港3"/"港5"/"港8" → 展开为对应排名区间的港校列表。LeadInAgent prompt 中遇到类别别名保留原值，由 form_bridge + school_alias_resolver 展开
 
 **目标专业模糊匹配**（`_fuzzy_match_major`）：
 ```
@@ -188,8 +208,7 @@ exact → substring → rapidfuzz partial_ratio → char-order → alias map
 ```
 - 50+ 专业别名映射（CS/金融/EE/统计/法律...）
 - 自动加载 `school_major_details.feather` 全部英文专业名作为候选集
-
-**院校别名解析**：背景院校 "985"/"211"/"双非" → `school_alias_resolver.resolve_background_school()`；目标院校 "港3"/"港5" → `resolve_target_schools()`
+- **专业名映射**（2026-05）：集成 `config/major_name_mapping.json`，将 LLM 提取的专业别名归一化到标准专业名
 
 ### 5.9 ExplainAgent
 
@@ -239,6 +258,15 @@ Agent.run(StudentContext) / Agent.stream(StudentContext)
     │     └── 失败则走四级 JSON 修复
     └── context.record() (审计追踪)
 ```
+
+## DS Known Issues
+
+- **Agent 评估只有工程指标，没有决策质量指标**：延迟、parse 成功率都有追踪，但 Agent 的判断对不对——没人知道。`eval/` 框架设计了 F1/regression test 但还没数据。LeadInAgent 的提取准确率从未系统测量过。
+- **Prompt 脆弱性**：BlindEvalAgent 的语言分数 bug（已修）说明数值字段在 prompt 中容易产生维度误读。类似问题可能还存在于 GPA 等其他数值字段的 prompt 表示中。LLM 自评 confidence 100% 为 medium/high，从未自评 low——confidence 不适合做可信度参考。
+- **误差级联**：LeadIn → 表单自动填充 → XGBoost → ExplainAgent，整条链路没有确认检查点。LeadIn 提取错了背景，后面的所有决策都基于错误输入。
+- **没有 A/B 测试框架**：prompt 改动后的效果评估全靠手动跑几组 case 看感觉，没有系统化的对照组对比。
+- **缓存 key 敏感**：ExplainAgent 缓存用 MD5 of 原始输入——多一个空格就 cache miss，不必要的 API 重复调用。
+- **BlindEvalAgent 40 样本 Pearson r=0.44**：LLM 和模型在"谁更容易录取"上排序一致性偏弱，分歧大——目前无法判断是模型偏还是 LLM 偏。
 
 ## 7. 依赖
 

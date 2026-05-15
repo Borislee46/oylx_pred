@@ -83,6 +83,13 @@ PROBABILITY_ADJUSTMENT_THRESHOLD: float = 0.01
 PROBABILITY_EXTREME_STD_MULTIPLIER: float = 2.0
 CROSS_MAJOR_PENALTY_FACTOR: float = 0.5
 FACULTY_OUT_OF_SCOPE_PENALTY_FACTOR: float = 0.3
+# Faculty penalty severity levels (B scheme — three-tier cross-faculty distance).
+# Light (×0.70): quantitative/methodological bridges exist between faculties.
+# Medium (×0.50): partial overlap, applied path possible but significant gaps.
+# Heavy (×0.30, default): fundamental domain switch, extremely rare (<1% cases).
+FACULTY_PENALTY_LIGHT: float = 0.70
+FACULTY_PENALTY_MEDIUM: float = 0.50
+FACULTY_PENALTY_HEAVY: float = 0.30
 COMPREHENSIVE_SCORE_BOOST_THRESHOLD: float = 0.6
 SELECTION_SCORE_BOOST_FACTOR: float = 0.3
 PROBABILITY_SCALE_FACTOR: float = 2.0
@@ -113,7 +120,7 @@ PROFESSIONAL_MAJORS: list[str] = _rules.get(
 PROFESSIONAL_MAJORS_LOWER: list[str] = [m.lower() for m in PROFESSIONAL_MAJORS]
 PROFESSIONAL_REDUCTION_FACTOR: float = 0.30
 PROFESSIONAL_USER_SPECIFIED_REDUCTION_FACTOR: float = 0.50
-MIN_SIMILARITY_THRESHOLD: float = 0.89
+MIN_SIMILARITY_THRESHOLD: float = 0.87  # V9: 0.88-0.89 admit rate inversion
 HIGHER_SIMILARITY_THRESHOLD: float = 0.92
 FUZZY_BIAS_THRESHOLD_HIGH: float = 92.0
 FUZZY_BIAS_THRESHOLD_MID: float = 82.0
@@ -184,6 +191,17 @@ AGENT_NO_CHANGE_THRESHOLD: int = 3
 LANGUAGE_REQUIREMENT_PENALTY_STEEPNESS: float = 7.0
 LANGUAGE_REQUIREMENT_PENALTY_MIDPOINT: float = 0.5
 MAX_TOTAL_PENALTY_RATIO: float = 0.7
+# Per-layer penalty ceiling — replaces fixed MAX_TOTAL_PENALTY_RATIO.
+# V5 found ECE worst for 2-3 active penalty layers (>0.2), while 1 layer
+# and 4+ layers were better calibrated. Single penalty should not be
+# discounted, but multi-layer stacking needs tighter caps.
+# key: n_active_penalties, value: max cumulative penalty ratio.
+# 4+ layers fall back to 0.45.
+PENALTY_CEILING_BY_LAYERS: dict[int, float] = {
+    1: 0.70,
+    2: 0.55,
+    3: 0.45,
+}
 MAX_TOTAL_BOOST_RATIO: float = 0.3
 PENALTY_DECAY_FACTOR: float = 0.85
 BOOST_DECAY_FACTOR: float = 0.8

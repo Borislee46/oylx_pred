@@ -1,0 +1,86 @@
+{
+  "summary": {
+    "total_cases": 61716,
+    "would_fail": 5877,
+    "would_fail_pct": 9.5,
+    "baseline_admit": 0.3374
+  },
+  "taxonomy": {
+    "reasons": {
+      "no_bg_major": 5284,
+      "no_gpa_and_lang": 593,
+      "no_gpa_only": 1423,
+      "no_lang_only": 9012,
+      "no_bg_uni": 0,
+      "no_target_uni": 0,
+      "no_target_major": 0,
+      "all_ok": 55839
+    },
+    "admit_by_mode": {
+      "_fail_severe": {
+        "n": 5284,
+        "pct": 8.6,
+        "admit_rate": 0.5984,
+        "baseline_admit": 0.3374
+      },
+      "_fail_moderate": {
+        "n": 1000,
+        "pct": 1.6,
+        "admit_rate": 0.405,
+        "baseline_admit": 0.3374
+      },
+      "_fail_mild": {
+        "n": 14013,
+        "pct": 22.7,
+        "admit_rate": 0.3547,
+        "baseline_admit": 0.3374
+      },
+      "_would_fail": {
+        "n": 5877,
+        "pct": 9.5,
+        "admit_rate": 0.5583,
+        "baseline_admit": 0.3374
+      }
+    },
+    "baseline_admit": 0.33744895975111805
+  },
+  "missing_as_signal": {
+    "gpa": {
+      "has_gpa_n": 57086,
+      "has_gpa_admit": 0.3274,
+      "no_gpa_n": 4630,
+      "no_gpa_admit": 0.4613,
+      "delta": 0.1339,
+      "signal_direction": "POSITIVE"
+    },
+    "language": {
+      "has_lang_n": 51333,
+      "has_lang_admit": 0.3426,
+      "no_lang_n": 10383,
+      "no_lang_admit": 0.312,
+      "delta": -0.0307,
+      "signal_direction": "NEGATIVE"
+    },
+    "bg_major": {
+      "has_bgm_n": 56432,
+      "has_bgm_admit": 0.313,
+      "no_bgm_n": 5284,
+      "no_bgm_admit": 0.5984,
+      "delta": 0.2854,
+      "signal_direction": "POSITIVE"
+    }
+  },
+  "cold_start": {
+    "combo_distribution": {
+      "zero_shot": 0,
+      "one_shot": 46225,
+      "few_shot_2_4": 5776,
+      "low_5_9": 296,
+      "medium_10_29": 29,
+      "ok_30_plus": 1
+    },
+    "total_combos": 52327,
+    "cold_start_fail_rate": 0.0966,
+    "cold_start_admit_rate": 0.3268
+  }
+}

@@ -141,11 +141,22 @@ FormValidator: 提交前校验 → ValidationError 列表
 
 ### 4.12 Experience UI
 
-科研/获奖/实习/论文四类，每类：`number_input`（数量 0–99）+ `text_input`（详情选填），数据写入 `user_history_data`。
+科研/获奖/实习/论文四类，每类：`number_input`（数量 0–99）+ `text_input`（详情选填），数据写入 `user_history_data`。提交时经 `TextPreprocessingAgent.validate_fields_batch()` 批量校验文本有效性。
 
 ### 4.13 Submit UI
 
-`st.button`，`disabled` 条件：外部传入 `disabled_status` 或 `submitted && !form_data_changed`（已提交且未变更时不重复提交）。
+`st.button`，`disabled` 条件：外部传入 `disabled_status` 或 `submitted && !form_data_changed`（已提交且未变更时不重复提交）。提交前设 `prediction_submit_lock` 防重复。
+
+### 4.14 CrossFacultyGuard
+
+- `quick_cross_faculty_check`：根据背景专业解析学部（调用 `BackgroundFacultyAgent`），与目标学院/专业学部对比，判断是否跨学部
+- `cross_faculty_confirm_dialog`：`@st.dialog` 弹窗，用户确认后设置 `cross_faculty_confirmed`、`pending_cross_faculty_prediction`
+- 已集成到 `ui/handler.py`：跨学部检测 → 弹窗确认 → 继续/取消预测
+
+### 4.15 WidgetHelpers
+
+- **SelectBoxHelper**：`render_cached_selectbox` 缓存选项、支持 `options_path_in_cache`、从 `user_history_data` 恢复默认；`render_multiselect` 封装多选
+- 复用 `school_alias_resolver` 处理院校别名展开
 
 ### 4.14 CrossFacultyGuard
 

@@ -8,7 +8,7 @@
 
 ```
 utils/
-├── __init__.py                  # 公共 API（21 项导出）
+├── __init__.py                  # 公共 API（26 项导出）
 ├── page_init.py                 # init_page()：页面初始化总入口
 ├── page_auth.py                 # handle_e2_login()：E2 OAuth 登录守卫
 ├── session_manager.py           # SessionManager + UserDataModel + PredictionResultModel
@@ -39,7 +39,7 @@ utils/
 │   ├── clipboard_guard.py       # 剪贴板防护
 │   └── watermark.py             # 水印 CSS 生成
 └── ui/                          # UI 工具
-    ├── main_page_header.py      # 页面标题栏（st.components.v2）
+    ├── main_page_header.py      # 页面标题栏（st.components.v2，含 script.js 前端交互）
     ├── main_page_button.py      # 通用按钮组件
     ├── ui_utils.py              # UI 辅助函数（load_component_assets）
     └── hk_shield_v2.py          # HK Shield 水印组件（st.components.v2）
@@ -54,7 +54,14 @@ init_page(page_title, current_page_path, ...)
     │
     ├── 2. CSS 注入
     │       ├── assets/style.css（全局样式）
-    │       └── additional_css_files（页面专属 CSS，如 HK 品牌样式）
+    │       └── additional_css_files（页面专属 CSS）
+    │           ├── assets/hk_style/00_tokens.css（设计 Token）
+    │           ├── assets/hk_style/20_header.css（页面标题栏）
+    │           ├── assets/hk_style/30_controls.css（表单控件）
+    │           ├── assets/hk_style/40_components.css（通用组件）
+    │           ├── assets/hk_style/50_ux.css（UX 微交互，2026-05 新增）
+    │           ├── assets/hk_style/51_trace.css（Trace 瀑布图动画，2026-05 新增）
+    │           └── assets/hk_style/52_timeline.css（时间线样式，2026-05 新增）
     │
     ├── 3. E2 登录守卫（handle_e2_login）
     │       ├── 生产环境：检查 session TTL（24h），过期重定向 E2 登录
@@ -113,7 +120,12 @@ init_page(page_title, current_page_path, ...)
 
 ### 4.5 interaction_events.py
 
-`log_interaction_event(name, payload)`：轻量匿名事件日志，用于产品反馈闭环。payload 自动 JSON-safe 序列化（非标类型转 str），通过结构化 logger 输出 `EVENT <name> | <json>` 格式。
+`log_interaction_event(name, payload)`：轻量匿名事件日志，用于产品反馈闭环。
+
+- **设计要点**：payload 自动 JSON-safe 序列化（非标类型转 str），通过结构化 logger 输出 `EVENT <name> | <json>` 格式
+- **典型事件**：`form_submitted`、`prediction_completed`、`ai_explanation_requested`、`ai_explanation_completed`、`ghost_input_accepted`、`lead_in_used`
+- **隐私**：不含用户身份信息，仅含 session_id 用于关联
+- **消费**：日志文件 → ELK/本地分析 → 产品迭代决策
 
 ### 4.6 auth/ 子包
 
@@ -146,9 +158,9 @@ init_page(page_title, current_page_path, ...)
 - **school_level_service**：院校等级查询、海内外判定、海外院校语言成绩加成
 - **university_difficulty_service**：23所学校难度分级（冲刺/适中/保底）
 
-### 4.11 school_alias_resolver.py
+### 4.11 school_alias_resolver.py（2026-05 新增）
 
-院校别名解析器，供 `form_bridge` 使用：
+院校别名解析器，供 `form_bridge` 和 `LeadInAgent` 使用，解决 LLM 提取结果中院校类别简称（"985"、"港3"）无法直接匹配表单选项的问题。
 
 | 函数 | 输入 | 输出 |
 |------|------|------|
@@ -156,7 +168,9 @@ init_page(page_title, current_page_path, ...)
 | `resolve_target_schools(alias)` | `"港3"` / `"港5"` / `"港8"` | 对应排名区间的港校列表 |
 | `is_school_category_alias(v)` | `"985"` / `"港3"` | True |
 
-数据源：`school_base_df`（985/211 分类）+ `cases.feather`（频次统计）+ `prediction_rules.json`（院校排序）。
+**数据源**：`school_base_df`（985/211 分类）+ `cases.feather`（频次统计）+ `prediction_rules.json`（院校排序）。
+
+**设计考量**：为什么用"频次最高的学校"而非"所有 985 学校"？背景院校需要单值填入表单——如果用户只说了 "985" 没具体说学校，用最常出现的 985 学校作为合理默认值比留空更好。目标院校则相反——"港3"展开为 3 所学校全量计算。
 
 ## 5. 依赖
 

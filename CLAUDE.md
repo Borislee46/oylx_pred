@@ -2,221 +2,253 @@
 
 ## Project
 
-**Signals** — Streamlit 多页留学选校预测系统，XDF 内部使用。核心是香港/新加坡/澳门/马来西亚硕士申请录取概率预测。同时包含 HR 看板模块和客服问卷模块。
+**Signals** — 香港/新加坡/澳门/马来西亚硕士留学录取概率预测系统，XDF 内部使用。同时包含 HR 看板、客服问卷、管理后台。
+
+> **工作准则**：每次设计、实现、验证都按 Senior DS 标准——Why before How、验证先于声称、量化不确定性、显式trade-off、面试可交付、懂得不做什么、吃透了用大白话讲出来。详见 `TODO_ROUTE.md`。
 
 ## Architecture
 
 ```
-pages/*.py          → 薄路由层，只做 import 和调用 render/main 入口函数
+pages/*.py          → 薄路由层
 src/pages/*/        → 页面实现：prediction/ 是核心，hr_*/ 是 HR 模块
-src/utils/          → 共享基础设施：auth/ ui/ session_manager page_init（19项公共 API）
-src/agent/          → LLM Agent 框架（DeepSeek，6 个 Agent：1 基类 + 3 业务 + 2 新业务）
-src/machine_learning_models/ → 离线 XGBoost 训练流水线
+src/utils/          → 共享基础设施（auth / ui / session / page_init）
+src/agent/          → LLM Agent 框架（DeepSeek，7个Agent）
+src/machine_learning_models/ → XGBoost 离线训练 + 预训练模型
 config/             → 所有配置的单一真相源
-src/machine_learning_models/ → 离线 XGBoost 训练流水线
-config/             → 所有配置的单一真相源
-.claude/            → settings.json（权限白名单）
 ```
 
-页面初始化链条：`init_page()` → 加载 Streamlit config → 注入 CSS → E2 登录守卫 → 水印 → 返回 user_info。
+页面初始化链条：`init_page()` → Streamlit config → CSS → E2 登录守卫 → 水印 → user_info。
+
+## DS 视角：数据全链路
+
+从原始输入到最终概率，数据经过以下变换。每一步都在引入假设和偏差。
+
+### 链路全景
+
+```
+原始表单输入（GPA、语言、院校、专业、经历文本）
+    │
+    ▼
+[1] 特征工程 → XGBoost 推理 → Platt 校准概率
+    │  问题：XGBoost 在稀疏区域外推不可控
+    │  模型从不知道"这个组合只有3个样本"
+    │
+    ▼
+[2] GPA 惩罚（二次函数，z-score）→ ×(1 - min(0.8, 0.15×z²))
+    │  假设：GPA 低于均值时录取概率非线性下降
+    │  问题：0.15 这个系数怎么来的？为什么是二次不是线性？
+    │
+    ▼
+[3] 语言惩罚（阶梯函数，6级 L1-L5 + L3.5）→ ×(1 - 0.05~0.95)
+    │  假设：语言成绩有硬门槛效应
+    │  问题：GPA 用二次、语言用阶梯——两种函数形式的 DS 理由是什么？
+    │  L3.5(0.20) 为 2026-05 新增，拆分 6.0-6.5 雅思密集区（89% 提交集中在此区间）
+    │
+    ▼
+[4] 跨专业惩罚 → ×(0.5~1.0)，按相似度线性插值
+    │  假设：相似度 <0.89 即触发
+    │  问题：0.89 的阈值从哪来的？为什么不是 0.85 或 0.92？
+    │
+    ▼
+[5] 跨学部惩罚 → ×0.3（硬编码学部规则）
+    │  假设：理→文 ≈ 不可能，理→工 ≈ 无障碍
+    │
+    ▼
+[6] 职业学位惩罚 → ×0.7（无实习申MBA）
+    │
+    ▼
+[7] 仲裁器衰减叠加 → 总惩罚上限 70%
+    │  问题：每层单独看都有道理，但没人设计过 5 层叠加后的联合效应
+    │
+    ▼
+[8] TF-IDF 文本提升 → +0~15%
+    │
+    ▼
+[9] 归一化 → floor 0.005 → 最终概率（0.005 ~ 0.72）
+```
+
+### 关键数据事实
+
+| 事实 | DS 含义 |
+|------|---------|
+| 61,716 行，52,327 个唯一组合 | 平均每个组合 1.18 个样本 |
+| 99.4% 组合 ≤4 个样本 | 模型在几乎所有输入上都是外推，不是内插 |
+| 只有 1 个组合有 30+ 样本 | 不存在"统计显著"的个案预测 |
+| 训练集 ECE 0.1155，偏差 -9pp | 内部都偏，外部更偏 |
+| 外部 ApplySquare 偏差 -67pp | 调整链惩罚被相似度匹配差异放大 7 倍 |
+| 模型从不输出 >0.72 | 仲裁器 70% 上限 + floor 效应 |
+| 6% 输入完全预测失败 | 无 GPA + 冷门本科 → 冷启动，fallback.py 提供 Wilson CI 级联兜底 |
+| Compass 17K 外部验证 | 第二外部数据集，质量存疑，已纳入 data_quality 测试套件 |
+| ApplySquare 507 外部验证 | 偏差 -67pp，惩罚链在外部数据上问题加速恶化 |
+
+## 已知问题 & 批判性审视
+
+### 1. 调整链：合理但失控
+
+5 层惩罚各自有 `DECISIONS.md` 的设计决策，但**联合效应从未被系统设计过**。DEC-007 加了衰减仲裁（0.85/layer）来缓解，但这是事后补救，不是事前设计。
+
+- ECE=0.1155 > 0.10 → 严重失校准
+- 分层偏差不均匀：C9 学生被低估 18pp，双非只被低估 6pp——惩罚对强者的伤害更大
+- 外部数据 -67pp 证明：当相似度匹配变差时，更多惩罚被触发，问题指数级放大
+
+**批判性问题**：5 层惩罚的设计逻辑是一层一层加上去的（"这里需要修正 GPA""这里需要修正语言"），但没有人在加了 5 层之后问"这些惩罚加在一起还是合理的吗？"
+
+### 2. 无真正的 held-out 测试集
+
+校准报告跑在训练数据上（cases.feather），外部数据验证只有 ApplySquare 507 行和 Compass 17K 行（质量存疑）。**我们不知道模型在真实新用户上的表现。** 这是最大的未知风险。
+
+### 3. 缺失值处理：有信息不用
+
+GPA/Language 缺失用 median imputation——DEC-010 说这是"保守"的。但缺失本身可能是信号：没填 GPA 的学生 GPA 可能确实低。用 median 反而给了这类学生一个"正常"的起点。
+
+### 4. BlindEvalAgent：prompt 陷阱
+
+LLM 盲评作为 benchmark 是有价值的，但：
+- 语言分数格式 bug（归一化 0.72 → LLM 理解为 IELTS 0.72）已修，但类似的 prompt 理解偏差可能还存在
+- LLM 从不自评 low confidence——高估自己的判断准确性
+- 40 样本盲评的 Pearson r=0.44——排序一致性偏弱，LLM 和模型在"谁更容易录取"上意见分歧大
+
+### 5. 全链路解释 ≠ 模型解释
+
+当前 `_adjustment_trace` 展示的是调整链做了什么，不是模型本身为什么给出某个 base prob。`boundary_explainer_design.md` 设计了这个但未实现。用户看到的是"因为我们惩罚了你的 GPA"，而不是"因为历史上类似背景的学生有 X% 被录取"。
 
 ## Module Index
 
-每个模块有自己的 `README.md` 作为路由入口——打开任一模块的 README 即可理解：模块职责、代码位置、数据流向、公共 API。
+| 模块 | 路径 | 职责 |
+|------|------|------|
+| Prediction | `src/pages/prediction/` | 预测核心：表单→推理→调整→展示 |
+| Agent | `src/agent/` | LLM Agent：lead-in / explain / blind_eval / application / pdf |
+| ML Models | `src/machine_learning_models/` | XGBoost 训练 + 预训练模型 |
+| HR Dashboard | `src/pages/hr_dashboard/` | HR 成本看板 |
+| HR Structure | `src/pages/hr_structure_dashboard/` | HR 架构看板 |
+| HR Profile | `src/pages/hr_profile/` | HR 绩效档案 |
+| CS Survey | `src/pages/cs_survey/` | 客服问卷 |
+| HK Dashboard | `src/pages/hk_dashboard/` | 香港运营仪表盘 |
+| School View | `src/pages/school_view/` | 学校画像 + What-If 模拟 |
+| Admin | `src/pages/admin/` | 管理后台 |
+| Algorithm Lab | `src/pages/algorithm_lab/` | 统计算法实验 |
+| Utils | `src/utils/` | 共享基础设施 |
+| Config | `config/` | 配置单一真相源 |
 
-| 模块 | 路径 | README |
-|------|------|--------|
-| Prediction（预测核心） | `src/pages/prediction/` | [README](src/pages/prediction/README.md) |
-| HR Dashboard（成本看板） | `src/pages/hr_dashboard/` | [README](src/pages/hr_dashboard/README.md) |
-| HR Structure Dashboard | `src/pages/hr_structure_dashboard/` | [README](src/pages/hr_structure_dashboard/README.md) |
-| HR Profile（绩效档案） | `src/pages/hr_profile/` | [README](src/pages/hr_profile/README.md) |
-| CS Survey（客服问卷） | `src/pages/cs_survey/` | [README](src/pages/cs_survey/README.md) |
-| Admin（管理后台） | `src/pages/admin/` | [README](src/pages/admin/README.md) |
-| Algorithm Lab（算法实验） | `src/pages/algorithm_lab/` | [README](src/pages/algorithm_lab/README.md) |
-| Utils（共享基础设施） | `src/utils/` | [README](src/utils/README.md) |
-| Agent（LLM Agent） | `src/agent/` | [README](src/agent/README.md) |
-| ML Models（离线训练） | `src/machine_learning_models/` | [README](src/machine_learning_models/README.md) |
-| Config（配置） | `config/` | [README](config/README.md) |
+每个模块有 `README.md` 作为路由入口。
 
-## Auth
-
-企业 E2 OAuth。`src/utils/page_auth.py` 是每页都会调用的守卫。
-
-- **生产环境**：session TTL 24 小时，过期重定向到 E2 登录页，回调验证签名后种 session
-- **开发环境**：`config/dev_config.json` 设 `DEBUG_MODE: true` 绕过 E2，注入假用户
-- 权限分三级：全局白名单 → 模块权限 → 细粒度功能权限（HR 专用）
-- 管理员：`cuiting3`、`lijiapeng8`
-
-## Config System
-
-`APP_ENV` 环境变量选择 profile（默认 `test`），从 `config/app_config.json` 加载对应环境的配置。所有 API key、URL 都在那里。
-
-关键配置文件：
-- `app_config.json` — E2 OAuth key、OpenAI API key/URL
-- `auth_config.json` — 白名单（~730人）、模块权限、维护模式开关
-- `dev_config.json` — DEBUG_MODE + debug 用户身份
-- `prediction_rules.json` — 23所学校难度排序、国家-学校映射
-- `gpa_conversion_rules.json` — 北大/中科大/上交等校的 GPA 换算规则
-
-## Prediction Pipeline (核心)
+## Prediction Pipeline
 
 离线训练 → 模型部署 → 在线推理，三段式：
 
-1. **离线**：`src/machine_learning_models/train.py` — XGBoost + CalibratedClassifierCV(sigmoid, prefit)，monotonic constraints，Optuna 可选调参
-2. **在线推理**：`src/pages/prediction/flow/pipeline.py` — 表单规范化 → 特征构建 → 并行 XGBoost 推理 → 多阶段概率调整 → 合并去重 → 展示
-3. **概率调整链**：GPA/语言偏差惩罚 → 跨专业惩罚(×0.5) → 跨学院惩罚(×0.3) → 职业学位降级 → TF-IDF 文本提升
+1. **离线**：`src/machine_learning_models/train.py` — XGBoost + CalibratedClassifierCV(sigmoid, prefit)，monotonic constraints，Optuna 可选
+2. **在线推理**：`src/pages/prediction/flow/pipeline.py` — 规范化 → 特征构建 → XGBoost推理 → 调整链 → 合并去重
+3. **概率调整链**：GPA惩罚 → 语言惩罚 → 跨专业(×0.5) → 跨学部(×0.3) → 职业学位 → 仲裁器 → 文本提升
 
-预训练模型以 `.ubj` 格式存储在 `src/machine_learning_models/pre-trained_models/`。
+预训练模型：`.ubj` 格式在 `src/machine_learning_models/pre-trained_models/`。
 
-## Agent System（全链路）
+调整链参数修改后必须重跑：`pytest tests/data_quality/test_calibration_report.py -s`
 
-基于 Shared Context → Agent Registry → Orchestrator 三层架构。不依赖 LangChain，所有 Agent 继承 `BaseAgent`。通过 `Orchestrator.run()` 统一调用，Agent 懒注册。
+## Agent System
 
-### 架构
-
-```
-pages/hk.py
-    │
-    ├── render_lead_in_panel() → LeadInAgent
-    │     └── apply_lead_in_to_form() → 表单自动填充 + expander 折叠/展开
-    │
-    ├── [Expander: 预测表单] → XGBoost 预测管道
-    │
-    └── _render_ai_explanation() → ExplainAgent
-```
-
-### 核心组件
-
-| 组件 | 文件 | 说明 |
-|------|------|------|
-| `StudentContext` | `context.py` | 全链路共享上下文，从模糊到精确逐步填充 |
-| `AgentRegistry` | `registry.py` | Agent 注册中心（dict wrapper），懒注册 |
-| `AgentOrchestrator` | `orchestrator.py` | 编排路由：取 Agent → 调用 → 写回 Context + audit history |
-| `BaseAgent` | `base_agent.py` | Agent 基类：OpenAI client、内存+文件缓存、重试、三级 JSON 修复（直接 parse → 轻量正则 → API repair）、结构化日志（REQ START/OK/TIMEOUT） |
-| `LeadInAgent` | `lead_in_agent.py` | 前期 NLU：碎片文本 → 结构化背景 + 方向性评估 + 追问（支持多轮增量） |
-| `ExplainAgent` | `explain_agent.py` | 中期解释：预测结果 + 背景 → 自然语言解读（overview / strengths / concerns / summary） |
-| `apply_lead_in_to_form` | `form_bridge.py` | **桥接层**：extracted_background → 表单 widget state，含模糊匹配（精确→子串→difflib）+ 四种经历映射 |
-| `BoundaryCaseAgent` | `boundary_case_agent.py` | 相似/跨专业推荐平衡决策（已有） |
-| `TextPreprocessingAgent` | `text_preprocessing_agent.py` | 背提文本质量评估（已有） |
-| `BackgroundFacultyAgent` | `background_faculty_agent.py` | 学部推断（已有） |
-
-### 数据流
+不依赖 LangChain。Shared Context → Registry → Orchestrator 三层架构。所有 Agent 继承 `BaseAgent`。
 
 ```
-顾问自由文本
-    │
-    ▼
-LeadInAgent.run(StudentContext)
-    │  ├── extracted_background（university, major, gpa, language, target_schools, paper...）
-    │  ├── quick_assessment（初步评估）
-    │  └── suggested_questions（追问）
-    │
-    ▼
-apply_lead_in_to_form(ctx, session_manager)
-    │  ├── 模糊匹配院校/专业 → 设 widget state
-    │  ├── 直接设 GPA / 语言 / 目标 / 经历 widget state
-    │  └── 写 lead_in_form_summary → expander 标题
-    │
-    ▼
-[Expander 预测表单] — 核验/修改 → 提交 → XGBoost 预测管道
-    │
-    ▼
-ExplainAgent.run(StudentContext)
-    │  ├── overview（整体评估）
-    │  ├── strengths / concerns
-    │  └── summary
+LeadInAgent（碎片文本→结构化背景+追问）
+    → apply_lead_in_to_form（桥接：背景→表单widget state）
+    → [预测表单]
+    → ExplainAgent（结果→自然语言解读）
 ```
 
-### API 日志格式
+8 个 Agent：BaseAgent、LeadInAgent、ExplainAgent、BoundaryCaseAgent、TextPreprocessingAgent、BackgroundFacultyAgent、**BlindEvalAgent**（AI盲评benchmark）、ApplicationAgent（申请策略生成）、PDFAIAgent（PDF报告文案）。
 
-所有 Agent 输出结构化日志，便于排查超时/解析失败：
+三级 JSON 容错：`json.loads` → 正则修复(<1ms) → API repair(~9s)。
 
-```
-[Agent名] REQ START | prompt=489chars ~196tk | max_tokens=300 | timeout=15s
-[Agent名] → attempt 1/3
-[Agent名] REQ OK | total=7667ms | attempts=1 | output=627chars ~263tk | usage: prompt=222 completion=281
-[Agent名] PARSE: JSON decode failed | error=... → lightweight fix succeeded
-```
+## Auth
 
-三级 JSON 容错：`json.loads` → `_fix_json_lightweight`（正则修缺逗号/尾部逗号，<1ms）→ `_repair_json_once`（API 兜底，~9s）。
+企业 E2 OAuth。`DEBUG_MODE: true` 绕过。权限三级：白名单 → 模块 → 细粒度（HR专用）。
 
 ## Key Commands
 
 ```bash
-# 运行应用
-streamlit run main.py
-
-# 运行测试（stress tests 需要 psutil，如未安装需 --ignore=tests/stress）
-pytest tests --ignore=tests/stress -q
-
-# 离线训练模型
-python -m src.machine_learning_models.train --data-path data/cases.feather
-
-# 预计算 major 相似度（需要 E5 模型）
-python scripts/precompute_similarities.py
-
-# 训练文本提升模型
-python scripts/train_text_tfidf.py
-
-# 生成录取相关性矩阵（Monte Carlo 用）
-python scripts/generate_correlation_matrix.py
+streamlit run main.py                              # 启动
+pytest tests --ignore=tests/stress -q               # 常规测试
+pytest tests/data_quality/ -v                       # 预测质量诊断（62 tests）
+pytest tests/unit/ -v                               # 单元测试（12 tests）
+python -m src.machine_learning_models.train \
+  --data-path data/cases.feather                    # 离线训练
+python scripts/precompute_similarities.py            # 预计算major相似度
+python scripts/train_text_tfidf.py                   # 训练文本提升模型
+python scripts/generate_correlation_matrix.py        # Monte Carlo相关性矩阵
 ```
+
+## Data Quality Tests (62 tests)
+
+| 文件 | 覆盖 |
+|------|------|
+| `test_calibration_report.py` | ECE + Brier + 分层校准 |
+| `test_corner_cases.py` (22) | GPA/语言边界、极端组合、跨专业/学院 |
+| `test_prediction_rigor.py` (32) | 单调性、稳定性、阈值、TOEFL等价、无悬崖 |
+| `test_external_data_validation.py` (3) | Compass/ApplySquare校准 + 分布漂移 |
+| `test_ai_blind_eval.py` | LLM盲评 vs 模型对比 |
+| `test_model_outputs.py` (2) | 标准高低分范围 |
+| `test_sparsity_stress.py` | 稀疏度扫描 + 压测 + LLM对比 |
+| `test_fallback.py` | Fallback 级联兜底测试 |
+
+## Test Suite
+
+62 data_quality tests + 12 unit tests + 2 integration + 1 stress + 20+ root-level tests。
+
+| 文件 | 覆盖 |
+|------|------|
+| `test_probability_adjuster.py` | GPA/语言惩罚全路径（2026-05 新增） |
+| `test_hk_state_machine.py` | 步骤条状态机 + UI phase 转换（2026-05 新增） |
+| `test_form_validator.py` | 表单校验全路径（2026-05 新增） |
+| `test_experience_text_validator.py` | 背提文本校验（2026-05 新增） |
+| `test_explain_profiles.py` | ExplainAgent 4 种 profile 分类（2026-05 新增） |
+| `test_signal_scorer.py` | TF-IDF 信号评分（2026-05 新增） |
+| `test_similarity_adjuster.py` | 相似度调整规则（2026-05 新增） |
+| `test_competitiveness.py` | 竞争力评分（2026-05 新增） |
+| `test_school_view.py` | 学校视图（2026-05 新增） |
 
 ## Important Constraints
 
-- **没有数据库**：所有数据都是 `.feather` 文件 + Streamlit cache。`st.cache_data(ttl=600~3600)` 做数据缓存，`st.cache_resource` 做模型缓存
-- **Streamlit 无文件监听**：`.streamlit/config.toml` 设了 `fileWatcherType = "none"`，改代码后需要手动刷新
-- **XGBoost monotonic constraints**：GPA、语言成绩、四段经历计数全部强制单调递增，训练时注意不要破坏
-- **生产部署在 80 端口**：`server.port = 80`，`server.address = "0.0.0.0"`，XSFR/CORS 关闭（前面有反向代理）
-- **session_state 是唯一状态载体**：通过 `SessionManager` 强类型存取，没有 disk persistence
-- **CSS 分两层**：全局样式（`style.css`）+ Signals 品牌设计系统（`hk_style/00~40_*.css`，按加载顺序叠加）
-- **实验性模块**：`src/pages/prediction/` 下有 3 个从已删除 commit 恢复的实验目录（school_combination_optimizer_algorithm/、admission_probability_calculator_components/、page_components/pdf_generation/），所有文件有 `# !!EXPERIMENTAL:` 标记，grep 可定位。详见 `src/pages/prediction/EXPERIMENTAL_ROUTE.md`
+- **没有数据库**：所有数据 `.feather` + Streamlit cache。st.cache_data(ttl=600~3600)，st.cache_resource 做模型缓存
+- **Streamlit 无文件监听**：改代码需手动刷新
+- **XGBoost monotonic constraints**：GPA、语言、四段经历全强制单调递增
+- **生产 80 端口**：`server.address = "0.0.0.0"`，XSFR/CORS 关闭
+- **session_state 唯一状态载体**：SessionManager 强类型存取
+- **CSS 两层**：全局 `style.css` + Signals 品牌设计系统
+- **实验性模块**：`school_combination_optimizer_algorithm/` 等 3 个目录从已删除 commit 恢复，所有文件有 `# !!EXPERIMENTAL:` 标记。详见 `src/pages/prediction/EXPERIMENTAL_ROUTE.md`
 
-## Governance Rules
+## Governance
 
-### Rule 1: Maximum File Size
+### Rule 1: 文件不超过 300 行
 
-- 单个 `.py` 文件不超过 **300 行**。
-- 接近 ~280 行时必须拆分为更小的专注模块。
-- **豁免**：
-  - 第三方/vendored 代码（如 `src/pages/algorithm_lab/pymoo/`）
-  - 配置文件常量（需在文件顶部标注 `# CONFIG_CONSTANTS_ALLOWED_LARGE`）
-- **拆分方式**：将相关函数提取到新子模块（如 450行 `processor.py` → `processor_core.py` + `processor_helpers.py`），公共 API 从 `__init__.py` 暴露。
+接近 280 行拆分为子模块。豁免：第三方/vendored 代码、配置常量（标注 `# CONFIG_CONSTANTS_ALLOWED_LARGE`）。
 
-### Rule 2: Public API via __init__.py
+### Rule 2: 公共 API 通过 __init__.py
 
-- 每个模块（有 `__init__.py` 的目录）必须通过 `__init__.py` 的 `__all__` 暴露公共 API。
-- "公共" = 任何包外代码 import 的名字。
-- **模式**：
-  ```python
-  from .submodule import public_function, PublicClass
-  __all__ = ["public_function", "PublicClass"]
-  ```
-- 内部辅助函数（`_` 前缀）不出现在 `__all__` 中。
-- **已合规**：`admin`、`agent`、`cs_survey`、`hr_dashboard`、`hr_profile`、`hr_structure_dashboard`、`machine_learning_models`、`utils`
+```python
+from .submodule import public_function
+__all__ = ["public_function"]
+```
 
-### Rule 3: Module README Required
+### Rule 3: 每个模块必须有 README.md
 
-- `src/pages/`、`src/utils/`、`src/agent/`、`src/machine_learning_models/`、`config/` 下的每个一级模块必须有 `README.md`。
-- 含 3+ 个非 `__init__.py` 文件的子目录也应有 README。
-- README 遵循 `src/pages/prediction/README.md` 模板：
-  1. 模块概述（1段）
-  2. 目录结构（ASCII tree）
-  3. 端到端流程（ASCII 流程图）
-  4. 核心组件（每个附简要说明）
-  5. 数据流
-  6. 子模块文档链接
-  7. 依赖
+一级模块 + 3+ 文件的子目录。模板：概述 → 目录结构 → 流程 → 组件 → 数据流 → 子模块 → 依赖。
 
-### 当前超过300行的文件（已拆分 nivo.py，剩余待处理）
+### 超行文件（待处理）
 
-| 文件 | 行数 | 备注 |
-|------|------|------|
-| `hr_profile/ui/charts.py` | 730 | 按图表类型拆分 |
-| `cs_survey/ui/theme_css.py` | 680 | CSS 模板常量 |
-| `headcount.py` | 623 | KPI 计算拆分 |
-| `json_api.py` | 441 | API 端点拆分 |
-| `form_state.py` | 396 | 状态管理拆分 |
-| `orchestrator.py` | 393 | 编排逻辑拆分 |
-| `processor.py` | 381 | 处理器拆分 |
-| `hr_dashboard/config.py` | 357 | 标注 CONFIG_CONSTANTS_ALLOWED_LARGE |
+| 文件 | 行数 |
+|------|------|
+| `hr_profile/ui/charts.py` | 730 |
+| `cs_survey/ui/theme_css.py` | 680 |
+| `headcount.py` | 623 |
+| `json_api.py` | 441 |
+| `form_state.py` | 396 |
+| `orchestrator.py` | 393 |
+| `processor.py` | 381 |
+| `hr_dashboard/config.py` | 357 (标注豁免) |
+
+## 相关文件
+
+- `TODO_ROUTE.md` — 4 大 TODO + DS 行为准则 + Senior DS 面试视角
+- `DECISIONS.md` — 14 个设计决策的正反论证
+- `reports/prediction_diagnosis_20260513.md` — 全景诊断报告
+- `MODEL_CARD.md` — 模型能力/局限声明

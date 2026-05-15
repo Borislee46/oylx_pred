@@ -16,15 +16,32 @@ def _prepare_categorical_columns(df, columns):
 
 @st.cache_data(show_spinner=False)
 def load_raw_cases_data(
-    path: str = "src/machine_learning_models/data/cases_min.feather",
+    path: str = "src/machine_learning_models/data/cases.feather",
 ):
+    import numpy as np
+
     df = pd.read_feather(path)
+    has_ielts = "ielts" in df.columns
+    has_toefl = "toefl" in df.columns
+    if has_ielts and has_toefl:
+        ielts = df["ielts"]
+        toefl = df["toefl"]
+        df["language_score"] = np.maximum(ielts.fillna(0) / 9.0, toefl.fillna(0) / 120.0)
+        both_missing = ielts.isna() & toefl.isna()
+        if both_missing.any():
+            df.loc[both_missing, "language_score"] = np.nan
+    elif has_ielts:
+        df["language_score"] = df["ielts"].fillna(0) / 9.0
+    elif has_toefl:
+        df["language_score"] = df["toefl"].fillna(0) / 120.0
+    else:
+        df["language_score"] = np.nan
     return df
 
 
 @st.cache_data(show_spinner=False)
 def load_global_categories_dataframe(
-    path: str = "src/machine_learning_models/data/cases_min.feather",
+    path: str = "src/machine_learning_models/data/cases.feather",
 ):
     _cases_df = load_raw_cases_data(path=path)
     if _cases_df.empty:
