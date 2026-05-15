@@ -188,20 +188,18 @@ def render_thought_bubble_with_wait_pulse(
 def render_lead_in_ghost(session_manager) -> str:
     """渲染 ghost textarea（浏览器端 DeepSeek 自动补全组件）。
 
-    架构关键：必须在 @st.fragment 外部渲染。
-      原因：ghost_text_area 内部使用 st.components.v1.declare_component 创建自定义
-      iframe 组件。如果放在 fragment 内，fragment 重跑会销毁并重建 iframe，
-      导致用户正在编辑的文本丢失。
-
-    数据流：
-      用户输入 → ghost_text_area 返回文本 → session_state["lead_in_ghost_text"]
-      → 用户点击 iframe 内的 AI 按钮 → ghost_text_area 设置 _ghost_analyze_text
-      → render_lead_in_actions 消费
+    DEBUG_MODE 下跳过：ghost 组件会将 API key 明文发送到浏览器端，
+    演示环境不需要此功能，用户直接填写表单即可。
     """
+    from src.utils.auth.dev_config_loader import load_dev_config
+
     ctx: StudentContext = st.session_state.get("lead_in_ctx", StudentContext())
     ghost_key = "lead_in_ghost_text"
     if ghost_key not in st.session_state:
         st.session_state[ghost_key] = ctx.raw_input or ""
+
+    if load_dev_config().get("DEBUG_MODE", False):
+        return st.session_state[ghost_key]
 
     lead_in_consumed = session_manager.get("lead_in_consumed", False)
     placeholder = "✓ 已完成。粘贴新文本开始下一轮预测..." if lead_in_consumed else ""
@@ -210,7 +208,7 @@ def render_lead_in_ghost(session_manager) -> str:
     returned = ghost_text_area(
         api_key=api_key,
         api_base_url="https://api.deepseek.com/beta",
-        api_model="deepseek-v4-flash",  # 轻量模型，快速补全
+        api_model="deepseek-v4-flash",
         placeholder=placeholder,
         initial_text=st.session_state[ghost_key],
         height=148,
