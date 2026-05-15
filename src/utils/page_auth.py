@@ -18,102 +18,21 @@ page_auth_logger = setup_logger("page3", "prediction")
 
 
 def _render_access_gate(access_code: str) -> None:
-    from pathlib import Path
-
-    st.markdown(
-        """
-        <style>
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap");
-
-        header[data-testid="stHeader"] { display: none !important; }
-        div[data-testid="stToolbar"] { display: none !important; }
-        footer { display: none !important; }
-        #MainMenu { display: none !important; }
-
-        .stApp {
-            background: #0f172a !important;
-            font-family: "Inter", "Noto Sans SC", sans-serif;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    c1, c2, c3 = st.columns([1, 1.2, 1])
-    with c2:
-        st.markdown("<br style='line-height:14vh'>", unsafe_allow_html=True)
-
-        logo_path = Path("assets/product_logo.png")
-        if logo_path.exists():
-            import base64 as _b64
-
-            logo_b64 = _b64.b64encode(logo_path.read_bytes()).decode()
-            st.markdown(
-                f'<div style="text-align:center;margin-bottom:8px">'
-                f'<img src="data:image/png;base64,{logo_b64}" '
-                f'style="width:48px;height:48px;border-radius:12px;box-shadow:0 0 18px rgba(6,182,212,0.2)">'
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-
-        st.markdown(
-            '<div style="text-align:center;font-size:1.3rem;font-weight:700;'
-            'color:#e2e8f0;margin-bottom:2px">Signals</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div style="text-align:center;font-size:0.78rem;color:#64748b;margin-bottom:24px">'
-            "Admission Intelligence · 留学择校系统</div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div style="text-align:center;font-size:0.75rem;color:#475569;margin-bottom:8px">'
-            "演示版本 · 请输入访问码</div>",
-            unsafe_allow_html=True,
-        )
-
+    @st.dialog("Signals — 演示版本", width="small")
+    def _gate_dialog():
+        st.caption("请输入访问码以继续")
         user_input = st.text_input(
-            "访问码",
-            type="password",
-            placeholder="访问码",
-            label_visibility="collapsed",
-            key="demo_access_input",
+            "访问码", type="password", placeholder="访问码",
+            label_visibility="collapsed", key="demo_access_input",
         )
-
-        st.markdown(
-            """
-            <style>
-            div[data-testid="stTextInput"] input {
-                background: rgba(255,255,255,0.04) !important;
-                border: 1px solid rgba(255,255,255,0.10) !important;
-                border-radius: 10px !important;
-                color: #e2e8f0 !important;
-                text-align: center !important;
-                letter-spacing: 0.12em !important;
-                height: 42px !important;
-            }
-            div[data-testid="stTextInput"] input:focus {
-                border-color: rgba(6,182,212,0.45) !important;
-                box-shadow: 0 0 0 3px rgba(6,182,212,0.07) !important;
-            }
-            div[data-testid="stTextInput"] input::placeholder {
-                color: #475569 !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
-
         if user_input:
             if user_input.strip() == access_code:
                 st.session_state._demo_access_granted = True
                 st.rerun()
             else:
-                st.markdown(
-                    '<div style="text-align:center;color:#f87171;font-size:0.76rem;margin-top:8px">'
-                    "访问码错误，请重试</div>",
-                    unsafe_allow_html=True,
-                )
+                st.error("访问码错误")
+
+    _gate_dialog()
 
 
 def handle_e2_login(
