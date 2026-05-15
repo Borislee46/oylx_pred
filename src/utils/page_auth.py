@@ -18,148 +18,102 @@ page_auth_logger = setup_logger("page3", "prediction")
 
 
 def _render_access_gate(access_code: str) -> None:
-    import base64 as _b64
-    from pathlib import Path as _Path
-
-    _logo_path = _Path("assets/product_logo.png")
-    _logo_b64 = ""
-    if _logo_path.exists():
-        _logo_b64 = _b64.b64encode(_logo_path.read_bytes()).decode()
+    from pathlib import Path
 
     st.markdown(
-        f"""
+        """
         <style>
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap");
 
-        /* 隐藏 Streamlit chrome */
-        header[data-testid="stHeader"] {{ display: none !important; }}
-        div[data-testid="stToolbar"] {{ display: none !important; }}
-        footer {{ display: none !important; }}
-        #MainMenu {{ display: none !important; }}
-        section[data-testid="stSidebar"] {{ display: none !important; }}
+        header[data-testid="stHeader"] { display: none !important; }
+        div[data-testid="stToolbar"] { display: none !important; }
+        footer { display: none !important; }
+        #MainMenu { display: none !important; }
 
-        .stApp {{
-            background: radial-gradient(ellipse at 50% 30%, rgba(6,182,212,0.08) 0%, transparent 60%), #0f172a !important;
-        }}
-        .stMain .block-container {{
-            display: flex !important; flex-direction: column !important;
-            justify-content: center !important; align-items: center !important;
-            min-height: 100vh !important; padding-top: 0 !important; padding-bottom: 0 !important;
-        }}
-        .stMain .block-container > div:first-child {{
-            width: 100% !important; max-width: 420px !important;
-        }}
-        /* 隐藏 "made with streamlit" */
-        .stMain .block-container > div:last-child {{
-            display: none !important;
-        }}
-
-        .gate-card {{
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(6,182,212,0.15);
-            border-radius: 20px;
-            padding: 44px 36px 36px;
-            text-align: center;
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            box-shadow: 0 0 60px rgba(6,182,212,0.06), 0 20px 60px rgba(0,0,0,0.4);
+        .stApp {
+            background: #0f172a !important;
             font-family: "Inter", "Noto Sans SC", sans-serif;
-        }}
-
-        .gate-logo {{
-            width: 52px; height: 52px; margin: 0 auto 18px;
-            border-radius: 13px;
-            box-shadow: 0 0 20px rgba(6,182,212,0.18);
-        }}
-
-        .gate-title {{
-            font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-            font-size: 1.45rem; font-weight: 700;
-            background: linear-gradient(135deg, #e2e8f0 0%, #06b6d4 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 0 0 4px; letter-spacing: -0.02em;
-        }}
-
-        .gate-subtitle {{
-            font-size: 0.8rem; color: #64748b; margin: 0 0 4px; font-weight: 400;
-        }}
-        .gate-subtitle-zh {{
-            font-size: 0.8rem; color: #475569; margin: 0 0 24px; font-weight: 400;
-        }}
-
-        .gate-divider {{
-            width: 36px; height: 1px; margin: 0 auto 20px;
-            background: linear-gradient(90deg, transparent, rgba(6,182,212,0.35), transparent);
-        }}
-
-        .gate-label {{
-            font-size: 0.76rem; color: #64748b; margin-bottom: 10px; letter-spacing: 0.04em;
-        }}
-
-        /* 输入框 */
-        .gate-card input {{
-            width: 100% !important; height: 42px !important;
-            background: rgba(255,255,255,0.04) !important;
-            border: 1px solid rgba(255,255,255,0.10) !important;
-            border-radius: 10px !important;
-            color: #e2e8f0 !important;
-            font-size: 0.92rem !important;
-            text-align: center !important;
-            letter-spacing: 0.14em !important;
-            padding: 0 14px !important;
-            box-sizing: border-box !important;
-            transition: border-color 0.25s, box-shadow 0.25s !important;
-            outline: none !important;
-        }}
-        .gate-card input:focus {{
-            border-color: rgba(6,182,212,0.45) !important;
-            box-shadow: 0 0 0 3px rgba(6,182,212,0.07) !important;
-        }}
-        .gate-card input::placeholder {{
-            color: #475569 !important; letter-spacing: 0.04em !important;
-        }}
-        .gate-card label {{
-            display: none !important;
-        }}
-
-        /* error */
-        .gate-error {{
-            margin-top: 10px; color: #f87171; font-size: 0.76rem;
-            font-family: "Inter", "Noto Sans SC", sans-serif;
-        }}
+        }
         </style>
-
-        <div class="gate-card">
-        <img class="gate-logo" src="data:image/png;base64,{_logo_b64}" alt="Signals">
-        <div class="gate-title">Signals</div>
-        <div class="gate-subtitle">Admission Intelligence</div>
-        <div class="gate-subtitle-zh">留学择校系统</div>
-        <div class="gate-divider"></div>
-        <div class="gate-label">演示版本 · 请输入访问码</div>
         """,
         unsafe_allow_html=True,
     )
 
-    user_input = st.text_input(
-        "访问码",
-        type="password",
-        placeholder="访问码",
-        label_visibility="collapsed",
-        key="demo_access_input",
-    )
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c2:
+        st.markdown("<br style='line-height:14vh'>", unsafe_allow_html=True)
 
-    if user_input:
-        if user_input.strip() == access_code:
-            st.session_state._demo_access_granted = True
-            st.rerun()
-        else:
+        logo_path = Path("assets/product_logo.png")
+        if logo_path.exists():
+            import base64 as _b64
+
+            logo_b64 = _b64.b64encode(logo_path.read_bytes()).decode()
             st.markdown(
-                '<div class="gate-error">访问码错误，请重试</div>',
+                f'<div style="text-align:center;margin-bottom:8px">'
+                f'<img src="data:image/png;base64,{logo_b64}" '
+                f'style="width:48px;height:48px;border-radius:12px;box-shadow:0 0 18px rgba(6,182,212,0.2)">'
+                f"</div>",
                 unsafe_allow_html=True,
             )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            '<div style="text-align:center;font-size:1.3rem;font-weight:700;'
+            'color:#e2e8f0;margin-bottom:2px">Signals</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div style="text-align:center;font-size:0.78rem;color:#64748b;margin-bottom:24px">'
+            "Admission Intelligence · 留学择校系统</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            '<div style="text-align:center;font-size:0.75rem;color:#475569;margin-bottom:8px">'
+            "演示版本 · 请输入访问码</div>",
+            unsafe_allow_html=True,
+        )
+
+        user_input = st.text_input(
+            "访问码",
+            type="password",
+            placeholder="访问码",
+            label_visibility="collapsed",
+            key="demo_access_input",
+        )
+
+        st.markdown(
+            """
+            <style>
+            div[data-testid="stTextInput"] input {
+                background: rgba(255,255,255,0.04) !important;
+                border: 1px solid rgba(255,255,255,0.10) !important;
+                border-radius: 10px !important;
+                color: #e2e8f0 !important;
+                text-align: center !important;
+                letter-spacing: 0.12em !important;
+                height: 42px !important;
+            }
+            div[data-testid="stTextInput"] input:focus {
+                border-color: rgba(6,182,212,0.45) !important;
+                box-shadow: 0 0 0 3px rgba(6,182,212,0.07) !important;
+            }
+            div[data-testid="stTextInput"] input::placeholder {
+                color: #475569 !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if user_input:
+            if user_input.strip() == access_code:
+                st.session_state._demo_access_granted = True
+                st.rerun()
+            else:
+                st.markdown(
+                    '<div style="text-align:center;color:#f87171;font-size:0.76rem;margin-top:8px">'
+                    "访问码错误，请重试</div>",
+                    unsafe_allow_html=True,
+                )
 
 
 def handle_e2_login(
