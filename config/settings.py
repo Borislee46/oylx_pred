@@ -43,6 +43,9 @@ def load_app_config_raw() -> dict:
         value = os.environ.get(env_name)
         if value:
             cfg[key] = value
+    # 统一 key：GHOST（幽灵补全）未单独配置时复用主 AI key
+    if not cfg.get("GHOST_API_KEY") and cfg.get("OPEN_AI_API_KEY"):
+        cfg["GHOST_API_KEY"] = cfg["OPEN_AI_API_KEY"]
     return cfg
 
 

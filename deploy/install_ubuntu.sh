@@ -70,13 +70,14 @@ DEMO_USERS_PATH=$USERS_FILE
 STREAMLIT_SERVER_ADDRESS=127.0.0.1
 STREAMLIT_SERVER_PORT=8501
 
-# 个人 AI key（部署后请编辑 .env 填入，或安装前用环境变量传入）
+# 个人 AI key（统一一个 key，OPENAI 与 GHOST 幽灵补全共用）
 OPENAI_API_KEY=
 OPENAI_BASE_URL=https://api.deepseek.com/v1/chat/completions
-OPENAI_MODEL=deepseek-chat
-GHOST_API_KEY=
+OPENAI_MODEL=deepseek-v4-flash
+# GHOST_API_KEY 可省略，缺省复用 OPENAI_API_KEY
+# GHOST_API_KEY=
 GHOST_API_BASE_URL=https://api.deepseek.com/beta
-GHOST_API_MODEL=deepseek-chat
+GHOST_API_MODEL=deepseek-v4-flash
 EOF
   chmod 600 "$ENV_FILE"
   echo "    .env 已生成（权限 600）"

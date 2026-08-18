@@ -3,7 +3,7 @@
   "prod": {
     "STREAMLIT_APP_BASE_URL": "https://your-domain.example.com/",
     "OPEN_AI_BASE_URL": "https://api.deepseek.com/v1/chat/completions",
-    "OPEN_AI_MODEL": "deepseek-chat",
+    "OPEN_AI_MODEL": "deepseek-v4-flash",
     "OPEN_AI_API_KEY": "",
     "ENABLE_LEAD_IN_AGENT": true,
     "HARNESS_ENABLED": false,
@@ -13,7 +13,7 @@
       "explain": "ui"
     },
     "GHOST_API_BASE_URL": "https://api.deepseek.com/beta",
-    "GHOST_API_MODEL": "deepseek-chat",
+    "GHOST_API_MODEL": "deepseek-v4-flash",
     "GHOST_API_KEY": ""
   }
 }
