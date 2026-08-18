@@ -15,11 +15,6 @@ SESSION_TTL_SECONDS = 24 * 3600
 
 
 def session_secret() -> str:
-    """Return the mandatory session-signing secret.
-
-    Fails closed: if no secret is configured the app must not start serving.
-    Use the same value for Streamlit's own cookie secret on the server.
-    """
     secret = os.environ.get("DEMO_COOKIE_SECRET") or os.environ.get(
         "STREAMLIT_SERVER_COOKIE_SECRET"
     )

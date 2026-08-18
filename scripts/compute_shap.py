@@ -1,233 +1,236 @@
 """
-SHAP 全量模型解释 — GPU 加速
+Compute SHAP values for the production XGBoost model.
 
-Outputs:
-  reports/shap_values.npz        — SHAP values (N × F)
-  reports/shap_summary.json      — feature importance + interaction top-k
-  reports/shap_beeswarm.png      — global beeswarm
-  reports/shap_interaction.png   — top-feature interaction matrix
+Generates reports/v10_shap_explanation/shap_values.npz and
+reports/v10_shap_explanation/shap_summary.json,
+consumed by reports/v10_shap_explanation/run_shap_analysis.py.
+
+Method: shap.TreeExplainer with tree_path_dependent (required because
+the model uses enable_categorical=True).
+
+Usage:
+    python scripts/compute_shap.py
+    python scripts/compute_shap.py --n-eval 5000 --n-interaction 1000
 """
 
 from __future__ import annotations
 
+import argparse
+import gzip
 import json
 import sys
 import time
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
-import xgboost as xgb
+import shap
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "src" / "machine_learning_models"))
+sys.path.insert(0, str(PROJECT_ROOT / "src" / "ml"))
 
-from src.machine_learning_models.feature_engineer import FeatureEngineer
-
-# ── Paths ──────────────────────────────────────────────
-MODEL_PATH = (
-    PROJECT_ROOT
-    / "src/machine_learning_models/pre-trained_models/xgboost_20260316_092608.ubj"
-)
-CASES_PATH = PROJECT_ROOT / "src/machine_learning_models/data/cases.feather"
-OUT_DIR = PROJECT_ROOT / "reports"
-
-N_BACKGROUND = 3000   # background samples for TreeExplainer
-N_EVAL = 10000        # SHAP values to compute
-N_INTERACTION_TOP = 12  # interaction matrix dim
-
-SEED = 42
+N_EVAL = 10000
+N_INTERACTION = 2000
+RANDOM_SEED = 42
 
 
-def load_data() -> pd.DataFrame:
-    print(f"Loading cases from {CASES_PATH}")
-    df = pd.read_feather(CASES_PATH)
-    print(f"  Raw: {len(df)} rows, {len(df.columns)} cols")
-    target = df["admitted"].astype(int)
-    return df, target
+def load_newest_model() -> tuple[object, str]:
+    """Load newest XGBoost booster from pre-trained_models/."""
+    import xgboost as xgb
+
+    model_dir = PROJECT_ROOT / "src" / "ml" / "pre-trained_models"
+    candidates = sorted(
+        model_dir.glob("xgboost_*.ubj.gz"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not candidates:
+        candidates = sorted(
+            model_dir.glob("xgboost_*.ubj"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    if not candidates:
+        raise FileNotFoundError(f"No xgboost model found in {model_dir}")
+
+    path = str(candidates[0])
+    booster = xgb.Booster()
+    if path.endswith(".gz"):
+        with gzip.open(path, "rb") as f:
+            booster.load_model(bytearray(f.read()))
+    else:
+        booster.load_model(path)
+
+    print(f"Loaded model: {Path(path).name}")
+    return booster, Path(path).stem
 
 
-def engineer(df: pd.DataFrame) -> np.ndarray:
-    print("Feature engineering...")
+def load_evaluation_data(n_eval: int) -> tuple[np.ndarray, np.ndarray, list[str], list]:
+    """Load training data, apply FeatureEngineer, sample n_eval rows.
+
+    Returns: X_eval (np array), eval_indices, feature_names, df_sample.
+    """
+    import pandas as pd
+
+    from src.ml.data_config import IRRELEVANT_COLUMNS, TARGET_COLUMN
+    from src.ml.feature_engineer import FeatureEngineer
+
+    data_path = PROJECT_ROOT / "src" / "ml" / "data" / "cases.feather"
+    df = pd.read_feather(data_path)
+    print(f"Training data: {len(df)} rows")
+
     engineer = FeatureEngineer()
-    X_df = engineer.fit_transform(df)
-    target_cols = ["admitted", "admitted_y", "admitted_x"]
-    for c in target_cols:
-        if c in X_df.columns:
-            X_df = X_df.drop(columns=[c])
-    print(f"  Engineered: {X_df.shape[0]} rows, {X_df.shape[1]} features")
-    return X_df
+    df_eng = engineer.fit_transform(df)
+    print(f"Engineered features: {len(df_eng.columns)} columns")
+
+    feature_cols = [c for c in df_eng.columns if c not in IRRELEVANT_COLUMNS and c != TARGET_COLUMN]
+    X = df_eng[feature_cols].copy()
+    feature_names = list(X.columns)
+    print(f"Feature columns ({len(feature_names)}): {feature_names}")
+
+    # Sample evaluation rows
+    rng = np.random.default_rng(RANDOM_SEED)
+    n_total = len(df)
+    eval_indices = rng.choice(n_total, size=min(n_eval, n_total), replace=False)
+
+    # Build X_eval: categorical as integer codes, numerical as float64
+    X_subset = X.iloc[eval_indices]
+    col_arrays = []
+    for c in feature_names:
+        col_dtype = str(X_subset[c].dtype)
+        if col_dtype == "category":
+            col_arrays.append(X_subset[c].cat.codes.values.astype(np.float64))
+        else:
+            col_arrays.append(X_subset[c].values.astype(np.float64))
+    X_eval = np.column_stack(col_arrays)
+    print(f"Evaluation data: {X_eval.shape}")
+
+    return X_eval, eval_indices.tolist(), feature_names, df.iloc[eval_indices]
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Compute SHAP values for XGBoost model")
+    parser.add_argument("--n-eval", type=int, default=N_EVAL)
+    parser.add_argument("--n-interaction", type=int, default=N_INTERACTION)
+    args = parser.parse_args()
+
+    # ── Load model ─────────────────────────────────────────────────
+    booster, model_name = load_newest_model()
+
+    # ── Load evaluation data ───────────────────────────────────────
+    X_eval, eval_indices, feature_names, df_sample = load_evaluation_data(args.n_eval)
+
+    # ── SHAP TreeExplainer (tree_path_dependent) ───────────────────
+    print(f"\nComputing SHAP values for {len(X_eval)} samples × {len(feature_names)} features...")
     t0 = time.time()
-
-    # 1. Load model
-    print("Loading XGBoost booster...")
-    booster = xgb.Booster()
-    booster.load_model(str(MODEL_PATH))
-    print(f"  Model: {booster.num_features()} features, {booster.num_boosted_rounds()} trees")
-
-    # 2. Load & engineer data
-    df, target = load_data()
-    X_df = engineer(df)
-    # Encode categorical columns as int codes (what XGBoost enable_categorical uses internally)
-    for col in X_df.columns:
-        if X_df[col].dtype.name == "category":
-            X_df[col] = X_df[col].cat.codes.astype(np.float32)
-    feature_names = list(X_df.columns)
-    X_all = X_df.values.astype(np.float32)
-
-    # 3. Sample background & eval
-    rng = np.random.default_rng(SEED)
-    n_total = len(X_all)
-    idx_all = np.arange(n_total)
-    rng.shuffle(idx_all)
-
-    bg_idx = idx_all[:N_BACKGROUND]
-    eval_idx = idx_all[N_BACKGROUND : N_BACKGROUND + N_EVAL]
-
-    X_bg = X_all[bg_idx]
-    X_eval = X_all[eval_idx]
-    y_eval = target.iloc[eval_idx].values
-    print(f"  Background: {len(X_bg)} samples")
-    print(f"  Eval: {len(X_eval)} samples (admission rate: {y_eval.mean():.3f})")
-
-    # 4. SHAP TreeExplainer
-    print("Building TreeExplainer (GPU backend if available)...")
-    import shap
 
     explainer = shap.TreeExplainer(
         booster,
-        feature_perturbation="tree_path_dependent",  # required: XGBoost cat splits unsupported with interventional
+        feature_perturbation="tree_path_dependent",
     )
-    ev = explainer.expected_value
-    if hasattr(ev, "__len__") and len(ev.shape) > 0:
-        ev = float(ev[0]) if ev.shape[0] == 1 else float(np.mean(ev))
-    print(f"  Expected value (base): {ev:.4f}")
+    expected_value_raw = explainer.expected_value
+    if hasattr(expected_value_raw, "__len__") and not isinstance(expected_value_raw, float):
+        expected_value = float(np.asarray(expected_value_raw).flat[0])
+    else:
+        expected_value = float(expected_value_raw)
+    print(f"  Expected value (log-odds): {expected_value:.6f}")
 
-    # 5. Compute SHAP values
-    print(f"Computing SHAP for {len(X_eval)} samples...")
-    t_shap = time.time()
     shap_values = explainer.shap_values(X_eval)
-    shap_secs = time.time() - t_shap
-    print(f"  Done in {shap_secs:.1f}s ({len(X_eval) / shap_secs:.0f} samples/s)")
+    print(f"  SHAP values shape: {shap_values.shape}")
 
-    # 6. Global feature importance
+    elapsed_shap = time.time() - t0
+    print(f"  Compute time: {elapsed_shap:.1f}s")
+
+    # ── Interactions (subset) ──────────────────────────────────────
+    n_interact = min(args.n_interaction, len(X_eval))
+    print(f"\nComputing SHAP interactions for {n_interact} samples...")
+    t1 = time.time()
+
+    X_interact = X_eval[:n_interact]
+    shap_interactions = explainer.shap_interaction_values(X_interact)
+    print(f"  Interactions shape: {shap_interactions.shape}")
+
+    elapsed_interact = time.time() - t1
+    print(f"  Interaction compute time: {elapsed_interact:.1f}s")
+
+    # ── Feature importance ranking ─────────────────────────────────
     mean_abs_shap = np.abs(shap_values).mean(axis=0)
     order = np.argsort(-mean_abs_shap)
-
-    importance = []
-    for rank, fi in enumerate(order[:30]):
-        importance.append(
+    feature_importance = []
+    for rank, idx in enumerate(order, 1):
+        feature_importance.append(
             {
-                "rank": rank + 1,
-                "feature": feature_names[fi],
-                "mean_abs_shap": round(float(mean_abs_shap[fi]), 6),
+                "rank": rank,
+                "feature": feature_names[idx],
+                "mean_abs_shap": round(float(mean_abs_shap[idx]), 6),
             }
         )
 
-    print("\nTop 15 features by |SHAP|:")
-    for imp in importance[:15]:
-        print(f"  {imp['rank']:2d}. {imp['feature']:<35s} {imp['mean_abs_shap']:.6f}")
-
-    # 7. SHAP interaction values for top features
-    print(f"\nComputing SHAP interactions (top {N_INTERACTION_TOP} features)...")
-    t_int = time.time()
-    n_inter_top = min(N_INTERACTION_TOP, len(feature_names))
-    top_feat_idx = order[:n_inter_top]
-    shap_interaction = explainer.shap_interaction_values(X_eval[:3000])
-    int_secs = time.time() - t_int
-    print(f"  Done in {int_secs:.1f}s")
-
-    # Extract interaction matrix — shape (n_samples, n_features, n_features) → mean over samples
-    inter_vals = shap_interaction if shap_interaction.ndim == 3 else shap_interaction[0]
-    mean_abs_inter = np.abs(inter_vals).mean(axis=0)
-    interactions_top = []
-    for i in range(n_inter_top):
-        for j in range(i + 1, n_inter_top):
-            interactions_top.append(
-                {
-                    "feature_a": feature_names[top_feat_idx[i]],
-                    "feature_b": feature_names[top_feat_idx[j]],
-                    "mean_abs_interaction": round(float(mean_abs_inter[top_feat_idx[i], top_feat_idx[j]]), 6),
-                }
-            )
-    interactions_top.sort(key=lambda x: -x["mean_abs_interaction"])
-
-    print("\nTop 10 interactions:")
-    for inter in interactions_top[:10]:
-        print(
-            f"  {inter['feature_a']} × {inter['feature_b']}: "
-            f"{inter['mean_abs_interaction']:.6f}"
+    categorical_share = (
+        sum(
+            fi["mean_abs_shap"]
+            for fi in feature_importance
+            if any(k in fi["feature"] for k in ["university", "major"])
         )
+        / mean_abs_shap.sum()
+        * 100
+    )
+    print("\n  Feature importance:")
+    for fi in feature_importance:
+        bar = "█" * int(fi["mean_abs_shap"] / mean_abs_shap.max() * 30)
+        print(f"    {fi['rank']:2d}. {fi['feature']:<25s} {fi['mean_abs_shap']:.4f}  {bar}")
+    print(f"  Categorical share: {categorical_share:.1f}%")
 
-    # 8. Case studies: highest and lowest SHAP individual predictions
-    shap_sum = shap_values.sum(axis=1)
+    # ── Top interactions ───────────────────────────────────────────
+    mean_abs_interaction = np.abs(shap_interactions).mean(axis=0)
+    np.fill_diagonal(mean_abs_interaction, 0)
+    top_n = 15
+    top_pairs = []
+    for i in range(len(feature_names)):
+        for j in range(i + 1, len(feature_names)):
+            top_pairs.append((mean_abs_interaction[i, j], i, j))
+    top_pairs.sort(reverse=True)
 
-    top_positive = np.argsort(-shap_sum)[:3]   # SHAP pushes most positive
-    top_negative = np.argsort(shap_sum)[:3]     # SHAP pushes most negative
+    top_interactions = []
+    for val, i, j in top_pairs[:top_n]:
+        top_interactions.append(
+            {
+                "rank": len(top_interactions) + 1,
+                "pair": [feature_names[i], feature_names[j]],
+                "mean_abs_interaction": round(float(val), 6),
+            }
+        )
+    print("\n  Top interactions:")
+    for ti in top_interactions[:5]:
+        print(f"    {ti['pair'][0]} × {ti['pair'][1]}: {ti['mean_abs_interaction']:.4f}")
 
-    case_studies = {"pushed_up": [], "pushed_down": []}
-    for label, indices in [("pushed_up", top_positive), ("pushed_down", top_negative)]:
-        for i, idx in enumerate(indices):
-            sample = df.iloc[eval_idx[idx]]
-            sample_shap = shap_values[idx]
-            top5 = np.argsort(-np.abs(sample_shap))[:5]
-            drivers = [
-                {
-                    "feature": feature_names[j],
-                    "shap_value": round(float(sample_shap[j]), 6),
-                    "direction": "positive" if sample_shap[j] > 0 else "negative",
-                }
-                for j in top5
-            ]
-            case_studies[label].append(
-                {
-                    "gpa": float(sample.get("gpa", np.nan)),
-                    "language": float(sample.get("language_score", np.nan)),
-                    "major": str(sample.get("target_major", "")),
-                    "admitted": int(sample["admitted"]),
-                    "base_expected": round(float(ev), 4),
-                    "shap_sum": round(float(shap_sum[idx]), 4),
-                    "top5_drivers": drivers,
-                }
-            )
-
-    # 9. Save everything
-    print("\nSaving outputs...")
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    # SHAP values + feature matrix + interaction (for shap.plots)
+    # ── Save ───────────────────────────────────────────────────────
+    npz_path = PROJECT_ROOT / "reports" / "shap_values.npz"
     np.savez_compressed(
-        OUT_DIR / "shap_values.npz",
+        npz_path,
         values=shap_values,
-        eval_indices=eval_idx,
         feature_names=np.array(feature_names),
         X_eval=X_eval,
-        inter_values=inter_vals[:2000] if interactions_top else None,
+        eval_indices=np.array(eval_indices),
     )
-    print(f"  shap_values.npz: values={shap_values.shape}, X_eval={X_eval.shape}")
+    print(f"\n[OK] {npz_path}  ({npz_path.stat().st_size / 1024:.0f} KB)")
 
-    # Summary JSON
     summary = {
-        "model": str(MODEL_PATH.name),
-        "n_background": N_BACKGROUND,
-        "n_eval": N_EVAL,
-        "expected_value": float(ev),
-        "compute_time_shap_s": round(shap_secs, 1),
-        "compute_time_interaction_s": round(int_secs, 1),
-        "feature_importance": importance,
-        "top_interactions": interactions_top[:20],
-        "case_studies": case_studies,
+        "model": model_name,
+        "n_background": 0,  # tree_path_dependent uses training data implicitly
+        "n_eval": len(X_eval),
+        "expected_value": round(expected_value, 6),
+        "compute_time_shap_s": round(elapsed_shap, 1),
+        "compute_time_interaction_s": round(elapsed_interact, 1),
+        "feature_importance": feature_importance,
+        "top_interactions": top_interactions,
     }
-    with open(OUT_DIR / "shap_summary.json", "w", encoding="utf-8") as f:
+    summary_path = PROJECT_ROOT / "reports" / "shap_summary.json"
+    with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
-    print("  shap_summary.json")
+    print(f"[OK] {summary_path}")
 
-    total_secs = time.time() - t0
-    print(f"\nTotal time: {total_secs:.0f}s")
+    print(f"\nDone. Total time: {time.time() - t0:.0f}s")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # 文本背景质量加成 (Text Uplift) 模块 API
 
-**路径**: `src/pages/prediction/result_modifier/providers/logit_uplift`
+**路径**: `src/pages/prediction/result_modifier/logit_uplift`
 
 本模块基于 **增量建模 (Uplift Modeling)** 理论，通过分析用户输入的背景文本（科研、奖项、实习、论文），计算其相对于基础条件（GPA、学校等）的录取概率“纯增量”。
 
@@ -69,3 +69,9 @@ $$\Delta Logit = \beta + \sum (w_k \cdot S'_k) + \sum (u_k \cdot S'_k \cdot \ln(
 - **计算效率**: 放弃 LLM，采用 NumPy 向量化与字节级熵计算，处理延迟 < 5ms。
 - **缓存机制**: 使用 `lru_cache` 缓存同一会话内的文本特征，避免重复计算。
 - **稳定性**: 具备多层异常捕获，若权重或向量器加载失败，自动退化为零加成，不影响主流程。
+
+---
+
+> **维护人**: lijiapeng8@xdf.cn
+> **版本**: v2.6
+> **最后更新**: 2026-06-07 — 修正模块路径（移除多余的 providers/）；目录结构同步

@@ -26,7 +26,6 @@ def _apply_session(payload: dict) -> None:
     nickname = str(payload.get("nickname", username))
     st.session_state.demo_username = username
     st.session_state.demo_nickname = nickname
-    # Compatibility aliases used by legacy rendering code.
     st.session_state.e2_user_email = f"{username}@demo.local"
     st.session_state.e2_user_nickname = nickname
     st.session_state.is_authenticated = True
@@ -34,10 +33,6 @@ def _apply_session(payload: dict) -> None:
 
 
 def require_login() -> str | None:
-    """Ensure the current Streamlit page is backed by a valid signed cookie.
-
-    Returns the logged-in username, or None when the caller should stop.
-    """
     if st.session_state.get("is_authenticated") and st.session_state.get("demo_username"):
         return str(st.session_state.demo_username)
     if _restore_from_cookie():

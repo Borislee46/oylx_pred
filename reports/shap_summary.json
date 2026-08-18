@@ -1,378 +1,137 @@
 {
-  "model": "xgboost_20260316_092608.ubj",
-  "n_background": 3000,
+  "model": "xgboost_20260810_133230.ubj",
+  "n_background": 0,
   "n_eval": 10000,
-  "expected_value": 0.020728742196572406,
-  "compute_time_shap_s": 3.6,
-  "compute_time_interaction_s": 22.2,
+  "expected_value": -0.004398,
+  "compute_time_shap_s": 106.8,
+  "compute_time_interaction_s": 311.9,
   "feature_importance": [
     {
       "rank": 1,
-      "feature": "background_major",
-      "mean_abs_shap": 1.199665
+      "feature": "background_university",
+      "mean_abs_shap": 0.920272
     },
     {
       "rank": 2,
       "feature": "target_major",
-      "mean_abs_shap": 0.707467
+      "mean_abs_shap": 0.553901
     },
     {
       "rank": 3,
-      "feature": "background_university",
-      "mean_abs_shap": 0.702826
+      "feature": "background_major",
+      "mean_abs_shap": 0.424035
     },
     {
       "rank": 4,
       "feature": "target_university",
-      "mean_abs_shap": 0.64973
+      "mean_abs_shap": 0.402057
     },
     {
       "rank": 5,
       "feature": "gpa",
-      "mean_abs_shap": 0.529819
+      "mean_abs_shap": 0.330545
     },
     {
       "rank": 6,
       "feature": "award_count",
-      "mean_abs_shap": 0.281168
+      "mean_abs_shap": 0.144501
     },
     {
       "rank": 7,
       "feature": "research_count",
-      "mean_abs_shap": 0.275054
+      "mean_abs_shap": 0.130082
     },
     {
       "rank": 8,
       "feature": "internship_count",
-      "mean_abs_shap": 0.159678
+      "mean_abs_shap": 0.078379
     },
     {
       "rank": 9,
       "feature": "language_score",
-      "mean_abs_shap": 0.112945
+      "mean_abs_shap": 0.063514
     },
     {
       "rank": 10,
       "feature": "paper_count",
-      "mean_abs_shap": 0.087861
+      "mean_abs_shap": 0.05382
     }
   ],
   "top_interactions": [
     {
-      "feature_a": "background_university",
-      "feature_b": "target_university",
-      "mean_abs_interaction": 0.175026
+      "rank": 1,
+      "pair": ["target_major", "background_university"],
+      "mean_abs_interaction": 0.093299
     },
     {
-      "feature_a": "background_major",
-      "feature_b": "target_major",
-      "mean_abs_interaction": 0.164365
+      "rank": 2,
+      "pair": ["target_university", "background_university"],
+      "mean_abs_interaction": 0.088425
     },
     {
-      "feature_a": "background_major",
-      "feature_b": "target_university",
-      "mean_abs_interaction": 0.160196
+      "rank": 3,
+      "pair": ["target_major", "background_major"],
+      "mean_abs_interaction": 0.066087
     },
     {
-      "feature_a": "background_major",
-      "feature_b": "background_university",
-      "mean_abs_interaction": 0.138722
+      "rank": 4,
+      "pair": ["target_university", "background_major"],
+      "mean_abs_interaction": 0.062862
     },
     {
-      "feature_a": "background_university",
-      "feature_b": "gpa",
-      "mean_abs_interaction": 0.094807
+      "rank": 5,
+      "pair": ["background_university", "background_major"],
+      "mean_abs_interaction": 0.054599
     },
     {
-      "feature_a": "target_major",
-      "feature_b": "gpa",
-      "mean_abs_interaction": 0.092331
+      "rank": 6,
+      "pair": ["target_university", "target_major"],
+      "mean_abs_interaction": 0.045033
     },
     {
-      "feature_a": "target_major",
-      "feature_b": "target_university",
-      "mean_abs_interaction": 0.084725
+      "rank": 7,
+      "pair": ["target_major", "gpa"],
+      "mean_abs_interaction": 0.043494
     },
     {
-      "feature_a": "target_major",
-      "feature_b": "background_university",
-      "mean_abs_interaction": 0.084448
+      "rank": 8,
+      "pair": ["background_university", "gpa"],
+      "mean_abs_interaction": 0.038177
     },
     {
-      "feature_a": "background_university",
-      "feature_b": "award_count",
-      "mean_abs_interaction": 0.048687
+      "rank": 9,
+      "pair": ["background_major", "gpa"],
+      "mean_abs_interaction": 0.027049
     },
     {
-      "feature_a": "background_major",
-      "feature_b": "gpa",
-      "mean_abs_interaction": 0.046182
+      "rank": 10,
+      "pair": ["target_university", "gpa"],
+      "mean_abs_interaction": 0.022784
     },
     {
-      "feature_a": "target_university",
-      "feature_b": "gpa",
-      "mean_abs_interaction": 0.037949
+      "rank": 11,
+      "pair": ["background_university", "award_count"],
+      "mean_abs_interaction": 0.022486
     },
     {
-      "feature_a": "background_university",
-      "feature_b": "research_count",
-      "mean_abs_interaction": 0.03733
+      "rank": 12,
+      "pair": ["background_major", "research_count"],
+      "mean_abs_interaction": 0.017845
     },
     {
-      "feature_a": "background_major",
-      "feature_b": "research_count",
-      "mean_abs_interaction": 0.035193
+      "rank": 13,
+      "pair": ["target_major", "award_count"],
+      "mean_abs_interaction": 0.016446
     },
     {
-      "feature_a": "target_major",
-      "feature_b": "research_count",
-      "mean_abs_interaction": 0.033581
+      "rank": 14,
+      "pair": ["target_major", "research_count"],
+      "mean_abs_interaction": 0.016425
     },
     {
-      "feature_a": "target_major",
-      "feature_b": "award_count",
-      "mean_abs_interaction": 0.033117
-    },
-    {
-      "feature_a": "target_university",
-      "feature_b": "award_count",
-      "mean_abs_interaction": 0.031021
-    },
-    {
-      "feature_a": "target_major",
-      "feature_b": "internship_count",
-      "mean_abs_interaction": 0.030588
-    },
-    {
-      "feature_a": "background_major",
-      "feature_b": "award_count",
-      "mean_abs_interaction": 0.029629
-    },
-    {
-      "feature_a": "background_university",
-      "feature_b": "internship_count",
-      "mean_abs_interaction": 0.029406
-    },
-    {
-      "feature_a": "target_university",
-      "feature_b": "research_count",
-      "mean_abs_interaction": 0.021894
+      "rank": 15,
+      "pair": ["target_university", "research_count"],
+      "mean_abs_interaction": 0.016409
     }
-  ],
-  "case_studies": {
-    "pushed_up": [
-      {
-        "gpa": NaN,
-        "language": NaN,
-        "major": "Master of Fine Arts in Creative Media",
-        "admitted": 0,
-        "base_expected": 0.0207,
-        "shap_sum": 22.7316,
-        "top5_drivers": [
-          {
-            "feature": "background_university",
-            "shap_value": 11.783058,
-            "direction": "positive"
-          },
-          {
-            "feature": "background_major",
-            "shap_value": 8.590132,
-            "direction": "positive"
-          },
-          {
-            "feature": "target_university",
-            "shap_value": 1.386844,
-            "direction": "positive"
-          },
-          {
-            "feature": "target_major",
-            "shap_value": 1.374357,
-            "direction": "positive"
-          },
-          {
-            "feature": "research_count",
-            "shap_value": 0.785207,
-            "direction": "positive"
-          }
-        ]
-      },
-      {
-        "gpa": NaN,
-        "language": NaN,
-        "major": "Master of Arts in Applied Social Sciences",
-        "admitted": 0,
-        "base_expected": 0.0207,
-        "shap_sum": 22.3,
-        "top5_drivers": [
-          {
-            "feature": "background_university",
-            "shap_value": 11.6638,
-            "direction": "positive"
-          },
-          {
-            "feature": "background_major",
-            "shap_value": 8.527079,
-            "direction": "positive"
-          },
-          {
-            "feature": "target_university",
-            "shap_value": 1.434634,
-            "direction": "positive"
-          },
-          {
-            "feature": "target_major",
-            "shap_value": 1.099163,
-            "direction": "positive"
-          },
-          {
-            "feature": "research_count",
-            "shap_value": 0.76731,
-            "direction": "positive"
-          }
-        ]
-      },
-      {
-        "gpa": NaN,
-        "language": NaN,
-        "major": "Master of Social Sciences in Sustainability and Development Studies",
-        "admitted": 0,
-        "base_expected": 0.0207,
-        "shap_sum": 22.0706,
-        "top5_drivers": [
-          {
-            "feature": "background_university",
-            "shap_value": 11.854844,
-            "direction": "positive"
-          },
-          {
-            "feature": "background_major",
-            "shap_value": 8.244967,
-            "direction": "positive"
-          },
-          {
-            "feature": "target_university",
-            "shap_value": 1.382537,
-            "direction": "positive"
-          },
-          {
-            "feature": "target_major",
-            "shap_value": 1.075418,
-            "direction": "positive"
-          },
-          {
-            "feature": "research_count",
-            "shap_value": 0.598068,
-            "direction": "positive"
-          }
-        ]
-      }
-    ],
-    "pushed_down": [
-      {
-        "gpa": 1.98,
-        "language": NaN,
-        "major": "Master of Science in AI and Digital Media",
-        "admitted": 0,
-        "base_expected": 0.0207,
-        "shap_sum": -7.1688,
-        "top5_drivers": [
-          {
-            "feature": "target_major",
-            "shap_value": -2.927568,
-            "direction": "negative"
-          },
-          {
-            "feature": "gpa",
-            "shap_value": -2.335148,
-            "direction": "negative"
-          },
-          {
-            "feature": "background_university",
-            "shap_value": -0.858679,
-            "direction": "negative"
-          },
-          {
-            "feature": "background_major",
-            "shap_value": -0.506654,
-            "direction": "negative"
-          },
-          {
-            "feature": "award_count",
-            "shap_value": -0.250339,
-            "direction": "negative"
-          }
-        ]
-      },
-      {
-        "gpa": 3.2,
-        "language": NaN,
-        "major": "Master of Science in Data Science and Machine Learning",
-        "admitted": 0,
-        "base_expected": 0.0207,
-        "shap_sum": -7.0208,
-        "top5_drivers": [
-          {
-            "feature": "target_major",
-            "shap_value": -2.462149,
-            "direction": "negative"
-          },
-          {
-            "feature": "target_university",
-            "shap_value": -1.626466,
-            "direction": "negative"
-          },
-          {
-            "feature": "background_major",
-            "shap_value": -0.664162,
-            "direction": "negative"
-          },
-          {
-            "feature": "background_university",
-            "shap_value": -0.581272,
-            "direction": "negative"
-          },
-          {
-            "feature": "gpa",
-            "shap_value": -0.540596,
-            "direction": "negative"
-          }
-        ]
-      },
-      {
-        "gpa": 2.73,
-        "language": NaN,
-        "major": "Master of Science in Financial Engineering",
-        "admitted": 1,
-        "base_expected": 0.0207,
-        "shap_sum": -6.816,
-        "top5_drivers": [
-          {
-            "feature": "target_major",
-            "shap_value": -1.834293,
-            "direction": "negative"
-          },
-          {
-            "feature": "background_major",
-            "shap_value": -1.597433,
-            "direction": "negative"
-          },
-          {
-            "feature": "gpa",
-            "shap_value": -1.36378,
-            "direction": "negative"
-          },
-          {
-            "feature": "background_university",
-            "shap_value": -0.862335,
-            "direction": "negative"
-          },
-          {
-            "feature": "research_count",
-            "shap_value": -0.541856,
-            "direction": "negative"
-          }
-        ]
-      }
-    ]
-  }
+  ]
 }

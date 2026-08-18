@@ -53,7 +53,7 @@ cached: false
 
 ## 7. 与相关方法的取舍
 
-- **R语言 (`survey` 包) / Stata (`svy` 前缀)**：统计思想与 SPSS 完全一致。R 和 Stata 在处理多重插补后的复杂抽样、特定的重复复制权重（Replicate Weights）及前沿因果推断模型时，生态更完善、更灵活。
+- **R语言 (`survey` 包) / Stata (`svy` 前缀)**：统计思想与 SPSS 完全一致。R 和 Stata 在处理**多重插补后的复杂抽样（survey + MI）**、特定的重复复制权重（Replicate Weights）及前沿因果推断模型时，生态更完善、更灵活。SPSS 复杂抽样模块与多重插补模块的整合有限，复杂设计下需缺失值处理时建议转 R（`mice` + `survey` 联合）或 Stata（`mi svy` 体系）。
 - **SPSS Complex Samples**：优势在于基于向导的 `.csplan` 计划体系，对菜单用户友好，常规的描述、广义线性模型（GLM）和生存分析功能已高度一体化。
 
 ## 8. 实现速查

@@ -181,7 +181,7 @@ def run_numba_acceleration_test():
             st.image(
                 img_nb_p.astype(np.float32) / max_iter,
                 caption="Mandelbrot (Numba Parallel)",
-                use_container_width=True,
+                width="stretch",
             )
 
     with test_tabs[2]:
@@ -259,7 +259,7 @@ def run_numba_acceleration_test():
             st.image(
                 sobel_res / (sobel_res.max() + 1e-6),
                 caption="Sobel Filter Output",
-                use_container_width=True,
+                width="stretch",
             )
 
             small = test_img[:64, :64]

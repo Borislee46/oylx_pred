@@ -1,9 +1,15 @@
 # V10: SHAP 模型解释报告
 
-**日期**：2026-05-14  
-**方法**：SHAP TreeExplainer (`tree_path_dependent`) × XGBoost Booster (375 trees, 10 features)  
+**日期**：2026-05-14（初版）→ **2026-05-24（更新：新模型 590 trees）**
+
+> ⚠️ **数据声明**：本实验的 SHAP 分析基于 `cases.feather`（模型训练数据）的 5,000 个评估样本。SHAP 值使用 `tree_path_dependent` 模式，受特征相关性影响可能高估 categorical 特征的独立 |SHAP|（估计偏差 15-20%）。SHAP 只解释 base model，不覆盖调整链。
+
+**方法**：SHAP TreeExplainer (`tree_path_dependent`) × XGBoost Booster  
+**模型（旧）**：375 trees, depth=10 | **模型（新）**：590 trees, depth=14 (`xgboost_20260516_192513.ubj.gz`)  
 **硬件**：RTX 5090 Laptop GPU, 24GB VRAM  
-**样本**：10,000 评估样本 + 2,000 交互分析样本（随机抽取）  
+**样本**：5,000 评估样本 + 1,000 交互分析样本（随机抽取）  
+
+> **2026-05-24 更新**：`compute_shap.py` 已重建，SHAP 值在新模型上重新计算。Categorical 特征仍占 70.3%（旧：70.2%），特征排名无重大变化。校准参数已自动从 booster 属性提取（a=-3.72, b=2.23）。  
 
 ---
 
@@ -198,7 +204,7 @@ V5 已经证明 ECE 的恶化来自调整链（base model ECE=0.0263，full chai
 | `shap_v10_report.json` | 完整指标（特征重要性+交互+分位数） | 结构化数据，可程序化消费 |
 | `run_shap_analysis.py` | 可复现脚本 | `python reports/v10_shap_explanation/run_shap_analysis.py` |
 
-**前置依赖**：先跑 `python scripts/compute_shap.py` 生成 `reports/shap_values.npz` 和 `reports/shap_summary.json`。
+**前置依赖**：先跑 `python scripts/compute_shap.py` 生成 `reports/v10_shap_explanation/shap_values.npz` 和 `reports/v10_shap_explanation/shap_summary.json`。
 
 ---
 

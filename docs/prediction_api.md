@@ -8,7 +8,7 @@
 
 ## 1. 内部输入类型 (`PredictionInput`)
 
-代码定义：`src/pages/prediction/core/types.py`（由 `src/pages/prediction/prediction_preparation/preparer.py::validate_and_clean_input` 产出）
+代码定义：`src/pages/prediction/core/types.py`（由 `src/pages/prediction/flow/preparer.py::validate_and_clean_input` 产出）
 
 - `background_university: str`
 - `background_major: str`
@@ -18,7 +18,7 @@
 - `language_score: float`（可空，归一化到 0~1）
 - `language_type: str`（可选）
 - `internship_count / research_count / award_count / paper_count: int`
-- `school_level: str`（可选；由 `src/pages/prediction/prediction_preparation/preparer.py::prepare_input_data` 注入）
+- `school_level: str`（可选；由 `src/pages/prediction/flow/preparer.py::prepare_input_data` 注入）
 - `experience_details: dict[str, str]`
 
 **注意**：`faculty`、`background_major_original` 等字段会存在于“运行期输入 dict”中，但不属于 `PredictionInput` 数据类。
@@ -115,15 +115,17 @@
 页面管线负责串联资源加载、并行推理、推荐生成与后处理：
 
 1.  **风险预警**: 通过 `cross_faculty_guard.py` 识别潜在的跨学院申请风险。
-2.  **准备输入 (Preparation)**：`src/pages/prediction/prediction_preparation/preparer.py`（含 `form_normalizer.py` 归一化）。
+2.  **准备输入 (Preparation)**：`src/pages/prediction/flow/preparer.py`（含 `form_normalizer.py` 归一化）。
 3.  **核心推理 (Recall & Execution)**：
     - 在 `flow/run_prediction.py::run_single_prediction` 中进行 **混合召回 (Recall)**（E5 语义 + Fuzz 字符匹配）。
-    - 之后调用 `prediction_execution.executor.PredictionExecutor` 进行 **精排推理**。
+    - 之后调用 `flow/prediction_executor.py::PredictionExecutor` 进行 **精排推理**。
 4.  **结果平衡与初筛 (Processing)**：
     - 在 `flow/processor.py` 中通过 `SingleResultProcessor` 完成元数据注入、**目标特定语言惩罚**、相似度偏置修正。
     - 利用 `BoundaryCaseAgent` 对相似推荐与跨专业推荐进行数量平衡。
 5.  **批量修正 (Modification)**：通过 `src/pages/prediction/result_modifier/adjustment_pipeline.py` 进行 GPA/语言、跨专业、跨学部及文本加成的统一修正。
 6.  **结果交付**：`src/pages/prediction/results_handler.py::combine_and_deduplicate_results`。
+
+> **目录合并说明 (2026-05)**：原 `prediction_preparation/`、`prediction_execution/`、`ghost_input/` 三个单文件子目录已合并入 `flow/` 和 `page_components/`，遵循 Governance Rule 4（禁止单文件子目录）。
 
 ### 关于 `unified_results` 的合并优先级
 合并过程基于优先级覆盖逻辑：
@@ -132,3 +134,9 @@
 - **优先级 1**：相似专业推荐 (`similarity`) —— 基础推荐。
 
 当 (院校, 专业) 组合在多个来源中出现时，高优先级来源将覆盖低优先级来源；若优先级相同，则录取概率（`probability`）更高者获胜。
+
+---
+
+> **维护人**: lijiapeng8@xdf.cn
+> **版本**: v2.8
+> **最后更新**: 2026-06-07 — 路径同步（prediction_preparation/ + prediction_execution/ → flow/）；目录合并说明；新增模块引用

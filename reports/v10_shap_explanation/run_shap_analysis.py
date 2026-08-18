@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,29 +23,60 @@ import shap
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "src" / "machine_learning_models"))
+sys.path.insert(0, str(PROJECT_ROOT / "src" / "ml"))
 
 OUT_DIR = Path(__file__).resolve().parent
 
+from reports._common import setup_matplotlib_fonts
+
 # ── Chinese font ──────────────────────────────────────
-plt.rcParams["font.sans-serif"] = ["SimHei", "Noto Sans SC", "Microsoft YaHei", "DejaVu Sans"]
-plt.rcParams["axes.unicode_minus"] = False
+setup_matplotlib_fonts()
 
 # ── Load data ─────────────────────────────────────────
 npz = np.load(PROJECT_ROOT / "reports/shap_values.npz")
-shap_vals = npz["values"]                    # (N, F)
-feature_names = list(npz["feature_names"])   # length F
-X_eval = npz["X_eval"]                       # (N, F) feature values for coloring
-eval_indices = npz["eval_indices"]           # original row indices
+shap_vals = npz["values"]  # (N, F)
+feature_names = list(npz["feature_names"])  # length F
+X_eval = npz["X_eval"]  # (N, F) feature values for coloring
+eval_indices = npz["eval_indices"]  # original row indices
 
-with open(PROJECT_ROOT / "reports/shap_summary.json", "r", encoding="utf-8") as f:
+with open(PROJECT_ROOT / "reports/shap_summary.json", encoding="utf-8") as f:
     summary = json.load(f)
 
 n_features = len(feature_names)
 n_samples = shap_vals.shape[0]
 
-# ── Calibration params ───────────────────────────────
-a_cal, b_cal = -2.871485371132004, 1.897966001591031
+# ── Calibration params (extracted from model booster attributes) ──
+import gzip as _gzip_mod
+import json as _json_mod
+
+import xgboost as _xgb_mod
+
+_cal_booster = _xgb_mod.Booster()
+_model_dir = PROJECT_ROOT / "src" / "ml" / "pre-trained_models"
+_candidates = sorted(
+    _model_dir.glob("xgboost_*.ubj.gz"), key=lambda p: p.stat().st_mtime, reverse=True
+)
+if not _candidates:
+    _candidates = sorted(
+        _model_dir.glob("xgboost_*.ubj"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+if _candidates:
+    _model_path = str(_candidates[0])
+    if _model_path.endswith(".gz"):
+        with _gzip_mod.open(_model_path, "rb") as _f:
+            _cal_booster.load_model(bytearray(_f.read()))
+    else:
+        _cal_booster.load_model(_model_path)
+    _cal_raw = _cal_booster.attr("calibration_params")
+    _cal_parsed = _json_mod.loads(_cal_raw) if _cal_raw else {}
+    a_cal = float(_cal_parsed.get("params", {}).get("a", -2.8715))
+    b_cal = float(_cal_parsed.get("params", {}).get("b", 1.8980))
+    _model_name = Path(_model_path).stem
+else:
+    a_cal, b_cal = -2.8715, 1.8980
+    _model_name = "unknown"
+print(f"  Model: {_model_name} | Calibration: a={a_cal:.4f}, b={b_cal:.4f}")
+
 base_logodds = summary["expected_value"]
 base_prob = 1 / (1 + np.exp(a_cal * base_logodds + b_cal))
 
@@ -65,9 +97,24 @@ def fig1_importance_comparison():
     from scipy.stats import spearmanr
 
     booster = xgb.Booster()
-    booster.load_model(
-        str(PROJECT_ROOT / "src/machine_learning_models/pre-trained_models/xgboost_20260316_092608.ubj")
+    model_dir = PROJECT_ROOT / "src/ml/pre-trained_models"
+    candidates = sorted(
+        model_dir.glob("xgboost_*.ubj.gz"), key=lambda p: p.stat().st_mtime, reverse=True
     )
+    if not candidates:
+        candidates = sorted(
+            model_dir.glob("xgboost_*.ubj"), key=lambda p: p.stat().st_mtime, reverse=True
+        )
+    model_path = (
+        str(candidates[0]) if candidates else str(model_dir / "xgboost_20260316_092608.ubj")
+    )
+    if model_path.endswith(".gz"):
+        import gzip
+
+        with gzip.open(model_path, "rb") as f:
+            booster.load_model(bytearray(f.read()))
+    else:
+        booster.load_model(model_path)
     gain_dict = booster.get_score(importance_type="gain")
     xgb_gain = np.array([gain_dict.get(fn, 0) for fn in feature_names])
     xgb_gain_norm = xgb_gain / xgb_gain.sum() * 100
@@ -84,23 +131,33 @@ def fig1_importance_comparison():
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 5))
 
-    colors = ["#E74C3C" if any(k in fn for k in ["university", "major"]) else "#3498DB" for fn in feature_names]
+    colors = [
+        "#E74C3C" if any(k in fn for k in ["university", "major"]) else "#3498DB"
+        for fn in feature_names
+    ]
     ax1.barh(
         [feature_names[i] for i in order],
         [mean_abs_shap[i] for i in order],
-        color=[colors[i] for i in order], alpha=0.85,
+        color=[colors[i] for i in order],
+        alpha=0.85,
     )
     ax1.set_xlabel("mean |SHAP| (log-odds)", fontsize=11)
     ax1.set_title("SHAP Feature Importance", fontsize=13, fontweight="bold")
-    ax1.axvline(x=mean_abs_shap.mean(), color="gray", linestyle="--", alpha=0.5,
-                label=f"mean={mean_abs_shap.mean():.3f}")
+    ax1.axvline(
+        x=mean_abs_shap.mean(),
+        color="gray",
+        linestyle="--",
+        alpha=0.5,
+        label=f"mean={mean_abs_shap.mean():.3f}",
+    )
     ax1.legend(fontsize=9)
     ax1.grid(axis="x", alpha=0.3)
 
     ax2.barh(
         [feature_names[i] for i in order],
         [xgb_gain_norm[i] for i in order],
-        color=[colors[i] for i in order], alpha=0.85,
+        color=[colors[i] for i in order],
+        alpha=0.85,
     )
     ax2.set_xlabel("Gain (%)", fontsize=11)
     ax2.set_title("XGBoost Built-in (Gain)", fontsize=13, fontweight="bold")
@@ -109,7 +166,8 @@ def fig1_importance_comparison():
     fig.suptitle(
         f"SHAP vs XGBoost Gain — Spearman ρ = {rho:.3f} (p={p:.4f})\n"
         f"base prob = {base_prob:.1%} (calibrated), N = {n_samples:,}",
-        fontsize=12, y=1.02,
+        fontsize=12,
+        y=1.02,
     )
     plt.tight_layout()
     fig.savefig(OUT_DIR / "fig1_importance_comparison.png", dpi=150, bbox_inches="tight")
@@ -132,9 +190,9 @@ def fig2_beeswarm():
     )
     fig = plt.gcf()
     fig.axes[0].set_title(
-        f"SHAP Beeswarm — {n_samples:,} samples\n"
-        f"red = high feature value, blue = low",
-        fontsize=12, fontweight="bold",
+        f"SHAP Beeswarm — {n_samples:,} samples\nred = high feature value, blue = low",
+        fontsize=12,
+        fontweight="bold",
     )
     fig.savefig(OUT_DIR / "fig2_beeswarm.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -169,7 +227,8 @@ def fig4_bar():
     fig.set_size_inches(10, 5)
     fig.axes[0].set_title(
         f"SHAP Bar — mean(|SHAP|) per feature, N={n_samples:,}",
-        fontsize=12, fontweight="bold",
+        fontsize=12,
+        fontweight="bold",
     )
     fig.savefig(OUT_DIR / "fig4_bar.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -196,12 +255,15 @@ def fig5_waterfall():
         cal_prob = 1 / (1 + np.exp(a_cal * (base_logodds + total) + b_cal))
         ax.set_title(
             f"{label} — SHAP sum={total:+.2f} → {cal_prob:.2%}",
-            fontsize=11, fontweight="bold",
+            fontsize=11,
+            fontweight="bold",
         )
 
     fig.suptitle(
         f"Waterfall: Extreme Cases (base = {base_prob:.2%})",
-        fontsize=13, fontweight="bold", y=1.02,
+        fontsize=13,
+        fontweight="bold",
+        y=1.02,
     )
     plt.tight_layout()
     fig.savefig(OUT_DIR / "fig5_waterfall_extremes.png", dpi=150, bbox_inches="tight")
@@ -231,7 +293,8 @@ def fig6_dependence():
         )
         ax.set_title(
             f"{feature_names[fi]} — mean |SHAP| = {np.abs(shap_vals[:, fi]).mean():.3f}",
-            fontsize=11, fontweight="bold",
+            fontsize=11,
+            fontweight="bold",
         )
 
     fig.suptitle("SHAP Dependence: Top 2 Features (colored by GPA)", fontsize=13, fontweight="bold")
@@ -254,8 +317,9 @@ def fig7_shap_distribution():
 
     for p, color in [(25, "#E67E22"), (50, "#E74C3C"), (75, "#27AE60")]:
         val = np.percentile(shap_sum, p)
-        ax1.axvline(x=val, color=color, linestyle="--", linewidth=1.5, alpha=0.7,
-                    label=f"P{p}={val:+.2f}")
+        ax1.axvline(
+            x=val, color=color, linestyle="--", linewidth=1.5, alpha=0.7, label=f"P{p}={val:+.2f}"
+        )
     ax1.axvline(x=0, color="gray", linestyle="-", alpha=0.4, linewidth=1)
     ax1.legend(fontsize=9, loc="upper right")
 
@@ -270,7 +334,8 @@ def fig7_shap_distribution():
     ax1.set_title(
         f"SHAP Sum Distribution — N={n_samples:,}\n"
         f"base={base_prob:.2%}, median={np.median(shap_sum):+.2f}, mean={shap_sum.mean():+.2f}",
-        fontsize=12, fontweight="bold",
+        fontsize=12,
+        fontweight="bold",
     )
     ax1.grid(axis="y", alpha=0.2)
     plt.tight_layout()
@@ -305,8 +370,13 @@ def main():
     # ── Save JSON ─────────────────────────────────────
     mean_abs = np.abs(shap_vals).mean(axis=0)
     total_mas = float(mean_abs.sum())
-    cat_total = float(sum(mean_abs[i] for i, fn in enumerate(feature_names)
-                          if any(k in fn for k in ["university", "major"])))
+    cat_total = float(
+        sum(
+            mean_abs[i]
+            for i, fn in enumerate(feature_names)
+            if any(k in fn for k in ["university", "major"])
+        )
+    )
     num_total = float(total_mas - cat_total)
 
     report = {
@@ -328,7 +398,11 @@ def main():
                 "feature": feature_names[fi],
                 "mean_abs_shap": float(mean_abs[fi]),
                 "pct_of_total": float(mean_abs[fi] / total_mas * 100),
-                "tier": "categorical" if any(k in feature_names[fi] for k in ["university", "major"]) else "numeric",
+                "tier": (
+                    "categorical"
+                    if any(k in feature_names[fi] for k in ["university", "major"])
+                    else "numeric"
+                ),
             }
             for i, fi in enumerate(np.argsort(-mean_abs))
         ],

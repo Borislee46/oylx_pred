@@ -11,7 +11,15 @@ def get_model(model_name="intfloat/multilingual-e5-large-instruct", use_quantiza
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(script_dir)
 
-    e5_local_path = os.path.join(project_root, "src", "services", "multilingual-e5-large-instruct")
+    # 兼容 src/service 与 src/services 两种放置路径
+    e5_local_path = None
+    for cand in (
+        os.path.join(project_root, "src", "service", "multilingual-e5-large-instruct"),
+        os.path.join(project_root, "src", "services", "multilingual-e5-large-instruct"),
+    ):
+        if os.path.exists(os.path.join(cand, "config.json")):
+            e5_local_path = cand
+            break
 
     if os.path.exists(e5_local_path):
         model = SentenceTransformer(e5_local_path)

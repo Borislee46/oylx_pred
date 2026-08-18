@@ -1,86 +1,128 @@
 {
   "summary": {
-    "total_cases": 61716,
-    "would_fail": 5877,
-    "would_fail_pct": 9.5,
-    "baseline_admit": 0.3374
+    "total_cases": 81830,
+    "would_fail": 6043,
+    "would_fail_pct": 7.4,
+    "baseline_admit": 0.3182
   },
   "taxonomy": {
     "reasons": {
-      "no_bg_major": 5284,
-      "no_gpa_and_lang": 593,
-      "no_gpa_only": 1423,
-      "no_lang_only": 9012,
+      "no_bg_major": 5291,
+      "no_gpa_and_lang": 752,
+      "no_gpa_only": 1453,
+      "no_lang_only": 13515,
       "no_bg_uni": 0,
       "no_target_uni": 0,
       "no_target_major": 0,
-      "all_ok": 55839
+      "all_ok": 75787
     },
     "admit_by_mode": {
       "_fail_severe": {
-        "n": 5284,
-        "pct": 8.6,
-        "admit_rate": 0.5984,
-        "baseline_admit": 0.3374
+        "n": 5291,
+        "pct": 6.5,
+        "admit_rate": 0.5986,
+        "baseline_admit": 0.3182
       },
       "_fail_moderate": {
-        "n": 1000,
-        "pct": 1.6,
-        "admit_rate": 0.405,
-        "baseline_admit": 0.3374
+        "n": 1162,
+        "pct": 1.4,
+        "admit_rate": 0.3718,
+        "baseline_admit": 0.3182
       },
       "_fail_mild": {
-        "n": 14013,
-        "pct": 22.7,
-        "admit_rate": 0.3547,
-        "baseline_admit": 0.3374
+        "n": 18712,
+        "pct": 22.9,
+        "admit_rate": 0.3227,
+        "baseline_admit": 0.3182
       },
       "_would_fail": {
-        "n": 5877,
-        "pct": 9.5,
-        "admit_rate": 0.5583,
-        "baseline_admit": 0.3374
+        "n": 6043,
+        "pct": 7.4,
+        "admit_rate": 0.5479,
+        "baseline_admit": 0.3182
       }
     },
-    "baseline_admit": 0.33744895975111805
+    "baseline_admit": 0.3181962605401442
   },
   "missing_as_signal": {
     "gpa": {
-      "has_gpa_n": 57086,
-      "has_gpa_admit": 0.3274,
-      "no_gpa_n": 4630,
-      "no_gpa_admit": 0.4613,
-      "delta": 0.1339,
+      "has_gpa_n": 77004,
+      "has_gpa_admit": 0.31,
+      "no_gpa_n": 4826,
+      "no_gpa_admit": 0.4494,
+      "delta": 0.1395,
       "signal_direction": "POSITIVE"
     },
     "language": {
-      "has_lang_n": 51333,
-      "has_lang_admit": 0.3426,
-      "no_lang_n": 10383,
-      "no_lang_admit": 0.312,
-      "delta": -0.0307,
+      "has_lang_n": 66782,
+      "has_lang_admit": 0.3255,
+      "no_lang_n": 15048,
+      "no_lang_admit": 0.2859,
+      "delta": -0.0396,
       "signal_direction": "NEGATIVE"
     },
     "bg_major": {
-      "has_bgm_n": 56432,
-      "has_bgm_admit": 0.313,
-      "no_bgm_n": 5284,
-      "no_bgm_admit": 0.5984,
-      "delta": 0.2854,
+      "has_bgm_n": 76539,
+      "has_bgm_admit": 0.2988,
+      "no_bgm_n": 5291,
+      "no_bgm_admit": 0.5986,
+      "delta": 0.2997,
       "signal_direction": "POSITIVE"
+    }
+  },
+  "tier_stratified_missing_gpa": {
+    "C9": {
+      "n_has_gpa": 3111,
+      "has_gpa_admit": 0.4092,
+      "n_no_gpa": 169,
+      "no_gpa_admit": 0.5917,
+      "delta": 0.1825,
+      "pct_no_gpa": 5.2
+    },
+    "985": {
+      "n_has_gpa": 13911,
+      "has_gpa_admit": 0.3721,
+      "n_no_gpa": 800,
+      "no_gpa_admit": 0.5375,
+      "delta": 0.1654,
+      "pct_no_gpa": 5.4
+    },
+    "211": {
+      "n_has_gpa": 15261,
+      "has_gpa_admit": 0.3189,
+      "n_no_gpa": 1213,
+      "no_gpa_admit": 0.4732,
+      "delta": 0.1543,
+      "pct_no_gpa": 7.4
+    },
+    "other_domestic": {
+      "n_has_gpa": 44588,
+      "has_gpa_admit": 0.281,
+      "n_no_gpa": 2627,
+      "no_gpa_admit": 0.4046,
+      "delta": 0.1236,
+      "pct_no_gpa": 5.6
+    },
+    "overseas": {
+      "n_has_gpa": 133,
+      "has_gpa_admit": 0.1729,
+      "n_no_gpa": 17,
+      "no_gpa_admit": 0.1176,
+      "delta": -0.0553,
+      "pct_no_gpa": 11.3
     }
   },
   "cold_start": {
     "combo_distribution": {
       "zero_shot": 0,
-      "one_shot": 46225,
-      "few_shot_2_4": 5776,
-      "low_5_9": 296,
-      "medium_10_29": 29,
-      "ok_30_plus": 1
+      "one_shot": 60818,
+      "few_shot_2_4": 7632,
+      "low_5_9": 438,
+      "medium_10_29": 51,
+      "ok_30_plus": 3
     },
-    "total_combos": 52327,
-    "cold_start_fail_rate": 0.0966,
-    "cold_start_admit_rate": 0.3268
+    "total_combos": 68942,
+    "cold_start_fail_rate": 0.0756,
+    "cold_start_admit_rate": 0.3095
   }
 }

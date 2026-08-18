@@ -45,8 +45,8 @@ PROB_XGB_CLIP_MAX: float = 1.0 - 1e-6
 
 EPSILON: float = 1e-12
 
-DATA_PATH: Path = Path("src/machine_learning_models/data/cases.feather")
-OUTPUT_DIR: Path = Path("src/machine_learning_models/pre-trained_models")
+DATA_PATH: Path = Path("src/ml/data/cases.feather")
+OUTPUT_DIR: Path = Path("src/ml/pre-trained_models")
 VECTORIZER_FILENAME: str = "tfidf_vectorizer.joblib"
 CENTROIDS_FILENAME: str = "tfidf_centroids.npz"
 WEIGHTS_FILENAME: str = "text_uplift_weights.json"
@@ -373,7 +373,7 @@ def _load_latest_xgb_model_path() -> Path | None:
 def _compute_p_base_with_xgb(df: pd.DataFrame) -> np.ndarray | None:
     try:
         project_root = Path(__file__).resolve().parent.parent
-        ml_models_dir = project_root / "src" / "machine_learning_models"
+        ml_models_dir = project_root / "src" / "ml"
 
         for p in [str(project_root), str(ml_models_dir)]:
             if p not in sys.path:
@@ -381,7 +381,7 @@ def _compute_p_base_with_xgb(df: pd.DataFrame) -> np.ndarray | None:
 
         import xgboost as xgb
 
-        from src.machine_learning_models.feature_engineer import FeatureEngineer
+        from src.ml.feature_engineer import FeatureEngineer
 
         model_path = _load_latest_xgb_model_path()
         if model_path is None:

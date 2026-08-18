@@ -25,11 +25,9 @@ project_root, script_dir = setup_environment()
 
 from scripts.model_utils import compute_embeddings_batch_local, get_model
 
-CASES_DATA_PATH = os.path.join(
-    project_root, "src", "machine_learning_models", "data", "cases.feather"
-)
+CASES_DATA_PATH = os.path.join(project_root, "src", "ml", "data", "cases.feather")
 SCHOOL_MAJOR_DETAILS_PATH = os.path.join(
-    project_root, "src", "machine_learning_models", "data", "school_major_details.feather"
+    project_root, "src", "ml", "data", "school_major_details.feather"
 )
 APPLYSQUARE_PATH = os.path.join(project_root, "data", "external", "applysquare.feather")
 COMPASS_PATH = os.path.join(project_root, "data", "external", "compass.feather")
@@ -91,8 +89,10 @@ def precompute_similarities():
     raw_case_background_majors.update(ext_bg_majors)
     raw_case_target_majors.update(ext_target_majors)
     if ext_bg_majors or ext_target_majors:
-        print(f"  Added {len(ext_bg_majors)} external bg majors, "
-              f"{len(ext_target_majors)} external target majors")
+        print(
+            f"  Added {len(ext_bg_majors)} external bg majors, "
+            f"{len(ext_target_majors)} external target majors"
+        )
 
     for s in [raw_case_background_majors, raw_case_target_majors, raw_school_english_majors]:
         for val in ["无", "", "nan", "None"]:
@@ -123,7 +123,7 @@ def precompute_similarities():
     with torch.no_grad():
         bg_embeddings = bg_embeddings.to(model.device)
         target_embeddings = target_embeddings.to(model.device)
-        similarity_matrix = (bg_embeddings @ target_embeddings.T).cpu().numpy()
+        similarity_matrix = (bg_embeddings @ target_embeddings.T).cpu().numpy().astype(np.float32)
 
     print("正在构建并保存相似度缓存...")
     num_bg = len(bg_list)

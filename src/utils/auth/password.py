@@ -54,9 +54,8 @@ def get_user(username: str) -> dict[str, Any] | None:
 
 
 def verify_totp(secret: str | None, code: str | None) -> bool:
-    """Verify a TOTP code when the account has a secret configured."""
     if not secret:
-        return True  # TOTP not enabled for this account -> not required
+        return True
     if not code:
         return False
     try:

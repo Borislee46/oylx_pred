@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_CASES = ROOT / "src" / "machine_learning_models" / "data" / "cases.feather"
+DEFAULT_CASES = ROOT / "src" / "ml" / "data" / "cases.feather"
 DEFAULT_OUTPUT = ROOT / "cache" / "correlation_matrix.feather"
 
 
@@ -39,13 +39,19 @@ def build_student_admission_matrix(df: pd.DataFrame) -> pd.DataFrame:
         + " | "
         + df["gpa"].round(1).astype(str)
         + " | "
-        + "R" + df["research_count"].fillna(-1).astype(int).astype(str)
-        + "P" + df["paper_count"].fillna(-1).astype(int).astype(str)
-        + "I" + df["internship_count"].fillna(-1).astype(int).astype(str)
-        + "A" + df["award_count"].fillna(-1).astype(int).astype(str)
+        + "R"
+        + df["research_count"].fillna(-1).astype(int).astype(str)
+        + "P"
+        + df["paper_count"].fillna(-1).astype(int).astype(str)
+        + "I"
+        + df["internship_count"].fillna(-1).astype(int).astype(str)
+        + "A"
+        + df["award_count"].fillna(-1).astype(int).astype(str)
         + " | "
-        + "IELTS" + df["ielts"].round(1).fillna(-1).astype(str)
-        + "TOEFL" + df["toefl"].round(0).fillna(-1).astype(str)
+        + "IELTS"
+        + df["ielts"].round(1).fillna(-1).astype(str)
+        + "TOEFL"
+        + df["toefl"].round(0).fillna(-1).astype(str)
     )
 
     pivot = df.pivot_table(
@@ -81,14 +87,19 @@ def compute_correlation_matrix(
 
     # keep programs with enough students
     valid_mask = counts >= min_samples
-    valid_programs = [p for p, ok in zip(programs, valid_mask) if ok]
+    valid_programs = [p for p, ok in zip(programs, valid_mask, strict=True) if ok]
 
     if len(valid_programs) < 2:
-        print(f"ERROR: only {len(valid_programs)} programs with >= {min_samples} samples", file=sys.stderr)
+        print(
+            f"ERROR: only {len(valid_programs)} programs with >= {min_samples} samples",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
 
     print(f"Programs with >= {min_samples} samples: {len(valid_programs)} / {n}")
-    print(f"Computing {len(valid_programs) * (len(valid_programs) - 1) // 2} pairwise phi coefficients ...")
+    print(
+        f"Computing {len(valid_programs) * (len(valid_programs) - 1) // 2} pairwise phi coefficients ..."
+    )
 
     pivot_valid = pivot[valid_programs]
     arr = pivot_valid.values.astype(np.float64)
@@ -173,7 +184,7 @@ def main():
     print(f"  p50:    {np.median(upper):.4f}")
     print(f"  p95:    {np.percentile(upper, 95):.4f}")
     print(f"  max:    {upper.max():.4f}")
-    print(f"\nPair weight stats (joint students per pair):")
+    print("\nPair weight stats (joint students per pair):")
     print(f"  mean:   {w_upper.mean():.1f}")
     print(f"  p50:    {np.median(w_upper):.1f}")
     print(f"  min:    {w_upper.min()}")

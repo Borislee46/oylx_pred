@@ -2,7 +2,6 @@
 
 本仓库是脱敏后的可部署版本：
 
-- 已移除 E2 企业登录与人力数据模块；
 - 保留选校预测系统（`app_pages/hk.py`）；
 - 首页为演示页（`app_pages/home.py`）；
 - 登录为严格本地认证：argon2id 密码哈希 + 可选 TOTP + 签名会话 Cookie +
@@ -13,7 +12,7 @@
 
 ```bash
 python -m venv .venv
-.venv/Scripts/pip install -r requirements.txt   # Windows
+.venv/Scripts/pip install -r requirements.txt   # Windows no uvloop
 # 或 .venv/bin/pip install -r requirements.txt  # Linux
 
 # 1) 配置会话签名密钥

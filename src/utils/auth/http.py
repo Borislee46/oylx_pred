@@ -55,8 +55,6 @@ def _client_ip(request) -> str:
 
 
 class _LoginLimiter:
-    """Simple in-memory brute-force limiter (per IP+username and per IP)."""
-
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._failures: dict[tuple[str, str], list[float]] = {}

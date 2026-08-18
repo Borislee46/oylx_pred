@@ -8,15 +8,25 @@
 
 - **配置**：`config.py`
 - **调整管线**：`adjustment_pipeline.py`
+- **仲裁器**：`arbitrator.py`（AdjustmentArbitrator，因子衰减 + 总偏移约束）
 - **概率调整**：`probability_adjuster.py`（统计 + 分段惩罚）
+- **分层校准**：`tier_calibration.py`（Layer 6，院校 tier 分层校准，可选）
+- **反事实分析**：`counterfactual.py`（What-if 模拟）
 - **文本加成入口**：`text_boost_provider.py`
 - **文本加成实现**：详见 [文本加成 API (Text Uplift)](text_uplift_api.md)
+- **文本预核验**：`experience_text_validator.py`（LLM 校验 + 本地兜底）
 - **推荐筛选**：`filters.py`
 - **学院过滤器**：`faculty_filters.py` (处理跨学院惩罚)
+- **KNN 检索**：`knn_retrieval.py`（最近邻案例检索）
 - **语言惩罚辅助**：`language_penalty.py`
 - **相似度规则微调**：`similarity_adjuster.py`
+- **手动调整**：`manual_adjuster.py`（手动覆盖概率）
+- **双专业处理**：`dual_major.py`（联合专业预测）
+- **销售场景**：`sales_scenario.py`（顾问视角预测）
 - **Agent 排序调整**：`ranker.py` / `engine.py` / `strategies.py`
+- **UI 处理**：`ui_handler.py`
 - **录取组合缓存**：`admission_cache.py`
+- **Fallback 兜底**：`fallback.py`（冷启动 Wilson CI 级联兜底）
 - **工具函数**：`utils.py`
 
 ## 2. 配置 (`config.py`)
@@ -67,9 +77,10 @@
     - **跨学部惩罚**：若目标专业不在背景学部的兼容矩阵范围内，施加惩罚。
     - **职业型专业降权**：若缺乏实习背景且目标为职业型专业，乘以降权因子。
 3.  **文本加成 (`TextBoostProvider`)**：基于 Logit Uplift 模型计算 NLP 经验带来的概率增量。
-4.  **仲裁与归一化**：
-    - 所有因子通过 `AdjustmentArbitrator` 融合，并执行**因子衰减**和**总偏移约束**。
+4.  **仲裁与归一化**（`arbitrator.py`）：
+    - 所有因子通过 `AdjustmentArbitrator` 融合，并执行**因子衰减**（惩罚项 0.85/layer）和**总偏移约束**（总惩罚 ≤ 70%）。
     - 最终通过 `NormalizationLayer` 保证概率在 `[0.005, 1.0]` 区间。
+5.  **Tier 校准**（`tier_calibration.py`，可选 Layer 6）：按院校 tier 分层修正系统性偏差。
 
 ## 4. 核心配置项 (`config.py`)
 
@@ -99,18 +110,53 @@
 - **可解释性**：日志会自动输出加成原因（如命中的关键词标签）。
 - **性能**：极致优化的字节级计算，处理速度比调用 LLM 快数万倍。
 
-## 6. 学院兼容矩阵 (`faculty_filters.py`)
+## 7. 学院兼容矩阵 (`faculty_filters.py`)
 
 系统内置了 `CROSS_FACULTY_RULES` 矩阵，定义了各学部之间的申请兼容性。若目标专业所属学部不在背景学部的兼容列表中，将触发惩罚。部分典型规则：
 - **商学院**：兼容【社会科学院、文学院】。
 - **理学院/工程学院**：兼容【商学院、计算机学院、建筑/设计学院】。
 - **法学院/医学院**：通常仅兼容自身。
 
-## 7. 推荐筛选与排序 (`filters.py`)
+## 8. 推荐筛选与排序 (`filters.py`)
 
 - `get_similar_major_recommendations(...)`
   - 相似度阈值：院校数少时用 `0.92`，否则用 `0.89`。
   - 取 `TOP_N_RECOMMENDATIONS=30`，按概率降序。
 
 - `get_cross_major_recommendations(...)`
-  - 仅在“历史存在录取组合”的跨专业范围内选：`0.8 <= similarity < 0.89`。
+  - 仅在”历史存在录取组合”的跨专业范围内选：`0.8 <= similarity < 0.89`。
+
+---
+
+## 9. 新增模块（v2.8+）
+
+### 9.1 仲裁器 (`arbitrator.py`)
+- **AdjustmentArbitrator**：融合所有惩罚/加成因子，执行衰减叠加和总偏移约束。
+- 惩罚项衰减系数 `0.85/layer`，总惩罚上限 `0.7`，总加成上限 `0.3`。
+
+### 9.2 反事实分析 (`counterfactual.py`)
+- What-if 模拟：计算”如果 GPA 提高 X 分，概率会提升多少”的反事实推演。
+
+### 9.3 KNN 检索 (`knn_retrieval.py`)
+- 基于最近邻的案例检索，用于为边界案例查找历史参照。
+
+### 9.4 Tier 校准 (`tier_calibration.py`)
+- Layer 6 可选校准：按院校 tier 分层修正系统性偏差，参数由 `config/tier_calibration.json` 驱动。
+
+### 9.5 手动调整 (`manual_adjuster.py`)
+- 支持手动覆盖概率值，用于特殊案例的快速干预。
+
+### 9.6 销售场景 (`sales_scenario.py`)
+- 顾问视角的预测展示逻辑，侧重”可推荐性”和”提升空间”而非原始概率。
+
+### 9.7 双专业 (`dual_major.py`)
+- 联合专业（双学位）的预测修正逻辑。
+
+### 9.8 Fallback 兜底 (`fallback.py`)
+- 冷启动场景：无 GPA + 冷门本科 → Wilson CI 级联兜底，确保所有输入都有合理输出。
+
+---
+
+> **维护人**: lijiapeng8@xdf.cn
+> **版本**: v2.9
+> **最后更新**: 2026-06-07 — 新增 7 个模块文档（arbitrator/counterfactual/knn_retrieval/tier_calibration/manual_adjuster/sales_scenario/dual_major/fallback）；修正重复章节编号；调整流程追加 tier 校准步骤
