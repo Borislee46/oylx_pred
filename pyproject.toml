@@ -1,6 +1,7 @@
-[tool.black]
-line-length = 100
-target-version = ["py311"]
+[project]
+name = "signals"
+version = "0.1.0"
+requires-python = ">=3.11"
 
 [tool.ruff]
 line-length = 100
@@ -39,4 +40,14 @@ explicit_package_bases = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-v --disable-warnings --import-mode=importlib"
+markers = [
+    "unit: fast isolated tests (<5s), no external dependencies",
+    "integration: cross-module tests, may need Streamlit mock or real LLM",
+    "api: HTTP endpoint tests (may need running server)",
+    "data_quality: prediction quality gates (~25min), hard assertions against config thresholds",
+    "stress: load and stability tests (~30min+)",
+    "slow: any test taking >30s",
+    "llm: tests that call real LLM APIs (slow + cost, run opt-in with -m llm)",
+]

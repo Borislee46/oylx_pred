@@ -1,0 +1,10 @@
+{
+  "_说明": "复制为 config/demo_users.json（或由 deploy/tools/create_admin.py 生成）。password_hash 必须是 argon2id 哈希，绝不能存明文密码。",
+  "users": {
+    "admin": {
+      "password_hash": "在此填入 argon2id 哈希，例如：$argon2id$v=19$m=65536,t=3,p=4$...",
+      "nickname": "管理员",
+      "totp_secret": ""
+    }
+  }
+}

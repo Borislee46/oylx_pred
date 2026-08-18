@@ -1,0 +1,1045 @@
+{
+  "_description": "亚英留学硕士合同产品体系 — 申请合同 + 升级产品统一配置。来源：contracts_master.csv + 亚英留学合同.xlsx（2026-06-10）",
+  "default_tier": "premium_b",
+  "applications": {
+    "premium_c": {
+      "name": "高端C计划",
+      "priority": "primary",
+      "regions": ["中国香港", "中国澳门", "新加坡", "泰国"],
+      "max_schools": 12,
+      "max_majors": 2,
+      "price_cny": 59800,
+      "team": "高端团队",
+      "process": ["选校定位", "文书精修", "面试辅导", "网申跟进", "签证指导"],
+      "services": ["12所全案", "名校导师1v1文书", "不限次修改", "全程管家跟进"],
+      "bonus": "赠香港夏校申请",
+      "dot": "#06b6d4",
+      "sort": 1,
+      "description": "新港澳泰高端申请C计划，1-12所学校，2个专业",
+      "refund_reject": 35000,
+      "refund_visa": 56000,
+      "add_school_fee": 2000,
+      "add_major_fee": 2000
+    },
+    "premium_b": {
+      "name": "高端B计划",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门", "新加坡", "泰国"],
+      "max_schools": 10,
+      "max_majors": 2,
+      "price_cny": 49800,
+      "team": "高端团队",
+      "process": ["选校定位", "文书精修", "面试辅导", "网申跟进", "签证指导"],
+      "services": ["8-10所全案", "名校导师1v1文书", "不限次修改"],
+      "bonus": "赠香港夏校申请",
+      "dot": "#0891b2",
+      "sort": 2,
+      "description": "新港澳泰高端申请B计划，1-10所学校，2个专业",
+      "refund_reject": 30000,
+      "refund_visa": 46000,
+      "add_school_fee": 2000,
+      "add_major_fee": 2000
+    },
+    "premium_a": {
+      "name": "高端A计划",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门", "新加坡", "泰国"],
+      "max_schools": 10,
+      "max_majors": 2,
+      "price_cny": 39800,
+      "team": "高端团队",
+      "process": ["选校定位", "文书精修", "面试辅导", "网申跟进"],
+      "services": ["8-10所全案", "名校导师文书", "限次修改"],
+      "dot": "#0e7490",
+      "sort": 3,
+      "description": "新港澳泰高端申请A计划，1-10所学校，2个专业",
+      "refund_reject": 25000,
+      "refund_visa": 36000,
+      "add_school_fee": 2000,
+      "add_major_fee": 2000
+    },
+    "joint_hkmo_sg": {
+      "name": "新港澳联申",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门", "新加坡"],
+      "max_schools": 9,
+      "max_majors": 2,
+      "price_cny": 29800,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-9所学校", "2个专业方向", "覆盖新港澳三地"],
+      "dot": "#94a3b8",
+      "sort": 4,
+      "description": "新港澳联合申请，1-9所学校，2个专业",
+      "refund_reject": 13000,
+      "refund_visa": 27000,
+      "add_school_fee": 2000
+    },
+    "joint_hkmo": {
+      "name": "港澳联申",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门"],
+      "max_schools": 6,
+      "max_majors": 2,
+      "price_cny": 24000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-6所学校", "2个专业方向", "覆盖港澳两地"],
+      "dot": "#a8a29e",
+      "sort": 5,
+      "description": "港澳联合申请，1-6所学校，2个专业",
+      "refund_reject": 10000,
+      "refund_visa": 22000,
+      "add_school_fee": 2000
+    },
+    "single_hk": {
+      "name": "香港单申",
+      "priority": "secondary",
+      "regions": ["中国香港"],
+      "max_schools": 6,
+      "max_majors": 2,
+      "price_cny": 20000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-6所学校", "2个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 6,
+      "description": "香港单国授课型硕士申请，1-6所学校，2个专业",
+      "refund_reject": 11000,
+      "refund_visa": 18000,
+      "add_school_fee": 2000
+    },
+    "single_sg_public": {
+      "name": "新加坡公立单申",
+      "priority": "secondary",
+      "regions": ["新加坡"],
+      "max_schools": 3,
+      "max_majors": 1,
+      "price_cny": 20000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-3所公立大学", "1个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 7,
+      "description": "新加坡公立大学硕士申请，1-3所学校，1个专业",
+      "refund_reject": 11000,
+      "refund_visa": 18000,
+      "add_school_fee": 2000
+    },
+    "single_mo": {
+      "name": "澳门单申",
+      "regions": ["中国澳门"],
+      "max_schools": 4,
+      "max_majors": 2,
+      "price_cny": 17000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-4所学校", "2个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 8,
+      "description": "澳门单国授课型硕士申请，1-4所学校，2个专业",
+      "refund_reject": 10000,
+      "refund_visa": 14000,
+      "add_school_fee": 2000,
+      "priority": "secondary"
+    },
+    "single_sg_private": {
+      "name": "新加坡私立单申",
+      "regions": ["新加坡"],
+      "max_schools": 1,
+      "max_majors": 1,
+      "price_cny": 12000,
+      "team": "分中心后期",
+      "process": ["选校定位", "网申跟进", "签证指导"],
+      "services": ["1所私立大学", "1个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 9,
+      "description": "新加坡私立大学硕士申请，1所学校，1个专业",
+      "note": "仅私立大学",
+      "refund_reject": 0,
+      "refund_visa": 10000,
+      "add_school_fee": 0
+    },
+    "research_a": {
+      "name": "研究型+授课型A",
+      "regions": ["中国香港", "中国澳门", "新加坡", "马来西亚"],
+      "max_schools": 8,
+      "max_majors": 1,
+      "price_cny": 59800,
+      "team": "总部博士团队",
+      "process": [
+        "研究计划指导",
+        "导师匹配",
+        "选校定位",
+        "文书精修",
+        "面试辅导"
+      ],
+      "services": ["研究型1-3所 + 授课型1-5所", "1个专业方向", "博士团队全程"],
+      "dot": "#7c3aed",
+      "sort": 10,
+      "description": "研究型硕士与授课型硕士混合申请A计划",
+      "note": "研究型1-3所 + 授课型1-5所",
+      "refund_reject": 40000,
+      "refund_visa": 56800,
+      "add_school_fee_research": 5000,
+      "add_school_fee_taught": 2000,
+      "priority": "secondary"
+    },
+    "research_b": {
+      "name": "研究型+授课型B",
+      "regions": ["中国香港", "中国澳门", "新加坡", "马来西亚"],
+      "max_schools": 10,
+      "max_majors": 1,
+      "price_cny": 69800,
+      "team": "总部博士团队",
+      "process": [
+        "研究计划指导",
+        "导师匹配",
+        "选校定位",
+        "文书精修",
+        "面试辅导"
+      ],
+      "services": ["研究型1-4所 + 授课型1-6所", "1个专业方向", "博士团队全程"],
+      "dot": "#6d28d9",
+      "sort": 11,
+      "description": "研究型硕士与授课型硕士混合申请B计划",
+      "note": "研究型1-4所 + 授课型1-6所",
+      "refund_reject": 48000,
+      "refund_visa": 66800,
+      "add_school_fee_research": 5000,
+      "add_school_fee_taught": 2000,
+      "priority": "secondary"
+    },
+    "uk_hk": {
+      "name": "英港联申",
+      "regions": ["中国香港", "英国"],
+      "max_schools": 10,
+      "max_majors": 1,
+      "price_cny": 30000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["英国1-5所 + 香港1-5所", "1个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 12,
+      "description": "英国与中国香港联合申请",
+      "note": "英国1-5所 + 香港1-5所",
+      "refund_reject": 10000,
+      "refund_visa": 22000,
+      "add_school_fee": 2000
+    },
+    "uk_sg": {
+      "name": "英新联申",
+      "regions": ["新加坡", "英国"],
+      "max_schools": 10,
+      "max_majors": 1,
+      "price_cny": 30000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["英国1-5所 + 新加坡1-5所", "1个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 13,
+      "description": "英国与新加坡联合申请",
+      "note": "英国1-5所 + 新加坡1-5所",
+      "refund_reject": 13000,
+      "refund_visa": 27000,
+      "add_school_fee": 2000
+    },
+    "eu_asia": {
+      "name": "欧亚联申",
+      "regions": ["中国香港", "新加坡", "荷兰", "爱尔兰"],
+      "max_schools": 8,
+      "max_majors": 2,
+      "price_cny": 40000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["亚洲1-5所 + 欧洲1-3所", "2个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 14,
+      "description": "新港荷爱硕士联合申请",
+      "note": "亚洲1-5所 + 欧洲1-3所",
+      "_enabled": false
+    },
+    "single_my_private": {
+      "name": "马来西亚预科/私立研究生",
+      "priority": "secondary",
+      "regions": ["马来西亚"],
+      "max_schools": 3,
+      "max_majors": 1,
+      "price_cny": 10000,
+      "refund_reject": 4000,
+      "refund_visa": 8000,
+      "add_school_fee": 2000,
+      "team": "分中心后期",
+      "process": ["选校定位", "网申跟进", "签证指导"],
+      "services": ["1-3所私立大学或预科", "1个专业方向"],
+      "dot": "#d6d3d1",
+      "sort": 15,
+      "description": "马来西亚预科或私立大学研究生申请，1-3所学校，1个专业",
+      "note": "仅私立大学及预科课程"
+    },
+    "single_my_taught": {
+      "name": "马来西亚本科/授课型硕士",
+      "priority": "secondary",
+      "regions": ["马来西亚"],
+      "max_schools": 3,
+      "max_majors": 1,
+      "price_cny": 18000,
+      "refund_reject": 11000,
+      "refund_visa": 16000,
+      "add_school_fee": 2000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-3所公立/私立大学", "1个专业方向", "不含三方费"],
+      "dot": "#d6d3d1",
+      "sort": 16,
+      "description": "马来西亚本科/授课型/混合型硕士申请（可选含三方费），1-3所学校，1个专业",
+      "note": "可选含三方费（EMGS等），需另行确认"
+    },
+    "single_my_taught_full": {
+      "name": "马来西亚授课型/混合型硕士（含三方费）",
+      "priority": "secondary",
+      "regions": ["马来西亚"],
+      "max_schools": 3,
+      "max_majors": 1,
+      "price_cny": 23000,
+      "refund_reject": 10000,
+      "refund_visa": 20000,
+      "add_school_fee": 2000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-3所公立/私立大学", "1个专业方向", "含三方费"],
+      "dot": "#d6d3d1",
+      "sort": 17,
+      "description": "马来西亚本科/授课型/混合型硕士申请（含三方费），1-3所学校，1个专业",
+      "note": "含EMGS等第三方费用",
+      "_enabled": false
+    },
+    "single_my_taught_bind": {
+      "name": "马来西亚授课型硕士（强捆绑）",
+      "priority": "secondary",
+      "regions": ["马来西亚"],
+      "max_schools": 3,
+      "max_majors": 1,
+      "price_cny": 26000,
+      "refund_reject": 10000,
+      "refund_visa": 20000,
+      "add_school_fee": 2000,
+      "team": "分中心后期",
+      "process": ["选校定位", "文书修改", "网申跟进", "签证指导"],
+      "services": ["1-3所大学", "1个专业方向", "含三方费+强捆绑"],
+      "dot": "#a8a29e",
+      "sort": 18,
+      "description": "马来西亚本科/授课型硕士申请（含三方费+强捆绑），1-3所学校，1个专业",
+      "note": "含三方费，强捆绑服务模式",
+      "_enabled": false
+    },
+    "single_my_research": {
+      "name": "马来西亚博士/研究型硕士",
+      "priority": "secondary",
+      "regions": ["马来西亚"],
+      "max_schools": 5,
+      "max_majors": 1,
+      "price_cny": 30000,
+      "refund_reject": 18000,
+      "refund_visa": 27000,
+      "add_school_fee": 2000,
+      "team": "分中心后期",
+      "process": [
+        "研究计划指导",
+        "导师匹配",
+        "选校定位",
+        "文书修改",
+        "网申跟进",
+        "签证指导"
+      ],
+      "services": ["1-5所大学", "1个专业方向", "含三方费"],
+      "dot": "#7c3aed",
+      "sort": 19,
+      "description": "马来西亚博士/研究型硕士申请（含三方费），1-5所学校，1个专业",
+      "note": "含EMGS等第三方费用，可选强捆绑服务模式"
+    },
+    "single_my_research_bind": {
+      "name": "马来西亚博士/研究型硕士（强捆绑）",
+      "priority": "secondary",
+      "regions": ["马来西亚"],
+      "max_schools": 5,
+      "max_majors": 1,
+      "price_cny": 33000,
+      "refund_reject": 18000,
+      "refund_visa": 27000,
+      "add_school_fee": 2000,
+      "team": "分中心后期",
+      "process": [
+        "研究计划指导",
+        "导师匹配",
+        "选校定位",
+        "文书修改",
+        "网申跟进",
+        "签证指导"
+      ],
+      "services": ["1-5所大学", "1个专业方向", "含三方费+强捆绑"],
+      "dot": "#6d28d9",
+      "sort": 20,
+      "description": "马来西亚博士或研究型硕士申请（含三方费+强捆绑），1-5所学校，1个专业",
+      "note": "含三方费，强捆绑服务模式",
+      "_enabled": false
+    },
+    "semi_diy_phd_a": {
+      "name": "博士&研究型硕士半自助A类",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门", "新加坡", "马来西亚"],
+      "max_schools": 6,
+      "max_majors": 1,
+      "price_cny": 50000,
+      "team": "总部博士团队",
+      "process": [
+        "研究计划指导（8课时RP）",
+        "导师匹配建议",
+        "选校定位",
+        "文书精修"
+      ],
+      "services": [
+        "1-6所博士/研究型项目",
+        "8课时RP指导",
+        "商科/文科/艺术方向",
+        "不可单卖"
+      ],
+      "dot": "#7c3aed",
+      "sort": 21,
+      "description": "博士&研究型硕士半自助A类（商科/文科/艺术），含8课时RP指导",
+      "note": "商科/文科/艺术方向，含8课时RP指导，不可单卖",
+      "_enabled": false
+    },
+    "semi_diy_phd_b": {
+      "name": "博士&研究型硕士半自助B类",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门", "新加坡", "马来西亚"],
+      "max_schools": 6,
+      "max_majors": 1,
+      "price_cny": 55000,
+      "team": "总部博士团队",
+      "process": [
+        "研究计划指导（8课时RP）",
+        "导师匹配建议",
+        "选校定位",
+        "文书精修"
+      ],
+      "services": [
+        "1-6所博士/研究型项目",
+        "8课时RP指导",
+        "理工科方向",
+        "不可单卖"
+      ],
+      "dot": "#6d28d9",
+      "sort": 22,
+      "description": "博士&研究型硕士半自助B类（理工科等），含8课时RP指导",
+      "note": "理工科等方向，含8课时RP指导，不可单卖",
+      "_enabled": false
+    },
+    "semi_diy_phd_combo": {
+      "name": "博士&研究型硕士半自助（复购）",
+      "priority": "secondary",
+      "regions": ["中国香港", "中国澳门", "新加坡", "马来西亚"],
+      "max_schools": 6,
+      "max_majors": 2,
+      "price_cny": 30000,
+      "team": "总部博士团队",
+      "process": ["选校定位", "文书修改", "网申跟进"],
+      "services": [
+        "1-6所博士/硕士项目",
+        "基于半自助的复购",
+        "商科/文科/艺术A类或理工科B类可选",
+        "含8课时RP指导"
+      ],
+      "dot": "#a78bfa",
+      "sort": 23,
+      "description": "博士&硕士联合申请（基于半自助复购），1-6所学校，支持新港澳马跨地区",
+      "note": "基于半自助产品的复购，1-6所",
+      "refund_reject": 20000,
+      "refund_visa": 28000,
+      "add_school_fee": 3000
+    }
+  },
+  "upgrades": {
+    "butler_plan": {
+      "name": "管家计划",
+      "priority": "primary",
+      "price_cny": "42,500-56,500",
+      "services": [
+        "全职求职服务（金融/综合方向可选）",
+        "双通道Lite版",
+        "全流程管家跟进"
+      ],
+      "bottleneck": "综合竞争力",
+      "uplift_mode": "fixed",
+      "fixed_pp": 5,
+      "dot": "#f59e0b",
+      "sort": 10,
+      "product_phase": "lifecycle",
+      "diag_rule": "always",
+      "tooltip": "管家计划 | 42,500-56,500 CNY | 申请+求职双通道",
+      "narrative": "全流程管家式服务，覆盖申请+求职双通道，系统性提升竞争力"
+    },
+    "english": {
+      "name": "英语实战训练",
+      "priority": "secondary",
+      "price_cny": "6,000-15,000",
+      "services": ["海外英语实战营", "1期集训（听说读写全科）"],
+      "bottleneck": "语言",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#3b82f6",
+      "sort": 20,
+      "product_phase": "application_prep",
+      "diag_rule": "language_below_target",
+      "tooltip": "海外英语实战营 | 6,000-15,000 CNY | 1期全科集训",
+      "narrative": "海外沉浸式英语实战，听说读写全科集训，快速提分达标"
+    },
+    "bg_intern": {
+      "name": "背景提升-实习",
+      "priority": "secondary",
+      "price_cny": "16,800-49,800",
+      "services": [
+        "威计划·走人事版（基础/高端/甄选/带薪 四档）",
+        "威计划·导师指导版（基础/高端 两档）",
+        "威计划·国际组织版（联合国/地球宪章等）",
+        "优选计划（基础/高端/带薪 三档）",
+        "优企理工实习（13大专业方向）",
+        "优培计划（亚马逊AWS/西门子高端实训）"
+      ],
+      "bottleneck": "实习",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#f97316",
+      "sort": 30,
+      "product_phase": "application_prep",
+      "diag_rule": "no_internship",
+      "tooltip": "优选/威计划/优企/优培 | 16,800-49,800 CNY | 1段人事实习",
+      "narrative": "名企实习提升职业背景，覆盖金融/AI/电子/新能源等13大方向，支持联合国等国际组织实习",
+      "products_detail": {
+        "威计划": {
+          "price_range": "16,800-49,800",
+          "tiers": {
+            "导师指导-基础版": {
+              "price": 16800,
+              "target": "高中及以上/毕业1年内",
+              "output": "推荐信"
+            },
+            "导师指导-高端版": {
+              "price": 22800,
+              "target": "高中及以上/毕业1年内",
+              "output": "1V1实训+推荐信"
+            },
+            "走人事-基础版": {
+              "price": 24800,
+              "target": "本科及以上",
+              "output": "实习证明+推荐信"
+            },
+            "走人事-高端版": {
+              "price": 34800,
+              "target": "本科及以上",
+              "output": "实习证明+推荐信+8-16h专业课"
+            },
+            "走人事-甄选版": {
+              "price": 44800,
+              "target": "本科及以上",
+              "output": "实习证明+推荐信+120h录播课"
+            },
+            "走人事-带薪版": {
+              "price": 49800,
+              "target": "大三及以上本硕",
+              "output": "岗位实习+12h录播+20h直播+薪资"
+            }
+          },
+          "note": "覆盖行业：金融投资、财务会计、咨询、市场传媒、人力资源、法律、互联网、教育、国际组织、科研理工"
+        },
+        "优选计划": {
+          "price_range": "30,800-49,800",
+          "tiers": {
+            "基础版": {
+              "price": 30800
+            },
+            "高端版": {
+              "price": 39800
+            },
+            "带薪版": {
+              "price": 49800
+            }
+          }
+        },
+        "优企理工实习": {
+          "price": 39800,
+          "directions": [
+            "数据分析",
+            "AI",
+            "金融工程",
+            "电子工程",
+            "通信",
+            "机械",
+            "物理",
+            "电气",
+            "新能源",
+            "化学/材料",
+            "生物医药",
+            "遥感",
+            "地理环境"
+          ],
+          "note": "合作机构含中科院各研究所、国家纳米科学中心、联合国教科文ICEE、西安交大航天液体动力实验室、武大测绘遥感国重等"
+        },
+        "威计划国际组织版": {
+          "price": 39800,
+          "organizations": [
+            "联合国全球契约组织",
+            "地球宪章国际",
+            "世界自然保护联盟",
+            "联合国亚太经社会",
+            "联合国难民署",
+            "联合国总部",
+            "联合国妇女署",
+            "联合国毒罪办",
+            "国际小水电中心(水利部)"
+          ],
+          "note": "保研加分+留学双轨并行，教育部推免政策背书"
+        },
+        "优培计划": {
+          "projects": ["亚马逊AI自动驾驶(7天)", "西门子数字化工业人才"],
+          "note": "全球副总裁亲笔签名证书 / 官方中英文实训证书(官网可查)"
+        }
+      }
+    },
+    "bg_research": {
+      "name": "背景提升-科研",
+      "priority": "secondary",
+      "price_cny": "6,800-55,800",
+      "services": [
+        "顶锋计划·国内名校导师（小组制/1V1）",
+        "全球在研·海外导师1V1定制（EI/CPCI/Scopus层级）",
+        "R计划·1V1定制科研（EI会议层级 / SCI期刊层级）",
+        "中科英才·SCI/SSCI远程指导（JCR四区，有硬性门槛）",
+        "海外名校导师科研（7+5周小组制，藤校/G5教授领衔）",
+        "研助起航计划（12周PBL+RA深度训练）",
+        "定制学术指导（Mini/标准/深度 三档，10-16周）",
+        "RP博睿计划（研究计划书，标准/深度两档）"
+      ],
+      "bottleneck": "科研",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#8b5cf6",
+      "sort": 40,
+      "product_phase": "application_prep",
+      "diag_rule": "no_research",
+      "tooltip": "顶锋/全球在研/R计划/中科英才/iHUB等 | 6,800-55,800 CNY",
+      "narrative": "学术科研背景提升，从国际普刊到SCI期刊全层级覆盖，支持国内名校/海外藤校双轨导师",
+      "products_detail": {
+        "定制学术指导": {
+          "price_range": "16,800-51,800",
+          "tiers": {
+            "Mini版": {
+              "price": 16800,
+              "duration": "5+4周",
+              "output": "推荐信+国际普刊"
+            },
+            "标准版": {
+              "price": 32800,
+              "duration": "10周",
+              "output": "推荐信+国际会议论文"
+            },
+            "深度版": {
+              "price": 51800,
+              "duration": "16周",
+              "output": "EI/CPCI会议论文+录用证明"
+            }
+          },
+          "note": "五位一体辅导体系，500+签约导师，覆盖100+细分学科"
+        },
+        "RP博睿计划": {
+          "price_range": "32,800-49,800",
+          "tiers": {
+            "标准版": {
+              "price": 32800,
+              "duration": "8周",
+              "output": "RP全文+科研推荐信+模拟RP面试"
+            },
+            "深度版": {
+              "price": 49800,
+              "duration": "16周",
+              "output": "RP全文+科研推荐信+模拟RP面试"
+            }
+          },
+          "note": "含73+学时科研先修录播课"
+        },
+        "海外名校导师科研": {
+          "format": "7周在线小组科研 + 5周不限时论文指导",
+          "scale": "累计38,000+学员，30,000+论文，1,700+教授/研究员",
+          "note": "六师制教学服务团队，藤校/G5/QS Top50师资，21类一级学科"
+        },
+        "R计划": {
+          "tiers": {
+            "EI层级": {
+              "duration": "~5个月",
+              "output": "EI/CPCI会议论文+推荐信+结课证书"
+            },
+            "SCI层级": {
+              "duration": "~1年",
+              "output": "SCI/SSCI/CCF期刊论文",
+              "note": "版面费700-4,000美元自理"
+            }
+          },
+          "note": "1V1定制课题，导师本人全程答疑（非助教代劳），10封网推"
+        },
+        "中科英才SCI/SSCI": {
+          "duration": "6-8个月",
+          "threshold": "大二及以上，GPA≥3.2，IELTS 6.5/TOEFL 85+/CET-6",
+          "note": "74课时（4+8+62），4V1服务体系"
+        },
+        "iHUB中山大学": {
+          "prices": {
+            "方案A": 19800,
+            "方案B": 29800
+          },
+          "note": "2周线上+1周中山大学深圳校区线下+5周线上论文指导，食宿4,800另计"
+        },
+        "IEPQ": {
+          "price_range": "29,800-42,800",
+          "note": "牛津AQA官方授权，最高28 UCAS分，98% A*/A率"
+        }
+      }
+    },
+    "academic_tutoring": {
+      "name": "学术辅导",
+      "priority": "secondary",
+      "price_cny": "12,000-51,800",
+      "services": [
+        "英领·学术先修（按需课时）",
+        "英领·同步辅导（线上）",
+        "博睿·RP研究计划书指导（标准/深度两档）",
+        "定制学术指导·论文版（Mini/标准/深度 三档，EI/CPCI层级）"
+      ],
+      "bottleneck": "跨专业",
+      "uplift_mode": "fixed",
+      "fixed_pp": 3,
+      "dot": "#ec4899",
+      "sort": 50,
+      "product_phase": "application_prep",
+      "diag_rule": "cross_major",
+      "tooltip": "英领/博睿/定制学术指导 | 12,000-51,800 CNY | 按需课时/1V1论文辅导",
+      "narrative": "补足跨专业先修背景，提升专业匹配说服力——从学术先修到RP研究计划书到国际会议论文全链条覆盖",
+      "products_detail": {
+        "定制学术指导": {
+          "price_range": "16,800-51,800",
+          "tiers": {
+            "Mini版": {
+              "price": 16800,
+              "duration": "5+4周",
+              "output": "推荐信+国际普刊"
+            },
+            "标准版": {
+              "price": 32800,
+              "duration": "10周",
+              "output": "推荐信+国际会议论文"
+            },
+            "深度版": {
+              "price": 51800,
+              "duration": "16周",
+              "output": "EI/CPCI会议论文+录用证明"
+            }
+          }
+        },
+        "RP博睿计划": {
+          "price_range": "32,800-49,800",
+          "tiers": {
+            "标准版": {
+              "price": 32800,
+              "duration": "8周"
+            },
+            "深度版": {
+              "price": 49800,
+              "duration": "16周"
+            }
+          }
+        }
+      }
+    },
+    "interview_prep": {
+      "name": "面试辅导",
+      "priority": "secondary",
+      "price_cny": "3,000-5,000",
+      "services": [
+        "1v1全真面试模拟",
+        "10课时（含港校面试套路拆解+答题逻辑训练）"
+      ],
+      "bottleneck": "面试表现",
+      "uplift_mode": "fixed",
+      "fixed_pp": 2,
+      "dot": "#84cc16",
+      "sort": 60,
+      "product_phase": "application_prep",
+      "diag_rule": "always",
+      "tooltip": "加购强化 · 英语系面试辅导 | 3,000-5,000 CNY | 1v1模拟+10课时（高端B/C套餐已含基础面试支持）",
+      "narrative": "1v1全真面试模拟，熟悉港校面试套路与答题逻辑"
+    },
+    "iepq": {
+      "name": "IEPQ国际课程证书",
+      "priority": "secondary",
+      "price_cny": "29,800-42,800",
+      "services": [
+        "牛津AQA官方授权（中国首家）",
+        "最高换取28 UCAS Tariff Points",
+        "5000字学术报告+过程日志+答辩",
+        "线上班课/小组实地/1V1全程 可选"
+      ],
+      "bottleneck": "学术认证",
+      "uplift_mode": "fixed",
+      "fixed_pp": 2,
+      "dot": "#a855f7",
+      "sort": 45,
+      "product_phase": "application_prep",
+      "diag_rule": "always",
+      "tooltip": "IEPQ | 29,800-42,800 CNY | 牛津AQA认证 UCAS 28分",
+      "narrative": "牛津AQA官方授权学术资格认证，98% A*/A率，不设专业限制，UCAS加分直达",
+      "_detail": "2024届A*/A比例达98%，剑桥录取生超97.9%达A*AA以上却仍有6993人被拒——EPQ是差异化利器"
+    },
+    "laser": {
+      "name": "LASER科研技能证书",
+      "priority": "secondary",
+      "price_cny": "6,800",
+      "services": [
+        "英国Ofqual+QAA双重认证",
+        "可转换8 UCAS Tariff Points",
+        "3-5人小班教学",
+        "4+1周短周期"
+      ],
+      "bottleneck": "学术入门",
+      "uplift_mode": "fixed",
+      "fixed_pp": 1,
+      "dot": "#c084fc",
+      "sort": 47,
+      "product_phase": "application_prep",
+      "diag_rule": "always",
+      "tooltip": "LASER | 6,800 CNY (+498注册费) | Ofqual/QAA认证 UCAS 8分",
+      "narrative": "英国Ofqual和QAA双重认证的科研技能入门证书，短周期低成本建立学术背景"
+    },
+    "ihub_zhongda": {
+      "name": "iHUB暑期线下科研（中山大学）",
+      "priority": "secondary",
+      "price_cny": "19,800-29,800",
+      "services": [
+        "2周线上预修 + 1周中山大学深圳校区线下 + 5周线上论文指导",
+        "双轨制师资（中大教授线下 + 全球教授线上）",
+        "63课时学术先修 + 24课时教授课程",
+        "EI/CPCI/Scopus会议论文（独立一作可选）"
+      ],
+      "bottleneck": "科研经历",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#06b6d4",
+      "sort": 35,
+      "product_phase": "application_prep",
+      "diag_rule": "no_research",
+      "tooltip": "iHUB中山大学 | 19,800-29,800 CNY + 食宿4,800 | 线上线下混合科研",
+      "narrative": "中山大学官方合作暑期科研项目，真实实验室体验+论文产出，双轨制师资保障",
+      "_detail": "中山大学继续教育学院主办，深圳校区实地，官方盖章证书，在职教授团队"
+    },
+    "summer_lab_7d": {
+      "name": "暑假7天实验室科研",
+      "priority": "secondary",
+      "price_cny": "15,000-25,000",
+      "services": [
+        "71节线上先导课 + 7天线下实验室集训",
+        "中科院/985高校实验室实地",
+        "3000-5000字研究报告",
+        "教授推荐信（支持网推）"
+      ],
+      "bottleneck": "科研启蒙",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#14b8a6",
+      "sort": 37,
+      "product_phase": "application_prep",
+      "diag_rule": "no_research",
+      "tooltip": "暑假7天实验室 | 15,000-25,000 CNY | 中科院/985实验室实地",
+      "narrative": "7天密集实验室体验，帮助学生确认专业兴趣——低成本试错科研方向",
+      "_detail": "覆盖生物/化学/物理/计算机/经济等学科，北京/上海/广州/深圳/西安等城市"
+    },
+    "intl_org_intern": {
+      "name": "国际组织实习",
+      "priority": "secondary",
+      "price_cny": "39,800",
+      "services": [
+        "联合国全球契约组织/地球宪章国际/世界自然保护联盟等",
+        "实地或远程可选",
+        "保研加分+留学双轨应用",
+        "企业签字版实习证明+推荐信"
+      ],
+      "bottleneck": "国际经历",
+      "uplift_mode": "fixed",
+      "fixed_pp": 3,
+      "dot": "#0ea5e9",
+      "sort": 33,
+      "product_phase": "application_prep",
+      "diag_rule": "no_internship",
+      "tooltip": "国际组织实习 | 39,800 CNY | 联合国/地球宪章/IUCN等 | 保研加分",
+      "narrative": "联合国等国际组织实习经历，教育部推免政策背书，留学+保研双轨加持",
+      "_detail": "山东大学等985高校已将国际组织实习纳入推免加分体系（最高40分）"
+    },
+    "research_ra": {
+      "name": "研助起航计划",
+      "priority": "secondary",
+      "price_cny": "25,000-35,000",
+      "services": [
+        "PBL项目制学习（前6周）+ RA深度训练（后6周）",
+        "PI-博士带教模式（主导师开题+答辩，副导师每周Office Hour）",
+        "12周完整观察期推荐信（vs 竞品4-6周）",
+        "证书详述具体研究内容与方法"
+      ],
+      "bottleneck": "科研深度",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#10b981",
+      "sort": 38,
+      "product_phase": "application_prep",
+      "diag_rule": "no_research",
+      "tooltip": "研助起航 | 25,000-35,000 CNY | 12周PBL+RA | PI-博士带教",
+      "narrative": "对标\"学术研究生预科\"——PBL打基础+RA深度训练，PI-博士双导师制，12周完整观察让推荐信更有分量"
+    },
+    "research_global": {
+      "name": "海外名校导师科研",
+      "priority": "secondary",
+      "price_cny": "30,000-45,000",
+      "services": [
+        "7周在线小组科研 + 5周不限时论文指导",
+        "藤校/G5/QS Top50教授及研究员领衔",
+        "2-4人小组制（部分课题独立完成）",
+        "六师制服务团队（主导师+TF+助教+论文导师+班主任×2）",
+        "LASER学术方法论官方证书（UCAS 8分）"
+      ],
+      "bottleneck": "学术背景",
+      "uplift_mode": "pipeline",
+      "fixed_pp": 0,
+      "dot": "#6366f1",
+      "sort": 42,
+      "product_phase": "application_prep",
+      "diag_rule": "no_research",
+      "tooltip": "海外名校导师科研 | 30,000-45,000 CNY | 7+5周小组制 | 藤校/G5教授",
+      "narrative": "藤校/G5教授亲授小组科研，累计38,000+学员验证。小组协作降低门槛，教授Reference Letter提升申请含金量"
+    },
+    "research_r_plan": {
+      "name": "R计划·1V1定制科研",
+      "priority": "secondary",
+      "price_cny": "40,000-80,000",
+      "services": [
+        "1V1定制课题（方向/时间/难度完全可调）",
+        "EI会议层级（~5个月）/ SCI期刊层级（~1年）双轨可选",
+        "导师本人入群全程亲自答疑（非助教/博士生代劳）",
+        "推荐信支持10所学校网申",
+        "参与导师真实在研课题（\"在研型\"项目）"
+      ],
+      "bottleneck": "科研深度",
+      "uplift_mode": "fixed",
+      "fixed_pp": 4,
+      "dot": "#d946ef",
+      "sort": 44,
+      "product_phase": "application_prep",
+      "diag_rule": "no_research",
+      "tooltip": "R计划·1V1定制 | 40,000-80,000 CNY | EI/SCI双层级 | 导师本人全程",
+      "narrative": "旗舰1V1定制科研——导师本人全程答疑、参与真实在研课题、从EI会议到SCI期刊双轨可选。不是\"教学项目\"，是\"在研项目\""
+    },
+    "rp_outreach": {
+      "name": "套磁+RP指导",
+      "priority": "secondary",
+      "price_cny": "3,200-12,200",
+      "services": [
+        "套磁服务：至多20名教授（¥3,200/3个月）或40名教授（¥5,000/5个月）",
+        "RP研究计划书指导：1课时¥3,200 / 2课时¥6,200 / 4课时¥12,200",
+        "适合DIY/半自助学生，按需选购"
+      ],
+      "bottleneck": "研究准备",
+      "uplift_mode": "fixed",
+      "fixed_pp": 1,
+      "dot": "#fbbf24",
+      "sort": 55,
+      "product_phase": "application_prep",
+      "diag_rule": "always",
+      "tooltip": "套磁+RP指导 | 3,200-12,200 CNY | 按需选购 | DIY友好",
+      "narrative": "为DIY和半自助学生提供的轻量增值——套磁联系教授、RP研究计划书写作指导，按课时灵活选购"
+    },
+    "dual_excel": {
+      "name": "双优计划（实习+科研）",
+      "priority": "primary",
+      "price_cny": "55,800",
+      "services": [
+        "1个月实地实习 + 1个月实地科研",
+        "可选延长1-2个月线上论文指导",
+        "国家研究机构/中科院/C9高校导师",
+        "实习证明 + 独立一作EI/CPCI/SCOPUS论文 + 推荐信 + 职业规划报告"
+      ],
+      "bottleneck": "综合背景",
+      "uplift_mode": "fixed",
+      "fixed_pp": 4,
+      "dot": "#f59e0b",
+      "sort": 12,
+      "product_phase": "application_prep",
+      "diag_rule": "no_internship",
+      "tooltip": "双优计划 | 55,800 CNY | 实习+科研一体化 | EI论文+实习证明",
+      "narrative": "理工科旗舰产品——1个月实地实习+1个月实地科研，一次搞定实习证明和独立一作论文"
+    },
+    "campus_recruit": {
+      "name": "校招求职辅导",
+      "priority": "primary",
+      "price_cny": "12,000-25,000",
+      "services": [
+        "校招全流程辅导（简历→笔试→群面→终面）",
+        "行业导师1v1模拟面试",
+        "名企内推机会",
+        "薪资谈判指导"
+      ],
+      "bottleneck": "求职能力",
+      "uplift_mode": "fixed",
+      "fixed_pp": 2,
+      "dot": "#22c55e",
+      "sort": 14,
+      "product_phase": "post_admission",
+      "diag_rule": "always",
+      "tooltip": "校招求职辅导 | 12,000-25,000 CNY | 全流程+内推",
+      "narrative": "校招全流程辅导，从简历到终面一站式服务，含名企内推和薪资谈判指导"
+    }
+  },
+  "prompt_context_template": {
+    "short": "学生合同：{label}（{max_schools}所/{max_majors}专业，{team}）",
+    "full": "【学生合同信息】\n- 合同类型：{label}\n- 可申请学校上限：{max_schools}所\n- 可申请专业上限：{max_majors}个\n- 支持地区：{regions}\n- 服务团队：{team}\n\n推荐学校数量不超过合同上限。学校数有限时优先推荐匹配度最高、概率最可靠的目标。"
+  },
+  "personalization": {
+    "_description": "个性化加成系数 — fixed_pp × 各维度乘数 = 最终加成, O(1)查表",
+    "school_tier": {
+      "_description": "院校层次系数 — 弱校提升空间大，强校边际小",
+      "C9": 1.0,
+      "985": 1.06,
+      "211": 1.1,
+      "双非": 1.15,
+      "其他": 1.12
+    },
+    "contract_tier": {
+      "_description": "合同档位系数 — 高价合同享有更高服务加成",
+      "premium_c": 1.1,
+      "premium_b": 1.08,
+      "premium_a": 1.06,
+      "research_b": 1.12,
+      "research_a": 1.1,
+      "default": 1.0
+    },
+    "gap_amplification": {
+      "_description": "短板严重度系数 — 缺口越大加成越大",
+      "language": {
+        "per_point_gap": 0.1,
+        "max": 1.25,
+        "_note": "IELTS差0.5→×1.05, 差1.0→×1.10, 差1.5→×1.15, cap 1.25"
+      }
+    },
+    "synergy": {
+      "_description": "多产品协同系数",
+      "2_products": 1.05,
+      "3_plus_products": 1.08
+    },
+    "global_cap": 2.0
+  }
+}

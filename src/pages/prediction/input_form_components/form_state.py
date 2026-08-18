@@ -5,7 +5,7 @@ from typing import Any
 
 import streamlit as st
 
-from src.pages.prediction.handler_config import DEFAULT_WIDGET_KEYS
+from src.pages.prediction.handler_config import DEFAULT_FORM_KEYS, DEFAULT_WIDGET_KEYS
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_GPA_SCALE,
     GPA_SCALES,
@@ -51,8 +51,13 @@ class FormStateManager:
             "gpa_raw_input": None,
             "language_type": "雅思",
             "language_score_input": None,
+            DEFAULT_FORM_KEYS.language_score_user_provided: False,
             "background_university_initial": None,
             "background_major_original_initial": None,
+            "background_major_2_original": None,
+            "background_major_2": None,
+            "is_dual_degree": False,
+            "dual_alpha": 0.85,
             "research_count_initial": 0,
             "award_count_initial": 0,
             "internship_count_initial": 0,
@@ -97,6 +102,11 @@ class FormStateManager:
             "background_major_original": session_manager.get_widget_value(
                 DEFAULT_WIDGET_KEYS.background_major
             ),
+            "background_major_2_original": session_manager.get_widget_value(
+                DEFAULT_WIDGET_KEYS.background_major_2
+            ),
+            "is_dual_degree": session_manager.get("is_dual_degree", False),
+            "dual_alpha": session_manager.get("dual_alpha", 0.85),
             "research_count": session_manager.get_widget_value(
                 DEFAULT_WIDGET_KEYS.research_count, 0
             ),
@@ -332,11 +342,16 @@ class FormStateManager:
             if cache_key in lang_cache:
                 converted_score = lang_cache[cache_key]
             else:
-                converted_score = FormStateManager._convert_language_score(
-                    old_lang_type, new_lang_type, float(current_score)
-                )
-                lang_cache[cache_key] = converted_score
-                session_manager.set(lang_conversion_cache=lang_cache)
+                try:
+                    current_score_num = float(current_score)
+                except (TypeError, ValueError):
+                    current_score_num = None
+                if current_score_num is not None:
+                    converted_score = FormStateManager._convert_language_score(
+                        old_lang_type, new_lang_type, current_score_num
+                    )
+                    lang_cache[cache_key] = converted_score
+                    session_manager.set(lang_conversion_cache=lang_cache)
 
             if converted_score is not None:
                 form_state_logger.info(

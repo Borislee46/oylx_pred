@@ -1,0 +1,174 @@
+{
+  "_note": "Prediction pipeline penalty & adjustment parameters. Regenerate: python scripts/generate_pipeline_config.py",
+  "_schema_version": 2,
+
+  "adjustment_flags": {
+    "_note": "Feature flags for adjustment chain layers. Set to false to skip a layer. Use for gradual rollout of experimental merge (P4.2).",
+    "enable_gpa_penalty": true,
+    "enable_language_penalty": true,
+    "enable_cross_major_penalty": false,
+    "enable_cross_faculty_penalty": true,
+    "enable_professional_penalty": true,
+    "enable_language_requirement_penalty": true
+  },
+
+  "gpa_penalty": {
+    "minimum": 2.0,
+    "severe_threshold": 0.95,
+    "max_coefficient": 0.8,
+    "quadratic_coefficient": 0.15
+  },
+
+  "language_penalty": {
+    "minimum": 0.6,
+    "severe_threshold": 0.95,
+    "pass_line_multiplier": 0.5,
+    "levels": {
+      "_note": "Tiered thresholds used by radar_scoring.py for visualisation only.",
+      "L1": { "threshold": 0.85, "multiplier": 1.5 },
+      "L2": { "threshold": 0.7, "multiplier": 1.0 },
+      "L3": { "threshold": 0.4 }
+    },
+    "sigmoid_steepness": 12.0,
+    "requirement_penalty_steepness": 7.0,
+    "requirement_penalty_midpoint": 0.5
+  },
+
+  "cross_major_penalty": {
+    "factor": 0.5,
+    "similarity_min": 0.8,
+    "min_similarity_threshold": 0.87,
+    "higher_similarity_threshold": 0.92,
+    "sigmoid_steepness": 25.0,
+    "sigmoid_midpoint": 0.87,
+    "evidence_prior_strength": 5.0,
+    "evidence_ratio_threshold": 0.85,
+    "evidence_min_cases": 5
+  },
+
+  "faculty_penalty": {
+    "out_of_scope_factor": 0.3,
+    "light": 0.7,
+    "medium": 0.5,
+    "heavy": 0.3
+  },
+
+  "professional_penalty": {
+    "reduction_factor": 0.3,
+    "user_specified_reduction_factor": 0.5
+  },
+
+  "arbitration": {
+    "max_total_penalty_ratio": 0.7,
+    "max_total_boost_ratio": 0.3,
+    "penalty_decay_factor": 0.85,
+    "boost_decay_factor": 0.8,
+    "min_probability": 0.005,
+    "penalty_ceiling_by_layers": { "1": 0.7, "2": 0.55, "3": 0.45 }
+  },
+
+  "probability": {
+    "min_value": 0.001,
+    "adjustment_threshold": 0.01,
+    "extreme_std_multiplier": 2.0,
+    "scale_factor": 2.0,
+    "scale_center": 0.5,
+    "boost_min": 0.1,
+    "boost_max": 0.9
+  },
+
+  "text_boost": {
+    "_note": "2026-07-20: 文本概率提升已主动下线（调整链 ECE 3.9× + 外部偏差 -67pp，无 held-out 验证）。含金量标签仍正常展示在 trace 中。",
+    "enabled": false,
+    "max_total_boost": 0.15,
+    "sim_gate_sum_min": 0.1,
+    "sim_gate_max_min": 0.08,
+    "smoothing": 0.7,
+    "cap_min_factor": 0.1,
+    "cap_quality_gamma": 1.2
+  },
+
+  "fuzzy_bias": {
+    "threshold_high": 92.0,
+    "threshold_mid": 82.0,
+    "threshold_low": 72.0,
+    "multiplier_high": 1.25,
+    "multiplier_mid": 1.15,
+    "multiplier_low": 1.05
+  },
+
+  "comprehensive_score": {
+    "boost_threshold": 0.6,
+    "selection_score_boost_factor": 0.3
+  },
+
+  "combination_pool": {
+    "semantic_min": 0.6,
+    "fuzzy_min": 90,
+    "top_n_recommendations": 30,
+    "university_count_threshold": 2
+  },
+
+  "manual_adjust": {
+    "max_pp": 0.15,
+    "prob_floor": 0.005,
+    "prob_ceiling": 0.95,
+    "reasons": [
+      "",
+      "招生名额变化",
+      "软背景强推",
+      "院校关系",
+      "当年竞争异常",
+      "政策变动",
+      "其他"
+    ]
+  },
+
+  "user_specified": {
+    "small_range_threshold": 20,
+    "medium_range_threshold": 100,
+    "medium_range_top_n": 50,
+    "large_range_top_n": 100,
+    "probability_adjuster_cache_size": 50,
+    "quality_score_max_weight": 0.7,
+    "quality_score_mean_weight": 0.3,
+    "quality_score_threshold": 0.15
+  },
+
+  "agent": {
+    "min_safe_relax_threshold": 0.87,
+    "boundary_similarity_range": 0.03,
+    "max_boundary_cases": 20,
+    "tail_percentage": 0.2,
+    "min_balance_diff_min": 3,
+    "min_balance_diff_ratio": 0.15,
+    "no_change_threshold": 3
+  },
+
+  "bayesian_shrinkage": {
+    "prior_strength": 30,
+    "global_prior": 0.337
+  },
+
+  "scoring": {
+    "gpa_sigmoid_k": 3.0,
+    "gpa_sigmoid_x0": 3.3,
+    "language_sigmoid_k": 15.0,
+    "language_sigmoid_x0": 0.72,
+    "comprehensive_score_weights": [0.4, 0.3, 0.3]
+  },
+
+  "school_stats": {
+    "min_n": 5
+  },
+
+  "tier_calibration": {
+    "boundaries": [5, 12, 19],
+    "max_iter": 20
+  },
+
+  "fallback": {
+    "n_threshold": 5,
+    "wilson_z": 1.96
+  }
+}

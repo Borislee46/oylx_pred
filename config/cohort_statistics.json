@@ -1,0 +1,9 @@
+{
+  "gpa_mean": 3.2203,
+  "gpa_std": 0.3605,
+  "gpa_n": 76629,
+  "language_mean": 0.7354,
+  "language_std": 0.0566,
+  "language_n": 65847,
+  "_note": "Computed from cases.feather. GPA filtered [2.0,4.0]; language normalised (IELTS/9.0, TOEFL/120) then trimmed 1st-99th percentile."
+}

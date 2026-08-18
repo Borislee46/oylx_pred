@@ -1,23 +1,87 @@
 from functools import partial
+from typing import cast
 
 import streamlit as st
 
-from src.pages.prediction.config.ui_messages import (
+from src.pages.prediction.core.ui_messages import (
     FORM_LABELS,
     FORM_PLACEHOLDERS,
     FORM_WARNING_MESSAGES,
 )
-from src.pages.prediction.handler_config import DEFAULT_WIDGET_KEYS
+from src.pages.prediction.handler_config import DEFAULT_FORM_KEYS, DEFAULT_WIDGET_KEYS
 from src.pages.prediction.input_form_components.form_config import (
     DEFAULT_LANGUAGE_SCORES,
     LANGUAGE_SCORE_RANGES,
     LANGUAGE_TYPES,
     LANGUAGE_WARNING_THRESHOLDS,
 )
-from src.pages.prediction.input_form_components.language_score_validator import (
-    LanguageScoreValidator,
-)
-from src.utils.school_level_service import get_school_level_service
+from src.utils.numeric import is_close_to_int
+from src.utils.schools.level_service import get_school_level_service
+
+
+class LanguageScoreValidator:
+    @staticmethod
+    def validate_ielts_step(score: float) -> bool:
+        return is_close_to_int(score * 2)
+
+    @staticmethod
+    def validate_score_range(score: float, language_type: str) -> tuple[bool, str | None]:
+        if language_type not in LANGUAGE_SCORE_RANGES:
+            return False, f"未知的语言类型: {language_type}"
+
+        score_config = LANGUAGE_SCORE_RANGES[language_type]
+        min_score = float(cast(int | float, score_config["min"]))
+        max_score = float(cast(int | float, score_config["max"]))
+
+        if score < min_score or score > max_score:
+            return (
+                False,
+                f"{language_type}成绩必须在 {min_score} 到 {max_score} 之间",
+            )
+
+        if language_type == "雅思" and not LanguageScoreValidator.validate_ielts_step(score):
+            return False, "雅思成绩必须是0.5的倍数"
+
+        return True, None
+
+    @staticmethod
+    def validate_and_parse_score(
+        score_text: str, language_type: str
+    ) -> tuple[float | None, str | None, bool]:
+        if not score_text or not score_text.strip():
+            return None, None, False
+
+        try:
+            score_value = float(score_text.strip())
+        except ValueError:
+            return None, f"请输入有效的{language_type}成绩", True
+
+        is_valid, error_msg = LanguageScoreValidator.validate_score_range(
+            score_value, language_type
+        )
+
+        if not is_valid:
+            return None, error_msg, True
+
+        return score_value, None, False
+
+
+def apply_overseas_language_boost(school_name: str, language_type: str) -> float:
+    school_service = get_school_level_service()
+
+    if not school_service.is_overseas_school(school_name):
+        return DEFAULT_LANGUAGE_SCORES.get(language_type, 6.5)
+
+    base_score = DEFAULT_LANGUAGE_SCORES.get(language_type)
+    if base_score is None:
+        return 6.5 if language_type == "雅思" else 90
+
+    multiplier = school_service.get_language_boost_multiplier(school_name)
+    boosted_score = base_score * multiplier
+
+    max_value = cast(int | float, LANGUAGE_SCORE_RANGES[language_type]["max"])
+    max_score = float(max_value)
+    return min(boosted_score, max_score)
 
 
 def _check_and_show_language_warning(session_manager):
@@ -98,9 +162,13 @@ def _render_overseas_language_input(
     if final_language_score != session_manager.get(
         "language_score_input"
     ) or has_input_error != session_manager.get("language_score_input_error"):
-        session_manager.set(
-            language_score_input=final_language_score, language_score_input_error=has_input_error
-        )
+        updates = {
+            "language_score_input": final_language_score,
+            "language_score_input_error": has_input_error,
+        }
+        if final_language_score is not None and final_language_score > 0:
+            updates[DEFAULT_FORM_KEYS.language_score_user_provided] = True
+        session_manager.set(**updates)
 
 
 def _render_domestic_language_input(
@@ -142,13 +210,23 @@ def _render_domestic_language_input(
                     DEFAULT_WIDGET_KEYS.language_score
                 ),
                 language_score_input_error=False,
+                **{DEFAULT_FORM_KEYS.language_score_user_provided: True},
             ),
             form_state_manager.on_form_change(session_manager, change_type="text"),
         ),
         placeholder=placeholder_text,
         key=widget_key,
     )
-    if (
+    user_provided = session_manager.get(DEFAULT_FORM_KEYS.language_score_user_provided, False)
+    default_score = DEFAULT_LANGUAGE_SCORES.get(
+        language_type, 6.5 if language_type == "雅思" else 86
+    )
+    is_placeholder_default = not user_provided and language_score == default_score
+
+    if is_placeholder_default:
+        if session_manager.get("language_score_input") is not None:
+            session_manager.set(language_score_input=None, language_score_input_error=False)
+    elif (
         language_score != session_manager.get("language_score_input")
         or session_manager.get("language_score_input_error") is not False
     ):
@@ -227,4 +305,8 @@ def render_language_section(session_manager, form_state_manager, logger):
         _check_and_show_language_warning(session_manager)
         _check_and_show_ielts_step_warning(session_manager)
 
-    return language_type, session_manager.get("language_score_input")
+    user_provided = session_manager.get(DEFAULT_FORM_KEYS.language_score_user_provided, False)
+    lang_input = session_manager.get("language_score_input")
+    if not user_provided:
+        return language_type, None
+    return language_type, lang_input

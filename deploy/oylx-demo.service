@@ -1,0 +1,21 @@
+[Unit]
+Description=Signals 留学择校预测（脱敏演示版）
+After=network.target
+
+[Service]
+Type=simple
+User=__SERVICE_USER__
+Group=__SERVICE_USER__
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=__APP_DIR__/.env
+ExecStart=__APP_DIR__/.venv/bin/python -m streamlit run __APP_DIR__/main.py --server.headless true --server.address 127.0.0.1 --server.port 8501
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=__APP_DIR__/logs __APP_DIR__/cache
+
+[Install]
+WantedBy=multi-user.target
+

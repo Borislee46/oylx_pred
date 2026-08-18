@@ -1,9 +1,3 @@
-/* ============================================================
-   50_ux — Premium UI Components for Signals Prediction
-   Leverages tokens from 00_tokens.css
-   ============================================================ */
-
-/* ── Field Chip ───────────────────────────────────────────── */
 .hk-field-chip {
   display: inline-flex;
   align-items: center;
@@ -38,6 +32,20 @@
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(6, 182, 212, 0.08);
 }
+
+.hk-field-chip-low-conf {
+  border-style: dashed;
+  border-color: rgba(217, 119, 6, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+.hk-field-chip-low-conf .hk-chip-label {
+  color: var(--hk-amber-light);
+}
+.hk-field-chip-low-conf:hover {
+  border-color: rgba(217, 119, 6, 0.45);
+  background: rgba(245, 158, 11, 0.08);
+}
+
 .hk-field-chip-grid {
   display: flex;
   flex-wrap: wrap;
@@ -45,17 +53,16 @@
   padding: 0.25rem 0;
 }
 
-/* ── Insight Card ─────────────────────────────────────────── */
 .hk-insight-card {
   padding: 0.75rem 1rem;
   border-radius: var(--hk-radius-md);
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   background: var(--hk-surface-elevated);
   margin-bottom: 0.65rem;
   transition: all var(--hk-transition);
 }
 .hk-insight-card.hk-insight-positive {
-  border-left: 3px solid #10b981;
+  border-left: 3px solid var(--hk-green-400);
   background: linear-gradient(
     135deg,
     rgba(16, 185, 129, 0.03),
@@ -110,7 +117,6 @@
   background: var(--hk-slate-300);
 }
 
-/* ── Tier Badge ───────────────────────────────────────────── */
 .hk-tier-badge {
   display: inline-block;
   padding: 0.1rem 0.5rem;
@@ -124,12 +130,12 @@
 }
 .hk-tier-reach {
   background: rgba(239, 68, 68, 0.08);
-  color: #dc2626;
+  color: var(--hk-red-500);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 .hk-tier-match {
   background: rgba(245, 158, 11, 0.08);
-  color: #d97706;
+  color: var(--hk-amber-600);
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 .hk-tier-safety {
@@ -139,12 +145,12 @@
 }
 .hk-tier-importance-high {
   background: rgba(239, 68, 68, 0.06);
-  color: #dc2626;
+  color: var(--hk-red-500);
   border: 1px solid rgba(239, 68, 68, 0.15);
 }
 .hk-tier-importance-mid {
   background: rgba(245, 158, 11, 0.06);
-  color: #d97706;
+  color: var(--hk-amber-600);
   border: 1px solid rgba(245, 158, 11, 0.15);
 }
 .hk-tier-importance-low {
@@ -153,8 +159,6 @@
   border: 1px solid rgba(100, 116, 139, 0.15);
 }
 
-/* ── Stat Row (clickable popover cards) ──────────────────── */
-/* Legacy stat classes for HTML fallback */
 .hk-stat-row {
   display: flex;
   gap: 0.75rem;
@@ -167,7 +171,7 @@
   padding: 0.65rem 0.9rem;
   border-radius: var(--hk-radius-md);
   background: var(--hk-surface-elevated);
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   text-align: center;
   transition: all var(--hk-transition);
 }
@@ -191,7 +195,6 @@
   letter-spacing: 0.5px;
 }
 
-/* ── Question Pill ────────────────────────────────────────── */
 .hk-question-pill {
   display: inline-block;
   padding: 0.25rem 0.7rem;
@@ -201,7 +204,7 @@
   font-family: var(--hk-font-sans);
   color: var(--hk-slate-500);
   background: var(--hk-surface-elevated);
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   margin: 0.15rem 0.3rem 0.15rem 0;
   transition: all var(--hk-transition-fast);
   cursor: default;
@@ -213,7 +216,6 @@
   transform: translateY(-1px);
 }
 
-/* ── Section Divider ──────────────────────────────────────── */
 .hk-section-divider {
   height: 1px;
   margin: 1rem 0;
@@ -227,7 +229,6 @@
   border: none;
 }
 
-/* ── Timeline ─────────────────────────────────────────────── */
 .hk-timeline {
   position: relative;
   padding-left: 1.25rem;
@@ -265,7 +266,6 @@
   box-shadow: 0 0 4px var(--hk-cyan-alpha-30);
 }
 
-/* ── Checklist Item ───────────────────────────────────────── */
 .hk-checklist-item {
   display: flex;
   align-items: center;
@@ -275,7 +275,6 @@
   color: var(--hk-slate-600);
 }
 
-/* ── Assessment Block ─────────────────────────────────────── */
 .hk-assessment {
   padding: 0.8rem 1rem;
   border-radius: var(--hk-radius-md);
@@ -295,9 +294,9 @@
   color: var(--hk-slate-600);
   letter-spacing: 0.01em;
 }
-/* ── Thought Bubble ────────────────────────────────────────── */
+
 .hk-thought-bubble {
-  border-left: 1.5px solid var(--hk-slate-200);
+  border-left: 1.5px solid var(--hk-border);
   padding-left: 0.8rem;
   margin-top: -12px;
   margin-bottom: 8px;
@@ -308,14 +307,12 @@
   font-family: var(--hk-font-sans);
 }
 
-/* ── Lead-In Hint ──────────────────────────────────────────── */
 .hk-lead-in-hint {
   color: var(--hk-slate-400);
   font-size: 0.8rem;
   margin: 0 0 0.5rem 0;
 }
 
-/* ── Thought Progress ──────────────────────────────────────── */
 .hk-thought-progress {
   border-left: 1.5px solid var(--hk-cyan);
   padding: 0.4rem 0.7rem;
@@ -324,7 +321,228 @@
   font-style: italic;
 }
 
-/* ── Animations ───────────────────────────────────────────── */
+@keyframes hkLiPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+@keyframes hkLiFade {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.stApp [data-testid="stHtml"] .hk-li-card,
+.stApp .hk-li-card {
+  margin: 0.5rem 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--hk-radius-lg, 10px);
+  border: 1px solid rgba(6, 182, 212, 0.14);
+  border-left: 2.5px solid var(--hk-cyan);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02)
+  );
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  font-family: var(--hk-font-sans);
+}
+.stApp [data-testid="stHtml"] .hk-li-card.done,
+.stApp .hk-li-card.done {
+  border: 1px solid var(--hk-border);
+  border-left: 2.5px solid var(--hk-border);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+  padding: 0.5rem 0.75rem;
+}
+
+.hk-li-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hk-li-title-l {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--hk-slate-600);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hk-li-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hk-cyan);
+  animation: hkLiPulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.hk-li-foot {
+  font-size: 0.68rem;
+  color: var(--hk-slate-400);
+  font-variant-numeric: tabular-nums;
+}
+.hk-li-strategy {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--hk-slate-400);
+}
+
+.hk-li-rail {
+  position: relative;
+  margin: 0.85rem 0 0.35rem;
+  padding: 0 0.15rem;
+}
+.hk-li-rail-track {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 9px;
+  height: 1px;
+  background: var(--hk-slate-200);
+  border-radius: 1px;
+  overflow: hidden;
+  z-index: 0;
+}
+.hk-li-rail-progress {
+  height: 100%;
+  background: var(--hk-cyan);
+  opacity: 0.55;
+  border-radius: inherit;
+  transition: width 0.35s ease;
+}
+.hk-li-nodes {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.hk-li-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 56px;
+}
+.hk-li-node span.lbl {
+  font-size: 0.62rem;
+  color: var(--hk-slate-400);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.hk-li-node.done span.lbl {
+  color: var(--hk-slate-500);
+}
+.hk-li-node.cur span.lbl {
+  color: var(--hk-slate-800);
+  font-weight: 650;
+}
+.hk-li-orb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  border: 1.5px solid var(--hk-border);
+  background: var(--hk-surface-elevated);
+  color: var(--hk-slate-400);
+  box-shadow: 0 0 0 3px rgba(11, 18, 32, 0.9);
+}
+.hk-li-node.done .hk-li-orb {
+  border-color: rgba(6, 182, 212, 0.5);
+  background: rgba(6, 182, 212, 0.15);
+  color: var(--hk-cyan-bright);
+}
+.hk-li-node.done .hk-li-check {
+  display: block;
+  width: 7px;
+  height: 4px;
+  border-left: 1.5px solid var(--hk-cyan-dark);
+  border-bottom: 1.5px solid var(--hk-cyan-dark);
+  transform: rotate(-45deg) translateY(-1px);
+}
+.hk-li-node.cur .hk-li-orb {
+  border-color: var(--hk-cyan);
+  background: rgba(6, 182, 212, 0.18);
+  color: var(--hk-cyan-bright);
+  box-shadow:
+    0 0 0 3px rgba(11, 18, 32, 0.9),
+    0 0 0 5px rgba(6, 182, 212, 0.12);
+}
+
+.hk-li-details {
+  margin-top: 0.45rem;
+}
+.hk-li-card:not(.done) .hk-li-details {
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--hk-slate-150, #2b394d);
+}
+.hk-li-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.22rem 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--hk-slate-500);
+  animation: hkLiFade 0.22s ease-out;
+}
+.hk-li-row.cur {
+  color: var(--hk-slate-700);
+}
+.hk-li-row .mk {
+  flex-shrink: 0;
+  margin-top: 0.48em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--hk-slate-300);
+}
+.hk-li-row.cur .mk {
+  background: var(--hk-cyan);
+}
+.hk-li-card.done .hk-li-row {
+  color: var(--hk-slate-500);
+  font-size: 0.74rem;
+}
+.hk-li-hint {
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  color: var(--hk-slate-400);
+}
+.hk-li-live {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--hk-slate-600);
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-li-dot,
+  .hk-li-row {
+    animation: none;
+  }
+  .hk-li-rail-progress {
+    transition: none;
+  }
+}
+
 @keyframes hkFadeSlideIn {
   from {
     opacity: 0;
@@ -369,11 +587,10 @@
   }
 }
 
-/* ── LeadIn Result Card ───────────────────────────────────── */
 .hk-leadin-result {
   padding: 1rem;
   border-radius: var(--hk-radius-lg);
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   background: var(--hk-surface-bg);
   margin-bottom: 0.75rem;
   transition: all var(--hk-transition);
@@ -396,11 +613,88 @@
   margin-bottom: 0.4rem;
 }
 
-/* ── Tilt Card — reusable glass card with hover effect ───── */
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback,
+.stApp .hk-lead-in-feedback {
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--hk-radius-lg, 10px);
+  border: 1px solid rgba(6, 182, 212, 0.16);
+  border-left: 2.5px solid var(--hk-cyan);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.02)
+  );
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--hk-slate-700);
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback-title,
+.stApp .hk-lead-in-feedback-title {
+  font-family: var(--hk-font-sans);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--hk-slate-500);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--hk-slate-150, #2b394d);
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback-body,
+.stApp .hk-lead-in-feedback-body {
+  font-family: var(--hk-font-sans);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--hk-slate-700);
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback-p,
+.stApp .hk-lead-in-feedback-p {
+  margin: 0 0 0.35rem 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--hk-slate-700);
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback-p:last-child,
+.stApp .hk-lead-in-feedback-p:last-child {
+  margin-bottom: 0;
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback-p strong,
+.stApp .hk-lead-in-feedback-p strong {
+  color: var(--hk-slate-800);
+  font-weight: 600;
+  font-size: inherit;
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-feedback-extra,
+.stApp .hk-lead-in-feedback-extra {
+  color: var(--hk-slate-500);
+  font-size: 0.78rem;
+}
+
+.hk-clarify-label {
+  font-size: 0.76rem;
+  color: var(--hk-slate-400);
+  margin: 6px 0 4px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-stream-text,
+.stApp .hk-lead-in-stream-text {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--hk-slate-700);
+}
+.stApp [data-testid="stHtml"] .hk-lead-in-stream-text .hk-lead-in-feedback-p,
+.stApp .hk-lead-in-stream-text .hk-lead-in-feedback-p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
 .hk-ux-card {
   border-radius: var(--hk-radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.05);
   box-shadow:
     0 1px 3px rgba(15, 23, 42, 0.04),
     0 4px 12px rgba(15, 23, 42, 0.06);
@@ -420,18 +714,12 @@
 
 @supports (backdrop-filter: blur(1px)) {
   .hk-ux-card {
-    background: rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.06);
     backdrop-filter: blur(12px) saturate(160%);
     -webkit-backdrop-filter: blur(12px) saturate(160%);
   }
 }
 
-/* ── Stage: hero composition wrapper for the lead-in section ─── */
-/* Streamlit container(key="hk_stage_lead_in") gets .st-key-hk_stage_lead_in
-   on its outer block element; used as a no-border stage hook so the ghost
-   textarea's own soft shadow becomes the only focal element. Top margin is
-   intentionally tiny so the hero h2 stays visually anchored to the textarea
-   it describes. */
 .stApp .st-key-hk_stage_lead_in {
   margin: 0 0 var(--hk-rhythm-sm);
   padding: 0;
@@ -443,6 +731,9 @@
   text-align: left;
   margin: 0 0 12px 0;
 }
+.hk-stage-hero--compact {
+  margin: 0 0 8px 0;
+}
 .hk-lead-in-prompt {
   font-family: var(--hk-font-display);
   font-size: 1.35rem;
@@ -452,13 +743,21 @@
   letter-spacing: -0.012em;
   margin: 0 0 6px 0;
 }
+.hk-lead-in-prompt--compact {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--hk-slate-800);
+  margin: 0;
+  letter-spacing: -0.008em;
+}
 .hk-lead-in-prompt .hk-prompt-en {
   display: block;
   font-family: var(--hk-font-display);
   font-size: 0.74rem;
   font-weight: 500;
   letter-spacing: 0.12em;
-  color: var(--hk-cyan-dark);
+  color: var(--hk-cyan-bright);
   text-transform: uppercase;
   margin-bottom: 6px;
 }
@@ -494,7 +793,7 @@
   font-weight: 500;
   color: var(--hk-slate-600);
   background: var(--hk-surface-elevated);
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   border-bottom-width: 2px;
   border-radius: 4px;
   margin: 0 2px;
@@ -511,20 +810,18 @@
   font-weight: 600;
 }
 
-/* ── Gradient Section Label ───────────────────────────────── */
 .hk-section-label {
   font-family: var(--hk-font-display);
   font-size: var(--hk-text-sm);
   font-weight: 600;
   letter-spacing: 0.03em;
-  background: linear-gradient(135deg, var(--hk-slate-700), var(--hk-cyan-dark));
+  background: linear-gradient(135deg, var(--hk-slate-700), var(--hk-cyan));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 0.5rem;
 }
 
-/* ── Result Card Grid ─────────────────────────────────────── */
 .hk-result-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -534,7 +831,7 @@
 .hk-result-card {
   padding: 0.85rem;
   border-radius: var(--hk-radius-lg);
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   background: var(--hk-surface-bg);
   transition: all var(--hk-transition);
 }
@@ -574,7 +871,6 @@
   color: var(--hk-slate-600);
 }
 
-/* ── LeadIn Section ───────────────────────────────────────── */
 .hk-leadin-section {
   padding: 1rem 0 0.5rem 0;
 }
@@ -587,7 +883,6 @@
   flex: 1;
 }
 
-/* ── Results Paper Edges ──────────────────────────────────── */
 .hk-results-paper-top {
   height: 0;
   margin: 0.6rem 1rem 0;
@@ -607,7 +902,6 @@
   letter-spacing: 0.02em;
 }
 
-/* ── Footer / Back Link ───────────────────────────────────── */
 .hk-footer {
   display: flex;
   justify-content: center;
@@ -620,7 +914,7 @@
       90deg,
       transparent 0%,
       var(--hk-cyan-alpha-20) 15%,
-      var(--hk-slate-200) 50%,
+      var(--hk-border) 50%,
       var(--hk-cyan-alpha-20) 85%,
       transparent 100%
     )
@@ -645,14 +939,13 @@
   background: var(--hk-slate-200);
 }
 
-/* ── Hero Summary (prediction result top banner) ──────────── */
 .hk-hero-summary {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
-  border: 1px solid var(--hk-slate-200);
+  border: 1px solid var(--hk-border);
   border-radius: var(--hk-radius);
   background: var(--hk-surface-elevated);
 }
@@ -671,7 +964,7 @@
   height: 32px;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--hk-white);
   box-shadow: 0 0 0 1px var(--hk-slate-200);
   background: var(--hk-surface-bg);
   flex-shrink: 0;
@@ -708,7 +1001,7 @@
   font-weight: 600;
   color: var(--hk-slate-500);
   background: var(--hk-slate-100);
-  border: 1px dashed var(--hk-slate-300);
+  border: 1px dashed var(--hk-border);
   filter: none;
   margin-left: -8px;
 }
@@ -752,11 +1045,11 @@
 }
 
 .hk-tier-target-num {
-  color: #d97706;
+  color: var(--hk-amber-600);
   font-weight: 600;
 }
 
 .hk-tier-reach-num {
-  color: #dc2626;
+  color: var(--hk-red-500);
   font-weight: 600;
 }

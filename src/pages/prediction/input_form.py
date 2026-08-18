@@ -16,27 +16,29 @@ HK 预测页面的输入表单编排层。
   - is_new_submission=False：返回当前表单快照（用于 lead-in auto-submit）
 """
 
-import time
 from contextlib import nullcontext
 
 import streamlit as st
 
-from src.pages.prediction.input_form_components import (
-    FormStateManager,   # session_state 初始化 + 表单状态管理
-    FormUIComponents,   # 表单 UI 组件渲染器（背景/GPA/语言/目标/经历/提交按钮）
-    FormValidator,      # 表单数据校验规则
-    GPAConverter,       # GPA 分制转换（4.0/5.0/100 → 归一化）
+from src.pages.prediction.flow.form_normalizer import (
+    calculate_processed_gpa,  # GPA 原始值 → 归一化值（考虑院校、标化考试）
+    calculate_processed_language_score,  # 语言原始值 → 归一化值（考虑海本豁免）
+    get_background_university_for_model,  # 院校名 → 模型可识别的院校名（模糊匹配）
+    normalize_form_data_for_prediction,  # 表单数据 → 模型输入格式（完整归一化）
 )
-from src.pages.prediction.prediction_preparation.form_normalizer import (
-    calculate_processed_gpa,                  # GPA 原始值 → 归一化值（考虑院校、标化考试）
-    calculate_processed_language_score,       # 语言原始值 → 归一化值（考虑海本豁免）
-    get_background_university_for_model,      # 院校名 → 模型可识别的院校名（模糊匹配）
-    normalize_form_data_for_prediction,       # 表单数据 → 模型输入格式（完整归一化）
+from src.pages.prediction.handler_config import DEFAULT_FORM_KEYS, DEFAULT_WIDGET_KEYS
+from src.pages.prediction.input_form_components import (
+    FormStateManager,  # session_state 初始化 + 表单状态管理
+    FormUIComponents,  # 表单 UI 组件渲染器（背景/GPA/语言/目标/经历/提交按钮）
+    FormValidator,  # 表单数据校验规则
+    GPAConverter,  # GPA 分制转换（4.0/5.0/100 → 归一化）
 )
 from src.pages.prediction.results_handler import reset_prediction_results
-from src.utils.app_data_loader import load_school_base_data  # 院校基础数据（排名、分类等）
 from src.utils.logger import setup_logger
-from src.utils.school_level_service import get_school_level_service  # 院校等级服务（985/211/双非/海本）
+from src.utils.schools.data import load_school_base_data  # 院校基础数据（排名、分类等）
+from src.utils.schools.level_service import (
+    get_school_level_service,  # 院校等级服务（985/211/双非/海本）
+)
 from src.utils.session_manager import SessionManager
 
 form_logger = setup_logger("page3", "prediction")
@@ -64,7 +66,7 @@ def create_input_form(
         - is_new_submission=True → 用户刚提交，input_data 是归一化后的模型输入
         - is_new_submission=False → 返回当前表单快照（用于 lead-in auto-submit）
     """
-    # 1. 初始化表单 session_state（幂等：首次加载初始化默认值，后续重跑跳过）
+    # 0. 初始化表单 session_state（幂等：首次加载初始化默认值，后续重跑跳过）
     FormStateManager.initialize_session_state(session_manager)
 
     # 2. 提交互斥锁：预测进行中时禁用表单，防止重复提交
@@ -95,6 +97,10 @@ def create_input_form(
                     background_university,
                     selected_background_major_original,
                     background_major,
+                    background_major_2_original,
+                    background_major_2,
+                    is_dual_degree,
+                    dual_alpha,
                 ) = ui_components.render_background_section(cases_df)
 
                 gpa_col, test_col = st.columns([2, 1], gap="medium")
@@ -123,19 +129,43 @@ def create_input_form(
             submit_button = ui_components.render_submit_button(disabled_status)
 
     # 6. 提交处理：校验 → 归一化 → 返回
-    if submit_button:
+    # Streamlit >=1.61 服务端强制 disabled：on_submit_click 回调在本帧把按钮置为
+    # disabled（is_currently_submitting）后，浏览器发来的点击值会被丢弃，
+    # st.button 返回 False。因此以 submitted 标记（回调已置位）作为补充触发条件。
+    if submit_button or session_manager.get("submitted", False):
+        widget_lang = st.session_state.get(DEFAULT_WIDGET_KEYS.language_score)
+        if widget_lang is not None:
+            try:
+                parsed_lang = float(widget_lang)
+            except (TypeError, ValueError):
+                parsed_lang = None
+            if parsed_lang is not None and parsed_lang > 0:
+                raw_language_score_value = parsed_lang
+                session_manager.set(
+                    language_score_input=parsed_lang,
+                    **{DEFAULT_FORM_KEYS.language_score_user_provided: True},
+                )
+
         form_data = {
             "target_majors": final_target_majors,
             "target_universities": final_target_universities,
             "background_university": background_university,
             "background_major_original": selected_background_major_original,
             "background_major": background_major,
+            "background_major_2_original": background_major_2_original,
+            "background_major_2": background_major_2,
+            "is_dual_degree": is_dual_degree,
+            "dual_alpha": dual_alpha,
+            "degree_type": st.session_state.get(DEFAULT_WIDGET_KEYS.dual_degree_type, "辅修"),
             "gpa_raw": session_manager.get("gpa_raw_input"),
             "gpa_scale": session_manager.get("gpa_scale"),
             "exam_type": exam_type,
             "exam_score": exam_score,
             "language_type": language_type,
             "language_score_raw": raw_language_score_value,
+            "language_score_user_provided": session_manager.get(
+                DEFAULT_FORM_KEYS.language_score_user_provided, False
+            ),
             "language_score_input_error": session_manager.get("language_score_input_error", False),
             "research_count": research_count,
             "award_count": award_count,
@@ -152,7 +182,6 @@ def create_input_form(
             form_logger.warning(f"表单验证失败 - 错误信息: {error_messages}")
             for err in validation_errors:
                 st.toast(str(err))
-                time.sleep(0.3)  # 逐个显示 toast，避免叠加
             session_manager.set(
                 submitted=False, form_data_changed=False, prediction_submit_lock=False
             )
@@ -184,6 +213,7 @@ def create_input_form(
         session_manager,
         background_university,
         background_major,
+        selected_background_major_original,
         final_target_universities,
         final_target_majors,
         language_type,
@@ -199,6 +229,11 @@ def create_input_form(
         gpa_converter,
         exam_type,
         exam_score,
+        background_major_2=background_major_2,
+        background_major_2_original=background_major_2_original,
+        is_dual_degree=is_dual_degree,
+        dual_alpha=dual_alpha,
+        degree_type=st.session_state.get(DEFAULT_WIDGET_KEYS.dual_degree_type, "辅修"),
     )
 
 
@@ -240,21 +275,27 @@ def _get_current_form_state(
     session_manager,
     background_university,
     background_major,
-    final_target_universities,
-    final_target_majors,
-    language_type,
-    raw_language_score_value,
-    research_count,
-    award_count,
-    internship_count,
-    paper_count,
-    experience_details,
-    cases_df,
-    all_universities_target,
-    all_majors_target,
-    gpa_converter,
+    background_major_original=None,
+    final_target_universities=None,
+    final_target_majors=None,
+    language_type=None,
+    raw_language_score_value=None,
+    research_count=None,
+    award_count=None,
+    internship_count=None,
+    paper_count=None,
+    experience_details=None,
+    cases_df=None,
+    all_universities_target=None,
+    all_majors_target=None,
+    gpa_converter=None,
     exam_type=None,
     exam_score=None,
+    background_major_2=None,
+    background_major_2_original=None,
+    is_dual_degree=False,
+    dual_alpha=0.85,
+    degree_type="辅修",
 ):
     """构建当前表单状态的快照（非提交路径）。
 
@@ -265,19 +306,21 @@ def _get_current_form_state(
     与 _process_successful_submission 的区别：
     - 此函数做"尽力归一化"（calculate_processed_gpa），不完全校验
     - 不设置 submitted=True，不触发锁
-    - is_new_submission=False
+    - is_new_submission=False，但返回 form_data 快照供 LeadIn 自动提交日志使用
     """
-    from src.pages.prediction.page_data_loader import machine_learning_model
-
-    page_state = machine_learning_model.resource_loader()
-
     school_service = get_school_level_service()
     is_overseas = (
         school_service.is_overseas_school(background_university) if background_university else False
     )
 
     _, current_normalized_score = calculate_processed_language_score(
-        raw_language_score_value, language_type, background_university, is_overseas
+        raw_language_score_value,
+        language_type,
+        background_university,
+        is_overseas,
+        user_provided=bool(
+            session_manager.get(DEFAULT_FORM_KEYS.language_score_user_provided, False)
+        ),
     )
 
     current_normalized_gpa = calculate_processed_gpa(
@@ -289,20 +332,54 @@ def _get_current_form_state(
         exam_score,
     )
 
-    background_uni_for_model = get_background_university_for_model(
-        background_university,
-        cases_df,
-        page_state.background_universities,
-    )
+    background_uni_for_model = get_background_university_for_model(background_university)
 
     input_data = {
         "background_university": background_uni_for_model,
         "background_major": background_major,
+        "background_major_original": background_major_original or "",
+        "background_major_2": background_major_2,
+        "background_major_2_original": background_major_2_original,
+        "is_dual_degree": is_dual_degree,
+        "dual_alpha": dual_alpha,
+        "degree_type": degree_type,
         "target_universities": final_target_universities,
         "target_majors": final_target_majors,
         "gpa": current_normalized_gpa,
+        "gpa_raw": session_manager.get("gpa_raw_input"),
+        "gpa_scale": session_manager.get("gpa_scale"),
         "language_score": current_normalized_score,
+        "language_score_raw": raw_language_score_value,
         "language_type": language_type,
+        "exam_type": exam_type,
+        "exam_score": exam_score,
+        "research_count": research_count,
+        "award_count": award_count,
+        "internship_count": internship_count,
+        "paper_count": paper_count,
+        "experience_details": experience_details,
+    }
+
+    form_data = {
+        "target_majors": final_target_majors,
+        "target_universities": final_target_universities,
+        "background_university": background_university,
+        "background_major_original": background_major_original,
+        "background_major": background_major,
+        "background_major_2_original": background_major_2_original,
+        "background_major_2": background_major_2,
+        "is_dual_degree": is_dual_degree,
+        "dual_alpha": dual_alpha,
+        "gpa_raw": session_manager.get("gpa_raw_input"),
+        "gpa_scale": session_manager.get("gpa_scale"),
+        "exam_type": exam_type,
+        "exam_score": exam_score,
+        "language_type": language_type,
+        "language_score_raw": raw_language_score_value,
+        "language_score_user_provided": session_manager.get(
+            DEFAULT_FORM_KEYS.language_score_user_provided, False
+        ),
+        "language_score_input_error": session_manager.get("language_score_input_error", False),
         "research_count": research_count,
         "award_count": award_count,
         "internship_count": internship_count,
@@ -311,9 +388,9 @@ def _get_current_form_state(
     }
 
     return (
-        False,              # is_new_submission=False
-        input_data,         # 尽力归一化的快照数据
+        False,  # is_new_submission=False
+        input_data,  # 尽力归一化的快照数据
         all_universities_target,
         all_majors_target,
-        None,               # original_form=None（非提交路径无原始表单）
+        form_data,
     )

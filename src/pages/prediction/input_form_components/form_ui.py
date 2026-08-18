@@ -1,3 +1,10 @@
+from __future__ import annotations
+
+from functools import partial
+from typing import TYPE_CHECKING
+
+import streamlit as st
+
 from src.pages.prediction.input_form_components.background_ui import (
     render_background_section as render_background_section_component,
 )
@@ -14,16 +21,36 @@ from src.pages.prediction.input_form_components.language_ui import (
 from src.pages.prediction.input_form_components.standardized_test_ui import (
     render_standardized_test_section as render_standardized_test_section_component,
 )
-from src.pages.prediction.input_form_components.submit_ui import (
-    render_submit_button as render_submit_button_component,
-)
 from src.pages.prediction.input_form_components.target_ui import (
     render_target_section as render_target_section_component,
 )
 from src.utils.logger import setup_logger
 from src.utils.session_manager import SessionManager
 
+if TYPE_CHECKING:
+    pass
+
 form_ui_logger = setup_logger("page3", "prediction")
+
+
+def _render_submit_button(session_manager, form_state_manager, disabled_status=False):
+    lead_in_pending_review = (
+        session_manager.get("lead_in_form_filled", False)
+        and not session_manager.get("form_data_changed", False)
+        and not session_manager.get("submitted", False)
+    )
+    is_currently_submitting = session_manager.get("submitted", False) and not session_manager.get(
+        "form_data_changed", False
+    )
+    final_disabled = disabled_status or lead_in_pending_review or is_currently_submitting
+
+    return st.button(
+        "预测",
+        on_click=partial(form_state_manager.on_submit_click, session_manager),
+        disabled=final_disabled,
+        key="submit_button_key",
+        shortcut="enter",
+    )
 
 
 class FormUIComponents:
@@ -32,8 +59,25 @@ class FormUIComponents:
         self.form_state_manager = FormStateManager()
 
     def render_background_section(self, cases_df):
-        return render_background_section_component(
+        (
+            background_university,
+            selected_background_major_original,
+            background_major,
+            background_major_2_original,
+            background_major_2,
+            is_dual_degree,
+            dual_alpha,
+        ) = render_background_section_component(
             self.session_manager, self.form_state_manager, cases_df, form_ui_logger
+        )
+        return (
+            background_university,
+            selected_background_major_original,
+            background_major,
+            background_major_2_original,
+            background_major_2,
+            is_dual_degree,
+            dual_alpha,
         )
 
     def render_gpa_section(self):
@@ -62,6 +106,4 @@ class FormUIComponents:
         )
 
     def render_submit_button(self, disabled_status=False):
-        return render_submit_button_component(
-            self.session_manager, self.form_state_manager, disabled_status
-        )
+        return _render_submit_button(self.session_manager, self.form_state_manager, disabled_status)

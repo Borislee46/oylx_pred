@@ -3,15 +3,18 @@ from typing import Any
 import pandas as pd
 from rapidfuzz import fuzz
 
+from src.adjustment.language_penalty import LanguageRequirementPenalty
+from src.adjustment.similarity_adjuster import (
+    adjust_similarity_score,
+    get_applicable_similarity_rules,
+)
 from src.pages.prediction.core.utils import get_cached_major_similarity
 from src.pages.prediction.input_form_components.language_score_converter import (
     LanguageScoreConverter,
 )
-from src.pages.prediction.result_modifier.language_penalty import LanguageRequirementPenalty
-from src.pages.prediction.result_modifier.similarity_adjuster import (
-    adjust_similarity_score,
-    get_applicable_similarity_rules,
-)
+from src.utils.logger import setup_logger
+
+result_processor_logger = setup_logger("page3", "prediction")
 
 
 class SingleResultProcessor:
@@ -26,6 +29,7 @@ class SingleResultProcessor:
         bg_target_similarity_cache: dict,
         allowed_faculties: set[str],
         background_faculty: str | None,
+        enable_language_requirement_penalty: bool = True,
     ):
         self.data_manager = data_manager
         self.bg_major = bg_major
@@ -37,6 +41,7 @@ class SingleResultProcessor:
         self.bg_target_similarity_cache = bg_target_similarity_cache
         self.allowed_faculties = allowed_faculties
         self.background_faculty = background_faculty
+        self.enable_language_requirement_penalty = enable_language_requirement_penalty
 
         self.user_ielts = None
         self.user_toefl = None
@@ -74,7 +79,11 @@ class SingleResultProcessor:
                 return None
 
         res = result.copy()
-        if self.raw_lang is not None and row is not None:
+        if (
+            self.enable_language_requirement_penalty
+            and self.raw_lang is not None
+            and row is not None
+        ):
             reqs = row.get("_lang_reqs", {})
             penalty = LanguageRequirementPenalty.calculate_penalty(
                 self.raw_lang,
@@ -84,8 +93,10 @@ class SingleResultProcessor:
                 pre_converted_toefl=self.user_toefl,
             )
             if penalty < 1.0:
-                res["probability"] = res.get("probability", 0.0) * penalty
+                res["_probability_before_lang_req"] = res.get("probability", 0.0)
+                res["probability"] = res["_probability_before_lang_req"] * penalty
                 res["language_penalty_applied"] = True
+                res["_language_requirement_multiplier"] = penalty
 
         res["faculty"] = (
             str(row.get("专业大类", ""))
@@ -134,5 +145,7 @@ class SingleResultProcessor:
             if self.effective_bg_major
             else 0.0
         )
+
+        res["_is_coverage_filler"] = res["similarity"] < 0.6 and res["_strong_match_score"] < 70
 
         return res

@@ -1,5 +1,5 @@
 class LanguageScoreConverter:
-    TOEFL_TO_IELTS_MAP = {
+    TOEFL_TO_IELTS_MAP: dict[tuple[int, int], float] = {
         (118, 120): 9.0,
         (115, 117): 8.5,
         (110, 114): 8.0,
@@ -13,7 +13,7 @@ class LanguageScoreConverter:
         (0, 31): 4.0,
     }
 
-    IELTS_TO_TOEFL_MAP = {
+    IELTS_TO_TOEFL_MAP: dict[float, int] = {
         9.0: 119,
         8.5: 116,
         8.0: 112,
@@ -27,22 +27,19 @@ class LanguageScoreConverter:
         4.0: 16,
     }
 
-    _SORTED_IELTS_SCORES = sorted(IELTS_TO_TOEFL_MAP.keys())
+    _SORTED_IELTS_SCORES: list[float] = sorted(IELTS_TO_TOEFL_MAP.keys())
 
     @staticmethod
-    def toefl_to_ielts(toefl_score):
+    def toefl_to_ielts(toefl_score: float | None) -> float | None:
         if toefl_score is None:
             return None
-        for (
-            min_score,
-            max_score,
-        ), ielts in LanguageScoreConverter.TOEFL_TO_IELTS_MAP.items():
+        for (min_score, max_score), ielts in LanguageScoreConverter.TOEFL_TO_IELTS_MAP.items():
             if min_score <= toefl_score <= max_score:
                 return ielts
         return None
 
     @staticmethod
-    def ielts_to_toefl(ielts_score):
+    def ielts_to_toefl(ielts_score: float | None) -> int | None:
         if ielts_score is None:
             return None
 

@@ -5,74 +5,6 @@
   padding: 0.4rem 0;
 }
 
-.hk-logo-container {
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-  overflow: hidden;
-  border-radius: var(--hk-radius);
-}
-
-.hk-logo-shine {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(
-    100deg,
-    transparent 0%,
-    transparent 20%,
-    rgba(255, 255, 255, 0.15) 30%,
-    rgba(200, 205, 210, 0.4) 38%,
-    rgba(255, 255, 255, 0.95) 45%,
-    rgba(235, 238, 242, 1) 50%,
-    rgba(255, 255, 255, 0.95) 55%,
-    rgba(200, 205, 210, 0.4) 62%,
-    rgba(255, 255, 255, 0.15) 70%,
-    transparent 80%,
-    transparent 100%
-  );
-  transform: translateX(-220%) skewX(-25deg);
-  pointer-events: none;
-  z-index: 10;
-  mix-blend-mode: overlay;
-  opacity: 0;
-}
-
-.hk-logo-container:hover .hk-logo-shine {
-  animation: metal-shine 1.4s ease-in-out;
-}
-
-@keyframes metal-shine {
-  0% {
-    transform: translateX(-220%) skewX(-25deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(320%) skewX(-25deg);
-    opacity: 0;
-  }
-}
-
-.hk-header-logo {
-  width: 44px;
-  height: auto;
-  display: block;
-  filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.08));
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.hk-logo-container:hover .hk-header-logo {
-  transform: scale(1.04);
-}
-
 @keyframes hk-title-gradient-flow {
   0% {
     background-position: 0% 50%;
@@ -107,6 +39,35 @@
   -webkit-text-fill-color: transparent;
   color: var(--hk-dark-slate);
   animation: hk-title-gradient-flow 8s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hk-brand-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hk-cyan-bright);
+  box-shadow:
+    0 0 10px var(--hk-cyan-bright),
+    0 0 4px var(--hk-cyan);
+  -webkit-text-fill-color: initial;
+  flex-shrink: 0;
+  animation: hk-brand-pulse-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes hk-brand-pulse-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.65);
+  }
 }
 
 .hk-header-title:hover {
@@ -134,7 +95,7 @@
 .hk-header-subtitle-zh {
   margin-left: 0.5rem;
   padding-left: 0.5rem;
-  border-left: 1px solid var(--hk-slate-200);
+  border-left: 1px solid var(--hk-border);
   letter-spacing: 0.08em;
 }
 
@@ -152,13 +113,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hk-logo-container:hover .hk-logo-shine,
-  .hk-logo-container:hover .hk-header-logo {
-    animation: none;
-    transform: none;
-    transition: none;
-  }
-  .hk-header-title {
+  .hk-header-title,
+  .hk-brand-pulse {
     animation: none;
   }
 }

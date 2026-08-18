@@ -2,15 +2,27 @@ import datetime
 import html
 import os
 
+_cached_css: str = ""
+_cached_mtime: float = 0.0
+
 
 def read_css_file(css_path: str) -> str:
+    global _cached_css, _cached_mtime
+    try:
+        mtime = os.path.getmtime(css_path)
+    except OSError:
+        return _cached_css or ""
+    if mtime == _cached_mtime and _cached_css:
+        return _cached_css
     with open(css_path, encoding="utf-8") as f:
-        return f.read()
+        _cached_css = f.read()
+    _cached_mtime = mtime
+    return _cached_css
 
 
 def generate_watermark_css(
     user_nickname: str | None = None,
-    opacity: float = 0.1,
+    opacity: float = 0.1,  # 0.1
     color: str = "#000000",
     font_size: str = "14px",
     x_spacing: int = 350,
@@ -29,11 +41,11 @@ def generate_watermark_css(
     dynamic_css = f"""
     <style>
     {base_css}
-    
+
     .watermark-text-layer {{
         opacity: {opacity};
     }}
-    
+
     .watermark-text-pattern {{
         color: {color};
         font-size: {font_size};

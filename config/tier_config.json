@@ -1,0 +1,33 @@
+{
+  "_note": "Tier classification — unified Jenks natural-breaks. Used by compute_tiers() in src/agent/schemas.py. Regenerate: python scripts/generate_tier_config.py",
+  "_schema_version": 2,
+
+  "safety_threshold": 0.5,
+  "match_threshold": 0.2,
+
+  "difficulty_weights": {
+    "_note": "Retained for competitiveness-bar zone visualisation only. compute_tiers() no longer uses these.",
+    "safety_base": 0.5,
+    "safety_coeff": 0.15,
+    "target_base": 0.25,
+    "target_coeff": 0.1
+  },
+
+  "labels": {
+    "safety": "保底",
+    "match": "适中",
+    "reach": "冲刺"
+  },
+
+  "colors": {
+    "保底": "#22c55e",
+    "目标": "#3b82f6",
+    "冲刺": "#f97316"
+  },
+
+  "label_normalise": {
+    "保底": "保底",
+    "适中": "目标",
+    "冲刺": "冲刺"
+  }
+}

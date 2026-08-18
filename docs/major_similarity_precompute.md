@@ -69,5 +69,6 @@ python scripts/precompute_similarities.py
 
 ---
 
-> **维护人**: lijiapeng8@xdf.cn
-> **版本**: v2.8
+> **维护人**: support@demo.local
+> **版本**: v2.9
+> **最后更新**: 2026-06-07 — 路径核实；调用方同步（utils + app_data_loader + knn_retrieval）；E5 Instruct 模型引用确认

@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 import streamlit as st
 
-from src.pages.prediction.config.ui_messages import FORM_PLACEHOLDERS
+from src.pages.prediction.core.ui_messages import FORM_PLACEHOLDERS
 
 _FilterMode = Literal["fuzzy", "contains", "prefix"] | None
 
@@ -57,16 +57,33 @@ class SelectBoxHelper:
             elif default_index >= len(all_options):
                 default_index = 0
 
+            existing_val = st.session_state.get(widget_key)
+            if existing_val and all_options and existing_val not in all_options:
+                if saved_value and saved_value in all_options:
+                    self.logger.warning(
+                        "selectbox 值 %s 不在选项中→回退到历史值 %s",
+                        repr(existing_val)[:60],
+                        repr(saved_value)[:60],
+                    )
+                    st.session_state[widget_key] = saved_value
+                else:
+                    self.logger.warning(
+                        "selectbox 值 %s 不在选项中且无有效历史值→使用 index=0",
+                        repr(existing_val)[:60],
+                    )
+
             fm = _filter_mode_for_option_count(len(all_options))
-            return st.selectbox(
-                label,
-                all_options,
-                index=default_index,
-                on_change=on_change_callback,
-                placeholder=FORM_PLACEHOLDERS["selectbox_default"],
-                key=widget_key,
-                filter_mode=fm,
-            )
+            selectbox_kwargs: dict[str, Any] = {
+                "label": label,
+                "options": all_options,
+                "on_change": on_change_callback,
+                "placeholder": FORM_PLACEHOLDERS["selectbox_default"],
+                "key": widget_key,
+                "filter_mode": fm,
+            }
+            if st.session_state.get(widget_key) is None:
+                selectbox_kwargs["index"] = default_index
+            return st.selectbox(**selectbox_kwargs)
         except Exception as e:
             self.logger.error(f"渲染selectbox失败 ({widget_key}): {e}", exc_info=True)
             toast_key = f"_selectbox_error_toast_{widget_key}"
@@ -92,12 +109,14 @@ class SelectBoxHelper:
         on_change_callback: Callable,
     ) -> list:
         fm = _filter_mode_for_option_count(len(options))
-        return st.multiselect(
-            label,
-            options=options,
-            default=default_selections,
-            key=widget_key,
-            on_change=on_change_callback,
-            placeholder="",
-            filter_mode=fm,
-        )
+        kwargs: dict = {
+            "label": label,
+            "options": options,
+            "key": widget_key,
+            "on_change": on_change_callback,
+            "placeholder": "",
+            "filter_mode": fm,
+        }
+        if widget_key not in st.session_state:
+            kwargs["default"] = default_selections
+        return st.multiselect(**kwargs)

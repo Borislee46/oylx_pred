@@ -1,0 +1,475 @@
+.stApp .st-key-hk_adjust_reset_btn > button {
+  background: transparent !important;
+  color: var(--hk-slate-500) !important;
+  border: 1px solid var(--hk-border) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-weight: 500 !important;
+  padding: 0.45rem 1rem !important;
+  transition:
+    color var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    background var(--hk-transition-fast) !important;
+}
+
+.stApp .st-key-hk_adjust_reset_btn > button:hover {
+  border-color: rgba(220, 38, 38, 0.35) !important;
+  color: var(--hk-red-500) !important;
+  background: rgba(220, 38, 38, 0.05) !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+.stApp .st-key-hk_adjust_reset_btn > button::before,
+.stApp .st-key-hk_adjust_reset_btn > button::after {
+  display: none !important;
+}
+
+.stApp .st-key-hk_summary_bar .st-key-hk_edit_bg_btn {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.stApp .st-key-hk_edit_bg_btn .stButton {
+  width: fit-content !important;
+}
+
+.stApp .st-key-hk_edit_bg_btn > button,
+.stApp .st-key-hk_edit_bg_btn .stButton > button {
+  background: transparent !important;
+  color: var(--hk-slate-500) !important;
+  border: none !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-weight: 500 !important;
+  font-size: 0.74rem !important;
+  padding: 0.18rem 0.45rem !important;
+  min-height: 0 !important;
+  height: auto !important;
+  gap: 0.25rem !important;
+  transition:
+    color var(--hk-transition-fast),
+    background var(--hk-transition-fast) !important;
+}
+
+.stApp .st-key-hk_edit_bg_btn > button [data-testid="stIconMaterial"],
+.stApp
+  .st-key-hk_edit_bg_btn
+  .stButton
+  > button
+  [data-testid="stIconMaterial"] {
+  color: var(--hk-slate-400) !important;
+  font-size: 0.9rem !important;
+}
+
+.stApp .st-key-hk_edit_bg_btn > button:hover:not(:disabled):not([disabled]),
+.stApp
+  .st-key-hk_edit_bg_btn
+  .stButton
+  > button:hover:not(:disabled):not([disabled]) {
+  color: var(--hk-cyan-dark) !important;
+  background: var(--hk-cyan-alpha-08) !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+.stApp .st-key-hk_edit_bg_btn > button:hover [data-testid="stIconMaterial"],
+.stApp
+  .st-key-hk_edit_bg_btn
+  .stButton
+  > button:hover
+  [data-testid="stIconMaterial"] {
+  color: var(--hk-cyan) !important;
+}
+
+.stApp .st-key-hk_edit_bg_btn > button::before,
+.stApp .st-key-hk_edit_bg_btn > button::after,
+.stApp .st-key-hk_edit_bg_btn .stButton > button::before,
+.stApp .st-key-hk_edit_bg_btn .stButton > button::after {
+  display: none !important;
+}
+
+.stApp .st-key-hk_pf_gen_cta {
+  margin: var(--hk-space-sm) 0 var(--hk-space-md);
+  padding-top: 0.15rem;
+}
+
+.stApp .st-key-hk_pf_gen .stButton {
+  width: 100% !important;
+}
+
+.stApp .st-key-hk_pf_gen > button,
+.stApp .st-key-hk_pf_gen .stButton > button {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan),
+    var(--hk-cyan-dark)
+  ) !important;
+  color: var(--hk-white) !important;
+  border: none !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow:
+    0 2px 8px rgba(6, 182, 212, 0.32),
+    0 1px 2px rgba(15, 23, 42, 0.08) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  letter-spacing: 0.02em !important;
+  padding: 0.58rem 1.25rem !important;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 1.25 !important;
+  gap: 0.4rem !important;
+  transition:
+    background var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast) !important;
+}
+
+.stApp .st-key-hk_pf_gen > button [data-testid="stIconMaterial"],
+.stApp .st-key-hk_pf_gen .stButton > button [data-testid="stIconMaterial"] {
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 1.05rem !important;
+}
+
+.stApp .st-key-hk_pf_gen > button:hover:not(:disabled):not([disabled]),
+.stApp
+  .st-key-hk_pf_gen
+  .stButton
+  > button:hover:not(:disabled):not([disabled]) {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan-bright),
+    var(--hk-cyan)
+  ) !important;
+  color: var(--hk-white) !important;
+  box-shadow:
+    0 10px 32px rgba(6, 182, 212, 0.45),
+    0 4px 12px rgba(6, 182, 212, 0.25),
+    0 2px 4px rgba(15, 23, 42, 0.1) !important;
+  filter: none !important;
+  transform: translateY(-2px) !important;
+}
+
+.stApp .st-key-hk_pf_gen > button:active:not(:disabled):not([disabled]),
+.stApp
+  .st-key-hk_pf_gen
+  .stButton
+  > button:active:not(:disabled):not([disabled]) {
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.25) !important;
+}
+
+.stApp .st-key-hk_pf_gen > button::before,
+.stApp .st-key-hk_pf_gen > button::after,
+.stApp .st-key-hk_pf_gen .stButton > button::before,
+.stApp .st-key-hk_pf_gen .stButton > button::after {
+  display: none !important;
+}
+
+.stApp .st-key-hk_adjust_save_btn > button,
+.stApp .st-key-hk_adjust_save_btn .stButton > button {
+  background: var(--hk-surface-elevated) !important;
+  color: var(--hk-cyan-dark) !important;
+  border: 1px solid var(--hk-cyan-alpha-40) !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 0 0 1px var(--hk-cyan-alpha-08) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.01em !important;
+  padding: 0.48rem 1rem !important;
+  gap: 0.35rem !important;
+  transition:
+    background var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast) !important;
+}
+
+.stApp .st-key-hk_adjust_save_btn > button [data-testid="stIconMaterial"],
+.stApp
+  .st-key-hk_adjust_save_btn
+  .stButton
+  > button
+  [data-testid="stIconMaterial"] {
+  color: var(--hk-cyan) !important;
+  font-size: 1rem !important;
+}
+
+.stApp .st-key-hk_adjust_save_btn > button:hover:not(:disabled):not([disabled]),
+.stApp
+  .st-key-hk_adjust_save_btn
+  .stButton
+  > button:hover:not(:disabled):not([disabled]) {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan-alpha-12),
+    var(--hk-cyan-alpha-06)
+  ) !important;
+  border-color: var(--hk-cyan) !important;
+  color: var(--hk-cyan-dark) !important;
+  box-shadow:
+    0 4px 12px rgba(6, 182, 212, 0.15),
+    0 1px 3px rgba(15, 23, 42, 0.08) !important;
+  filter: none !important;
+  transform: translateY(-1px) !important;
+}
+
+.stApp .st-key-hk_adjust_save_btn > button:disabled,
+.stApp .st-key-hk_adjust_save_btn .stButton > button:disabled,
+.stApp .st-key-hk_adjust_save_btn > button[disabled],
+.stApp .st-key-hk_adjust_save_btn .stButton > button[disabled] {
+  opacity: 0.42 !important;
+  color: var(--hk-slate-400) !important;
+  border-color: var(--hk-border) !important;
+  background: var(--hk-slate-50) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  cursor: not-allowed !important;
+}
+
+.stApp .st-key-hk_adjust_save_btn > button::before,
+.stApp .st-key-hk_adjust_save_btn > button::after,
+.stApp .st-key-hk_adjust_save_btn .stButton > button::before,
+.stApp .st-key-hk_adjust_save_btn .stButton > button::after {
+  display: none !important;
+}
+
+[class*="st-key-hk_knn_cta_"] {
+  margin: 0.5rem 0 0.2rem;
+}
+
+[class*="st-key-hk_knn_btn_"] .stButton,
+[class*="st-key-knn_btn_"] .stButton {
+  width: fit-content !important;
+}
+
+[class*="st-key-hk_knn_btn_"] .stButton > button,
+[class*="st-key-knn_btn_"] .stButton > button {
+  background: linear-gradient(
+    180deg,
+    var(--hk-surface-bg),
+    var(--hk-slate-50)
+  ) !important;
+  color: var(--hk-cyan-dark) !important;
+  border: 1px solid var(--hk-cyan-alpha-30) !important;
+  border-radius: 999px !important;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  font-size: 0.76rem !important;
+  letter-spacing: 0.02em !important;
+  padding: 0.34rem 0.9rem 0.34rem 0.72rem !important;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  gap: 0.35rem !important;
+  transition:
+    color var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    background var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast) !important;
+}
+
+[class*="st-key-hk_knn_btn_"] .stButton > button [data-testid="stIconMaterial"],
+[class*="st-key-knn_btn_"] .stButton > button [data-testid="stIconMaterial"] {
+  color: var(--hk-cyan) !important;
+  font-size: 1rem !important;
+}
+
+[class*="st-key-hk_knn_btn_"]
+  .stButton
+  > button:hover:not(:disabled):not([disabled]),
+[class*="st-key-knn_btn_"]
+  .stButton
+  > button:hover:not(:disabled):not([disabled]) {
+  border-color: var(--hk-cyan-alpha-40) !important;
+  color: var(--hk-slate-800) !important;
+  background: linear-gradient(
+    180deg,
+    var(--hk-cyan-alpha-10),
+    rgba(6, 182, 212, 0.06)
+  ) !important;
+  box-shadow:
+    0 4px 12px rgba(6, 182, 212, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  filter: none !important;
+  transform: translateY(-1px) !important;
+}
+
+[class*="st-key-hk_knn_btn_"]
+  .stButton
+  > button:active:not(:disabled):not([disabled]),
+[class*="st-key-knn_btn_"]
+  .stButton
+  > button:active:not(:disabled):not([disabled]) {
+  transform: translateY(0) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+[class*="st-key-hk_knn_btn_"] .stButton > button::before,
+[class*="st-key-hk_knn_btn_"] .stButton > button::after,
+[class*="st-key-knn_btn_"] .stButton > button::before,
+[class*="st-key-knn_btn_"] .stButton > button::after {
+  display: none !important;
+}
+
+div[role="dialog"] .st-key-cross_faculty_confirm_btn > button {
+  background: var(--hk-surface-elevated) !important;
+  color: var(--hk-cyan-dark) !important;
+  border: 1px solid var(--hk-cyan-alpha-40) !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 0 0 1px var(--hk-cyan-alpha-08) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  transition:
+    background var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast) !important;
+}
+
+div[role="dialog"] .st-key-cross_faculty_confirm_btn > button:hover {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan-alpha-12),
+    var(--hk-cyan-alpha-06)
+  ) !important;
+  border-color: var(--hk-cyan) !important;
+  box-shadow:
+    0 4px 12px rgba(6, 182, 212, 0.12),
+    0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  transform: translateY(-1px) !important;
+  filter: none !important;
+}
+
+div[role="dialog"] .st-key-cross_faculty_confirm_btn > button::before,
+div[role="dialog"] .st-key-cross_faculty_confirm_btn > button::after {
+  display: none !important;
+}
+
+div[role="dialog"] .st-key-cross_faculty_cancel_btn > button {
+  background: transparent !important;
+  color: var(--hk-slate-500) !important;
+  border: 1px solid var(--hk-border) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  font-weight: 500 !important;
+  transition:
+    color var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    background var(--hk-transition-fast) !important;
+}
+
+div[role="dialog"] .st-key-cross_faculty_cancel_btn > button:hover {
+  border-color: var(--hk-border) !important;
+  color: var(--hk-slate-700) !important;
+  background: var(--hk-surface-hover) !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+div[role="dialog"] .st-key-cross_faculty_cancel_btn > button::before,
+div[role="dialog"] .st-key-cross_faculty_cancel_btn > button::after {
+  display: none !important;
+}
+
+/* ── 报告下载按钮（dark theme 玻璃青色） ─────────────────────── */
+.stApp .st-key-hk_pdf_mini_dl {
+  display: flex;
+  justify-content: center;
+  margin: 0.55rem 0 0.25rem;
+}
+
+.stApp .st-key-hk_pdf_mini_dl > button,
+.stApp .st-key-hk_pdf_mini_dl .stDownloadButton > button {
+  background: linear-gradient(
+    180deg,
+    var(--hk-surface-elevated),
+    var(--hk-slate-50)
+  ) !important;
+  color: var(--hk-cyan-dark) !important;
+  border: 1px solid var(--hk-cyan-alpha-40) !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow:
+    0 2px 8px rgba(6, 182, 212, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.01em !important;
+  padding: 0.48rem 1.1rem !important;
+  min-height: 0 !important;
+  height: auto !important;
+  line-height: 1.25 !important;
+  gap: 0.4rem !important;
+  transition:
+    color var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    background var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    transform var(--hk-transition-fast) !important;
+}
+
+.stApp .st-key-hk_pdf_mini_dl > button [data-testid="stIconMaterial"],
+.stApp
+  .st-key-hk_pdf_mini_dl
+  .stDownloadButton
+  > button
+  [data-testid="stIconMaterial"] {
+  color: var(--hk-cyan-bright) !important;
+  font-size: 1rem !important;
+}
+
+.stApp .st-key-hk_pdf_mini_dl > button:hover:not(:disabled):not([disabled]),
+.stApp
+  .st-key-hk_pdf_mini_dl
+  .stDownloadButton
+  > button:hover:not(:disabled):not([disabled]) {
+  background: linear-gradient(
+    180deg,
+    var(--hk-cyan-alpha-12),
+    var(--hk-cyan-alpha-06)
+  ) !important;
+  border-color: var(--hk-cyan) !important;
+  color: var(--hk-cyan-bright) !important;
+  box-shadow:
+    0 6px 18px rgba(6, 182, 212, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  filter: none !important;
+  transform: translateY(-1px) !important;
+}
+
+.stApp .st-key-hk_pdf_mini_dl > button:active:not(:disabled):not([disabled]),
+.stApp
+  .st-key-hk_pdf_mini_dl
+  .stDownloadButton
+  > button:active:not(:disabled):not([disabled]) {
+  transform: translateY(0) scale(0.99) !important;
+  box-shadow: 0 2px 6px rgba(6, 182, 212, 0.14) !important;
+}
+
+.stApp .st-key-hk_pdf_mini_dl > button:focus-visible,
+.stApp .st-key-hk_pdf_mini_dl .stDownloadButton > button:focus-visible {
+  outline: none !important;
+  box-shadow:
+    var(--hk-shadow-focus),
+    0 2px 8px rgba(6, 182, 212, 0.12) !important;
+}
+
+.stApp .st-key-hk_pdf_mini_dl > button::before,
+.stApp .st-key-hk_pdf_mini_dl > button::after,
+.stApp .st-key-hk_pdf_mini_dl .stDownloadButton > button::before,
+.stApp .st-key-hk_pdf_mini_dl .stDownloadButton > button::after {
+  display: none !important;
+}

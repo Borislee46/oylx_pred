@@ -1,4 +1,7 @@
-from src.pages.prediction.config.ui_messages import FORM_ERROR_MESSAGES
+from dataclasses import dataclass
+from typing import Literal
+
+from src.pages.prediction.core.ui_messages import FORM_ERROR_MESSAGES
 from src.pages.prediction.input_form_components.form_config import (
     GMAT_SCORE_RANGE,
     GPA_SCALES,
@@ -6,19 +9,38 @@ from src.pages.prediction.input_form_components.form_config import (
     STANDARDIZED_TEST_TYPES,
 )
 from src.pages.prediction.input_form_components.gpa_converter import GPAConverter
-from src.pages.prediction.input_form_components.language_score_validator import (
+from src.pages.prediction.input_form_components.language_ui import (
     LanguageScoreValidator,
 )
-from src.pages.prediction.input_form_components.validation_errors import ValidationError
 from src.utils.logger import setup_logger
-from src.utils.school_level_service import get_school_level_service
+from src.utils.numeric import clip_scalar
+
+
+@dataclass
+class ValidationError:
+    field: str
+    message: str
+    severity: Literal["error", "warning"] = "error"
+
+    def __str__(self) -> str:
+        return self.message
+
+    def to_dict(self) -> dict:
+        return {
+            "field": self.field,
+            "message": self.message,
+            "severity": self.severity,
+        }
+
+
+from src.utils.schools.level_service import get_school_level_service
 
 logger = setup_logger("page3", "prediction")
 
 
 class FormValidator:
     @staticmethod
-    def validate_standardized_test_score(exam_type, score):
+    def validate_standardized_test_score(exam_type: str, score):
         if not score:
             return True, None, None
 
@@ -82,7 +104,7 @@ class FormValidator:
 
             if original_max_gpa_scale > 0:
                 normalized_gpa = (raw_gpa / original_max_gpa_scale) * 4.0
-                return round(max(0, min(normalized_gpa, 4.0)), 2)
+                return round(clip_scalar(float(normalized_gpa), 0.0, 4.0), 2)
             else:
                 return 0.0
         except (ValueError, TypeError, KeyError) as e:
@@ -90,7 +112,7 @@ class FormValidator:
             return None
 
     @staticmethod
-    def validate_form_data(form_data, gpa_converter=None) -> list[ValidationError]:
+    def validate_form_data(form_data: dict, gpa_converter=None) -> list[ValidationError]:
         errors: list[ValidationError] = []
 
         if not form_data["background_university"]:
@@ -153,17 +175,26 @@ class FormValidator:
                 )
             )
 
-        if form_data["language_type"] == "雅思" and form_data["language_score_raw"] is not None:
-            if form_data[
-                "language_score_raw"
-            ] > 0 and not LanguageScoreValidator.validate_ielts_step(
-                form_data["language_score_raw"]
-            ):
-                errors.append(
-                    ValidationError("language_score_raw", FORM_ERROR_MESSAGES["ielts_step_invalid"])
-                )
+        lang_raw_for_step = form_data.get("language_score_raw")
+        if lang_raw_for_step is not None:
+            try:
+                lang_raw_num = float(lang_raw_for_step)
+            except (TypeError, ValueError):
+                lang_raw_num = None
+        else:
+            lang_raw_num = None
+        if (
+            form_data["language_type"] == "雅思"
+            and lang_raw_num is not None
+            and lang_raw_num > 0
+            and not LanguageScoreValidator.validate_ielts_step(lang_raw_num)
+        ):
+            errors.append(
+                ValidationError("language_score_raw", FORM_ERROR_MESSAGES["ielts_step_invalid"])
+            )
 
-        if form_data["language_score_raw"] == 0 and not is_overseas:
+        lang_raw = form_data.get("language_score_raw")
+        if not lang_raw and not is_overseas:
             errors.append(
                 ValidationError(
                     "language_score_raw",

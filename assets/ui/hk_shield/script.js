@@ -17,16 +17,16 @@ export default function (component) {
 <svg viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="hkLaser" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
-      <stop offset="8%" stop-color="#FFFFFF" stop-opacity="1"/>
-      <stop offset="40%" stop-color="#00E5FF" stop-opacity="0.95"/>
-      <stop offset="100%" stop-color="#00B8FF" stop-opacity="0.9"/>
+      <stop offset="0%" stop-color="#EAFDFF" stop-opacity="0.95"/>
+      <stop offset="12%" stop-color="#7FFBF2" stop-opacity="0.9"/>
+      <stop offset="45%" stop-color="#21FFF4" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#0891B2" stop-opacity="0.8"/>
     </linearGradient>
     <filter id="hkGlow" x="-100%" y="-100%" width="300%" height="300%">
-      <feGaussianBlur stdDeviation="6" result="outerGlow"/>
-      <feGaussianBlur stdDeviation="1.5" result="innerGlow"/>
+      <feGaussianBlur stdDeviation="8" result="outerGlow"/>
+      <feGaussianBlur stdDeviation="2" result="innerGlow"/>
       <feComponentTransfer in="outerGlow" result="outerGlowBright">
-        <feFuncA type="linear" slope="1.5"/>
+        <feFuncA type="linear" slope="1.15"/>
       </feComponentTransfer>
       <feMerge>
         <feMergeNode in="outerGlowBright"/>
@@ -38,7 +38,7 @@ export default function (component) {
   <path class="shield-path" d="M450 185C455 185 575 200 585 258C600 340 596 400 578 468C552 564 400 640 400 640C400 640 248 564 222 468C204 400 200 340 215 258C225 200 345 185 400 185Z" 
         fill="none" stroke="url(#hkLaser)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" filter="url(#hkGlow)"/>
   
-  <g class="energy-bars" fill="#00E5FF" filter="url(#hkGlow)">
+  <g class="energy-bars" fill="#21FFF4" filter="url(#hkGlow)">
     <rect x="285" y="540" width="18" height="30" rx="9"/>
     <rect x="320" y="510" width="18" height="80" rx="9"/>
     <rect x="355" y="465" width="18" height="150" rx="9"/>
@@ -109,8 +109,8 @@ export default function (component) {
     const lerp = (a, b, n) => (1 - n) * a + n * b;
 
     const loop = () => {
-      curX = lerp(curX, targetX, 0.15);
-      curY = lerp(curY, targetY, 0.15);
+      curX = lerp(curX, targetX, 0.12);
+      curY = lerp(curY, targetY, 0.12);
 
       container.style.setProperty("--shield-tilt-x", `${curX}deg`);
       container.style.setProperty("--shield-tilt-y", `${curY}deg`);
@@ -131,8 +131,8 @@ export default function (component) {
       container.style.setProperty("--shield-y", `${py * 100}%`);
       container.style.setProperty("--shield-glow", "1");
 
-      targetX = (py - 0.5) * -12;
-      targetY = (px - 0.5) * 12;
+      targetX = (py - 0.5) * -7;
+      targetY = (px - 0.5) * 7;
 
       if (!raf) raf = requestAnimationFrame(loop);
     };

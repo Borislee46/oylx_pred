@@ -1,0 +1,23 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "declaration-no-important": [true, {"severity": "warning"}],
+    "color-no-hex": [true, {"severity": "warning"}],
+    "selector-max-compound-selectors": [3, {"severity": "warning"}],
+    "max-nesting-depth": [3, {"severity": "warning"}],
+    "selector-max-id": [0],
+    "no-descending-specificity": [true, {"severity": "warning"}],
+    "declaration-block-no-duplicate-properties": [true, {
+      "ignore": ["consecutive-duplicates-with-different-values"]
+    }],
+    "comment-empty-line-before": ["always", {
+      "except": ["first-nested"],
+      "ignore": ["stylelint-commands"]
+    }],
+    "unit-allowed-list": ["rem", "em", "%", "vh", "vw", "s", "ms", "deg", "fr", "px", "dvh"],
+    "number-max-precision": 4,
+    "length-zero-no-unit": true,
+    "shorthand-property-no-redundant-values": true,
+    "declaration-block-no-redundant-longhand-properties": [true, {"severity": "warning"}]
+  }
+}

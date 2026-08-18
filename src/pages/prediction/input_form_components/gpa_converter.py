@@ -5,6 +5,7 @@ from typing import Any
 import streamlit as st
 
 from src.utils.logger import setup_logger
+from src.utils.numeric import clip_scalar, float_eq
 
 logger = setup_logger("page3", "prediction")
 
@@ -20,7 +21,7 @@ class GPAConverter:
         else:
             self.school_country_map = {}
 
-    def get_university_country(self, university_name):
+    def get_university_country(self, university_name: str | None) -> str | None:
         if not university_name:
             return None
         return self.school_country_map.get(university_name)
@@ -103,7 +104,7 @@ class GPAConverter:
     def _interpolate(
         raw_value: float, min_val: float, max_val: float, target_min: float, target_max: float
     ) -> float:
-        if abs(max_val - min_val) < 1e-9:
+        if float_eq(max_val, min_val):
             return target_min
         ratio = (raw_value - min_val) / (max_val - min_val)
         return target_min + ratio * (target_max - target_min)
@@ -138,7 +139,7 @@ class GPAConverter:
             result = (raw_value / 100.0) * 4.0 * multiplier
         else:
             result = raw_value * multiplier
-        return round(max(0.0, min(result, 4.0)), 2)
+        return round(clip_scalar(result, 0.0, 4.0), 2)
 
     @staticmethod
     def _apply_conversion_rule(raw_value: float, rule: dict[str, Any]) -> float:

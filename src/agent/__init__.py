@@ -1,51 +1,68 @@
-from .application_agent import ApplicationAgent
-from .background_faculty_agent import BackgroundFacultyAgent
-from .base_agent import BaseAgent
-from .blind_eval_agent import BlindEvalAgent
-from .boundary_case_agent import BoundaryCaseAgent
+"""Signals Agent — AI Harness for admission prediction.
+
+Simplified in 2026-07: evaluator, observability, validation, gateways, intent gate,
+session continuity LLM, and 3b ReAct harness were deleted. ~5,800 lines removed.
+"""
+
+from functools import lru_cache
+
+from .background_major_agent import BackgroundMajorAgent
+from .background_school_level_agent import SchoolLevelAgent
 from .context import StudentContext
 from .explain_agent import ExplainAgent
-from .explain_profiles import PROFILE_PROMPTS, classify_profile
-from .form_bridge import apply_lead_in_to_form
-from .lead_in_agent import LeadInAgent
-from .orchestrator import AgentOrchestrator
-from .registry import AgentRegistry
-from .schemas import (
-    ExplainResult,
-    ExtractedBackground,
-    LeadInResult,
-)
+from .explain_profiles import SYSTEM_PROMPT, classify_profile
+from .schemas import ExtractedBackground
 from .text_preprocessing_agent import TextPreprocessingAgent
 
-
-def _register_all_agents() -> None:
-    AgentRegistry.register("lead_in", LeadInAgent)
-    AgentRegistry.register("explain", ExplainAgent)
-    AgentRegistry.register("blind_eval", BlindEvalAgent)
-    AgentRegistry.register("boundary_case", BoundaryCaseAgent)
-    AgentRegistry.register("text_preprocessing", TextPreprocessingAgent)
-    AgentRegistry.register("background_faculty", BackgroundFacultyAgent)
-    AgentRegistry.register("application", ApplicationAgent)
+# ── Agent factories (replaces AgentRegistry string-based lookup) ─────────
+# Each factory is a plain function — no registry overhead.
+# Non-singleton: fresh instance per call (thread-safe isolation).
+# Singleton: @lru_cache for expensive pydantic-ai Agent construction.
 
 
-_register_all_agents()
+def get_explain_agent() -> ExplainAgent:
+    """Return a new ExplainAgent instance (thread-safe per-call isolation)."""
+    return ExplainAgent()
+
+
+def get_school_level_agent() -> SchoolLevelAgent:
+    """Return a new SchoolLevelAgent instance."""
+    return SchoolLevelAgent()
+
+
+def get_background_major_agent() -> BackgroundMajorAgent:
+    """Return a new BackgroundMajorAgent instance."""
+    return BackgroundMajorAgent()
+
+
+@lru_cache(maxsize=1)
+def get_lead_in_router_agent():
+    """Cached singleton for LeadInRouterAgent (pydantic-ai construction is expensive)."""
+    from .lead_in.router_agent import LeadInRouterAgent
+
+    return LeadInRouterAgent()
+
+
+@lru_cache(maxsize=1)
+def get_lead_in_tool_agent():
+    """Cached singleton for LeadInToolAgent (pydantic-ai construction is expensive)."""
+    from .lead_in.tool_agent import LeadInToolAgent
+
+    return LeadInToolAgent()
+
 
 __all__ = [
-    "AgentOrchestrator",
-    "AgentRegistry",
-    "ApplicationAgent",
-    "BackgroundFacultyAgent",
-    "BaseAgent",
-    "BlindEvalAgent",
-    "BoundaryCaseAgent",
+    "BackgroundMajorAgent",
+    "SchoolLevelAgent",
     "ExplainAgent",
-    "ExplainResult",
     "ExtractedBackground",
-    "LeadInAgent",
-    "LeadInResult",
-    "PROFILE_PROMPTS",
+    "SYSTEM_PROMPT",
     "StudentContext",
     "TextPreprocessingAgent",
-    "apply_lead_in_to_form",
     "classify_profile",
+    "get_background_major_agent",
+    "get_explain_agent",
+    "get_lead_in_router_agent",
+    "get_lead_in_tool_agent",
+    "get_school_level_agent",
 ]

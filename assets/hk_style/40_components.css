@@ -23,7 +23,7 @@ footer {
   background: transparent !important;
 }
 
-.stApp label[data-baseweb="radio"] > div:first-child {
+.stApp label[data-testid="stRadioOption"] > div > div > div:has(> div) {
   width: 1rem !important;
   height: 1rem !important;
   transition: all var(--hk-transition-smooth) !important;
@@ -33,15 +33,7 @@ footer {
   box-shadow: none !important;
 }
 
-.stApp label[data-baseweb="radio"] > div:first-child[style*="red"],
-.stApp label[data-baseweb="radio"] > div:first-child[style*="rgb(255"],
-.stApp label[data-baseweb="radio"] > div:first-child[style*="#ff"],
-.stApp label[data-baseweb="radio"] > div:first-child[style*="#FF"] {
-  border-color: var(--hk-slate-400) !important;
-  border: 2px solid var(--hk-slate-400) !important;
-}
-
-.stApp label[data-baseweb="radio"] > div:first-child > div {
+.stApp label[data-testid="stRadioOption"] > div > div > div:has(> div) > div {
   width: 0.5rem !important;
   height: 0.5rem !important;
   border-radius: 50% !important;
@@ -51,23 +43,35 @@ footer {
   background-color: transparent !important;
 }
 
-.stApp label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+.stApp
+  label[data-testid="stRadioOption"][data-selected]
+  > div
+  > div
+  > div:has(> div) {
   border-color: var(--hk-cyan) !important;
   border: 2px solid var(--hk-cyan) !important;
 }
 
-.stApp label[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
+.stApp
+  label[data-testid="stRadioOption"][data-selected]
+  > div
+  > div
+  > div:has(> div)
+  > div {
   opacity: 1 !important;
   background-color: var(--hk-cyan) !important;
 }
 
-.stApp label[data-baseweb="radio"]:has(input:focus) > div:first-child,
-.stApp label[data-baseweb="radio"]:has(input:focus-visible) > div:first-child {
+.stApp
+  label[data-testid="stRadioOption"]:has(input:focus-visible)
+  > div
+  > div
+  > div:has(> div) {
   border-color: var(--hk-cyan) !important;
   border: 2px solid var(--hk-cyan) !important;
 }
 
-.stApp label[data-baseweb="radio"] p {
+.stApp label[data-testid="stRadioOption"] p {
   font-family: var(--hk-font-sans) !important;
   color: var(--hk-slate-700) !important;
   font-weight: 400 !important;
@@ -94,7 +98,7 @@ footer {
   font-family: var(--hk-font-sans);
   outline: none !important;
   box-shadow: none !important;
-  border: 1px solid var(--hk-slate-200) !important;
+  border: 1px solid var(--hk-border) !important;
   background-color: var(--hk-surface-bg) !important;
   border-radius: var(--hk-radius-sm) !important;
   padding: 0.2rem 0.55rem !important;
@@ -128,7 +132,7 @@ footer {
   div[data-testid="stStatusWidget"]
   button[data-testid="stBaseButton-header"]:hover {
   color: var(--hk-slate-900) !important;
-  border-color: var(--hk-slate-200) !important;
+  border-color: var(--hk-border) !important;
   background-color: var(--hk-surface-hover) !important;
 }
 
@@ -140,7 +144,7 @@ footer {
   button[data-testid="stBaseButton-header"]:focus-visible {
   outline: none !important;
   box-shadow: 0 0 0 2px var(--hk-dark-alpha-10) !important;
-  border-color: var(--hk-slate-300) !important;
+  border-color: var(--hk-border) !important;
 }
 
 .stApp
@@ -160,22 +164,23 @@ footer {
   font-size: 0.82rem !important;
 }
 
-div[data-baseweb="popover"] {
+div[data-testid="stSelectboxVirtualDropdown"],
+div[data-testid="stMultiSelectDropdown"] {
   border-radius: var(--hk-radius) !important;
   box-shadow: var(--hk-shadow-xl) !important;
-  border: 1px solid var(--hk-slate-200) !important;
+  border: 1px solid var(--hk-border) !important;
   overflow: hidden !important;
 }
 
-ul[data-baseweb="menu"],
-div[data-baseweb="menu"] {
+div[data-testid="stSelectboxVirtualDropdown"] [role="listbox"],
+div[data-testid="stMultiSelectDropdown"] [role="listbox"] {
   background-color: var(--hk-surface-bg) !important;
   padding: var(--hk-space-xs) !important;
   border-radius: var(--hk-radius) !important;
 }
 
-li[data-baseweb="menu-option"],
-div[role="option"] {
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+div[data-testid="stMultiSelectDropdown"] [role="option"] {
   font-family: var(--hk-font-sans) !important;
   font-size: var(--hk-text-sm) !important;
   color: var(--hk-slate-700) !important;
@@ -186,28 +191,23 @@ div[role="option"] {
   background-color: transparent !important;
 }
 
-li[data-baseweb="menu-option"]:hover,
-div[role="option"]:hover,
-li[data-baseweb="menu-option"][aria-selected="true"],
-div[role="option"][aria-selected="true"] {
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover,
+div[data-testid="stMultiSelectDropdown"] [role="option"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"]
+  [role="option"][aria-selected="true"],
+div[data-testid="stMultiSelectDropdown"] [role="option"][aria-selected="true"] {
   background-color: var(--hk-cyan-alpha-10) !important;
   color: var(--hk-cyan-dark) !important;
 }
 
-li[data-baseweb="menu-option"][data-highlighted="true"],
-li[data-baseweb="menu-option"]:focus {
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused],
+div[data-testid="stMultiSelectDropdown"] [role="option"][data-focused] {
   background-color: var(--hk-cyan-alpha-15) !important;
   color: var(--hk-cyan-dark) !important;
   outline: none !important;
 }
 
-div[data-baseweb="menu"] > div:only-child {
-  font-family: var(--hk-font-sans) !important;
-  color: var(--hk-slate-500) !important;
-  padding: var(--hk-space-md) !important;
-}
-
-.stApp .stMultiSelect [data-baseweb="tag"] {
+.stApp .stMultiSelect [data-tag] {
   position: relative !important;
   border-radius: 8px !important;
   border: 1px solid rgba(6, 182, 212, 0.4) !important;
@@ -215,29 +215,29 @@ div[data-baseweb="menu"] > div:only-child {
   backdrop-filter: blur(4px) !important;
   -webkit-backdrop-filter: blur(4px) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 2px 4px rgba(15, 23, 42, 0.05) !important;
   transition: all 0.2s ease !important;
 }
 
-.stApp .stMultiSelect [data-baseweb="tag"] span {
+.stApp .stMultiSelect [data-tag] span {
   color: var(--hk-cyan-dark) !important;
   font-weight: 600 !important;
   font-size: var(--hk-text-sm) !important;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35) !important;
 }
 
-.stApp .stMultiSelect [data-baseweb="tag"]:hover {
+.stApp .stMultiSelect [data-tag]:hover {
   background: rgba(6, 182, 212, 0.12) !important;
   border-color: var(--hk-cyan) !important;
   transform: translateY(-1px) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 4px 8px rgba(6, 182, 212, 0.1) !important;
 }
 
-.stApp div[data-baseweb="select"] [data-testid="stMarkdownContainer"] + div svg,
-.stApp .stMultiSelect [data-baseweb="tag"] svg {
+.stApp div[data-testid="stSelectbox"] button[aria-label="Open"] svg,
+.stApp .stMultiSelect [data-tag] svg {
   fill: var(--hk-cyan-dark) !important;
   opacity: 0.9 !important;
   transition:
@@ -245,39 +245,26 @@ div[data-baseweb="menu"] > div:only-child {
     opacity var(--hk-transition-fast) !important;
 }
 
-.stApp .stMultiSelect [data-baseweb="tag"]:hover svg {
+.stApp .stMultiSelect [data-tag]:hover svg {
   fill: var(--hk-cyan-dark) !important;
   opacity: 1 !important;
 }
 
-.stApp div[data-baseweb="select"] [data-baseweb="input"] input::placeholder {
+.stApp div[data-testid="stSelectbox"] div[role="group"] input::placeholder,
+.stApp div[data-testid="stMultiSelect"] div[role="group"] input::placeholder {
   color: var(--hk-placeholder) !important;
   opacity: 1 !important;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.75),
-    0 -1px 0 rgba(15, 23, 42, 0.06);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
-.stApp div[data-baseweb="select"] .st-dr {
-  border-bottom-color: var(--hk-cyan-alpha-10);
-}
-.stApp div[data-baseweb="select"] .st-dq {
-  border-top-color: var(--hk-cyan-alpha-10);
-}
-.stApp div[data-baseweb="select"] .st-dp {
-  border-right-color: var(--hk-cyan-alpha-10);
-}
-.stApp div[data-baseweb="select"] .st-do {
-  border-left-color: var(--hk-cyan-alpha-10);
-}
-
-.stApp .stButtonGroup div[data-baseweb="button-group"] {
+.stApp [data-testid="stButtonGroup"] [role="radiogroup"] {
   gap: 0 !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"] {
+.stApp [data-testid="stButtonGroup"] button[data-variant="segmented_control"] {
   position: relative !important;
   overflow: hidden !important;
+  min-height: var(--hk-control-height) !important;
   background: linear-gradient(
     180deg,
     var(--hk-input-bg-top),
@@ -296,37 +283,48 @@ div[data-baseweb="menu"] > div:only-child {
   padding: 0.2rem 0.55rem !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]::before {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]::before {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.08);
   opacity: 0.8;
   pointer-events: none;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:first-child {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:first-child {
   margin-left: 0 !important;
   border-top-left-radius: var(--hk-radius-sm) !important;
   border-bottom-left-radius: var(--hk-radius-sm) !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:last-child {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:last-child {
   border-top-right-radius: var(--hk-radius-sm) !important;
   border-bottom-right-radius: var(--hk-radius-sm) !important;
   z-index: 0 !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"] p {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]
+  p {
   color: var(--hk-slate-600) !important;
   font-size: 0.78rem !important;
   white-space: nowrap !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:hover {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:hover {
   background:
     linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
     radial-gradient(
@@ -344,26 +342,35 @@ div[data-baseweb="menu"] > div:only-child {
   z-index: 1 !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:hover p {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:hover
+  p {
   color: var(--hk-cyan-dark) !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:active {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:active {
   transform: translateY(0) translateZ(0) !important;
   box-shadow:
     var(--hk-input-shadow-focus),
     inset 0 14px 20px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.52) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_control"]:focus-visible {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:focus-visible {
   outline: none !important;
   box-shadow:
     var(--hk-shadow-focus),
     0 8px 18px rgba(15, 23, 42, 0.14) !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_controlActive"] {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected] {
   position: relative !important;
   overflow: hidden !important;
   background:
@@ -379,52 +386,63 @@ div[data-baseweb="menu"] > div:only-child {
   box-shadow:
     var(--hk-input-shadow-focus),
     inset 0 14px 20px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.56) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   transform: translateY(0) translateZ(0) !important;
   z-index: 1 !important;
   padding: 0.2rem 0.55rem !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_controlActive"]::before {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]::before {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.08);
   opacity: 0.85;
   pointer-events: none;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_controlActive"]:last-child {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]:last-child {
   border-right: 1px solid var(--hk-cyan) !important;
   z-index: 1 !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_controlActive"] p {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]
+  p {
   color: var(--hk-cyan-dark) !important;
   font-weight: 600 !important;
   font-size: 0.78rem !important;
   white-space: nowrap !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_controlActive"]:hover {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]:hover {
   transform: translateY(-1px) translateZ(0) !important;
   box-shadow:
     var(--hk-input-shadow-focus),
     0 6px 14px rgba(15, 23, 42, 0.1),
     0 8px 16px rgba(6, 182, 212, 0.07),
     inset 0 14px 20px rgba(15, 23, 42, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
-.stApp button[data-testid="stBaseButton-segmented_controlActive"]:active {
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]:active {
   transform: translateY(0) translateZ(0) !important;
   box-shadow:
     var(--hk-input-shadow-focus),
     inset 0 18px 24px rgba(15, 23, 42, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.48) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .stApp div[data-testid="stExpander"] details,
@@ -482,10 +500,10 @@ div[data-baseweb="menu"] > div:only-child {
   overflow: hidden !important;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.55),
-    rgba(255, 255, 255, 0.18)
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.03)
   ) !important;
-  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  border: 1px solid var(--hk-border) !important;
   box-shadow:
     inset 0 1px 2px rgba(15, 23, 42, 0.08),
     0 2px 6px rgba(15, 23, 42, 0.08) !important;
@@ -502,7 +520,7 @@ div[data-baseweb="menu"] > div:only-child {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stApp .stMultiSelect [data-baseweb="tag"] {
+  .stApp .stMultiSelect [data-tag] {
     transition: none !important;
     transform: none !important;
   }
@@ -513,17 +531,15 @@ div[data-baseweb="menu"] > div:only-child {
   backdrop-filter: blur(8px) saturate(180%) !important;
 }
 
-/* ── Dialog ──────────────────────────────────────────────── */
 div[role="dialog"] {
   background: var(--hk-surface-elevated) !important;
-  border: 1px solid var(--hk-slate-200) !important;
+  border: 1px solid var(--hk-border) !important;
   border-radius: var(--hk-radius-lg) !important;
   box-shadow:
     0 20px 60px rgba(15, 23, 42, 0.16),
     0 0 0 1px rgba(15, 23, 42, 0.04) !important;
 }
 
-/* Dialog close button — clean accent, no 3D */
 div[role="dialog"] button[data-testid="stBaseButton-primary"] {
   background: var(--hk-surface-elevated) !important;
   color: var(--hk-cyan) !important;
@@ -570,7 +586,6 @@ div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
   font-weight: 700;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -595,7 +610,6 @@ div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
   background-clip: content-box;
 }
 
-/* Selection */
 ::selection {
   background: var(--hk-cyan-alpha-30);
   color: var(--hk-cyan-dark);

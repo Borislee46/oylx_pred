@@ -1,8 +1,0 @@
-{
-  "DEBUG_MODE": true,
-  "ACCESS_CODE": "YOUR_ACCESS_CODE",
-  "DEBUG_USER": {
-    "email": "demo@signals-app.com",
-    "nickname": "访客"
-  }
-}

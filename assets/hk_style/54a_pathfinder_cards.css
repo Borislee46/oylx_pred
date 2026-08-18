@@ -1,0 +1,213 @@
+.hk-sim-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hk-sim-case-card {
+  display: flex;
+  border-radius: var(--hk-radius-md);
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.07),
+    rgba(255, 255, 255, 0.02)
+  );
+  border: 1px solid var(--hk-border);
+  box-shadow: var(--hk-shadow-xs);
+  transition:
+    box-shadow var(--hk-transition),
+    border-color var(--hk-transition),
+    transform var(--hk-transition),
+    opacity var(--hk-transition);
+}
+.hk-sim-case-card:hover {
+  border-color: var(--hk-cyan-alpha-30);
+  box-shadow: var(--hk-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.hk-sim-case-card.sim-weak {
+  opacity: 0.62;
+}
+.hk-sim-case-card.sim-weak:hover {
+  opacity: 0.85;
+}
+
+.hk-sim-accent {
+  width: 3px;
+  flex-shrink: 0;
+}
+
+.hk-sim-body {
+  flex: 1;
+  padding: 0.65rem 0.8rem;
+  min-width: 0;
+}
+
+.hk-sim-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.hk-sim-num {
+  font-family: var(--hk-font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--hk-slate-800);
+}
+
+.hk-sim-status {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.1rem 0.42rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hk-sim-case-card.sim-upset {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.1),
+    rgba(255, 255, 255, 0.02)
+  );
+}
+.hk-sim-case-card.sim-upset:hover {
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.hk-sim-upset-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: linear-gradient(135deg, var(--hk-amber), var(--hk-amber-600));
+  color: var(--hk-white);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 0.35rem;
+  line-height: 1.4;
+}
+
+.hk-sim-meta {
+  font-size: 0.76rem;
+  color: var(--hk-slate-500);
+  margin-bottom: 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hk-sim-metrics {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hk-sim-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.06rem;
+}
+
+.hk-sim-metric-label {
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: var(--hk-slate-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.hk-sim-metric-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--hk-slate-700);
+  font-family: var(--hk-font-display);
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.hk-sim-delta {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.06rem 0.28rem;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+.hk-sim-delta.delta-up {
+  color: var(--hk-green-800);
+  background: rgba(5, 150, 105, 0.1);
+}
+.hk-sim-delta.delta-down {
+  color: var(--hk-amber-700);
+  background: rgba(217, 119, 6, 0.1);
+}
+.hk-sim-delta.delta-flat {
+  color: var(--hk-slate-400);
+  background: var(--hk-slate-100);
+}
+
+.hk-sim-base-rate {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed rgba(217, 119, 6, 0.25);
+}
+.hk-sim-base-rate-label {
+  font-size: 0.63rem;
+  font-weight: 600;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.hk-sim-base-rate-value {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #d97706;
+  font-family: var(--hk-font-display);
+}
+
+.hk-sim-bar-wrap {
+  margin-top: 0.4rem;
+  height: 3px;
+  background: var(--hk-slate-100);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.hk-sim-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.hk-sim-bar-fill.sim-high {
+  background: linear-gradient(90deg, var(--hk-green-700), var(--hk-green-400));
+}
+.hk-sim-bar-fill.sim-mid {
+  background: linear-gradient(90deg, var(--hk-cyan), var(--hk-cyan-dark));
+}
+.hk-sim-bar-fill.sim-low {
+  background: linear-gradient(90deg, var(--hk-slate-400), var(--hk-slate-300));
+}
+
+.hk-sim-level-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.03em;
+  color: var(--hk-white);
+}

@@ -3,6 +3,9 @@ src/services/
 __pycache__/
 .venv/
 logs/
+src/pages/prediction/.explain_cache/
+cache/explain/
+static/eju/runtime/*
 *.log
 mlruns/
 catboost_info/
@@ -14,66 +17,136 @@ src/machine_learning_models/data/school_base.xlsx
 src/machine_learning_models/data/school_base.csv
 src/machine_learning_models/data/~$cases.xlsx
 src/machine_learning_models/data/~$school_major_details.xlsx
+src/machine_learning_models/pre-trained_models/xgboost_20260516_192513.ubj.gz
 data/cases.xlsx
 e2_secrets.py
 *.py[cod]
-__pycache__/
 .env
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 *.swp
-*.log
 htmlcov/
 .coverage
 .pytest_cache/
-.env
+.pytest_tmp/
 docker-compose.yml
 main_auth.py
 data/raw_backup
 *.bak
 *.backup
+*.ubj
 auth_permissions.xlsx
 log.xlsx
 log.txt
 request.txt
-
 ~$log.xlsx
 test.py
-*.xlsx
 venv312/
+cache/hrdata/
+.ruff_cache/
+cookie.txt
+.mypy_cache/
+.gitattributes
+node_modules/
+tests/__pycache__/
+tests/.pytest_cache/
+.streamlit/
+.cursor/
+scripts/__pycache__/
+src/pages/algorithm_lab/
+app_pages/algorithm_lab.py
+docs/
+*.md
+README.md
+# src/machine_learning_models/evaluation_results/ 留 brier score
+src/machine_learning_models/__init__.py
+src/machine_learning_models/data_loader.py
+src/machine_learning_models/feature_engineer.py
+src/machine_learning_models/sampling_methods.py
+src/machine_learning_models/model_trainer.py
+src/machine_learning_models/hyperparameter_tuning.py
+src/machine_learning_models/utils.py
+src/machine_learning_models/train.py
+src/machine_learning_models/school_level_mapper.py
+# src/machine_learning_models/data/cases.feather
+src/machine_learning_models/experimental/
+data/cases_grad.feather
+src/pages/prediction/api
+streamlit155.txt
+LICENSE
+.claude
+fortune/
+notes/
+# reports/
+# reports/*/.prediction_cache/
+# reports/shap_values.npz
+# reports/shap_summary.json
+data_processing/
+assets/fonts/
+.superpowers/
+signals-prediction-card/
+pages/demo_adjustment_chain.py
+pages/sales_river.py
+nodegam-main/
+explorer-agent/
+*.tmp.*
+*.bak
+pydantic-ai-api/
+scripts/
+package-lock.json
+package.json
+demo_fastapi_react/
+tests/
+.tmp_css_probe/
+src/service
+prototypes/
+poc_recheck_ws_auth.py
 
-# ── 敏感配置（含 API key / E2 密钥 / 员工邮箱）──
+# ============================================================
+# 脱敏版：敏感配置 / 密钥 / 数据，一律不得入库
+# ============================================================
+# 真实密钥与登录配置（仅提交 .example / .template 模板）
 config/app_config.json
 config/auth_config.json
 config/dev_config.json
 config/hr_permissions.json
-config/redirect_whitelist.json
-assets/company_logo.png
-assets/favicon.ico
+config/demo_users.json
+.env
+.env.*
+!.env.example
 
-# ── 敏感数据（运营 / HR / 人员）──
-data/hk/
-data/cs_survey/
-cache/hr_*
-cache/personnel*
-cache/quota*
-cache/turnover*
-cache/beijing_*
-cache/usage_stats.json
-cache/session/
-cache/agent_cache/
-data_processing/
+# 运行时/训练数据与模型产物
+data/
+cache/
+src/ml/data/
+src/ml/pre-trained_models/
+src/ml/evaluation_results/
+src/ml/experimental/
+src/machine_learning_models/data/
+src/pages/prediction/.explain_cache/
+static/eju/
 
-# ── 个人信息（简历 / 面试 / 个人资料）──
-fortune/
-.ruff_cache/
-cookie.txt
+# 人力 / 管理后台（脱敏后不应再出现）
+src/pages/hr_*/
+src/pages/admin/
+src/utils/admin/
+app_pages/hr_*.py
+app_pages/admin.py
+/pages/
+assets/hr_*.css
 
-.mypy_cache/
-.gitattributes
+# 测试与本地杂项
+tests/
+oylx_demo/
+build_demo.ps1
+src/report/tech/
+reports/
+notes/
+experiment-simulations/
 
-src/pages/write_print/data/sample/
-src/pages/write_print/data/sample_manifest.json
-node_modules/
+# 允许提交说明文档（默认 *.md 被忽略）
+!README.md
+!deploy/README.md
+!docs/**/*.md

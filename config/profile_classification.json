@@ -1,0 +1,16 @@
+{
+  "_note": "Profile classification parameters for ExplainAgent. Regenerate: python scripts/generate_profile_classification.py",
+  "_schema_version": 1,
+
+  "cross_major_proportion_cutoff": 0.4,
+
+  "strong_elite": {
+    "min_avg_prob": 0.55,
+    "max_penalty_count": 1
+  },
+
+  "medium_mixed": {
+    "min_avg_prob": 0.3,
+    "max_penalty_count": 3
+  }
+}

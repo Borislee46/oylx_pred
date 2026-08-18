@@ -1,38 +1,38 @@
-"""
-预测管道核心 — 三段式 pipeline 的编排层。
-
-这是整个预测系统的"心脏"。_execute_prediction_pipeline 将原始输入
-经过以下阶段转换为最终概率：
-
-  Pipeline 4 阶段：
-  ┌──────────┬─────────────────────────────────────────────────────┐
-  │ Phase    │ 做什么                                              │
-  ├──────────┼─────────────────────────────────────────────────────┤
-  │ prep     │ 输入清洗、指纹校验、相似度缓存加载、GPA/语言提取    │
-  │ match    │ 候选组合生成（语义+模糊+用户指定）、特征向量构建    │
-  │ infer    │ XGBoost 并行推理 → 原始概率                         │
-  │ deliver  │ 调整链应用（GPA/语言/跨专业/跨学部/文本提升）       │
-  │          │ → 仲裁器衰减 → 三源合并去重 → 最终结果              │
-  └──────────┴─────────────────────────────────────────────────────┘
-
-  两条特殊路径：
-  1. Fallback 路径：关键特征缺失（GPA/语言）→ 跳过 XGBoost，
-     用 Wilson CI 级联兜底估算录取率
-  2. 跨学部确认：handler 层设置 _cross_faculty_confirmed=True，
-     pipeline 放宽用户指定专业的过滤条件
-
-  两个入口：
-  - run_prediction_pipeline: 无进度回调（测试/后台用）
-  - run_prediction_pipeline_with_progress: 带进度回调（生产 UI 用）
-"""
-
 import random
+import time
 from collections.abc import Callable
 from typing import Any
 
 import pandas as pd
 
-from src.pages.prediction.config.ui_messages import (
+from src.adjustment import (
+    AdjustmentContext,
+    ProbabilityAdjustmentPipeline,
+)
+from src.adjustment.admission_cache import (
+    get_admitted_combinations_from_dataframe,
+)
+from src.adjustment.config import (
+    DEFAULT_TEXT_BOOST_CONFIG,
+    DEFAULT_UNIVERSITY_DIFFICULTY_ORDER,
+    load_adjustment_flags,
+)
+from src.adjustment.fallback import (
+    compute_fallback_probabilities,
+)
+from src.adjustment.probability_adjuster import (
+    ProbabilityAdjuster,
+)
+from src.adjustment.text_boost_provider import (
+    get_text_boost_provider,
+)
+from src.adjustment.tier_calibration import (
+    apply_tier_rank_repair,
+    build_tier_map,
+)
+from src.adjustment.utils import has_any_experience
+from src.pages.prediction.app_data import load_bg_target_similarity_cache
+from src.pages.prediction.core.ui_messages import (
     PIPELINE_MESSAGES,
     PIPELINE_PHASE_MAP,
     format_pipeline_done_progress,
@@ -40,39 +40,56 @@ from src.pages.prediction.config.ui_messages import (
     format_pipeline_prep_progress,
     format_pipeline_refine_progress,
 )
-from src.pages.prediction.core.utils import get_background_faculty, is_new_major
+from src.pages.prediction.core.utils import get_background_faculty
+from src.pages.prediction.flow.preparer import (
+    validate_and_clean_input,
+)
 from src.pages.prediction.flow.progress_reporter import ProgressReporter
-from src.pages.prediction.flow.run_prediction import run_single_prediction  # XGBoost 推理 + 初始结果处理
+from src.pages.prediction.flow.run_prediction import (
+    run_single_prediction,
+)
 from src.pages.prediction.page_data_loader import (
     cached_get_prediction_model,
     machine_learning_model,
 )
-from src.pages.prediction.prediction_preparation import validate_and_clean_input  # 输入清洗 + 归一化
-from src.pages.prediction.result_modifier import (
-    AdjustmentContext,              # 调整链所需的上下文（GPA/语言/学部等20+字段）
-    ProbabilityAdjustmentPipeline,  # 调整链编排器（批量应用5层惩罚+文本提升）
+from src.pages.prediction.results_handler import (
+    combine_and_deduplicate_results,
+    combine_and_deduplicate_results_with_sources,
 )
-from src.pages.prediction.result_modifier.admission_cache import (
-    get_admitted_combinations_from_dataframe,  # 从历史数据提取已录取组合（用于调整链的 admitted flag）
-)
-from src.pages.prediction.result_modifier.config import DEFAULT_TEXT_BOOST_CONFIG
-from src.pages.prediction.result_modifier.fallback import (
-    compute_fallback_probabilities,  # Wilson CI 级联兜底（无模型推理能力时用）
-)
-from src.pages.prediction.result_modifier.probability_adjuster import (
-    ProbabilityAdjuster,  # GPA/语言惩罚计算器（需要 cases_df 统计量）
-)
-from src.pages.prediction.result_modifier.text_boost_provider import (
-    get_text_boost_provider,  # TF-IDF 文本提升模型（单例）
-)
-from src.pages.prediction.results_handler import combine_and_deduplicate_results
-from src.utils.app_data_loader import load_bg_target_similarity_cache
+from src.utils.analytics import track as _track
 from src.utils.logger import setup_logger
 from src.utils.session_manager import PredictionResultModel
+
+# ProbabilityAdjustmentPipeline.__init__ 接受的 flag 键。
+# enable_language_requirement_penalty 等链外开关由 run_single_prediction /
+# result_processor 显式消费，不能经 **adjustment_flags 透传（否则 TypeError）。
+_ADJUSTMENT_PIPELINE_FLAG_KEYS = frozenset(
+    {
+        "enable_gpa_penalty",
+        "enable_language_penalty",
+        "enable_cross_major_penalty",
+        "enable_cross_faculty_penalty",
+        "enable_professional_penalty",
+        "enable_text_boost",
+        "ablation_tag",
+    }
+)
+
+
+def _adjustment_pipeline_kwargs(flags: dict[str, bool]) -> dict[str, bool]:
+    return {k: v for k, v in flags.items() if k in _ADJUSTMENT_PIPELINE_FLAG_KEYS}
+
 
 prediction_handler_logger = setup_logger("page3", "prediction")
 
 ProgressCallback = Callable[[str], None]
+
+
+def _get_adjustment_flags(overrides: dict[str, bool] | None = None) -> dict[str, bool]:
+    flags = load_adjustment_flags()
+    if overrides:
+        flags.update({k: v for k, v in overrides.items() if k in flags})
+    return flags
 
 
 def _execute_prediction_pipeline(
@@ -87,21 +104,19 @@ def _execute_prediction_pipeline(
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
     cached_combinations: list[tuple[str, str]] | None = None,
+    adjustment_flag_overrides: dict[str, bool] | None = None,
 ) -> PredictionResultModel:
-    """预测管道主函数 — prep → match → infer → deliver 四阶段。
+    t_start = time.monotonic()
+    adjustment_flags = _get_adjustment_flags(adjustment_flag_overrides)
+    prediction_handler_logger.info(
+        "Pipe 启动 | model=%s targets=%d features=%d fingerprint=%d cache=%s",
+        model_name,
+        len(all_universities_target),
+        len(loaded_feature_names),
+        cases_df_fingerprint,
+        bool(cached_combinations),
+    )
 
-    输入：来自 handle_form_submission 的归一化表单数据
-    输出：PredictionResultModel（含三源结果 + unified 合并结果 + meta）
-
-    两条特殊路径：
-    - Fallback：GPA 或语言缺失 → 跳过 XGBoost → Wilson CI 兜底
-    - Normal：完整特征 → XGBoost → 调整链 → 合并去重
-
-    cached_combinations 参数：
-      当 handler 检测到目标与前次相同 → 跳过候选组合生成（processor.py），
-      直接复用前次 unified_results 中的 (u, m) 对，大幅加速重跑。
-    """
-    # ── Phase: prep — 输入准备 ──────────────────────────
     prediction_model = cached_get_prediction_model(model_name)
 
     if prediction_model is None:
@@ -111,7 +126,6 @@ def _execute_prediction_pipeline(
         page_state = machine_learning_model.resource_loader()
     cases_df = page_state.cases_df
 
-    # 数据版本一致性校验：防止模型和数据不同步
     if cases_df_fingerprint != page_state.cases_df_fingerprint:
         prediction_handler_logger.warning(
             f"案例数据指纹不匹配: 期望 {cases_df_fingerprint}, 实际 {page_state.cases_df_fingerprint}"
@@ -124,14 +138,10 @@ def _execute_prediction_pipeline(
             }
         )
 
-    # 输入清洗：validate_and_clean_input 处理缺失值、类型转换、院校名模糊匹配等
     cleaned_input = validate_and_clean_input(input_data)
     current_input_data = {**input_data, **cleaned_input}
-
-    # ── Phase: match — 相似度缓存 + 进度报告 ─────────────
     bg_target_similarity_cache = load_bg_target_similarity_cache()
 
-    # 进度报告：展示当前输入的概览（force=True 确保此条立即发送）
     reporter.emit(
         format_pipeline_prep_progress(
             bg_university=cleaned_input.get("background_university"),
@@ -148,14 +158,11 @@ def _execute_prediction_pipeline(
     num_target_universities = len(cleaned_input.get("target_universities", []))
     cross_faculty_confirmed = input_data.get("_cross_faculty_confirmed", False)
 
-    # 提取调整链所需的核心特征
     gpa = cleaned_input.get("gpa")
     language_score = cleaned_input.get("language_score")
     background_university = cleaned_input.get("background_university")
     background_major = cleaned_input.get("background_major", "")
 
-    # ProbabilityAdjuster 初始化：需要 cases_df 计算 GPA 均值/标准差（z-score）和语言分布
-    # GPA 或语言缺失时设为 None → 调整链跳过（fallback 路径用）
     probability_adjuster = (
         ProbabilityAdjuster(
             cases_df if cases_df is not None else pd.DataFrame(),
@@ -165,12 +172,6 @@ def _execute_prediction_pipeline(
         else None
     )
 
-    # ── Phase: infer — XGBoost 推理 ────────────────────
-    # run_single_prediction 内部执行：
-    #   1. generate_prediction_combinations（候选组合生成）
-    #   2. prepare_model_inputs（特征向量构建）
-    #   3. PredictionExecutor.execute_parallel（批量 XGBoost 推理）
-    #   4. process_prediction_results（初步结果处理：分路、排序）
     sim_results, cross_results, user_specified_results, meta = run_single_prediction(
         current_input_data=current_input_data,
         prediction_model=prediction_model,
@@ -191,11 +192,11 @@ def _execute_prediction_pipeline(
         admitted_combinations=admitted_combinations,
         page_state=page_state,
         cached_combinations=cached_combinations,
+        enable_language_requirement_penalty=adjustment_flags.get(
+            "enable_language_requirement_penalty", True
+        ),
     )
 
-    # ── Fallback 路径：关键特征缺失 → Wilson CI 级联兜底 ──
-    # 触发条件：GPA 或语言成绩缺失（prepare_model_inputs 返回 missing_inputs 非空）
-    # fallback_eligible 和 _fallback_combinations 由 run_single_prediction 内部设置
     if meta and meta.get("fallback_eligible") and meta.get("_fallback_combinations"):
         prediction_handler_logger.info(
             "触发人口统计兜底 | missing=%s combinations=%d",
@@ -203,7 +204,6 @@ def _execute_prediction_pipeline(
             len(meta["_fallback_combinations"]),
         )
         fallback_combinations = meta["_fallback_combinations"]
-        # Wilson CI 级联：精确匹配 → 同背景院校 → 同目标组合 → 同目标院校 → 全局
         fallback_results = compute_fallback_probabilities(
             fallback_combinations,
             cases_df,
@@ -212,14 +212,25 @@ def _execute_prediction_pipeline(
             similarity_scores=bg_target_similarity_cache,
         )
         if fallback_results:
-            # Fallback 结果的调整链：仅文本提升（不做 GPA/语言惩罚，因为本身就是缺失的）
+            _fb_text_provider = (
+                get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
+                if input_data.get("_has_valid_experience")
+                else None
+            )
+            _fb_quality_verifier = None
+            if _fb_text_provider is not None:
+                try:
+                    from src.agent.text_preprocessing_agent import TextPreprocessingAgent
+
+                    _fb_qa = TextPreprocessingAgent()
+                    _fb_quality_verifier = _fb_qa.validate_quality_batch
+                except Exception:
+                    pass
             pipeline = ProbabilityAdjustmentPipeline(
-                probability_adjuster=None,       # 无 GPA/语言 → 跳过后5层惩罚
-                text_boost_provider=(
-                    get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
-                    if input_data.get("_has_valid_experience")
-                    else None
-                ),
+                probability_adjuster=None,
+                text_boost_provider=_fb_text_provider,
+                quality_verifier=_fb_quality_verifier,
+                **_adjustment_pipeline_kwargs(adjustment_flags),
             )
             bg_faculty_fb = (
                 background_faculty
@@ -239,11 +250,12 @@ def _execute_prediction_pipeline(
                 admitted_combinations=admitted_combinations,
             )
             fallback_results = pipeline.adjust_batch(
-                fallback_results, fb_adj_ctx,
-                progress_reporter=reporter, batch_tag="兜底估算",
+                fallback_results,
+                fb_adj_ctx,
+                progress_reporter=reporter,
+                batch_tag="兜底估算",
             )
             unified = combine_and_deduplicate_results(fallback_results, [], None)
-            # 记录 fallback 层级（用于 UI 通知 _check_and_render_fallback_notice）
             meta["fallback_level"] = min(
                 (r.get("_fallback_level", 4) for r in fallback_results),
                 default=4,
@@ -253,6 +265,12 @@ def _execute_prediction_pipeline(
                 force=True,
                 phase=PIPELINE_PHASE_MAP["done"],
             )
+            prediction_handler_logger.info(
+                "Pipe 完成(Fallback) | fallback=%d fallback_level=%d total_elapsed=%.3fs",
+                len(fallback_results),
+                meta.get("fallback_level", -1),
+                time.monotonic() - t_start,
+            )
             return PredictionResultModel(
                 similarity_results=fallback_results,
                 cross_major_results=[],
@@ -261,27 +279,20 @@ def _execute_prediction_pipeline(
                 meta=meta,
             )
 
-    # ── Normal 路径：XGBoost 推理已完成，进入调整链 ────
     if meta and meta.get("error"):
-        prediction_handler_logger.info(f"预测未生成有效结果: {meta.get('error')}")
+        prediction_handler_logger.info(
+            "Pipe 异常终止 | error=%s total_elapsed=%.3fs",
+            meta.get("error"),
+            time.monotonic() - t_start,
+        )
         return PredictionResultModel(meta=meta)
 
-    # 录取组合缓存（用于调整链判断某个组合在历史数据中有无录取记录）
     admitted_combos = (
         admitted_combinations
         if admitted_combinations is not None
         else get_admitted_combinations_from_dataframe(cases_df, background_major)
     )
 
-    # 新增专业缓存（用于 UI 标记"新专业"标签）
-    all_res = sim_results + cross_results + (user_specified_results or [])
-    new_major_cache = {
-        (r.get("university"), r.get("major")): is_new_major(r.get("university"), r.get("major"))
-        for r in all_res
-        if r.get("university") and r.get("major")
-    }
-
-    # 背景学部（三级优先级：handler 传入 > 输入数据中的 faculty > 查表计算）
     bg_faculty = (
         background_faculty
         if background_faculty
@@ -290,7 +301,6 @@ def _execute_prediction_pipeline(
         )
     )
 
-    # ── Phase: deliver — 调整链 + 合并去重 ──────────────
     route_labels: list[str] = []
     if sim_results:
         route_labels.append("相似专业")
@@ -309,7 +319,6 @@ def _execute_prediction_pipeline(
         phase=PIPELINE_PHASE_MAP["initial_filter"],
     )
 
-    # AdjustmentContext 打包调整链所需的全部上下文（20+ 字段）
     adj_ctx = AdjustmentContext(
         gpa=gpa,
         language_score=language_score,
@@ -321,36 +330,140 @@ def _execute_prediction_pipeline(
         experience_details=cleaned_input.get("experience_details", {}),
         cases_df=cases_df,
         admitted_combinations=admitted_combos,
-        is_new_major_cache=new_major_cache,
     )
 
-    # 调整链 Pipeline：GPA惩罚 → 语言惩罚 → 跨专业(×0.5) → 跨学部(×0.3)
-    #                  → 职业学位(×0.7) → 仲裁器衰减(0.85/layer) → 文本提升(+0~15%)
+    t_adjust = time.monotonic()
+    _text_provider = (
+        get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
+        if input_data.get("_has_valid_experience")
+        else None
+    )
+    _quality_verifier = None
+    if _text_provider is not None:
+        try:
+            from src.agent.text_preprocessing_agent import TextPreprocessingAgent
+
+            _qa = TextPreprocessingAgent()
+            _quality_verifier = _qa.validate_quality_batch
+        except Exception:
+            pass
+
     pipeline = ProbabilityAdjustmentPipeline(
         probability_adjuster=probability_adjuster,
-        text_boost_provider=(
-            get_text_boost_provider(DEFAULT_TEXT_BOOST_CONFIG)
-            if input_data.get("_has_valid_experience")  # 无有效经历文本 → 跳过文本提升
-            else None
-        ),
+        text_boost_provider=_text_provider,
+        quality_verifier=_quality_verifier,
+        **_adjustment_pipeline_kwargs(adjustment_flags),
     )
 
-    # 调整链对三路结果分别执行（每路可能有不同的调整参数）
+    _precomputed_quality = None
+    if _text_provider is not None and has_any_experience(adj_ctx.experience_details or {}):
+        quality_tags = _text_provider.get_quality_tags(adj_ctx.experience_details)
+        llm_verified = None
+        if quality_tags and _quality_verifier is not None:
+            try:
+                field_cn = {
+                    "research_details": "科研",
+                    "award_details": "奖项",
+                    "internship_details": "实习",
+                    "paper_details": "论文",
+                }
+                verify_input = {}
+                for fk, fcn in field_cn.items():
+                    text = str(adj_ctx.experience_details.get(fk, "") or "").strip()
+                    if text:
+                        verify_input[fk] = {
+                            "label": fcn,
+                            "text": text,
+                            "signal_hits": list(quality_tags.get(fk, [])),
+                        }
+                if verify_input:
+                    llm_verified = _quality_verifier(verify_input)
+            except Exception:
+                pass
+        _precomputed_quality = {
+            "quality_tags": quality_tags,
+            "llm_verified": llm_verified or {},
+        }
+
     sim_results = pipeline.adjust_batch(
-        sim_results, adj_ctx, progress_reporter=reporter, batch_tag="相似专业"
+        sim_results,
+        adj_ctx,
+        progress_reporter=reporter,
+        batch_tag="相似专业",
+        precomputed_quality=_precomputed_quality,
     )
     cross_results = pipeline.adjust_batch(
-        cross_results, adj_ctx, progress_reporter=reporter, batch_tag="跨专业"
+        cross_results,
+        adj_ctx,
+        progress_reporter=reporter,
+        batch_tag="跨专业",
+        precomputed_quality=_precomputed_quality,
     )
     if user_specified_results:
         user_specified_results = pipeline.adjust_batch(
-            user_specified_results, adj_ctx, progress_reporter=reporter, batch_tag="用户指定"
+            user_specified_results,
+            adj_ctx,
+            progress_reporter=reporter,
+            batch_tag="用户指定",
+            precomputed_quality=_precomputed_quality,
         )
 
-    # 三源合并去重：优先级 user_specified > cross > similarity
-    unique_results = combine_and_deduplicate_results(
+    prediction_handler_logger.info(
+        "调整链完成 | sim=%d cross=%d user=%d elapsed=%.3fs",
+        len(sim_results),
+        len(cross_results),
+        len(user_specified_results) if user_specified_results else 0,
+        time.monotonic() - t_adjust,
+    )
+
+    unique_results, _representatives = combine_and_deduplicate_results_with_sources(
         sim_results, cross_results, user_specified_results
     )
+
+    t_tier = time.monotonic()
+    tier_map = build_tier_map(DEFAULT_UNIVERSITY_DIFFICULTY_ORDER)
+    tiered_results = [r for r in unique_results if tier_map.get(str(r.get("university", "")))]
+    available_tiers = {tier_map[str(r["university"])] for r in tiered_results}
+    if len(available_tiers) >= 2:
+        unique_results = apply_tier_rank_repair(unique_results, tier_map)
+        prediction_handler_logger.info(
+            "Tier 校准完成 | tiers=%s results=%d elapsed=%.3fs",
+            sorted(available_tiers),
+            len(unique_results),
+            time.monotonic() - t_tier,
+        )
+
+        _l6_steps: dict[tuple, dict] = {}
+        for r in unique_results:
+            steps = r.get("_adjustment_steps")
+            if steps:
+                key = (str(r.get("university", "")), str(r.get("major", "")))
+                _l6_steps[key] = steps[-1]
+
+        if _l6_steps:
+            for source_list in [sim_results, cross_results, user_specified_results]:
+                if not source_list:
+                    continue
+                for r in source_list:
+                    key = (str(r.get("university", "")), str(r.get("major", "")))
+                    # 只回写真正进入 unified 的代表条目；同一 key 出现在多个
+                    # source list 时，非代表条目的链/概率不能被 L6 覆盖。
+                    if _representatives.get(key) is not r:
+                        continue
+                    l6_step = _l6_steps.get(key)
+                    if l6_step is None:
+                        continue
+                    existing_steps = r.get("_adjustment_steps")
+                    if existing_steps is not None:
+                        existing_steps.append(dict(l6_step))
+                    else:
+                        existing_steps = []
+                        r["_adjustment_steps"] = existing_steps
+                        existing_steps.append(dict(l6_step))
+                    r["probability"] = l6_step.get("after", r.get("probability", 0))
+                    trace = r.get("_adjustment_trace")
+                    if trace is not None:
+                        trace["tier_rank_repair"] = l6_step.get("delta", 0)
 
     if not unique_results:
         meta = meta or {}
@@ -360,7 +473,22 @@ def _execute_prediction_pipeline(
             "user_message",
             random.choice(empty_msg) if isinstance(empty_msg, list) else empty_msg,
         )
-        prediction_handler_logger.info("预测结果为空")
+        _track(
+            "prediction_empty",
+            candidate_count_before_filter=len(sim_results)
+            + len(cross_results)
+            + len(user_specified_results or []),
+            sim_count=len(sim_results),
+            cross_count=len(cross_results),
+            usr_count=len(user_specified_results or []),
+        )
+        prediction_handler_logger.info(
+            "Pipe 完成(空结果) | sim=%d cross=%d user=%d total_elapsed=%.3fs",
+            len(sim_results),
+            len(cross_results),
+            len(user_specified_results) if user_specified_results else 0,
+            time.monotonic() - t_start,
+        )
         reporter.emit(
             format_pipeline_empty_progress(
                 bg_major=background_major,
@@ -377,6 +505,17 @@ def _execute_prediction_pipeline(
         phase=PIPELINE_PHASE_MAP["done"],
     )
 
+    total_elapsed = time.monotonic() - t_start
+    prediction_handler_logger.info(
+        "Pipe 完成 | sim=%d cross=%d user=%d unified=%d tier_calibrated=%s total_elapsed=%.3fs",
+        len(sim_results),
+        len(cross_results),
+        len(user_specified_results) if user_specified_results else 0,
+        len(unique_results),
+        len(available_tiers) >= 2,
+        total_elapsed,
+    )
+
     return PredictionResultModel(
         similarity_results=sim_results,
         cross_major_results=cross_results,
@@ -386,13 +525,7 @@ def _execute_prediction_pipeline(
     )
 
 
-# ── 辅助函数 ──────────────────────────────────────────────
 def _prepare_list_args(input_data: dict[str, Any]) -> tuple[list[str], list[str]]:
-    """从 input_data 的特殊前缀键提取目标列表。
-
-    _all_universities_target / _all_majors_target 是 handler 层注入的元数据键，
-    区别于 normalized 后的 target_universities / target_majors（可能被 normalize 修改）。
-    """
     def _to_list(key: str) -> list[str]:
         raw = input_data.get(key)
         return [str(x) for x in raw] if isinstance(raw, list) else []
@@ -400,7 +533,6 @@ def _prepare_list_args(input_data: dict[str, Any]) -> tuple[list[str], list[str]
     return _to_list("_all_universities_target"), _to_list("_all_majors_target")
 
 
-# ── 公共入口（无进度回调版）─────────────────────────────
 def run_prediction_pipeline(
     input_data: dict[str, Any],
     model_name: str,
@@ -408,12 +540,8 @@ def run_prediction_pipeline(
     loaded_feature_names: list[str],
     background_faculty: str | None = None,
     admitted_combinations: set[tuple[str, str]] | None = None,
+    adjustment_flag_overrides: dict[str, bool] | None = None,
 ) -> PredictionResultModel:
-    """预测管道入口（无进度回调）。
-
-    用于测试、脚本、批量预测等不需要 UI 进度展示的场景。
-    ProgressReporter(None) → 所有进度消息被静默丢弃。
-    """
     all_universities_target, all_majors_target = _prepare_list_args(input_data)
     reporter = ProgressReporter(None)
 
@@ -427,10 +555,10 @@ def run_prediction_pipeline(
         reporter=reporter,
         background_faculty=background_faculty,
         admitted_combinations=admitted_combinations,
+        adjustment_flag_overrides=adjustment_flag_overrides,
     )
 
 
-# ── 公共入口（带进度回调版）─────────────────────────────
 def run_prediction_pipeline_with_progress(
     input_data: dict[str, Any],
     model_name: str,
@@ -442,13 +570,8 @@ def run_prediction_pipeline_with_progress(
     admitted_combinations: set[tuple[str, str]] | None = None,
     page_state: machine_learning_model | None = None,
     cached_combinations: list[tuple[str, str]] | None = None,
+    adjustment_flag_overrides: dict[str, bool] | None = None,
 ) -> PredictionResultModel:
-    """预测管道入口（带进度回调）。
-
-    用于生产 UI（hk.py → handler.py → 此函数）。
-    progress_cb 非 None 时，pipeline 各阶段通过 ProgressReporter 发送进度文本，
-    最终由 render_thought_bubble_with_wait_pulse 渲染到前端。
-    """
     all_universities_target, all_majors_target = _prepare_list_args(input_data)
     reporter = ProgressReporter(progress_cb)
 
@@ -464,4 +587,5 @@ def run_prediction_pipeline_with_progress(
         admitted_combinations=admitted_combinations,
         page_state=page_state,
         cached_combinations=cached_combinations,
+        adjustment_flag_overrides=adjustment_flag_overrides,
     )

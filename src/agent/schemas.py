@@ -1,71 +1,26 @@
-"""Shared types, tier thresholds, and tier classification logic.
+import logging
+import math
+from typing import Any
 
-- TypedDict schemas for Agent data contracts
-- ``compute_tiers()`` — Jenks natural-breaks tiering (shared by AI report,
-  hero summary, application prompts)
-- ``TIER_THRESHOLD_*`` — fallback absolute thresholds (used when n < 3)
-"""
+from pydantic import BaseModel, Field
 
-from __future__ import annotations
+from src.utils.config_models import TierConfig
 
-from typing import TypedDict
+_logger = logging.getLogger(__name__)
 
+_tier_cfg = TierConfig.load()
 
-class ExtractedBackground(TypedDict, total=False):
-    """Output schema for LeadInAgent.extracted_background.
+TIER_THRESHOLD_SAFETY: float = _tier_cfg.safety_threshold
+TIER_THRESHOLD_MATCH: float = _tier_cfg.match_threshold
 
-    All keys are optional — the agent fills whatever it can infer from the
-    consultant's free-text input. Missing keys mean the agent hasn't
-    extracted that piece of information yet.
-    """
-
-    university: str
-    major: str
-    gpa: float
-    language_score: float
-    language_type: str
-    standardized_test_type: str
-    standardized_test_score: float
-    country: str
-    target_schools: list[str]
-    target_majors: list[str]
-    research: str
-    internship: str
-    award: str
-    paper: str
-
-
-class LeadInResult(TypedDict, total=False):
-    """Return type for LeadInAgent.run()."""
-
-    extracted_info: ExtractedBackground
-    quick_assessment: str
-    suggested_questions: list[str]
-    _error: str
-
-
-class ExplainResult(TypedDict, total=False):
-    """Output of ExplainAgent."""
-
-    overview: str
-    strengths: list[str]
-    concerns: list[str]
-    summary: str
-    school_notes: list[dict[str, object]]
-    products: list[dict[str, object]]
-    _error: str
-    _ts: float
-
-
-TIER_THRESHOLD_SAFETY = 0.55
-TIER_THRESHOLD_MATCH = 0.30
-
-
-# ── Dynamic tier classification ──────────────────────────────────────────
+_DW = _tier_cfg.difficulty_weights
+_TIER_DIFF_SAFETY_BASE: float = _DW.safety_base
+_TIER_DIFF_SAFETY_COEFF: float = _DW.safety_coeff
+_TIER_DIFF_TARGET_BASE: float = _DW.target_base
+_TIER_DIFF_TARGET_COEFF: float = _DW.target_coeff
 
 
 def _jenks_breaks_1d(values: list[float], k: int = 3) -> list[int]:
-    """1D Jenks natural breaks — return k-1 split indices. O(kn²)."""
     n = len(values)
     if n <= k:
         return list(range(1, n))
@@ -95,70 +50,111 @@ def _jenks_breaks_1d(values: list[float], k: int = 3) -> list[int]:
     return list(best) if best else [n // 3, 2 * n // 3]
 
 
-def compute_tiers(probs: list[float], difficulties: dict[int, float] | None = None) -> list[str]:
-    """Return tier label per probability.
-
-    Labels: 保底 / 适中 / 冲刺.
-
-    When *difficulties* (index → difficulty score 0–1) is provided, uses
-    difficulty-weighted thresholds per school:
-
-        safety = 0.50 + 0.15 × difficulty    (0.50–0.65)
-        target = 0.25 + 0.10 × difficulty    (0.25–0.35)
-
-    Without difficulties, falls back to Jenks natural breaks capped by
-    absolute sanity thresholds (保底 ≥ 0.55, 冲刺 < 0.30)."""
+def compute_tiers(probs: list[float]) -> list[str]:
     n = len(probs)
+    _logger.debug("compute_tiers | n=%d", n)
 
-    # ── Difficulty-weighted path ──
-    if difficulties:
-        labels = []
-        for i, p in enumerate(probs):
-            d = difficulties.get(i, 0.5)  # default: mid-difficulty
-            safety, target = 0.50 + 0.15 * d, 0.25 + 0.10 * d
-            if p >= safety:
-                labels.append("保底")
-            elif p >= target:
-                labels.append("适中")
-            else:
-                labels.append("冲刺")
-        return labels
+    def _by_threshold(p: float) -> str:
+        if p >= TIER_THRESHOLD_SAFETY:
+            return "保底"
+        if p >= TIER_THRESHOLD_MATCH:
+            return "适中"
+        return "冲刺"
 
-    # ── Fallback: Jenks + absolute caps ──
+    if n == 0:
+        return []
     if n < 3:
-        labels = []
-        for p in probs:
-            if p >= TIER_THRESHOLD_SAFETY:
-                labels.append("保底")
-            elif p >= TIER_THRESHOLD_MATCH:
-                labels.append("适中")
-            else:
-                labels.append("冲刺")
-        return labels
+        return [_by_threshold(p) for p in probs]
 
-    sorted_probs = sorted(probs)
-    breaks = _jenks_breaks_1d(sorted_probs, k=3)
+    if any(not isinstance(p, (int, float)) or not math.isfinite(p) for p in probs):
+        _logger.warning(
+            "compute_tiers | 存在非有限概率值，回退阈值标签: %s",
+            [str(p) for p in probs],
+        )
+        return [
+            _by_threshold(p) if isinstance(p, (int, float)) and math.isfinite(p) else "适中"
+            for p in probs
+        ]
+
+    uniq = sorted(set(probs))
+    if len(uniq) <= 2:
+        mapping = {p: _by_threshold(p) for p in uniq}
+        return [mapping[p] for p in probs]
+
+    breaks = _jenks_breaks_1d(uniq, k=min(3, len(uniq)))
     i, j = breaks[0], breaks[1]
 
-    abv = dict(zip(sorted_probs, [""] * n, strict=True))
-    for idx in range(n):
-        p = sorted_probs[idx]
-        if idx < i:
-            abv[p] = "冲刺"
-        elif idx < j:
-            abv[p] = "冲刺" if p < TIER_THRESHOLD_MATCH else "适中"
+    label: dict[float, str] = {}
+    for rank, p in enumerate(uniq):
+        if rank < i:
+            label[p] = "冲刺"
+        elif rank < j:
+            label[p] = "冲刺" if p < TIER_THRESHOLD_MATCH else "适中"
         else:
-            abv[p] = "保底" if p >= TIER_THRESHOLD_SAFETY else "适中"
+            label[p] = "保底" if p >= TIER_THRESHOLD_SAFETY else "适中"
 
-    result = [abv[p] for p in probs]
-    if len(set(result)) < 2:
-        abv_fb = dict(zip(sorted_probs, [""] * n, strict=True))
-        for idx in range(n):
-            if idx < i:
-                abv_fb[sorted_probs[idx]] = "冲刺"
-            elif idx < j:
-                abv_fb[sorted_probs[idx]] = "适中"
-            else:
-                abv_fb[sorted_probs[idx]] = "保底"
-        return [abv_fb[p] for p in probs]
-    return result
+    _logger.debug(
+        "compute_tiers | counts: 保底=%d 适中=%d 冲刺=%d",
+        sum(1 for p in probs if label[p] == "保底"),
+        sum(1 for p in probs if label[p] == "适中"),
+        sum(1 for p in probs if label[p] == "冲刺"),
+    )
+    return [label[p] for p in probs]
+
+
+class ExtractedBackground(BaseModel):
+    model_config = {"extra": "allow"}
+
+    university: str = ""
+    major: str = ""
+    major_2: str = ""
+    degree_type: str = ""
+    gpa: float | None = None
+    gpa_scale: str = ""
+    language_score: float | None = None
+    language_type: str = ""
+    standardized_test_type: str = ""
+    standardized_test_score: float | None = None
+    country: str = ""
+    target_schools: list[str] = Field(default_factory=list)
+    target_majors: list[str] = Field(default_factory=list)
+    research: str = ""
+    research_count: int | None = None
+    internship: str = ""
+    internship_count: int | None = None
+    award: str = ""
+    award_count: int | None = None
+    paper: str = ""
+    paper_count: int | None = None
+
+    def keys(self):
+        return self.model_fields.keys()
+
+    def items(self):
+        return ((k, getattr(self, k)) for k in self.model_fields)
+
+    def values(self):
+        return (getattr(self, k) for k in self.model_fields)
+
+    def __iter__(self):
+        return iter(self.model_fields)
+
+    def __getitem__(self, key: str) -> Any:
+        if key not in self.model_fields:
+            raise KeyError(key)
+        return getattr(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key not in self.model_fields:
+            return default
+        return getattr(self, key)
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and key in self.model_fields
+
+    def __bool__(self) -> bool:
+        for field_name in self.model_fields:
+            val = getattr(self, field_name)
+            if val not in (None, "", [], {}):
+                return True
+        return False

@@ -1,16 +1,42 @@
-"""AI expert blind evaluation agent — simulates admissions expert judgment.
-
-Acts as an independent evaluator: given a student profile + target program,
-estimates admission probability and provides reasoning. Used to benchmark
-the XGBoost prediction pipeline against LLM-based expert judgment.
-"""
-
-from __future__ import annotations
-
+import logging
 from typing import Any
 
-from .base_agent import BaseAgent
-from .context import StudentContext
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent, PromptedOutput
+from pydantic_ai.models.openai import OpenAIChatModel
+
+from src.agent.context import StudentContext
+from src.agent.runtime.model_factory import build_model_with_fallback
+
+
+class KeyFactors(BaseModel):
+    gpa: str = "moderate"
+    school_tier: str = "moderate"
+    language: str = "moderate"
+    major_match: str = "moderate"
+    experience: str = "moderate"
+
+
+class BlindEvalOutput(BaseModel):
+    probability: float = Field(ge=0.0, le=1.0)
+    reasoning: str = ""
+    key_factors: KeyFactors = Field(default_factory=KeyFactors)
+    confidence: str = "medium"
+
+
+def _build_blind_eval_agent(model: OpenAIChatModel) -> Agent:
+    return Agent(
+        model,
+        max_concurrency=1,
+        output_type=PromptedOutput(BlindEvalOutput),
+        instructions=BLIND_EVAL_SYSTEM_PROMPT,
+        retries=2,
+    )
+
+
+from src.utils.numeric import clip_probability
+
+_log = logging.getLogger(__name__)
 
 BLIND_EVAL_SYSTEM_PROMPT = """你是一位拥有10年香港、新加坡、澳门、马来西亚硕士留学申请经验的招生顾问专家。
 
@@ -29,7 +55,7 @@ BLIND_EVAL_SYSTEM_PROMPT = """你是一位拥有10年香港、新加坡、澳门
 6. **经历加分**：有科研论文/名企实习/竞赛获奖可小幅提升（但不如GPA和院校重要）
 
 ## 输出要求
-- probability: 0-1之间的录取概率估计（不是"高中低"，是具体数字）
+- probability: 0-1之间的录取概率估计
   - 0.8+ = 几乎确定录取
   - 0.5-0.8 = 大概率录取
   - 0.3-0.5 = 有机会但不稳
@@ -41,61 +67,64 @@ BLIND_EVAL_SYSTEM_PROMPT = """你是一位拥有10年香港、新加坡、澳门
 """
 
 
-class BlindEvalAgent(BaseAgent):
-    """AI admissions expert for blind probability evaluation."""
-
+class BlindEvalAgent:
     def __init__(self, config: dict[str, Any] | None = None):
-        super().__init__(
-            config=config,
-            timeout=30,
-            agent_name="BlindEvalAgent",
-            cache_ttl=3600,
-        )
+        _ = config
+        timeout = 30
+
+        self._model = build_model_with_fallback(timeout=timeout)
+        self._agent = _build_blind_eval_agent(self._model)
+
+        self.agent_name = "BlindEvalAgent"
+        self.logger = _log
 
     def run(self, context: StudentContext | None = None, **kwargs) -> dict[str, Any]:
-        """Evaluate admission probability for a student-target pair.
-
-        Accepts either a StudentContext or kwargs with:
-            background_university, background_major, gpa, language_score,
-            language_type, target_university, target_major,
-            research_count, internship_count, paper_count, award_count,
-            experience_summary (optional text summary of experience details)
-
-        Returns:
-            dict with probability, reasoning, key_factors, confidence,
-            or _error on failure.
-        """
         profile = self._build_profile(context, **kwargs)
-        prompt = self._build_prompt(profile)
-        raw = self._call_api(prompt, cache_prefix="blind_eval", max_tokens=600)
-        result = self._parse_json_response(
-            raw,
-            schema_hint=(
-                '{"probability": 0.XX, "reasoning": "...", '
-                '"key_factors": {"gpa": "strong|moderate|weak", '
-                '"school_tier": "strong|moderate|weak", '
-                '"language": "strong|moderate|weak", '
-                '"major_match": "strong|moderate|weak", '
-                '"experience": "strong|moderate|weak"}, '
-                '"confidence": "high|medium|low"}'
-            ),
-            cache_prefix="blind_eval_json_repair",
-            max_tokens=600,
+        _log.info(
+            "盲评开始 | target=%s/%s gpa=%s lang=%s",
+            profile.get("target_university", "?"),
+            profile.get("target_major", "?"),
+            profile.get("gpa", "?"),
+            self._format_language(profile),
         )
-        if result is None:
+
+        prompt = self._build_prompt(profile)
+        _log.debug("盲评API调用 | prompt_len=%d", len(prompt))
+
+        try:
+            result = self._agent.run_sync(prompt)
+            output = result.output
+            if not isinstance(output, BlindEvalOutput):
+                _log.warning("盲评返回非预期类型: %s", type(output))
+                return {"_error": "api_failed"}
+
+            prob = output.probability
+            key_factors = output.key_factors.model_dump() if output.key_factors else {}
+            eval_result = {
+                "probability": float(clip_probability(prob)),
+                "reasoning": output.reasoning,
+                "key_factors": key_factors,
+                "confidence": output.confidence,
+            }
+
+            _log.info(
+                "盲评完成 | prob=%.3f confidence=%s reasoning_len=%d",
+                eval_result["probability"],
+                eval_result.get("confidence", "unknown"),
+                len(eval_result.get("reasoning", "")),
+            )
+            return eval_result
+
+        except Exception:
+            _log.warning(
+                "盲评API调用失败 | target=%s/%s",
+                profile.get("target_university"),
+                profile.get("target_major"),
+                exc_info=True,
+            )
             return {"_error": "api_failed"}
 
-        prob = result.get("probability")
-        if prob is not None:
-            result["probability"] = float(max(0.0, min(1.0, prob)))
-        return result
-
     def _build_profile(self, context: StudentContext | None = None, **kwargs) -> dict[str, Any]:
-        """Build standardized profile dict from context or kwargs.
-
-        Uses kwargs when context is None or has no meaningful data (empty default values).
-        """
-        # Use context only if it has meaningful data
         use_context = context is not None and bool(
             context.background_university or context.background_major
         )
@@ -105,7 +134,7 @@ class BlindEvalAgent(BaseAgent):
                 "background_university": context.background_university,
                 "background_major": context.background_major,
                 "gpa": context.gpa if context.gpa > 0 else None,
-                "language_score": context.language_score if context.language_score > 0 else None,
+                "language_score": (context.language_score if context.language_score > 0 else None),
                 "language_type": context.language_type,
                 "target_university": kwargs.get("target_university", ""),
                 "target_major": kwargs.get("target_major", ""),
@@ -133,27 +162,22 @@ class BlindEvalAgent(BaseAgent):
 
     @staticmethod
     def _format_language(profile: dict[str, Any]) -> str:
-        """Convert normalized language_score back to raw display for LLM.
-
-        LLMs are trained on raw scores (IELTS 6.5, TOEFL 100), not [0,1] normalized.
-        Passing 0.72 → LLM interprets as IELTS 0.72/9.0 = disastrous.
-        """
         score = profile.get("language_score")
         if score is None:
             return "未知"
         lang_type = profile.get("language_type", "雅思")
-        # If already in raw-score range, display as-is
         if lang_type == "雅思":
             if score > 1.5:
                 return f"IELTS {score:.1f}"
-            return f"IELTS {score * 9:.1f}"
+            converted = score * 9
+            return f"IELTS {converted:.1f}"
         else:
             if score > 1.5:
                 return f"TOEFL {score:.0f}"
-            return f"TOEFL {score * 120:.0f}"
+            converted = score * 120
+            return f"TOEFL {converted:.0f}"
 
     def _build_prompt(self, profile: dict[str, Any]) -> str:
-        """Build evaluation prompt from profile dict."""
         lang_display = self._format_language(profile)
 
         exp_parts = []
@@ -172,7 +196,6 @@ class BlindEvalAgent(BaseAgent):
         summary_section = f"\n- 经历详述: {summary}" if summary else ""
 
         return (
-            f"{BLIND_EVAL_SYSTEM_PROMPT}\n\n"
             f"## 学生背景\n"
             f"- 本科院校: {profile['background_university']}\n"
             f"- 本科专业: {profile['background_major']}\n"

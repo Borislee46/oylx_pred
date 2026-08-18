@@ -13,20 +13,6 @@ def to_str_singleline(x: Any) -> str:
     return str(x or "").strip().replace("\n", " ")
 
 
-def to_float(x: Any, default: float = 0.0) -> float:
-    if isinstance(x, (int, float)):
-        return float(x)
-    if isinstance(x, str):
-        s = x.strip()
-        if not s:
-            return float(default)
-        try:
-            return float(s)
-        except ValueError:
-            return float(default)
-    return float(default)
-
-
 def parse_bool(x: Any, default: bool = False) -> bool:
     if isinstance(x, bool):
         return x

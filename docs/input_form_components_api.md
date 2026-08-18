@@ -6,13 +6,11 @@
 
 ## 组成模块
 
-- **表单校验器**：`form_validator.py`
-- **校验错误类型**：`validation_errors.py`
+- **表单校验器**：`form_validator.py`（含 `ValidationError` 数据类 + 全量业务校验）
 - **核心工具**：`src/pages/prediction/core/utils.py` (含语言成绩标准化)
 - **GPA 转换**：`gpa_converter.py`
-- **语言分数换算**：`language_score_converter.py`
-- **语言分数校验**：`language_score_validator.py`
-- **语言分数处理**：`language_score_processor.py`
+- **语言分数换算**：`language_score_converter.py`（含 TOEFL↔IELTS 互转映射表）
+- **语言分数处理**：`language_ui.py`（含 `LanguageScoreValidator` 校验 + `LanguageScoreProcessor` 海外院校加成，v2.6 合并）
 - **配置常量**：`form_config.py`
 - **表单状态管理**：`form_state.py`
 - **目标筛选服务**：`target_options_service.py`
@@ -23,10 +21,10 @@
   - 标化成绩（GRE/GMAT，选填）：`standardized_test_ui.py`
   - 语言成绩：`language_ui.py`
   - 其他经历：`experience_ui.py`
-  - 提交按钮：`submit_ui.py`
-- **UI 组合器**：`form_ui.py`（提供 `FormUIComponents` 聚合渲染入口）
+- **UI 组合器**：`form_ui.py`（提供 `FormUIComponents` 聚合渲染入口，含提交按钮渲染，v2.6 合并 `submit_ui.py`）
 - **UI 辅助工具**：`widget_helpers.py` (v2.3 新增)
 - **跨学院提示拦截**：`cross_faculty_guard.py` (v2.5 新增)
+- **公共 API 导出**：`__init__.py`（遵循 Governance Rule 2）
 
 ---
 
@@ -118,9 +116,9 @@
 
 ---
 
-## 3. 语言分数模块
+## 4. 语言分数模块
 
-### 3.1 语言分数换算 (`language_score_converter.py`)
+### 4.1 语言分数换算 (`language_score_converter.py`)
 
 **类**: `LanguageScoreConverter`
 
@@ -133,7 +131,7 @@
 - `TOEFL_TO_IELTS_MAP`：托福分数区间到雅思分数的映射
 - `IELTS_TO_TOEFL_MAP`：雅思分数到托福分数的映射
 
-### 3.2 语言分数校验 (`language_score_validator.py`)
+### 4.2 语言分数校验（位于 `language_ui.py`）
 
 **类**: `LanguageScoreValidator`
 
@@ -148,7 +146,9 @@
   - 返回：`(解析后的分数, 错误消息, 是否有输入错误)`。
   - 输入错误 `has_input_error` 用于 UI 层锁定提交按钮。
 
-### 3.3 语言分数处理 (`language_score_processor.py`)
+### 4.3 语言分数处理（位于 `language_ui.py`）
+
+**类**: `LanguageScoreProcessor`
 
 - `apply_overseas_language_boost(school_name: str, language_type: str) -> float`
   - 根据海外院校等级应用语言成绩加成。
@@ -157,7 +157,7 @@
 
 ---
 
-## 4. 配置常量 (`form_config.py`)
+## 5. 配置常量 (`form_config.py`)
 
 - `GPA_SCALES`：分制上限、步长与格式（如 `{"4.0": {"max": 4.0, "step": 0.1, "format": "%.2f"}}`）
 - `DEFAULT_GPA_SCALE`：默认分制（`"4.0"`）
@@ -183,9 +183,9 @@
 
 ---
 
-## 4.1 校验错误类型 (`validation_errors.py`)
+## 4.4 校验错误类型（位于 `form_validator.py`）
 
-**类**: `ValidationError`（数据类）
+**类**: `ValidationError`（数据类，v2.6 从 `validation_errors.py` 合并入 `form_validator.py`）
 
 - `field: str`：错误字段名
 - `message: str`：错误消息（中文）
@@ -197,7 +197,7 @@
 
 ---
 
-## 5. 表单状态管理 (`form_state.py`)
+## 6. 表单状态管理 (`form_state.py`)
 
 **类**: `FormStateManager`
 
@@ -239,7 +239,7 @@
 
 ---
 
-## 6. 最小集成示例
+## 7. 最小集成示例
 
 ```python
 from src.pages.prediction.input_form_components.form_validator import FormValidator
@@ -262,7 +262,7 @@ def validate_and_prepare(form_data, school_base_df):
 
 ---
 
-## 7. UI 组件 (background / target / gpa / language / experience / submit)
+## 8. UI 组件 (background / target / gpa / language / experience / submit)
 
 - **背景信息** (`background_ui.render_background_section`)
   - 返回：`(background_university, background_major_original, background_major)`
@@ -311,7 +311,7 @@ def validate_and_prepare(form_data, school_base_df):
 
 ---
 
-## 8. 目标筛选服务 (`target_options_service.py`)
+## 9. 目标筛选服务 (`target_options_service.py`)
 
 - `build_target_base_df(cases_df, details_df) -> tuple[pd.DataFrame, Dict[str, str]]`
   - 合并案例表与详情表，生成用于联动筛选的 `base_df`。
@@ -340,7 +340,7 @@ def validate_and_prepare(form_data, school_base_df):
 
 ---
 
-## 9. UI 辅助工具 (`widget_helpers.py`) (v2.3 新增)
+## 10. UI 辅助工具 (`widget_helpers.py`) (v2.3 新增)
 
 **类**: `SelectBoxHelper(session_manager, form_state_manager, logger)`
 
@@ -376,7 +376,7 @@ university = helper.render_cached_selectbox(
 
 ---
 
-## 10. UI 组合器 (`form_ui.py`)
+## 11. UI 组合器 (`form_ui.py`)
 
 **类**: `FormUIComponents(session_manager: SessionManager)`
 
@@ -385,7 +385,7 @@ university = helper.render_cached_selectbox(
 
 ---
 
-## 11. 最小页面渲染顺序示例（整合）
+## 12. 最小页面渲染顺序示例（整合）
 
 ```python
 import streamlit as st
@@ -416,7 +416,7 @@ if ui.render_submit_button(disabled_status=False):
 
 ---
 
-## 12. 跨学院提示 (`cross_faculty_guard.py`)
+## 13. 跨学院提示 (`cross_faculty_guard.py`)
 
 - **作用**：当用户所选目标专业可能跨出其背景专业所属学院时，弹出确认对话框以二次确认，避免误触发跨学院预测。
 - **依赖数据**：
@@ -459,7 +459,7 @@ if has_cross and not agent_approved and not session_manager.get("cross_faculty_c
 
 ---
 
-## 13. 其他说明
+## 14. 其他说明
 
 ### 海外院校语言成绩处理
 - 系统通过 `school_level_service.is_overseas_school()` 判断背景院校是否为海外院校。
@@ -481,5 +481,6 @@ if has_cross and not agent_approved and not session_manager.get("cross_faculty_c
 
 ---
 
-> **维护人**: lijiapeng8@xdf.cn
-> **版本**: v2.5
+> **维护人**: support@demo.local
+> **版本**: v2.7
+> **最后更新**: 2026-06-07 — 章节重编号；合并文件引用同步（validation_errors/language_score_validator/language_score_processor/submit_ui → 各宿主文件）；__init__.py 公共 API 说明

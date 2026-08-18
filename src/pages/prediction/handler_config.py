@@ -25,15 +25,27 @@ if TYPE_CHECKING:
     from src.utils.session_manager import SessionManager
 
 
+# ── Prediction State Prefixes ─────────────────────────────────────
+# run_prediction 在每次新提交前按这些前缀清理 session_state 中的残留数据。
+# 各模块声明自己的前缀，集中管理，避免新模块加前缀后 hk_orchestrator 漏清。
+PREDICTION_STATE_PREFIXES: tuple[str, ...] = (
+    "_hk_pdf",  # Pathfinder PDF 报告缓存
+    "_hk_timeline",  # Timeline 阶段追踪 flag
+    "_knn_",  # KNN 案例检索懒加载门
+    "_hk_percentile",  # 百分位缓存
+    "hk_sc_exp_",  # 院校卡片展开状态
+)
+
+
 # ── SessionKeys：会话级生命周期 key ─────────────────────────
 # 这些 key 追踪"当前会话是否完成过预测"、"提交锁"等跨请求状态。
 # 与具体的业务数据（GPA、院校名等）无关。
 @dataclass
 class SessionKeys:
-    form_data_changed: str = "form_data_changed"       # 表单是否有未保存的修改
-    input_data: str = "input_data"                     # 当前表单输入数据（dict）
-    predict_lock: str = "prediction_submit_lock"       # 防止重复提交的互斥锁
-    has_predicted: str = "has_predicted"               # 当前会话是否已执行过预测
+    form_data_changed: str = "form_data_changed"  # 表单是否有未保存的修改
+    input_data: str = "input_data"  # 当前表单输入数据（dict）
+    predict_lock: str = "prediction_submit_lock"  # 防止重复提交的互斥锁
+    has_predicted: str = "has_predicted"  # 当前会话是否已执行过预测
     is_school_selection_submit: str = "is_school_selection_submit"  # 提交类型区分
     last_submission_logged: str = "last_submission_logged"  # 上次提交的日志标记（防重复日志）
 
@@ -53,23 +65,53 @@ class SessionKeys:
 class UIStateKeys:
     """页面 UI 生命周期 key — hk.py / handler.py / cross_faculty_guard / results_handler 共享"""
 
-    hk_ui_phase: str = "hk_ui_phase"                       # 状态机当前阶段 [idle|running|awaiting_confirm|done|error]
-    hk_run_id: str = "hk_run_id"                           # 当前预测运行的唯一 ID（用于日志关联）
-    hk_last_error: str = "hk_last_error"                   # 最近一次错误的描述文本
-    pending_cross_faculty_prediction: str = "pending_cross_faculty_prediction"  # 跨学部确认后等待重试
+    hk_ui_phase: str = "hk_ui_phase"  # 状态机当前阶段 [idle|running|awaiting_confirm|done|error]
+    hk_run_id: str = "hk_run_id"  # 当前预测运行的唯一 ID（用于日志关联）
+    hk_last_error: str = "hk_last_error"  # 最近一次错误的描述文本
+    pending_cross_faculty_prediction: str = (
+        "pending_cross_faculty_prediction"  # 跨学部确认后等待重试
+    )
     pending_prediction_data: str = "pending_prediction_data"  # 重试时保存的原始提交数据
     cross_faculty_confirmed: str = "cross_faculty_confirmed"  # 用户已确认跨学部申请
     cross_faculty_cancelled: str = "cross_faculty_cancelled"  # 用户已取消跨学部申请
-    form_expanded: str = "form_expanded"                   # 表单 expander 是否展开
-    processing_lock: str = "processing_lock"               # 预测进行中的互斥锁
-    lock_start_time: str = "lock_start_time"               # 锁获取时间戳（用于超时检测）
-    app_initialized: str = "app_initialized"               # 首次加载初始化完成标记（仅执行一次）
+    form_expanded: str = "form_expanded"  # 表单 expander 是否展开
+    processing_lock: str = "processing_lock"  # 预测进行中的互斥锁
+    lock_start_time: str = "lock_start_time"  # 锁获取时间戳（用于超时检测）
+    app_initialized: str = "app_initialized"  # 首次加载初始化完成标记（仅执行一次）
     fresh_prediction_result: str = "fresh_prediction_result"  # 新预测结果就绪标记
-    student_background_chart_visible: str = "student_background_chart_visible"  # 学生背景雷达图是否可见
-    prediction_results: str = "prediction_results"         # 当前预测结果缓存
+    student_background_chart_visible: str = (
+        "student_background_chart_visible"  # 学生背景雷达图是否可见
+    )
+    prediction_results: str = "prediction_results"  # 当前预测结果缓存
     last_saved_results_hash: str = "last_saved_results_hash"  # 上次持久化结果的哈希（变更检测）
     previous_prediction_results: str = "previous_prediction_results"  # 上一次预测结果（用于对比）
-    previous_input_data: str = "previous_input_data"       # 上一次输入数据（用于对比）
+    previous_input_data: str = "previous_input_data"  # 上一次输入数据（用于对比）
+    hk_view_mode: str = "hk_view_mode"  # 已废弃，保留仅兼容旧 session state
+
+
+# ── InternalStateKeys：Fragment trampoline / 页面内部流转 key ──
+# hk.py 的 fragment trampoline 模式和 LeadIn→表单→预测 的临时状态 key。
+# 从 hk_orchestrator.py 中集中到此注册表，统一管理。
+# ────────────────────────────────────────────────────────────
+@dataclass
+class InternalStateKeys:
+    """Fragment trampoline & internal page-flow keys — hk_orchestrator / fragments / page_render 共享"""
+
+    pending_submission_data: str = "_pending_submission_data"  # fragment→orchestrator 数据传递
+    edit_background: str = "_hk_edit_background"  # 修改背景按钮 flag
+    results_fresh_submission: str = "_results_fresh_submission"  # 新预测结果就绪
+    auto_submit_lead_in: str = "_auto_submit_lead_in"  # LeadIn 完成后自动提交表单
+    lead_in_processed: str = "_lead_in_processed"  # LeadInAgent 处理完成标记
+    lead_in_low_confidence_labels: str = (
+        "lead_in_low_confidence_labels"  # LeadIn 匹配置信度低的字段
+    )
+    form_anchor_scrolled: str = "_form_anchor_scrolled"  # 首次加载自动滚动防重复
+    hk_timeline_report_engaged: str = (
+        "_hk_timeline_report_engaged"  # 用户进入 Pathfinder AI / PDF 报告流程
+    )
+    hk_pdf_bytes: str = (
+        "_hk_pdf_bytes"  # Pathfinder PDF 报告字节（timeline.py 直接读 st.session_state）
+    )
 
 
 # ── FormStateKeys：表单数据 key ─────────────────────────────
@@ -83,44 +125,50 @@ class FormStateKeys:
     """表单输入状态 key — input_form.py / form_state.py / form_bridge.py / 各 UI 组件共享"""
 
     # GPA 子组
-    gpa_raw_input: str = "gpa_raw_input"                   # 原始 GPA 输入值（字符串，未转换）
-    gpa_scale: str = "gpa_scale"                           # GPA 分制（4.0 / 5.0 / 100）
-    gpa_conversion_cache: str = "gpa_conversion_cache"     # GPA 转换结果缓存（避免重复计算）
-    gpa_converter: str = "gpa_converter"                   # GPA 转换器实例（缓存）
-    last_gpa_warning_key: str = "last_gpa_warning_key"     # 上次 GPA 警告内容（防重复弹窗）
+    gpa_raw_input: str = "gpa_raw_input"  # 原始 GPA 输入值（字符串，未转换）
+    gpa_scale: str = "gpa_scale"  # GPA 分制（4.0 / 5.0 / 100）
+    gpa_conversion_cache: str = "gpa_conversion_cache"  # GPA 转换结果缓存（避免重复计算）
+    gpa_converter: str = "gpa_converter"  # GPA 转换器实例（缓存）
+    last_gpa_warning_key: str = "last_gpa_warning_key"  # 上次 GPA 警告内容（防重复弹窗）
     # 语言子组
-    language_type: str = "language_type"                   # 语言考试类型（IELTS/TOEFL/CET-6/None）
-    language_score_input: str = "language_score_input"     # 语言成绩原始输入
+    language_type: str = "language_type"  # 语言考试类型（IELTS/TOEFL/CET-6/None）
+    language_score_input: str = "language_score_input"  # 语言成绩原始输入
+    language_score_user_provided: str = (
+        "language_score_user_provided"  # 用户/LeadIn 显式提供语言成绩（非 UI 默认值）
+    )
     language_score_input_error: str = "language_score_input_error"  # 语言成绩校验错误信息
-    lang_conversion_cache: str = "lang_conversion_cache"   # 语言成绩转换缓存
-    last_lang_warning_key: str = "last_lang_warning_key"   # 上次语言警告内容
+    lang_conversion_cache: str = "lang_conversion_cache"  # 语言成绩转换缓存
+    last_lang_warning_key: str = "last_lang_warning_key"  # 上次语言警告内容
     last_ielts_step_warning_key: str = "last_ielts_step_warning_key"  # 上次 IELTS 步进警告
     # 标准化考试
     standardized_test_type: str = "standardized_test_type"  # 标化考试类型（GRE/GMAT/None）
-    current_exam_score: str = "current_exam_score"          # 标化考试成绩
+    current_exam_score: str = "current_exam_score"  # 标化考试成绩
     # 目标院校/专业
-    selected_target_countries: str = "selected_target_countries"      # 选择的目标国家/地区
+    selected_target_countries: str = "selected_target_countries"  # 选择的目标国家/地区
     selected_target_universities: str = "selected_target_universities"  # 选择的目标院校
-    selected_target_majors: str = "selected_target_majors"            # 选择的目标专业
-    selected_major_categories: str = "selected_major_categories"      # 选择的目标专业大类
-    target_options_cache: str = "target_options_cache"                # 目标选项缓存（院校+专业列表）
+    selected_target_majors: str = "selected_target_majors"  # 选择的目标专业
+    selected_major_categories: str = "selected_major_categories"  # 选择的目标专业大类
+    target_options_cache: str = "target_options_cache"  # 目标选项缓存（院校+专业列表）
     # 背景院校/专业
-    school_base_df: str = "school_base_df"                 # 院校基础数据 DataFrame（缓存）
-    background_university: str = "background_university"   # 用户本科院校
+    school_base_df: str = "school_base_df"  # 院校基础数据 DataFrame（缓存）
+    background_university: str = "background_university"  # 用户本科院校
     background_universities_cache: str = "background_universities_cache"  # 院校搜索缓存
-    background_majors_cache: str = "background_majors_cache"          # 专业搜索缓存
+    background_majors_cache: str = "background_majors_cache"  # 专业搜索缓存
     # LeadIn / Agent 桥接
-    lead_in_form_summary: str = "lead_in_form_summary"     # LeadInAgent 提取的结构化摘要
-    lead_in_form_filled: str = "lead_in_form_filled"       # AI 提取完成标记
-    user_history_data: str = "user_history_data"           # 用户历史使用数据
-    user_nickname: str = "user_nickname"                   # 用户显示昵称
-    user_message: str = "user_message"                     # 系统消息（提示/警告/通知）
+    lead_in_form_summary: str = "lead_in_form_summary"  # LeadInAgent 提取的结构化摘要
+    lead_in_form_filled: str = "lead_in_form_filled"  # AI 提取完成标记
+    lead_in_missing_fields: str = "lead_in_missing_fields"  # AI 未识别的关键字段列表
+    user_history_data: str = "user_history_data"  # 用户历史使用数据
+    user_nickname: str = "user_nickname"  # 用户显示昵称
+    user_message: str = "user_message"  # 系统消息（提示/警告/通知）
     # 提交 / 表单生命周期
-    submitted: str = "submitted"                           # 表单已提交标记
-    current_user_id: str = "current_user_id"               # 当前用户 ID
-    last_auto_save_ts: str = "last_auto_save_ts"           # 上次自动保存时间戳
+    submitted: str = "submitted"  # 表单已提交标记
+    current_user_id: str = "current_user_id"  # 当前用户 ID
+    last_auto_save_ts: str = "last_auto_save_ts"  # 上次自动保存时间戳
     last_saved_form_snapshot_hash: str = "last_saved_form_snapshot_hash"  # 上次保存的表单快照哈希
-    _input_form_pending_submission: str = "_input_form_pending_submission"  # 表单待提交数据（内部用）
+    _input_form_pending_submission: str = (
+        "_input_form_pending_submission"  # 表单待提交数据（内部用）
+    )
     # 经历计数初始值（用于 reset 时恢复）
     research_count_initial: str = "research_count_initial"
     award_count_initial: str = "award_count_initial"
@@ -134,6 +182,11 @@ class FormStateKeys:
     # 背景初始值
     background_university_initial: str = "background_university_initial"
     background_major_original_initial: str = "background_major_original_initial"
+    # 双学位 / 第二专业
+    background_major_2_original: str = "background_major_2_original"
+    background_major_2: str = "background_major_2"
+    is_dual_degree: str = "is_dual_degree"
+    dual_alpha: str = "dual_alpha"
 
 
 # ── FormWidgetKeys：Streamlit Widget Key 注册表 ────────────
@@ -149,6 +202,9 @@ class FormWidgetKeys:
 
     background_university: str = "background_university_selectbox"
     background_major: str = "background_major_selectbox"
+    background_major_2: str = "background_major_2_selectbox"
+    dual_degree_type: str = "dual_degree_type_radio"
+    dual_alpha: str = "dual_alpha_slider"
     gpa_scale: str = "gpa_scale_widget_key"
     gpa_raw_input: str = "gpa_raw_input_widget"
     language_type: str = "language_type_widget_key"
@@ -165,6 +221,26 @@ class FormWidgetKeys:
     award_details: str = "award_details_input"
     internship_details: str = "internship_details_input"
     paper_details: str = "paper_details_input"
+
+
+# ── PendingSubmissionData：Fragment Trampoline 数据契约 ─────
+# _form_fragment 将提交数据打包为此 dataclass → asdict() 写入 session_state
+# → dispatch_prediction 读取 dict → 重建为 PendingSubmissionData
+# 避免裸 dict 的 KeyError / 字段名拼写错误。
+# ────────────────────────────────────────────────────────────
+@dataclass
+class PendingSubmissionData:
+    """表单 fragment 通过 session_state trampoline 传递给预测执行器的数据包。
+
+    与 FormSubmissionContext 的关系：
+      FormSubmissionContext 是 handler 的完整输入（含 session_manager / page_state / session_keys）。
+      PendingSubmissionData 是 trampoline 的可序列化子集（只有用户数据，不含基础设施引用）。
+    """
+
+    input_data: dict
+    all_universities: list[str]
+    all_majors: list[str]
+    original_form: dict | None = None
 
 
 # ── FormSubmissionContext：Handler 输入契约 ─────────────────
@@ -187,6 +263,7 @@ class FormSubmissionContext:
         background_faculty:      用户背景专业的学部（可选，pipeline 内部也可计算）
         admitted_combinations:   已知录取的组合集合（可选，用于历史数据标记）
     """
+
     session_manager: "SessionManager"
     page_state: "machine_learning_model"
     input_data_from_form: dict
@@ -232,5 +309,6 @@ class FormSubmissionContext:
 #   - 不可变（frozen 未启用，但约定上不修改）
 DEFAULT_SESSION_KEYS = SessionKeys()
 DEFAULT_UI_KEYS = UIStateKeys()
+DEFAULT_INTERNAL_KEYS = InternalStateKeys()
 DEFAULT_FORM_KEYS = FormStateKeys()
 DEFAULT_WIDGET_KEYS = FormWidgetKeys()

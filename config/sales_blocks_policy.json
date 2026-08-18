@@ -1,0 +1,18 @@
+{
+  "_description": "销售页 probability_blocks 默认预选策略。v2: 升级产品按 severity 降序（最短板优先），不再按固定优先级；catalog_fallback 仅用于无诊断命中时的兜底。",
+  "positioning": "application_assist",
+  "max_default_upgrades": 2,
+  "always_preselect_application": true,
+  "application_by_target_n": {
+    "_note": "adjusted = n + competitive_n × 0.5（港新澳竞争性院校加权1.5×）",
+    "premium_c_min": 8,
+    "premium_b_min": 4,
+    "fallback": "joint_hkmo_sg"
+  },
+  "catalog_fallback": ["interview_prep"],
+  "exclude_from_default": ["butler_plan", "campus_recruit"],
+  "slot_labels": {
+    "application": "申请方案",
+    "upgrade": "申请助力"
+  }
+}

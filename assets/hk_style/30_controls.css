@@ -6,7 +6,7 @@
       transparent 60%
     ),
     linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
-  color: var(--hk-surface-bg) !important;
+  color: #f0f4f9 !important;
   border: none !important;
   padding: 0.55rem 1.4rem !important;
   font-family: var(--hk-font-sans) !important;
@@ -86,24 +86,19 @@
 .stApp .st-key-submit_button_key .stButton > button {
   position: relative !important;
   border-radius: 14px !important;
-  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid var(--hk-border-strong) !important;
   background:
     radial-gradient(
       circle at var(--hk-glare-x, 50%) var(--hk-glare-y, 50%),
-      rgba(255, 255, 255, 0.25) 0%,
+      rgba(255, 255, 255, 0.12) 0%,
       transparent 60%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.25),
-      rgba(255, 255, 255, 0.1)
     ),
     linear-gradient(120deg, var(--hk-dark-slate), var(--hk-cyan)) !important;
   box-shadow:
     0 8px 0 rgba(15, 23, 42, 0.25),
     0 15px 30px rgba(15, 23, 42, 0.2),
     0 5px 15px rgba(6, 182, 212, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   transform: translateY(-2px) translateZ(0) !important;
   transform-style: preserve-3d !important;
   transition:
@@ -122,11 +117,11 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.1),
     transparent
   );
   transform: skewX(-25deg);
-  animation: button-scan-glow 3s infinite;
+  animation: button-scan-glow 4.5s infinite;
   pointer-events: none;
 }
 
@@ -165,7 +160,7 @@
     0 20px 40px rgba(15, 23, 42, 0.22),
     0 10px 20px rgba(6, 182, 212, 0.18),
     0 0 15px var(--hk-glow-strong),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   filter: brightness(1.05) saturate(1.1) !important;
 }
 
@@ -188,7 +183,7 @@
     0 5px 0 rgba(15, 23, 42, 0.18),
     0 10px 18px rgba(15, 23, 42, 0.16),
     inset 0 10px 18px rgba(15, 23, 42, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .stApp
@@ -215,7 +210,7 @@
     0 3px 0 rgba(15, 23, 42, 0.1),
     0 8px 16px rgba(15, 23, 42, 0.1),
     inset 0 12px 22px rgba(15, 23, 42, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   filter: saturate(0.85) blur(0.15px) !important;
 }
 
@@ -225,22 +220,19 @@
   bottom: -6px;
 }
 
-.stApp div[data-baseweb="input"],
+.stApp div[data-testid="stTextInputRootElement"],
 .stApp div[data-testid="stNumberInputContainer"],
-.stApp div[data-baseweb="select"] {
+.stApp div[data-testid="stSelectbox"] div[role="group"],
+.stApp div[data-testid="stMultiSelect"] div[role="group"] {
   border-radius: var(--hk-radius) !important;
   transition: all var(--hk-transition) !important;
 }
 
-.stApp div[data-baseweb="input"],
+.stApp div[data-testid="stTextInputRootElement"],
 .stApp div[data-testid="stNumberInputContainer"],
-.stApp div[data-baseweb="select"] > div:first-child {
+.stApp div[data-testid="stSelectbox"] div[role="group"],
+.stApp div[data-testid="stMultiSelect"] div[role="group"] {
   min-height: var(--hk-control-height) !important;
-}
-
-.stApp div[data-baseweb="input"],
-.stApp div[data-testid="stNumberInputContainer"],
-.stApp div[data-baseweb="select"] > div:first-child {
   background: linear-gradient(
     180deg,
     var(--hk-input-bg-top),
@@ -250,46 +242,46 @@
     var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
   backdrop-filter: blur(10px) saturate(155%);
   -webkit-backdrop-filter: blur(10px) saturate(155%);
-}
-
-.stApp div[data-baseweb="select"] > div:first-child {
-  height: var(--hk-control-height) !important;
-  display: flex !important;
-  align-items: center !important;
   border: 1px solid var(--hk-input-border) !important;
 }
 
+.stApp div[data-testid="stSelectbox"] div[role="group"],
+.stApp div[data-testid="stMultiSelect"] div[role="group"] {
+  display: flex !important;
+  align-items: center !important;
+}
+
 .stApp
-  div[data-baseweb="select"]:has(input[aria-invalid="true"])
-  > div:first-child {
+  div[data-testid="stSelectbox"]
+  div[role="group"]:has(input[aria-invalid="true"]),
+.stApp
+  div[data-testid="stMultiSelect"]
+  div[role="group"]:has(input[aria-invalid="true"]) {
   border-color: var(--hk-input-border) !important;
   box-shadow:
     var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
 }
 
-.stApp div[data-baseweb="input"]:hover,
+.stApp div[data-testid="stTextInputRootElement"]:hover,
 .stApp div[data-testid="stNumberInputContainer"]:hover,
-.stApp div[data-baseweb="select"]:hover > div:first-child {
+.stApp div[data-testid="stSelectbox"] div[role="group"]:hover,
+.stApp div[data-testid="stMultiSelect"] div[role="group"]:hover {
   border-color: var(--hk-input-border-hover) !important;
   box-shadow:
     var(--hk-input-shadow-inset),
     0 0 8px var(--hk-cyan-alpha-10) !important;
 }
 
-.stApp div[data-baseweb="input"]:focus-within,
+.stApp div[data-testid="stTextInputRootElement"]:focus-within,
 .stApp div[data-testid="stNumberInputContainer"]:focus-within,
-.stApp div[data-baseweb="select"]:focus-within {
+.stApp div[data-testid="stSelectbox"] div[role="group"]:focus-within,
+.stApp div[data-testid="stMultiSelect"] div[role="group"]:focus-within {
   border-color: var(--hk-input-border-hover) !important;
   outline: none !important;
-}
-
-.stApp div[data-baseweb="input"]:focus-within,
-.stApp div[data-testid="stNumberInputContainer"]:focus-within,
-.stApp div[data-baseweb="select"]:focus-within > div:first-child {
   box-shadow:
     var(--hk-input-shadow-focus),
     inset 0 2px 6px rgba(15, 23, 42, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 2px 10px rgba(6, 182, 212, 0.08) !important;
 }
 
@@ -303,93 +295,26 @@
   overflow: hidden !important;
 }
 
-.stApp div[data-testid="stNumberInputContainer"] div[data-baseweb="input"] {
-  background-image: none !important;
-  box-shadow: none !important;
-  border: none !important;
-  border-radius: 0 !important;
-}
-
-.stApp div[data-baseweb="select"] > div {
-  background-image: none !important;
-  box-shadow: none !important;
-}
-
-.stApp div[data-testid="stNumberInputContainer"] [data-baseweb="base-input"] {
-  min-height: var(--hk-control-height) !important;
-  border-radius: var(--hk-radius) !important;
-  border: none !important;
-  background: linear-gradient(
-    180deg,
-    var(--hk-input-bg-top),
-    var(--hk-input-bg-bottom)
-  ) !important;
-  box-shadow:
-    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
-  backdrop-filter: blur(10px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(155%) !important;
-  transition: none !important;
-}
-
 .stApp
-  div[data-testid="stNumberInputContainer"]:hover
-  [data-baseweb="base-input"] {
+  div[data-testid="stNumberInputContainer"]
+  input[data-testid="stNumberInputField"] {
+  min-height: var(--hk-control-height) !important;
   border: none !important;
+  border-radius: var(--hk-radius) !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .stApp
   div[data-testid="stNumberInputContainer"]:focus-within
-  [data-baseweb="base-input"] {
-  border: none !important;
-  box-shadow:
-    var(--hk-input-shadow-focus),
-    inset 0 2px 6px rgba(15, 23, 42, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 10px rgba(6, 182, 212, 0.08) !important;
-}
-
-.stApp
-  div[data-testid="stNumberInputContainer"]
   input[data-testid="stNumberInputField"] {
-  background: transparent !important;
-}
-
-.stApp
-  div[data-testid="stTextInputRootElement"][data-baseweb="input"]
-  [data-baseweb="base-input"] {
-  min-height: var(--hk-control-height) !important;
-  border-radius: var(--hk-radius) !important;
   border: none !important;
-  background: linear-gradient(
-    180deg,
-    var(--hk-input-bg-top),
-    var(--hk-input-bg-bottom)
-  ) !important;
-  box-shadow:
-    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
-  backdrop-filter: blur(10px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(155%) !important;
-  transition: none !important;
+  box-shadow: none !important;
 }
 
-.stApp
-  div[data-testid="stTextInputRootElement"][data-baseweb="input"]:hover
-  [data-baseweb="base-input"] {
-  border: none !important;
-}
-
-.stApp
-  div[data-testid="stTextInputRootElement"][data-baseweb="input"]:focus-within
-  [data-baseweb="base-input"] {
-  border: none !important;
-  box-shadow:
-    var(--hk-input-shadow-focus),
-    inset 0 2px 6px rgba(15, 23, 42, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    0 2px 10px rgba(6, 182, 212, 0.08) !important;
-}
-
-.stApp div[data-testid="stTextInputRootElement"][data-baseweb="input"] input {
+.stApp div[data-testid="stTextInputRootElement"] input,
+.stApp div[data-testid="stSelectbox"] div[role="group"] input,
+.stApp div[data-testid="stMultiSelect"] div[role="group"] input {
   background: transparent !important;
 }
 
@@ -436,9 +361,7 @@
   font-weight: 400 !important;
   font-size: 0.85rem !important;
   letter-spacing: 0.01em !important;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.75),
-    0 -1px 0 rgba(15, 23, 42, 0.06);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .stApp label,
@@ -472,8 +395,6 @@
   background-color: transparent !important;
 }
 
-/* ── Accent buttons — stat cards / lead-in ────────────────── */
-/*   White card style, cyan accent. Sits above default.       */
 [class*="st-key-statbtn_"] .stButton > button,
 .st-key-lead_in_btn .stButton > button {
   background: var(--hk-surface-elevated) !important;
@@ -529,7 +450,6 @@
   transform: translateY(0) scale(0.985) !important;
 }
 
-/* Remove default pseudo-elements on accent buttons */
 [class*="st-key-statbtn_"] .stButton > button::before,
 .st-key-lead_in_btn .stButton > button::before,
 [class*="st-key-statbtn_"] .stButton > button::after,
@@ -537,8 +457,6 @@
   display: none !important;
 }
 
-/* ── Explain / Humanize button — rainbow animated border via mask on pseudo-element ── */
-/*   mask-composite:exclude punches out the center so only a 2px border ring shows. */
 @keyframes explain-rainbow-shift {
   0% {
     background-position: 0% 50%;
@@ -575,26 +493,26 @@
   padding: 2px;
   background: linear-gradient(
     90deg,
-    #a855f7,
-    #6366f1,
-    #06b6d4,
-    #22c55e,
-    #f59e0b,
-    #a855f7,
-    #6366f1,
-    #06b6d4,
-    #22c55e,
-    #f59e0b,
-    #a855f7
+    var(--hk-purple-500),
+    var(--hk-indigo-500),
+    var(--hk-cyan),
+    var(--hk-green-500),
+    var(--hk-amber),
+    var(--hk-purple-500),
+    var(--hk-indigo-500),
+    var(--hk-cyan),
+    var(--hk-green-500),
+    var(--hk-amber),
+    var(--hk-purple-500)
   );
   background-size: 200% 100%;
   -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+    linear-gradient(var(--hk-white) 0 0) content-box,
+    linear-gradient(var(--hk-white) 0 0);
   -webkit-mask-composite: xor;
   mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
+    linear-gradient(var(--hk-white) 0 0) content-box,
+    linear-gradient(var(--hk-white) 0 0);
   mask-composite: exclude;
   animation: explain-rainbow-shift 6s linear infinite;
   pointer-events: none;
@@ -602,7 +520,7 @@
 
 .st-key-explain_btn .stButton > button:hover:not(:disabled):not([disabled]),
 .st-key-humanize_btn .stButton > button:hover:not(:disabled):not([disabled]) {
-  color: var(--hk-slate-700, #1e293b) !important;
+  color: var(--hk-slate-700, var(--hk-slate-800)) !important;
   box-shadow:
     0 6px 20px rgba(168, 85, 247, 0.18),
     0 0 0 1px rgba(168, 85, 247, 0.12) !important;

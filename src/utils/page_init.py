@@ -4,33 +4,68 @@ import streamlit as st
 
 from src.utils.data_safety.watermark import generate_watermark_css
 from src.utils.logger import setup_logger
-from src.utils.page_auth import handle_e2_login
+from src.utils.auth.page_auth import require_login
 from src.utils.session_manager import SessionManager
 
 page_init_logger = setup_logger("page3", "prediction")
 
+_css_cache: dict[str, tuple[float, str]] = {}
+
+
+def _read_css_cached(path: str) -> str:
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return ""
+    entry = _css_cache.get(path)
+    if entry is not None and entry[0] == mtime:
+        return entry[1]
+    try:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+    except FileNotFoundError:
+        return ""
+    _css_cache[path] = (mtime, content)
+    return content
+
+
+def _resolve_contract_tier(email: str | None) -> str:
+    try:
+        from src.utils.contract_config import get_tier_for_email
+
+        return get_tier_for_email(email)
+    except Exception:
+        return "joint_hkmo_sg"
+
 
 def _sync_auth_to_session(session_mgr: SessionManager) -> None:
-    """Sync E2 / debug auth tokens into the typed session model (once per render)."""
     if session_mgr.get("user_info", {}).get("username"):
-        return  # already synced on a prior render
+        return
 
-    e2_email = st.session_state.get("e2_user_email")
-    if e2_email:
+    username = st.session_state.get("demo_username") or st.session_state.get("e2_user_email")
+    nickname = st.session_state.get("demo_nickname") or st.session_state.get("e2_user_nickname")
+    if username:
+        contract_tier = _resolve_contract_tier(username)
         session_mgr.set(
             user_info={
-                "username": e2_email,
-                "nickname": st.session_state.get("e2_user_nickname", e2_email),
+                "username": username,
+                "nickname": nickname or username,
+                "contract_tier": contract_tier,
             },
             is_logged_in=True,
         )
         return
 
     if st.session_state.get("is_authenticated", False):
-        username = st.session_state.get("username", "")
-        if username:
+        legacy_username = st.session_state.get("username", "")
+        if legacy_username:
+            contract_tier = _resolve_contract_tier(legacy_username)
             session_mgr.set(
-                user_info={"username": username, "nickname": username},
+                user_info={
+                    "username": legacy_username,
+                    "nickname": legacy_username,
+                    "contract_tier": contract_tier,
+                },
                 is_logged_in=True,
             )
 
@@ -47,6 +82,7 @@ def init_page(
     skip_watermark: bool = False,
     module_name: str | None = None,
     admin_only: bool = False,
+    require_whitelist: bool = True,
     hide_sidebar: bool = False,
 ):
     favicon = "assets/favicon.ico" if os.path.exists("assets/favicon.ico") else ""
@@ -74,17 +110,21 @@ def init_page(
         css_files_to_load.extend(additional_css_files)
 
     for css_file in css_files_to_load:
-        with open(css_file, encoding="utf-8") as f:
-            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+        css_content = _read_css_cached(css_file)
+        if css_content:
+            st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
 
     if not skip_auth:
-        handle_e2_login(current_page_path, module_name=module_name, admin_only=admin_only)
+        if require_login() is None:
+            st.error("登录会话无效或已过期，请重新登录。", icon=":material/lock:")
+            st.markdown('<a href="/login" target="_self">前往登录页</a>', unsafe_allow_html=True)
+            st.stop()
 
     session_mgr = SessionManager()
     _sync_auth_to_session(session_mgr)
 
-    user_nickname = st.session_state.get("e2_user_nickname", default_nickname)
-    user_email = st.session_state.get("e2_user_email", "E2_USER_NOT_LOGGED_IN")
+    user_nickname = st.session_state.get("demo_nickname", default_nickname)
+    user_email = st.session_state.get("e2_user_email", "DEMO_USER_NOT_LOGGED_IN")
 
     if not skip_watermark:
         if watermark_config is None:

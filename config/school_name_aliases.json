@@ -1,0 +1,949 @@
+{
+  "_note": "cases.background_university 写法变体 -> school_base 规范学校名。供训练/表单归一化层使用。",
+  "aliases": [
+    {
+      "case_name": "Boston University",
+      "canonical_name": "波士顿大学"
+    },
+    {
+      "case_name": "Cheongju University",
+      "canonical_name": "韩国清州大学"
+    },
+    {
+      "case_name": "James Cook University, Singapore",
+      "canonical_name": "澳洲詹姆斯库克大学新加坡分校"
+    },
+    {
+      "case_name": "Lancaster University, UK",
+      "canonical_name": "兰卡斯特大学"
+    },
+    {
+      "case_name": "Northeastern University at Qin Huangdao",
+      "canonical_name": "东北大学秦皇岛分校"
+    },
+    {
+      "case_name": "SIAM University",
+      "canonical_name": "暹罗大学"
+    },
+    {
+      "case_name": "Sanda University",
+      "canonical_name": "上海杉达学院"
+    },
+    {
+      "case_name": "Shandong Agricultural University",
+      "canonical_name": "山东农业大学"
+    },
+    {
+      "case_name": "SimonFraserUniversity",
+      "canonical_name": "西蒙菲莎大学"
+    },
+    {
+      "case_name": "Taylor’s University",
+      "canonical_name": "泰莱大学"
+    },
+    {
+      "case_name": "The University of Manchester",
+      "canonical_name": "曼切斯特大学"
+    },
+    {
+      "case_name": "Truman State University",
+      "canonical_name": "杜鲁门州立大学"
+    },
+    {
+      "case_name": "University of London",
+      "canonical_name": "伦敦大学"
+    },
+    {
+      "case_name": "University of Ottawa",
+      "canonical_name": "渥太华大学"
+    },
+    {
+      "case_name": "University of Toronto Scarborough",
+      "canonical_name": "多伦多大学"
+    },
+    {
+      "case_name": "Vaasa University of Applied Science",
+      "canonical_name": "瓦萨应用科学大学"
+    },
+    {
+      "case_name": "三江大学",
+      "canonical_name": "三江学院"
+    },
+    {
+      "case_name": "三达大学",
+      "canonical_name": "上海杉达学院"
+    },
+    {
+      "case_name": "上海交通大学医学院",
+      "canonical_name": "上海交通大学"
+    },
+    {
+      "case_name": "上海体育大学",
+      "canonical_name": "上海体育学院"
+    },
+    {
+      "case_name": "上海力达学院",
+      "canonical_name": "上海立达学院"
+    },
+    {
+      "case_name": "上海外国语大学仙达经济人文学院",
+      "canonical_name": "上海外国语大学"
+    },
+    {
+      "case_name": "上海大学力学与工程科学学院",
+      "canonical_name": "上海大学"
+    },
+    {
+      "case_name": "上海政法大学",
+      "canonical_name": "上海政法学院"
+    },
+    {
+      "case_name": "上海理工大学中英学院",
+      "canonical_name": "上海理工大学"
+    },
+    {
+      "case_name": "上海立达大学",
+      "canonical_name": "上海立达职业技术学院"
+    },
+    {
+      "case_name": "东北大学（中国）",
+      "canonical_name": "东北大学"
+    },
+    {
+      "case_name": "东北大学（沈阳）",
+      "canonical_name": "东北大学（日本）"
+    },
+    {
+      "case_name": "东北财经大学与萨里大学",
+      "canonical_name": "萨里大学"
+    },
+    {
+      "case_name": "东莞市城市大学",
+      "canonical_name": "东莞城市学院"
+    },
+    {
+      "case_name": "东莞市城市学院",
+      "canonical_name": "东莞城市学院"
+    },
+    {
+      "case_name": "中南大学与邓迪大学",
+      "canonical_name": "中南大学"
+    },
+    {
+      "case_name": "中南大学邓迪学院",
+      "canonical_name": "中南大学"
+    },
+    {
+      "case_name": "中南林业科技大学（联合项目）",
+      "canonical_name": "中南林业科技大学"
+    },
+    {
+      "case_name": "中国上海健康医学院",
+      "canonical_name": "上海健康医学院"
+    },
+    {
+      "case_name": "中国传媒大学海南国际学院",
+      "canonical_name": "中国传媒大学"
+    },
+    {
+      "case_name": "中国吉利大学",
+      "canonical_name": "吉利学院"
+    },
+    {
+      "case_name": "中国地质大学（北京）",
+      "canonical_name": "中国地质大学(北京)"
+    },
+    {
+      "case_name": "中国地质大学（武汉）",
+      "canonical_name": "中国地质大学(武汉)"
+    },
+    {
+      "case_name": "中国江苏海洋大学",
+      "canonical_name": "江苏海洋大学"
+    },
+    {
+      "case_name": "中国海洋大学；赫瑞瓦特大学",
+      "canonical_name": "中国海洋大学"
+    },
+    {
+      "case_name": "中国石油大学（北京）",
+      "canonical_name": "中国石油大学(北京)"
+    },
+    {
+      "case_name": "中国石油大学（北京）克拉玛依校区",
+      "canonical_name": "中国石油大学(北京)"
+    },
+    {
+      "case_name": "中国石油大学（华东）",
+      "canonical_name": "中国石油大学(华东)"
+    },
+    {
+      "case_name": "中国石油大学（华东）-本科",
+      "canonical_name": "中国石油大学(北京)"
+    },
+    {
+      "case_name": "中国矿业大学（北京）",
+      "canonical_name": "中国矿业大学(北京)"
+    },
+    {
+      "case_name": "中国矿业大学（孙越崎学院）",
+      "canonical_name": "中国矿业大学(北京)"
+    },
+    {
+      "case_name": "中国西南大学",
+      "canonical_name": "西南大学"
+    },
+    {
+      "case_name": "中国西南政法大学",
+      "canonical_name": "西南政法大学"
+    },
+    {
+      "case_name": "中国重庆三峡大学",
+      "canonical_name": "三峡大学"
+    },
+    {
+      "case_name": "中山大学深圳校区",
+      "canonical_name": "中山大学"
+    },
+    {
+      "case_name": "乌克兰航空航天大学",
+      "canonical_name": "哈尔科夫国立航空航天大学"
+    },
+    {
+      "case_name": "乔治·华盛顿大学",
+      "canonical_name": "乔治华盛顿大学"
+    },
+    {
+      "case_name": "九江大学",
+      "canonical_name": "九江学院"
+    },
+    {
+      "case_name": "伊利诺伊大学厄巴纳-香槟分校",
+      "canonical_name": "伊利诺伊大学厄巴纳-香槟分校商学院"
+    },
+    {
+      "case_name": "伦敦大学城市学院贝叶斯商学院",
+      "canonical_name": "伦敦大学城市学院"
+    },
+    {
+      "case_name": "伯明翰大学（新加坡）",
+      "canonical_name": "伯明翰大学"
+    },
+    {
+      "case_name": "佩珀代因大学",
+      "canonical_name": "佩伯代因大学"
+    },
+    {
+      "case_name": "信阳师范大学",
+      "canonical_name": "信阳师范学院"
+    },
+    {
+      "case_name": "兰卡斯特大学与北京交通大学（双学位项目）",
+      "canonical_name": "兰卡斯特大学"
+    },
+    {
+      "case_name": "内蒙古科技大学（包头医学院）",
+      "canonical_name": "内蒙古科技大学"
+    },
+    {
+      "case_name": "加利福尼亚大学戴维斯分校",
+      "canonical_name": "加利福尼亚大学"
+    },
+    {
+      "case_name": "加利福尼亚大学洛杉矶分校",
+      "canonical_name": "加利福尼亚大学"
+    },
+    {
+      "case_name": "加拿大约克大学",
+      "canonical_name": "约克大学"
+    },
+    {
+      "case_name": "加拿大英属哥伦比亚大学",
+      "canonical_name": "英属哥伦比亚大学"
+    },
+    {
+      "case_name": "匈牙利德布勒森大学",
+      "canonical_name": "德布勒森大学"
+    },
+    {
+      "case_name": "北京中央戏剧学院",
+      "canonical_name": "中央戏剧学院"
+    },
+    {
+      "case_name": "北京交通大学（威海）",
+      "canonical_name": "北京交通大学"
+    },
+    {
+      "case_name": "北京工业大学都柏林国际学院",
+      "canonical_name": "北京工业大学"
+    },
+    {
+      "case_name": "北京理工大学天津学院",
+      "canonical_name": "北京理工大学"
+    },
+    {
+      "case_name": "北京理工大学（北京-都柏林国际学院）",
+      "canonical_name": "北京理工大学"
+    },
+    {
+      "case_name": "北京语言文化大学",
+      "canonical_name": "北京语言大学"
+    },
+    {
+      "case_name": "北京金融科技学院",
+      "canonical_name": "北京工商大学嘉华学院"
+    },
+    {
+      "case_name": "北师香港浸会大学",
+      "canonical_name": "北京师范大学-香港浸会大学联合国际学院"
+    },
+    {
+      "case_name": "华中师范大学（中国武汉）",
+      "canonical_name": "华中师范大学"
+    },
+    {
+      "case_name": "华北电力大学（保定）",
+      "canonical_name": "华北电力大学"
+    },
+    {
+      "case_name": "华北电力大学（北京）",
+      "canonical_name": "华北电力大学"
+    },
+    {
+      "case_name": "华盛顿大学（西雅图）",
+      "canonical_name": "华盛顿大学"
+    },
+    {
+      "case_name": "南京航空大学金城学院",
+      "canonical_name": "南京航空航天大学金城学院"
+    },
+    {
+      "case_name": "南京财经大学梅西学院",
+      "canonical_name": "南京财经大学"
+    },
+    {
+      "case_name": "南卡罗来纳大学哥伦比亚分校",
+      "canonical_name": "南卡罗来纳大学"
+    },
+    {
+      "case_name": "南昌师范学院应用技术学院",
+      "canonical_name": "南昌师范学院"
+    },
+    {
+      "case_name": "南航金城学院",
+      "canonical_name": "南京航空航天大学金城学院"
+    },
+    {
+      "case_name": "卧龙岗大学",
+      "canonical_name": "伍伦贡大学"
+    },
+    {
+      "case_name": "吉利大学",
+      "canonical_name": "吉利学院"
+    },
+    {
+      "case_name": "吉林长春工程学院",
+      "canonical_name": "长春工程学院"
+    },
+    {
+      "case_name": "哈尔滨商业大学会计学院",
+      "canonical_name": "哈尔滨商业大学"
+    },
+    {
+      "case_name": "哈尔滨大学",
+      "canonical_name": "哈尔滨学院"
+    },
+    {
+      "case_name": "哈尔滨工业大学（威海）",
+      "canonical_name": "哈尔滨工业大学"
+    },
+    {
+      "case_name": "哈尔滨工业大学（深圳）",
+      "canonical_name": "哈尔滨工业大学"
+    },
+    {
+      "case_name": "哈尔滨工程大学（威海）",
+      "canonical_name": "哈尔滨工程大学"
+    },
+    {
+      "case_name": "哥伦比亚大学（硕）",
+      "canonical_name": "哥伦比亚大学"
+    },
+    {
+      "case_name": "唐山大学",
+      "canonical_name": "唐山学院"
+    },
+    {
+      "case_name": "四川大学匹兹堡学院",
+      "canonical_name": "四川大学"
+    },
+    {
+      "case_name": "四川电影电视大学",
+      "canonical_name": "四川电影电视学院"
+    },
+    {
+      "case_name": "埃塞克斯大学（英国）",
+      "canonical_name": "埃塞克斯大学"
+    },
+    {
+      "case_name": "塞格德大学",
+      "canonical_name": "赛格德大学"
+    },
+    {
+      "case_name": "多伦多大学士嘉堡分校",
+      "canonical_name": "多伦多大学"
+    },
+    {
+      "case_name": "多伦多大学密西沙加分校",
+      "canonical_name": "多伦多大学"
+    },
+    {
+      "case_name": "多伦多大学（圣乔治校区）",
+      "canonical_name": "多伦多大学"
+    },
+    {
+      "case_name": "大连财经大学",
+      "canonical_name": "大连财经学院"
+    },
+    {
+      "case_name": "天津体育大学",
+      "canonical_name": "天津体育学院"
+    },
+    {
+      "case_name": "太原师范大学",
+      "canonical_name": "太原师范学院"
+    },
+    {
+      "case_name": "宁波大学潘天寿艺术设计学院",
+      "canonical_name": "宁波大学"
+    },
+    {
+      "case_name": "安徽大学-纽约州立大学石溪分校",
+      "canonical_name": "安徽大学"
+    },
+    {
+      "case_name": "宾夕法尼亚州立大学（大学公园分校）",
+      "canonical_name": "宾夕法尼亚州立大学"
+    },
+    {
+      "case_name": "宾夕法尼亚州立大学（帕克分校）",
+      "canonical_name": "宾夕法尼亚州立大学"
+    },
+    {
+      "case_name": "山东交通大学",
+      "canonical_name": "山东交通学院"
+    },
+    {
+      "case_name": "山东大学（威海）",
+      "canonical_name": "山东大学"
+    },
+    {
+      "case_name": "岭南大学",
+      "canonical_name": "香港岭南大学"
+    },
+    {
+      "case_name": "布里斯托尔大学",
+      "canonical_name": "布里斯托大学"
+    },
+    {
+      "case_name": "广东外语外贸大学华南商学院",
+      "canonical_name": "广东外语外贸大学"
+    },
+    {
+      "case_name": "广州大学软件学院",
+      "canonical_name": "广州大学"
+    },
+    {
+      "case_name": "广州新华大学",
+      "canonical_name": "广州新华学院"
+    },
+    {
+      "case_name": "庆熙大学",
+      "canonical_name": "庆熙大学（水源校区）"
+    },
+    {
+      "case_name": "成都体育大学",
+      "canonical_name": "成都体育学院"
+    },
+    {
+      "case_name": "成都外国语大学",
+      "canonical_name": "四川外国语大学成都学院"
+    },
+    {
+      "case_name": "成都电子科技大学成都学院",
+      "canonical_name": "电子科技大学成都学院"
+    },
+    {
+      "case_name": "拉筹伯大学",
+      "canonical_name": "乐卓博大学"
+    },
+    {
+      "case_name": "新加坡皇家墨尔本理工大学",
+      "canonical_name": "皇家墨尔本理工大学"
+    },
+    {
+      "case_name": "新加坡科廷大学",
+      "canonical_name": "科廷大学新加坡校区"
+    },
+    {
+      "case_name": "新加坡詹姆斯库克大学",
+      "canonical_name": "詹姆斯库克大学新加坡校区"
+    },
+    {
+      "case_name": "新南威尔士大学悉尼分校",
+      "canonical_name": "新南威尔士大学"
+    },
+    {
+      "case_name": "日本东洋大学",
+      "canonical_name": "东洋大学"
+    },
+    {
+      "case_name": "日本东海大学",
+      "canonical_name": "东海大学"
+    },
+    {
+      "case_name": "早稻田大学（中退）",
+      "canonical_name": "早稻田大学"
+    },
+    {
+      "case_name": "昆士兰大学（澳大利亚布里斯班）",
+      "canonical_name": "昆士兰大学"
+    },
+    {
+      "case_name": "昆山杜克大学&杜克大学",
+      "canonical_name": "昆山杜克大学"
+    },
+    {
+      "case_name": "景德镇大学",
+      "canonical_name": "景德镇学院"
+    },
+    {
+      "case_name": "杭州城市大学",
+      "canonical_name": "浙大城市学院"
+    },
+    {
+      "case_name": "格乐大学",
+      "canonical_name": "泰国格乐大学"
+    },
+    {
+      "case_name": "桂林大学",
+      "canonical_name": "桂林学院"
+    },
+    {
+      "case_name": "武汉东湖大学",
+      "canonical_name": "武汉东湖学院"
+    },
+    {
+      "case_name": "武汉体育大学",
+      "canonical_name": "武汉体育学院"
+    },
+    {
+      "case_name": "武汉理工大学（成人自考）",
+      "canonical_name": "武汉理工大学"
+    },
+    {
+      "case_name": "汉口大学",
+      "canonical_name": "汉口学院"
+    },
+    {
+      "case_name": "江苏联合职业技术学院常州旅游商贸分院",
+      "canonical_name": "江苏联合职业技术学院"
+    },
+    {
+      "case_name": "江西水利水电大学",
+      "canonical_name": "江西水利职业学院"
+    },
+    {
+      "case_name": "江西水利水电职业技术学院",
+      "canonical_name": "江西水利职业学院"
+    },
+    {
+      "case_name": "沈阳东北大学",
+      "canonical_name": "东北大学"
+    },
+    {
+      "case_name": "沈阳城市大学",
+      "canonical_name": "沈阳城市学院"
+    },
+    {
+      "case_name": "河北中医学院",
+      "canonical_name": "河北中医药大学"
+    },
+    {
+      "case_name": "河北工业大学（廊坊校区）",
+      "canonical_name": "河北工业大学"
+    },
+    {
+      "case_name": "法国图卢兹大学",
+      "canonical_name": "图卢兹大学"
+    },
+    {
+      "case_name": "泰国 Krirk University",
+      "canonical_name": "泰国格乐大学"
+    },
+    {
+      "case_name": "泰山大学",
+      "canonical_name": "泰山学院"
+    },
+    {
+      "case_name": "洛阳师范大学",
+      "canonical_name": "洛阳师范学院"
+    },
+    {
+      "case_name": "浙江树人大学",
+      "canonical_name": "浙江树人学院"
+    },
+    {
+      "case_name": "浙江越秀大学",
+      "canonical_name": "浙江越秀外国语学院"
+    },
+    {
+      "case_name": "海南医科大学",
+      "canonical_name": "海南医学院"
+    },
+    {
+      "case_name": "海南大学国际商学院",
+      "canonical_name": "海南大学"
+    },
+    {
+      "case_name": "海南热带海洋大学",
+      "canonical_name": "海南热带海洋学院"
+    },
+    {
+      "case_name": "深圳MSU-BIT大学",
+      "canonical_name": "深圳北理莫斯科大学"
+    },
+    {
+      "case_name": "深圳大学法学院",
+      "canonical_name": "深圳大学"
+    },
+    {
+      "case_name": "深圳大学深圳南特金融科技学院",
+      "canonical_name": "深圳大学"
+    },
+    {
+      "case_name": "渥太华大学 Telfer管理学院",
+      "canonical_name": "渥太华大学"
+    },
+    {
+      "case_name": "湖南国际经济大学",
+      "canonical_name": "湖南涉外经济学院"
+    },
+    {
+      "case_name": "湖南国际经济学大学",
+      "canonical_name": "湖南涉外经济学院"
+    },
+    {
+      "case_name": "湖南国际经济学院",
+      "canonical_name": "湖南涉外经济学院"
+    },
+    {
+      "case_name": "湖南财经经济学院",
+      "canonical_name": "湖南财政经济学院"
+    },
+    {
+      "case_name": "湘南大学",
+      "canonical_name": "湘南学院"
+    },
+    {
+      "case_name": "滇池学院",
+      "canonical_name": "云南大学滇池学院"
+    },
+    {
+      "case_name": "澳大利亚墨尔本大学",
+      "canonical_name": "墨尔本大学"
+    },
+    {
+      "case_name": "澳大利亚昆士兰大学",
+      "canonical_name": "昆士兰大学"
+    },
+    {
+      "case_name": "澳大利亚纽卡斯尔大学（与PSB学院联合）",
+      "canonical_name": "澳大利亚纽卡斯尔大学（新加坡PSB学院校区）"
+    },
+    {
+      "case_name": "澳大利亚纽卡斯尔大学（新加坡分校）",
+      "canonical_name": "澳大利亚纽卡斯尔大学（新加坡PSB学院校区）"
+    },
+    {
+      "case_name": "澳门旅游大学",
+      "canonical_name": "澳门旅游学院"
+    },
+    {
+      "case_name": "爱尔兰利默里克大学",
+      "canonical_name": "利莫瑞克大学"
+    },
+    {
+      "case_name": "爱尔兰国立大学都柏林大学学院",
+      "canonical_name": "都柏林大学"
+    },
+    {
+      "case_name": "牡丹江师范大学",
+      "canonical_name": "牡丹江师范学院"
+    },
+    {
+      "case_name": "珠海科技学院生命科学学院",
+      "canonical_name": "珠海科技学院"
+    },
+    {
+      "case_name": "瑞士EHL酒店管理学院",
+      "canonical_name": "洛桑酒店管理学院"
+    },
+    {
+      "case_name": "福州外语外贸学院（专科升本科在读）",
+      "canonical_name": "福州外语外贸学院"
+    },
+    {
+      "case_name": "福州大学梅努斯国际工程学院",
+      "canonical_name": "福州大学"
+    },
+    {
+      "case_name": "福建理工大学",
+      "canonical_name": "福建工程学院"
+    },
+    {
+      "case_name": "科罗拉多大学丹佛分校; 中国农业大学",
+      "canonical_name": "科罗拉多大学丹佛分校"
+    },
+    {
+      "case_name": "纽约大学文理学院",
+      "canonical_name": "纽约大学"
+    },
+    {
+      "case_name": "纽约大学（美国）",
+      "canonical_name": "纽约大学"
+    },
+    {
+      "case_name": "美国东北大学",
+      "canonical_name": "东北大学（美国）"
+    },
+    {
+      "case_name": "美国华盛顿大学",
+      "canonical_name": "华盛顿大学"
+    },
+    {
+      "case_name": "苏州城市大学",
+      "canonical_name": "苏州城市学院"
+    },
+    {
+      "case_name": "英国利物浦大学",
+      "canonical_name": "利物浦大学"
+    },
+    {
+      "case_name": "英国哥伦比亚大学",
+      "canonical_name": "英属哥伦比亚大学"
+    },
+    {
+      "case_name": "英国纽卡斯尔大学",
+      "canonical_name": "纽卡斯尔大学"
+    },
+    {
+      "case_name": "莫斯科航空学院",
+      "canonical_name": "莫斯科国立航空航天学院"
+    },
+    {
+      "case_name": "西南交通大学-利兹大学联合学院",
+      "canonical_name": "西南交通大学"
+    },
+    {
+      "case_name": "西南交通大学-利兹联合学院",
+      "canonical_name": "西南交通大学"
+    },
+    {
+      "case_name": "西南交通大学利兹联合学院",
+      "canonical_name": "西南交通大学"
+    },
+    {
+      "case_name": "西南政法大学经济学院",
+      "canonical_name": "西南政法大学"
+    },
+    {
+      "case_name": "西安交通大学-利物浦大学",
+      "canonical_name": "西交利物浦大学"
+    },
+    {
+      "case_name": "西安交通大学-利物浦大学（西交利物浦大学）",
+      "canonical_name": "西安交通大学"
+    },
+    {
+      "case_name": "西安交通大学利物浦大学",
+      "canonical_name": "西交利物浦大学"
+    },
+    {
+      "case_name": "西安利物浦大学",
+      "canonical_name": "西交利物浦大学"
+    },
+    {
+      "case_name": "西安大略大学",
+      "canonical_name": "韦仕敦大学"
+    },
+    {
+      "case_name": "西安电子科技学院",
+      "canonical_name": "西安电子科技大学"
+    },
+    {
+      "case_name": "西昌大学",
+      "canonical_name": "西昌学院"
+    },
+    {
+      "case_name": "视觉艺术学院",
+      "canonical_name": "纽约视觉艺术学院"
+    },
+    {
+      "case_name": "詹姆斯·库克大学（新加坡校区）",
+      "canonical_name": "詹姆斯·库克大学"
+    },
+    {
+      "case_name": "詹姆斯·库克大学（新加坡）",
+      "canonical_name": "詹姆斯·库克大学"
+    },
+    {
+      "case_name": "詹姆斯库克大学（新加坡校区）",
+      "canonical_name": "詹姆斯库克大学"
+    },
+    {
+      "case_name": "贡扎加大学",
+      "canonical_name": "贡萨加学院"
+    },
+    {
+      "case_name": "贡萨加大学",
+      "canonical_name": "贡萨加学院"
+    },
+    {
+      "case_name": "贵州大学/北阿拉巴马国际工程技术学院",
+      "canonical_name": "贵州大学北阿拉巴马国际工程技术学院"
+    },
+    {
+      "case_name": "贵州财经大学Western Michigan University,",
+      "canonical_name": "西密歇根大学"
+    },
+    {
+      "case_name": "赣东大学",
+      "canonical_name": "赣东学院"
+    },
+    {
+      "case_name": "辽宁大学与维多利亚大学（4+0联合项目）",
+      "canonical_name": "辽宁大学"
+    },
+    {
+      "case_name": "辽宁理工职业学院",
+      "canonical_name": "辽宁理工职业大学"
+    },
+    {
+      "case_name": "遵义医科大学珠海校区",
+      "canonical_name": "遵义医科大学"
+    },
+    {
+      "case_name": "郑州升达大学",
+      "canonical_name": "郑州升达经贸管理学院"
+    },
+    {
+      "case_name": "郑州大学体育学院",
+      "canonical_name": "郑州大学"
+    },
+    {
+      "case_name": "郑州工业大学",
+      "canonical_name": "郑州轻工业大学"
+    },
+    {
+      "case_name": "郑州师范大学",
+      "canonical_name": "郑州师范学院"
+    },
+    {
+      "case_name": "都柏林大学学院",
+      "canonical_name": "都柏林大学"
+    },
+    {
+      "case_name": "重庆大学（网络教育）",
+      "canonical_name": "重庆大学"
+    },
+    {
+      "case_name": "重庆教育学院",
+      "canonical_name": "重庆第二师范学院"
+    },
+    {
+      "case_name": "铜陵大学",
+      "canonical_name": "铜陵学院"
+    },
+    {
+      "case_name": "银川科技学院（原中国矿业大学银川学院）",
+      "canonical_name": "银川科技学院"
+    },
+    {
+      "case_name": "长春大学（中外合作办学项目）",
+      "canonical_name": "长春大学"
+    },
+    {
+      "case_name": "长春科技大学",
+      "canonical_name": "长春科技学院"
+    },
+    {
+      "case_name": "长沙大学",
+      "canonical_name": "长沙学院"
+    },
+    {
+      "case_name": "闽江大学",
+      "canonical_name": "闽江学院"
+    },
+    {
+      "case_name": "防灾科技学院（河北）",
+      "canonical_name": "防灾科技学院"
+    },
+    {
+      "case_name": "阳光学院",
+      "canonical_name": "福州大学阳光学院"
+    },
+    {
+      "case_name": "青岛求实学院",
+      "canonical_name": "青岛求实职业技术学院"
+    },
+    {
+      "case_name": "韩国成均馆大学",
+      "canonical_name": "韩国成均馆大学成均语学院"
+    },
+    {
+      "case_name": "韩国汉阳大学",
+      "canonical_name": "汉阳大学"
+    },
+    {
+      "case_name": "香港中文大学(深圳)",
+      "canonical_name": "香港中文大学 (深圳校区)"
+    },
+    {
+      "case_name": "香港中文大学(深圳校区)",
+      "canonical_name": "香港中文大学 (深圳校区)"
+    },
+    {
+      "case_name": "香港中文大学（深圳校区）",
+      "canonical_name": "香港中文大学 (深圳校区)"
+    },
+    {
+      "case_name": "香港中文大学（深圳）",
+      "canonical_name": "香港中文大学 (深圳校区)"
+    },
+    {
+      "case_name": "马来西亚博特拉大学",
+      "canonical_name": "博特拉大学"
+    },
+    {
+      "case_name": "马来西亚厦门大学",
+      "canonical_name": "厦门大学"
+    },
+    {
+      "case_name": "黄山大学",
+      "canonical_name": "黄山学院"
+    },
+    {
+      "case_name": "黑龙江哈尔滨医科大学",
+      "canonical_name": "哈尔滨医科大学"
+    },
+    {
+      "case_name": "黑龙江财经大学",
+      "canonical_name": "黑龙江财经学院"
+    },
+    {
+      "case_name": "齐鲁师范大学",
+      "canonical_name": "齐鲁师范学院"
+    }
+  ]
+}
