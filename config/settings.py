@@ -12,6 +12,20 @@ if TYPE_CHECKING:
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_CONFIG_PATH = PROJECT_ROOT / "config" / "app_config.json"
 
+# 允许用环境变量覆盖 AI 凭据/端点，避免把个人 key 写进任何文件。
+# 部署时在 .env（systemd EnvironmentFile）中设置即可，优先级高于 app_config.json。
+_ENV_OVERRIDES: dict[str, str] = {
+    "OPEN_AI_API_KEY": "OPENAI_API_KEY",
+    "OPEN_AI_BASE_URL": "OPENAI_BASE_URL",
+    "OPEN_AI_MODEL": "OPENAI_MODEL",
+    "OPEN_AI_API_KEY_FALLBACK": "OPENAI_API_KEY_FALLBACK",
+    "OPEN_AI_BASE_URL_FALLBACK": "OPENAI_BASE_URL_FALLBACK",
+    "OPEN_AI_ALT_MODEL": "OPENAI_ALT_MODEL",
+    "GHOST_API_KEY": "GHOST_API_KEY",
+    "GHOST_API_BASE_URL": "GHOST_API_BASE_URL",
+    "GHOST_API_MODEL": "GHOST_API_MODEL",
+}
+
 
 def current_env() -> str:
     return (os.environ.get("APP_ENV", "prod") or "prod").strip()
@@ -24,7 +38,12 @@ def _load_all_configs() -> dict:
 
 
 def load_app_config_raw() -> dict:
-    return dict(_load_all_configs().get(current_env(), {}))
+    cfg = dict(_load_all_configs().get(current_env(), {}))
+    for key, env_name in _ENV_OVERRIDES.items():
+        value = os.environ.get(env_name)
+        if value:
+            cfg[key] = value
+    return cfg
 
 
 def load_app_config() -> AppConfig:
