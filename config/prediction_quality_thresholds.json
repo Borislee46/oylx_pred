@@ -1,0 +1,116 @@
+{
+  "_doc": "Quality gate thresholds for data_quality tests. Each metric has 'fail' (hard gate, test FAILS) and 'warn' (diagnostic, printed as warning) levels. Adjust these when retraining models or changing the adjustment chain — they are the single source of truth for quality expectations.",
+  "_version": "1.0.0",
+  "_last_updated": "2026-06-06",
+  "_baseline_note": "Baseline values from CLAUDE.md: ECE=0.1116, Pearson r=0.44, Compass bias large, ECE amplification 4.3x. Fail thresholds are set to catch catastrophic degradation while allowing normal variance.",
+
+  "calibration": {
+    "_description": "End-to-end calibration quality on stratified sample from cases.feather",
+    "ece": {
+      "fail": 0.15,
+      "warn": 0.1,
+      "_current": 0.1006,
+      "_current_note": "2026-08-10 held-out 全链路 n=495"
+    },
+    "brier": {
+      "fail": 0.25,
+      "warn": 0.18,
+      "_current": 0.2128,
+      "_current_note": "2026-08-10 held-out n=495"
+    },
+    "systematic_bias_pp": {
+      "fail": 0.15,
+      "warn": 0.08,
+      "_current": -8.25,
+      "_current_note": "2026-08-10 held-out n=495"
+    },
+    "per_segment_brier_ratio_max": {
+      "fail": 3.0,
+      "warn": 2.0,
+      "_doc": "max(segment_brier) / overall_brier — catches stratified miscalibration like C9 underestimated 18pp"
+    }
+  },
+
+  "adjustment_chain": {
+    "_description": "How much the adjustment chain amplifies calibration error vs base model",
+    "ece_amplification_ratio": { "fail": 6.0, "warn": 4.0, "_current": 4.3 }
+  },
+
+  "blind_eval": {
+    "_description": "AI expert blind evaluation vs model prediction agreement",
+    "pearson_r": {
+      "fail": 0.2,
+      "warn": 0.35,
+      "_current": 0.3757,
+      "_current_note": "2026-08-11 盲评 n=37 有效对比（第二次重跑）"
+    },
+    "spearman_r": {
+      "fail": 0.15,
+      "warn": 0.3,
+      "_current": 0.4265,
+      "_current_note": "2026-08-11 盲评 n=37 有效对比（第二次重跑）"
+    },
+    "mae": {
+      "fail": 0.35,
+      "warn": 0.25,
+      "_current": 0.197,
+      "_current_note": "2026-08-11 盲评 n=37 有效对比（第二次重跑）"
+    },
+    "disagreement_rate": {
+      "fail": 0.6,
+      "warn": 0.4,
+      "_doc": "fraction of cases where |model - AI| > 0.2",
+      "_current": 0.459,
+      "_current_note": "2026-08-11 盲评 17/37"
+    },
+    "ai_low_confidence_min_rate": {
+      "fail": null,
+      "warn": null,
+      "_doc": "If 0/N are low confidence, LLM is overconfident (known issue). If >80% low, model may be broken. Set to non-null to gate."
+    }
+  },
+
+  "external_data": {
+    "_description": "Held-out evaluation on external datasets (Compass all-positive, ApplySquare mixed)",
+    "compass_mean_prob_min": {
+      "fail": 0.15,
+      "warn": 0.25,
+      "_doc": "All-positive data should have non-trivial mean probability"
+    },
+    "compass_below_01_rate_max": {
+      "fail": 0.5,
+      "warn": 0.35,
+      "_doc": "Admitted students with <10% predicted probability"
+    },
+    "applysquare_brier_max": {
+      "fail": 0.6,
+      "warn": 0.45,
+      "_doc": "Brier score on ApplySquare filtered sample. Known data quality issues (high missing rate) → threshold relaxed vs training data. _current ~0.56 from 2026-06 audit."
+    },
+    "applysquare_bias_pp_max": {
+      "fail": 0.7,
+      "warn": 0.5,
+      "_doc": "|mean_prob - mean_actual| on ApplySquare. Known -67pp bias from CLAUDE.md — this gate monitors for further worsening beyond the documented baseline."
+    }
+  },
+
+  "sparsity_stress": {
+    "_description": "Prediction quality on sparse (≤4 sample) combinations",
+    "anomaly_rate_max": {
+      "fail": 0.3,
+      "warn": 0.15,
+      "_doc": "Fraction of sparse predictions flagged as anomalous"
+    },
+    "prediction_failure_rate_max": {
+      "fail": 0.2,
+      "warn": 0.1,
+      "_doc": "Fraction of sparse predictions that fail entirely"
+    },
+    "n_valid_min": { "fail": 10, "warn": 20 }
+  },
+
+  "prediction_rigor": {
+    "_description": "Loose thresholds tightened from original values — these are hard-coded in test_prediction_rigor.py directly",
+    "_note": "Only documented here for visibility; actual values live in the test file"
+  }
+}

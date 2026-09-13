@@ -1,0 +1,77 @@
+{
+  "_note": "cases.target_major 的 stream/名称变体 -> school_major_details 规范专业英文名称。训练归一化层使用；不改动 cases 原始值。",
+  "mappings": [
+    {
+      "case_major": "master of science in psychology",
+      "canonical_major": "Master of Science in Psychology (Community Health Psychology)"
+    },
+    {
+      "case_major": "master of science in data science",
+      "canonical_major": "Master of Science in Data Science"
+    },
+    {
+      "case_major": "master of public health",
+      "canonical_major": "Master of Public Health"
+    },
+    {
+      "case_major": "master of social science in global political economy",
+      "canonical_major": "Master of Social Science in Global Political Economy (Arts and Humanities)"
+    },
+    {
+      "case_major": "master of arts in the field of literary and cultural studies (literary and cultural_x000d_ studies)",
+      "canonical_major": "Master of Arts in the field of Literary and Cultural Studies"
+    },
+    {
+      "case_major": "master of business administration (part-time)",
+      "canonical_major": "Master of Business Administration"
+    },
+    {
+      "case_major": "master of economics (data analysis stream)",
+      "canonical_major": "Master of Economics"
+    },
+    {
+      "case_major": "master of economics (policy analysis stream)",
+      "canonical_major": "Master of Economics"
+    },
+    {
+      "case_major": "master of laws (general)",
+      "canonical_major": "Master of Laws (General or with Specialisation)"
+    },
+    {
+      "case_major": "master of science in computer science (ai x web3)",
+      "canonical_major": "Master of Science in Computer Science"
+    },
+    {
+      "case_major": "master of arts in arts and cultural heritage management (cultural management and digital future)",
+      "canonical_major": "Master of Arts in Arts and Cultural Heritage Management"
+    },
+    {
+      "case_major": "master of arts in cultural heritage education and management",
+      "canonical_major": "Master of Arts in Cultural Heritage Education and Management (Heritage Education and Management)"
+    },
+    {
+      "case_major": "master of education (mathematics, technology, science and environment)",
+      "canonical_major": "Master of Education (Business Education and Human Resources Development)"
+    },
+    {
+      "case_major": "master of science in generative ai and the humanities",
+      "canonical_major": "Master of Science in Generative AI and the Humanities (Language and Communication)"
+    },
+    {
+      "case_major": "master of science in marketing management (part-time)",
+      "canonical_major": "Master of Science in Marketing Management"
+    },
+    {
+      "case_major": "master of social sciences (with specialization in applied psychology)",
+      "canonical_major": "Master of Social Sciences"
+    },
+    {
+      "case_major": "master of software engineering (software technology)",
+      "canonical_major": "Mater of Software Engineering (Software Technology)"
+    },
+    {
+      "case_major": "master of science (microelectronic engineering)",
+      "canonical_major": "Master of Science (Electronic System Design Engineering)"
+    }
+  ]
+}

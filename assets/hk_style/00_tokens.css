@@ -1,0 +1,243 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
+
+:root {
+  --hk-dark-slate: #0f172a;
+  --hk-cyan: #06b6d4;
+  --hk-cyan-dark: #0891b2;
+  --hk-cyan-bright: #21fff4;
+
+  --hk-amber: #f59e0b;
+  --hk-amber-light: #fbbf24;
+  --hk-orange: #f97316;
+
+  --hk-slate-900: #f0f4f9;
+  --hk-slate-800: #d2dbe6;
+  --hk-slate-700: #bdc9d8;
+  --hk-slate-600: #aebdcf;
+  --hk-slate-500: #a5b5c9;
+  --hk-slate-400: #8ea0b8;
+  --hk-slate-300: #5a6b82;
+  --hk-slate-200: #3a4a61;
+  --hk-slate-100: #202c3e;
+  --hk-slate-50: #121a2a;
+
+  --hk-surface-bg: #0b1220;
+  --hk-surface-elevated: #101a2c;
+  --hk-surface-hover: #16233a;
+  --hk-surface-active: #1e293b;
+
+  --hk-border: rgba(148, 163, 184, 0.16);
+  --hk-border-strong: rgba(148, 163, 184, 0.3);
+
+  --hk-glow: rgba(33, 255, 244, 0.14);
+  --hk-glow-strong: rgba(33, 255, 244, 0.28);
+  --hk-cyan-alpha-10: rgba(6, 182, 212, 0.1);
+  --hk-cyan-alpha-15: rgba(6, 182, 212, 0.15);
+  --hk-cyan-alpha-20: rgba(6, 182, 212, 0.2);
+  --hk-cyan-alpha-30: rgba(6, 182, 212, 0.3);
+  --hk-cyan-alpha-40: rgba(6, 182, 212, 0.4);
+  --hk-dark-alpha-05: rgba(0, 0, 0, 0.25);
+  --hk-dark-alpha-10: rgba(0, 0, 0, 0.4);
+  --hk-dark-alpha-20: rgba(0, 0, 0, 0.6);
+
+  --hk-radius-xs: 4px;
+  --hk-radius-sm: 6px;
+  --hk-radius: 8px;
+  --hk-radius-md: 10px;
+  --hk-radius-lg: 12px;
+  --hk-radius-xl: 16px;
+
+  --hk-space-xs: 0.25rem;
+  --hk-space-sm: 0.5rem;
+  --hk-space-md: 1rem;
+  --hk-space-lg: 1.5rem;
+  --hk-space-xl: 2rem;
+  --hk-space-2xl: 3rem;
+
+  --hk-transition-fast: 0.15s ease;
+  --hk-transition: 0.25s ease;
+  --hk-transition-smooth: 0.3s ease-in-out;
+
+  --hk-shadow-xs: 0 1px 2px var(--hk-dark-alpha-05);
+  --hk-shadow-sm: 0 2px 8px var(--hk-dark-alpha-10);
+  --hk-shadow-md:
+    0 6px 16px -4px var(--hk-dark-alpha-10),
+    0 4px 8px -2px var(--hk-dark-alpha-05);
+  --hk-shadow-lg:
+    0 12px 24px -6px var(--hk-cyan-alpha-20),
+    0 8px 16px -4px var(--hk-cyan-alpha-10);
+  --hk-shadow-xl: 0 20px 32px -8px var(--hk-dark-alpha-20);
+  --hk-shadow-focus: 0 0 0 2px var(--hk-cyan-alpha-40);
+  --hk-shadow-glow: 0 0 10px var(--hk-cyan-alpha-10);
+  --hk-shadow-container: 0 4px 12px var(--hk-cyan-alpha-10);
+
+  --hk-input-border: rgba(148, 163, 184, 0.28);
+  --hk-input-border-hover: rgba(6, 182, 212, 0.4);
+  --hk-input-bg-top: rgba(255, 255, 255, 0.07);
+  --hk-input-bg-bottom: rgba(255, 255, 255, 0.02);
+  --hk-input-shadow-inset: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+  --hk-input-shadow-rest: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --hk-input-shadow-focus: 0 0 0 1px rgba(6, 182, 212, 0.35);
+  --hk-placeholder: rgba(148, 163, 184, 0.55);
+
+  --hk-font-sans:
+    "Noto Sans SC", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  --hk-font-display: "Plus Jakarta Sans", "Noto Sans SC", var(--hk-font-sans);
+
+  --hk-text-xs: 0.75rem;
+  --hk-text-sm: 0.875rem;
+  --hk-text-base: 1rem;
+  --hk-text-lg: 1.125rem;
+  --hk-text-xl: 1.25rem;
+  --hk-text-2xl: 1.5rem;
+  --hk-text-3xl: 1.875rem;
+  --hk-text-4xl: 2.25rem;
+
+  --hk-leading-tight: 1.25;
+  --hk-leading-normal: 1.5;
+  --hk-leading-relaxed: 1.625;
+
+  --hk-control-height: 40px;
+  --hk-control-padding-x: 0.75rem;
+
+  --hk-rhythm-xs: 13px;
+  --hk-rhythm-sm: 21px;
+  --hk-rhythm-md: 34px;
+  --hk-rhythm-lg: 55px;
+  --hk-rhythm-xl: 89px;
+
+  --hk-hero-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px -8px rgba(15, 23, 42, 0.08);
+  --hk-hero-shadow-focus:
+    0 0 0 3px rgba(6, 182, 212, 0.12), 0 1px 2px rgba(15, 23, 42, 0.04),
+    0 16px 40px -8px rgba(6, 182, 212, 0.18);
+
+  /* 扩展色阶（slate 标准色之间的插值，部分组件引用） */
+  --hk-slate-150: #2b394d;
+  --hk-slate-350: #6d7e95;
+  --hk-slate-450: #9db0c6;
+  --hk-slate-650: #93a3b9;
+  --hk-slate-850: #e0e7f0;
+  --hk-cyan-alpha-08: rgba(6, 182, 212, 0.08);
+
+  /* ═══ 语义功能色（Phase 2 治理新增） ═══ */
+
+  /* Red — 错误 / 危险 / 负向 */
+  --hk-red-200: #fca5a5;
+  --hk-red-400: #ef4444;
+  --hk-red-500: #dc2626;
+
+  /* Green — 成功 / 通过 / 正向 */
+  --hk-green-200: #86efac;
+  --hk-green-400: #10b981;
+  --hk-green-500: #22c55e;
+  --hk-green-600: #16a34a;
+  --hk-green-700: #059669;
+  --hk-green-800: #047857;
+
+  /* Amber — 警告 / 注意（扩展已有 --hk-amber / --hk-amber-light） */
+  --hk-amber-600: #d97706;
+  --hk-amber-700: #b45309;
+
+  /* Purple / Violet / Indigo — 分档标记 / 强调 */
+  --hk-purple-400: #a78bfa;
+  --hk-purple-500: #a855f7;
+  --hk-violet-500: #7c3aed;
+  --hk-indigo-500: #6366f1;
+
+  /* Cyan 扩展 */
+  --hk-cyan-700: #0e7490;
+
+  /* Neutral */
+  --hk-white: #ffffff;
+}
+
+.stApp {
+  font-family: var(--hk-font-sans);
+  font-weight: 400;
+  background-color: var(--hk-surface-bg);
+  background-image:
+    radial-gradient(
+      ellipse 800px 400px at 50% 0%,
+      rgba(6, 182, 212, 0.05),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 600px 300px at 50% 100%,
+      rgba(245, 158, 11, 0.018),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle at 2px 2px,
+      rgba(148, 163, 184, 0.04) 1px,
+      transparent 0
+    );
+  background-size:
+    100% 100%,
+    100% 100%,
+    32px 32px;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.stApp::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.012;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+.stMain .block-container {
+  max-width: 960px;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+.stApp .stHorizontalBlock {
+  gap: 0.75rem;
+}
+
+.stApp label,
+.stApp .stMarkdown p {
+  font-family: var(--hk-font-sans);
+  color: var(--hk-slate-700);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+
+.stApp div[data-testid="stMarkdownContainer"] p {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--hk-slate-600);
+}
+
+.stApp button p,
+.stApp button span {
+  color: inherit !important;
+}
+
+.stApp .stCaptionContainer p,
+.stApp .stCaptionContainer {
+  font-size: 0.8rem !important;
+  font-weight: 400 !important;
+  color: var(--hk-slate-400) !important;
+  letter-spacing: 0.015em !important;
+}
+
+.stApp h1,
+.stApp h2,
+.stApp h3,
+.stApp h4,
+.stApp h5,
+.stApp h6 {
+  font-family: var(--hk-font-display);
+  color: var(--hk-slate-900);
+}

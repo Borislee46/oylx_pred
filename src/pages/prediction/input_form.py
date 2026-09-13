@@ -1,0 +1,329 @@
+from contextlib import nullcontext
+
+import streamlit as st
+
+from src.pages.prediction.flow.form_normalizer import (
+    calculate_processed_gpa,
+    calculate_processed_language_score,
+    get_background_university_for_model,
+    normalize_form_data_for_prediction,
+)
+from src.pages.prediction.handler_config import DEFAULT_FORM_KEYS, DEFAULT_WIDGET_KEYS
+from src.pages.prediction.input_form_components import (
+    FormStateManager,
+    FormUIComponents,
+    FormValidator,
+    GPAConverter,
+)
+from src.pages.prediction.results_handler import reset_prediction_results
+from src.utils.logger import setup_logger
+from src.utils.schools.data import load_school_base_data
+from src.utils.schools.level_service import (
+    get_school_level_service,
+)
+from src.utils.session_manager import SessionManager
+
+form_logger = setup_logger("page3", "prediction")
+
+
+def create_input_form(
+    session_manager: SessionManager,
+    cases_df,
+    *,
+    parent_container=None,
+    wrap_container: bool = True,
+    border: bool = True,
+):
+    FormStateManager.initialize_session_state(session_manager)
+
+    disabled_status = session_manager.get("prediction_submit_lock", False)
+
+    if session_manager.get("school_base_df") is None:
+        session_manager.set(school_base_df=load_school_base_data())
+
+    if session_manager.get("gpa_converter") is None:
+        session_manager.set(gpa_converter=GPAConverter(session_manager.get("school_base_df")))
+    gpa_converter = session_manager.get("gpa_converter")
+
+    ui_components = FormUIComponents(session_manager)
+
+    outer_ctx = parent_container if parent_container is not None else nullcontext()
+
+    with outer_ctx:
+        input_ctx = st.container(border=border) if wrap_container else nullcontext()
+        with input_ctx:
+            col1, col2 = st.columns([1, 1], gap="small")
+
+            with col1:
+                (
+                    background_university,
+                    selected_background_major_original,
+                    background_major,
+                    background_major_2_original,
+                    background_major_2,
+                    is_dual_degree,
+                    dual_alpha,
+                ) = ui_components.render_background_section(cases_df)
+
+                gpa_col, test_col = st.columns([2, 1], gap="medium")
+                with gpa_col:
+                    ui_components.render_gpa_section()
+                with test_col:
+                    exam_type, exam_score = ui_components.render_standardized_test_section()
+
+                (
+                    final_target_universities,
+                    final_target_majors,
+                    all_universities_target,
+                    all_majors_target,
+                ) = ui_components.render_target_section(cases_df)
+
+            with col2:
+                language_type, raw_language_score_value = ui_components.render_language_section()
+                (
+                    research_count,
+                    award_count,
+                    internship_count,
+                    paper_count,
+                    experience_details,
+                ) = ui_components.render_experience_section()
+
+            submit_button = ui_components.render_submit_button(disabled_status)
+
+    if submit_button or session_manager.get("submitted", False):
+        widget_lang = st.session_state.get(DEFAULT_WIDGET_KEYS.language_score)
+        if widget_lang is not None:
+            try:
+                parsed_lang = float(widget_lang)
+            except (TypeError, ValueError):
+                parsed_lang = None
+            if parsed_lang is not None and parsed_lang > 0:
+                raw_language_score_value = parsed_lang
+                session_manager.set(
+                    language_score_input=parsed_lang,
+                    **{DEFAULT_FORM_KEYS.language_score_user_provided: True},
+                )
+
+        form_data = {
+            "target_majors": final_target_majors,
+            "target_universities": final_target_universities,
+            "background_university": background_university,
+            "background_major_original": selected_background_major_original,
+            "background_major": background_major,
+            "background_major_2_original": background_major_2_original,
+            "background_major_2": background_major_2,
+            "is_dual_degree": is_dual_degree,
+            "dual_alpha": dual_alpha,
+            "degree_type": st.session_state.get(DEFAULT_WIDGET_KEYS.dual_degree_type, "辅修"),
+            "gpa_raw": session_manager.get("gpa_raw_input"),
+            "gpa_scale": session_manager.get("gpa_scale"),
+            "exam_type": exam_type,
+            "exam_score": exam_score,
+            "language_type": language_type,
+            "language_score_raw": raw_language_score_value,
+            "language_score_user_provided": session_manager.get(
+                DEFAULT_FORM_KEYS.language_score_user_provided, False
+            ),
+            "language_score_input_error": session_manager.get("language_score_input_error", False),
+            "research_count": research_count,
+            "award_count": award_count,
+            "internship_count": internship_count,
+            "paper_count": paper_count,
+            "experience_details": experience_details,
+        }
+
+        validation_errors = FormValidator.validate_form_data(form_data, gpa_converter)
+
+        if validation_errors:
+            error_messages = [str(err) for err in validation_errors]
+            form_logger.warning(f"表单验证失败 - 错误信息: {error_messages}")
+            for err in validation_errors:
+                st.toast(str(err))
+            session_manager.set(
+                submitted=False, form_data_changed=False, prediction_submit_lock=False
+            )
+            reset_prediction_results(session_manager)
+            st.rerun()
+        else:
+            session_manager.set(prediction_submit_lock=True)
+            success, processed_input_data, all_unis, all_majors, original_form_data = (
+                _process_successful_submission(
+                    session_manager,
+                    form_data,
+                    cases_df,
+                    all_universities_target,
+                    all_majors_target,
+                    gpa_converter,
+                )
+            )
+            return (
+                True,
+                processed_input_data,
+                all_unis,
+                all_majors,
+                original_form_data,
+            )
+
+    return _get_current_form_state(
+        session_manager,
+        background_university,
+        background_major,
+        selected_background_major_original,
+        final_target_universities,
+        final_target_majors,
+        language_type,
+        raw_language_score_value,
+        research_count,
+        award_count,
+        internship_count,
+        paper_count,
+        experience_details,
+        cases_df,
+        all_universities_target,
+        all_majors_target,
+        gpa_converter,
+        exam_type,
+        exam_score,
+        background_major_2=background_major_2,
+        background_major_2_original=background_major_2_original,
+        is_dual_degree=is_dual_degree,
+        dual_alpha=dual_alpha,
+        degree_type=st.session_state.get(DEFAULT_WIDGET_KEYS.dual_degree_type, "辅修"),
+    )
+
+
+def _process_successful_submission(
+    session_manager,
+    form_data,
+    cases_df,
+    all_universities_target,
+    all_majors_target,
+    gpa_converter,
+):
+    from src.pages.prediction.page_data_loader import machine_learning_model
+
+    page_state = machine_learning_model.resource_loader()
+
+    input_data = normalize_form_data_for_prediction(
+        form_data,
+        cases_df,
+        gpa_converter,
+        background_university_set=page_state.background_universities,
+    )
+
+    session_manager.set(submitted=True, form_data_changed=False)
+    return True, input_data, all_universities_target, all_majors_target, form_data
+
+
+def _get_current_form_state(
+    session_manager,
+    background_university,
+    background_major,
+    background_major_original=None,
+    final_target_universities=None,
+    final_target_majors=None,
+    language_type=None,
+    raw_language_score_value=None,
+    research_count=None,
+    award_count=None,
+    internship_count=None,
+    paper_count=None,
+    experience_details=None,
+    cases_df=None,
+    all_universities_target=None,
+    all_majors_target=None,
+    gpa_converter=None,
+    exam_type=None,
+    exam_score=None,
+    background_major_2=None,
+    background_major_2_original=None,
+    is_dual_degree=False,
+    dual_alpha=0.85,
+    degree_type="辅修",
+):
+    school_service = get_school_level_service()
+    is_overseas = (
+        school_service.is_overseas_school(background_university) if background_university else False
+    )
+
+    _, current_normalized_score = calculate_processed_language_score(
+        raw_language_score_value,
+        language_type,
+        background_university,
+        is_overseas,
+        user_provided=bool(
+            session_manager.get(DEFAULT_FORM_KEYS.language_score_user_provided, False)
+        ),
+    )
+
+    current_normalized_gpa = calculate_processed_gpa(
+        session_manager.get("gpa_raw_input"),
+        session_manager.get("gpa_scale"),
+        background_university,
+        gpa_converter,
+        exam_type,
+        exam_score,
+    )
+
+    background_uni_for_model = get_background_university_for_model(background_university)
+
+    input_data = {
+        "background_university": background_uni_for_model,
+        "background_major": background_major,
+        "background_major_original": background_major_original or "",
+        "background_major_2": background_major_2,
+        "background_major_2_original": background_major_2_original,
+        "is_dual_degree": is_dual_degree,
+        "dual_alpha": dual_alpha,
+        "degree_type": degree_type,
+        "target_universities": final_target_universities,
+        "target_majors": final_target_majors,
+        "gpa": current_normalized_gpa,
+        "gpa_raw": session_manager.get("gpa_raw_input"),
+        "gpa_scale": session_manager.get("gpa_scale"),
+        "language_score": current_normalized_score,
+        "language_score_raw": raw_language_score_value,
+        "language_type": language_type,
+        "exam_type": exam_type,
+        "exam_score": exam_score,
+        "research_count": research_count,
+        "award_count": award_count,
+        "internship_count": internship_count,
+        "paper_count": paper_count,
+        "experience_details": experience_details,
+    }
+
+    form_data = {
+        "target_majors": final_target_majors,
+        "target_universities": final_target_universities,
+        "background_university": background_university,
+        "background_major_original": background_major_original,
+        "background_major": background_major,
+        "background_major_2_original": background_major_2_original,
+        "background_major_2": background_major_2,
+        "is_dual_degree": is_dual_degree,
+        "dual_alpha": dual_alpha,
+        "gpa_raw": session_manager.get("gpa_raw_input"),
+        "gpa_scale": session_manager.get("gpa_scale"),
+        "exam_type": exam_type,
+        "exam_score": exam_score,
+        "language_type": language_type,
+        "language_score_raw": raw_language_score_value,
+        "language_score_user_provided": session_manager.get(
+            DEFAULT_FORM_KEYS.language_score_user_provided, False
+        ),
+        "language_score_input_error": session_manager.get("language_score_input_error", False),
+        "research_count": research_count,
+        "award_count": award_count,
+        "internship_count": internship_count,
+        "paper_count": paper_count,
+        "experience_details": experience_details,
+    }
+
+    return (
+        False,
+        input_data,
+        all_universities_target,
+        all_majors_target,
+        form_data,
+    )

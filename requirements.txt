@@ -1,0 +1,31 @@
+# Signals 留学择校预测 · 开源演示版依赖
+# 运行环境：Python >= 3.11
+#
+# Windows 下 uvloop 不适用（平台标记已排除），其余依赖跨平台一致。
+
+numpy==2.4.6
+pandas==3.0.5
+scipy==1.17.1
+scikit-learn==1.9.0
+xgboost-cpu==3.2.0
+
+streamlit==1.63.0
+
+# LLM 运行时（全部走 DeepSeek 官方 API）
+pydantic-ai==2.42.0
+httpx>=0.27
+logfire==5.0.0
+
+rapidfuzz==3.14.6
+numba==0.67.0
+filelock==3.32.6
+
+# PDF 报告（pathfinder「下载报告」）
+reportlab==5.0.1
+matplotlib==3.11.1
+
+# 访问码门禁：签名会话 Cookie + 表单解析
+itsdangerous>=2.1.0
+python-multipart>=0.0.9
+
+uvloop==0.22.1; sys_platform != "win32"

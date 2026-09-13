@@ -1,0 +1,36 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.10
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [javascript, css, json]
+        # 前端 dist 构建产物由 .prettierignore 排除；当传入的文件全被忽略时，
+        # prettier 默认以「No files matching」退出 1，会把提交卡死。
+        args: ["--no-error-on-unmatched-pattern"]
+
+  - repo: local
+    hooks:
+      - id: debug-mode-guard
+        name: 拒绝提交 DEBUG_MODE=true
+        entry: python .githooks/check_dev_config.py
+        language: python
+        pass_filenames: false
+        always_run: true

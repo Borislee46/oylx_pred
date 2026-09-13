@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "mode": "llm_tool",
+  "supported_degrees": ["master"],
+  "planned_degrees": ["bachelor", "phd"],
+  "templates": {
+    "off_topic": "我专注港澳新马硕士选校预测，暂无法回答与此无关的问题。若有学生背景（院校、专业、GPA、语言等），可直接粘贴，我来帮你评估录取区间。",
+    "abroad_general": "这类留学规划问题建议结合个案判断，我这里只能给概括性参考：申请时间线、语言与背景要求因校因专业差异很大。\n\n本系统专注**港/新/澳/马硕士选校与录取区间预测**——粘贴学生背景即可出方案。更复杂的规划（文书策略、签证、职业路径）建议联系您的留学顾问深入沟通。",
+    "unsupported_degree_phd": "本系统当前仅支持**硕士（Master）**选校预测，博士（PhD）申请逻辑与硕士差异较大，暂不支持自动评估。\n\n{planned_hint}\n\n若学生也考虑硕士项目，可补充硕士方向背景，我可继续评估。",
+    "unsupported_degree_bachelor": "本系统当前仅支持**硕士（Master）**选校预测，本科留学申请不在当前产品范围内。\n\n{planned_hint}\n\n若同时考虑硕士路径，欢迎补充硕士申请背景。",
+    "unsupported_degree_generic": "本系统当前仅支持**硕士（Master）**选校预测，暂不支持「{degree}」层次。",
+    "unsupported_region": "本系统当前支持的目标地区为：**{supported}**。\n\n您提到的「{regions}」暂不在覆盖范围内，无法给出可靠录取预测。若考虑上述地区硕士，可补充学生背景继续评估。"
+  },
+  "planned_degree_hints": {
+    "phd": "博士选校能力在规划中，后续版本会单独开放。",
+    "bachelor": "本科留学模块在规划中，后续会逐步上线。"
+  }
+}

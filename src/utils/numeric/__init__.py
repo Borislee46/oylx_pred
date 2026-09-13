@@ -1,0 +1,45 @@
+from src.utils.numeric.coerce import (
+    clip_probability_coerce,
+    float_or_none,
+    prob_round,
+    prob_to_pct,
+    safe_float,
+)
+from src.utils.numeric.confidence import wilson_score_ci
+from src.utils.numeric.scalars import (
+    CLOSE_TO_INT_TOL,
+    FLOAT_EQ_ATOL,
+    FLOAT_EQ_RTOL,
+    PROB_EPS,
+    clip_probability,
+    clip_scalar,
+    float_eq,
+    is_close_to_int,
+    logit,
+    min_max_scale,
+    safe_div,
+    sigmoid,
+    sigmoid_k,
+)
+
+__all__ = [
+    "CLOSE_TO_INT_TOL",
+    "FLOAT_EQ_ATOL",
+    "FLOAT_EQ_RTOL",
+    "PROB_EPS",
+    "clip_probability",
+    "clip_probability_coerce",
+    "clip_scalar",
+    "float_eq",
+    "float_or_none",
+    "is_close_to_int",
+    "logit",
+    "min_max_scale",
+    "prob_round",
+    "prob_to_pct",
+    "safe_div",
+    "safe_float",
+    "sigmoid",
+    "sigmoid_k",
+    "wilson_score_ci",
+]

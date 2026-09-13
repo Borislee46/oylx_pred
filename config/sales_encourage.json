@@ -1,0 +1,149 @@
+{
+  "_note": "Sales hero encourage headline rule table. Source of truth for signal thresholds, penalty aliases, and per-profile copy rules. Edit here to add language types, signals, or copy branches without touching code.",
+  "_schema_version": 1,
+
+  "language_tiers": {
+    "IELTS": {
+      "aliases": ["IELTS", "雅思"],
+      "strong": 7.0,
+      "label": "雅思 {score}"
+    },
+    "TOEFL": {
+      "aliases": ["TOEFL", "托福"],
+      "strong": 100,
+      "label": "托福 {score}"
+    },
+    "CET-6": {
+      "aliases": ["CET-6", "CET6", "六级"],
+      "strong": 500,
+      "label": "六级 {score}"
+    }
+  },
+
+  "gpa_tiers": {
+    "strong_gpa": 3.5,
+    "strong_gpa_raw": 85,
+    "mid_gpa": 3.0,
+    "mid_gpa_raw": 80
+  },
+
+  "penalty_aliases": {
+    "cross_major": ["penalty_cross_major", "Cross Major Penalty"],
+    "gpa": ["penalty_gpa", "GPA 惩罚"],
+    "language": ["penalty_language", "Language Penalty"]
+  },
+
+  "_rule_semantics": "Rules evaluated in declared order; first match wins. `when` is a conjunction of equality checks on EncourageSignals fields. Absent key = don't-care. `lines` supports {gpa} and {lang_label} placeholders. lines[0] is returned.",
+
+  "rules": {
+    "strong_elite": [
+      {
+        "when": { "gpa_strong": true, "lang_strong": true },
+        "lines": [
+          "GPA {gpa} 搭配 {lang_label}，硬实力处于申请池头部",
+          "GPA 与语言双线突出，港三新二值得重点冲刺"
+        ]
+      },
+      {
+        "when": { "gpa_strong": true },
+        "lines": [
+          "GPA {gpa} 是你最强的筹码，以下是择校版图",
+          "学术底子过硬，择校向上空间充裕"
+        ]
+      },
+      {
+        "when": {},
+        "lines": [
+          "你的背景在申请池处于前列，以下是择校版图",
+          "竞争力突出，冲刺区值得重点关注"
+        ]
+      }
+    ],
+
+    "cross_major": [
+      {
+        "when": { "gpa_strong": true },
+        "lines": [
+          "跨专业申请，但你 GPA {gpa} 的学术底子是最大筹码",
+          "跨专业不是劣势——你的学科交叉背景恰是差异化优势",
+          "换个赛道，关键在用学术底子撑起新方向的说服力"
+        ]
+      },
+      {
+        "when": { "gpa_mid": true },
+        "lines": [
+          "跨专业申请策略先行，以下是差异化择校分析",
+          "跨专业需要策略性选校，学科交叉点就是你的优势区",
+          "不是从零开始——可迁移的学术能力是新方向的支点"
+        ]
+      },
+      {
+        "when": {},
+        "lines": [
+          "跨专业申请需策略先行，选对学科交叉点是关键",
+          "跨专业+学术待补强，但选校策略可以放大你的迁移优势"
+        ]
+      }
+    ],
+
+    "weak_gaps": [
+      {
+        "when": { "has_lang": true, "has_gpa": true },
+        "lines": [
+          "{lang_label} 与 GPA 均有提升空间，以下是精准补强方向",
+          "语言与学术双线待提升，但每个短板都有可操作的补救路径"
+        ]
+      },
+      {
+        "when": { "has_lang": true },
+        "lines": [
+          "{lang_label} 是当前最值得投入的突破点",
+          "语言关是性价比最高的提升杠杆，以下是补强路线"
+        ]
+      },
+      {
+        "when": { "has_gpa": true },
+        "lines": [
+          "GPA {gpa} 存在提升空间，以下是可操作的补救方向",
+          "学术成绩是重点补强项，策略性择校可弥补硬指标短板"
+        ]
+      },
+      {
+        "when": {},
+        "lines": [
+          "你的背景存在可提升空间，方向已标出",
+          "短板已识别，每个缺口都有对应补救路径",
+          "认清差距是第一步，以下是可操作的提升方向"
+        ]
+      }
+    ],
+
+    "medium_mixed": [
+      {
+        "when": { "gpa_mid": true, "has_gpa": false },
+        "lines": ["GPA {gpa} 是你的基本盘，选校矩阵已展开"]
+      },
+      {
+        "when": { "has_lang": true },
+        "lines": [
+          "基础扎实，{lang_label} 再进一步就是质的飞跃",
+          "底子不错，语言稍加打磨即可打开更多选项"
+        ]
+      },
+      {
+        "when": { "has_gpa": true },
+        "lines": ["底子扎实，GPA 再往上走一步，选择面会宽很多"]
+      },
+      {
+        "when": {},
+        "lines": [
+          "你的背景基础扎实，选校梯度已为你展开",
+          "学术底子扎实，冲稳保三层已分层",
+          "中坚区间的竞争力，细节处见提升空间"
+        ]
+      }
+    ]
+  },
+
+  "fallback_line": "以下是为你定制的择校版图"
+}

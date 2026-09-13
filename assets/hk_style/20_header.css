@@ -1,0 +1,120 @@
+.hk-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.4rem 0;
+}
+
+@keyframes hk-title-gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hk-header-title {
+  font-family: var(--hk-font-display);
+  font-size: var(--hk-text-2xl);
+  font-weight: 600;
+  margin: 0;
+  line-height: var(--hk-leading-tight);
+  padding-bottom: 0.06em;
+  letter-spacing: -0.015em;
+  background: linear-gradient(
+    135deg,
+    var(--hk-dark-slate) 0%,
+    var(--hk-cyan-dark) 25%,
+    var(--hk-cyan) 50%,
+    var(--hk-cyan-bright) 75%,
+    var(--hk-cyan-dark) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--hk-dark-slate);
+  animation: hk-title-gradient-flow 8s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hk-brand-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hk-cyan-bright);
+  box-shadow:
+    0 0 10px var(--hk-cyan-bright),
+    0 0 4px var(--hk-cyan);
+  -webkit-text-fill-color: initial;
+  flex-shrink: 0;
+  animation: hk-brand-pulse-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes hk-brand-pulse-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.65);
+  }
+}
+
+.hk-header-title:hover {
+  animation: hk-title-gradient-flow 3s linear infinite;
+}
+
+.hk-header-subtitle {
+  font-family: var(--hk-font-sans);
+  font-size: 0.78rem;
+  margin: 0.35rem 0 0 0;
+  line-height: 1.2;
+  color: var(--hk-slate-400);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.hk-header-subtitle-en {
+  font-family: var(--hk-font-display);
+  font-weight: 500;
+  color: var(--hk-slate-500);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hk-header-subtitle-zh {
+  margin-left: 0.5rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--hk-border);
+  letter-spacing: 0.08em;
+}
+
+.hk-header-divider {
+  height: 1px;
+  border: none;
+  margin: 0.6rem 0 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hk-slate-200) 30%,
+    var(--hk-slate-200) 70%,
+    transparent 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-header-title,
+  .hk-brand-pulse {
+    animation: none;
+  }
+}

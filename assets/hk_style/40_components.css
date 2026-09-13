@@ -1,0 +1,659 @@
+[data-testid="stSidebarNav"] {
+  display: none !important;
+}
+section[data-testid="stSidebar"] {
+  display: none !important;
+}
+[data-testid="collapsedControl"] {
+  display: none !important;
+}
+[data-testid="stElementToolbar"] {
+  display: none;
+}
+footer {
+  display: none !important;
+}
+#MainMenu {
+  display: none !important;
+}
+[data-testid="stDecoration"] {
+  display: none !important;
+}
+.stApp > header {
+  background: transparent !important;
+}
+
+.stApp label[data-testid="stRadioOption"] > div > div > div:has(> div) {
+  width: 1rem !important;
+  height: 1rem !important;
+  transition: all var(--hk-transition-smooth) !important;
+  border: 2px solid var(--hk-slate-400) !important;
+  border-color: var(--hk-slate-400) !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.stApp label[data-testid="stRadioOption"] > div > div > div:has(> div) > div {
+  width: 0.5rem !important;
+  height: 0.5rem !important;
+  border-radius: 50% !important;
+  border: none !important;
+  transition: all var(--hk-transition-smooth) !important;
+  opacity: 0 !important;
+  background-color: transparent !important;
+}
+
+.stApp
+  label[data-testid="stRadioOption"][data-selected]
+  > div
+  > div
+  > div:has(> div) {
+  border-color: var(--hk-cyan) !important;
+  border: 2px solid var(--hk-cyan) !important;
+}
+
+.stApp
+  label[data-testid="stRadioOption"][data-selected]
+  > div
+  > div
+  > div:has(> div)
+  > div {
+  opacity: 1 !important;
+  background-color: var(--hk-cyan) !important;
+}
+
+.stApp
+  label[data-testid="stRadioOption"]:has(input:focus-visible)
+  > div
+  > div
+  > div:has(> div) {
+  border-color: var(--hk-cyan) !important;
+  border: 2px solid var(--hk-cyan) !important;
+}
+
+.stApp label[data-testid="stRadioOption"] p {
+  font-family: var(--hk-font-sans) !important;
+  color: var(--hk-slate-700) !important;
+  font-weight: 400 !important;
+  font-size: var(--hk-text-sm) !important;
+  line-height: 1.5 !important;
+}
+
+.stApp .stCheckbox label > div:first-child {
+  border-radius: var(--hk-radius-xs) !important;
+  transition: all var(--hk-transition-fast) !important;
+}
+
+.stApp .stCheckbox label > div:first-child[aria-checked="true"] {
+  background-color: var(--hk-cyan) !important;
+  border-color: var(--hk-cyan) !important;
+}
+
+.stApp .stCheckbox label:has(input:focus) > div:first-child,
+.stApp .stCheckbox label:has(input:focus-visible) > div:first-child {
+  border-color: var(--hk-cyan) !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] {
+  font-family: var(--hk-font-sans);
+  outline: none !important;
+  box-shadow: none !important;
+  border: 1px solid var(--hk-border) !important;
+  background-color: var(--hk-surface-bg) !important;
+  border-radius: var(--hk-radius-sm) !important;
+  padding: 0.2rem 0.55rem !important;
+  gap: var(--hk-space-sm) !important;
+  align-items: center !important;
+}
+
+.stApp div[data-testid="stStatusWidget"] [data-testid$="Icon"],
+.stApp div[data-testid="stStatusWidget"] svg {
+  color: var(--hk-slate-600) !important;
+  fill: var(--hk-slate-600) !important;
+}
+
+.stApp
+  div[data-testid="stStatusWidget"]
+  button[data-testid="stBaseButton-header"] {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--hk-slate-700) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0.25rem 0.75rem !important;
+  transition:
+    color var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    background-color var(--hk-transition-fast) !important;
+}
+
+.stApp
+  div[data-testid="stStatusWidget"]
+  button[data-testid="stBaseButton-header"]:hover {
+  color: var(--hk-slate-900) !important;
+  border-color: var(--hk-border) !important;
+  background-color: var(--hk-surface-hover) !important;
+}
+
+.stApp
+  div[data-testid="stStatusWidget"]
+  button[data-testid="stBaseButton-header"]:focus,
+.stApp
+  div[data-testid="stStatusWidget"]
+  button[data-testid="stBaseButton-header"]:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--hk-dark-alpha-10) !important;
+  border-color: var(--hk-border) !important;
+}
+
+.stApp
+  div[data-testid="stStatusWidget"]
+  button[data-testid="stBaseButton-header"]:active {
+  box-shadow: none !important;
+  border-color: var(--hk-slate-400) !important;
+}
+
+.stApp .stAlert {
+  border-radius: var(--hk-radius) !important;
+  font-family: var(--hk-font-sans);
+  font-size: 0.82rem !important;
+  font-weight: 400 !important;
+}
+.stApp .stAlert [data-testid="stNotification"] {
+  font-size: 0.82rem !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"],
+div[data-testid="stMultiSelectDropdown"] {
+  border-radius: var(--hk-radius) !important;
+  box-shadow: var(--hk-shadow-xl) !important;
+  border: 1px solid var(--hk-border) !important;
+  overflow: hidden !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] [role="listbox"],
+div[data-testid="stMultiSelectDropdown"] [role="listbox"] {
+  background-color: var(--hk-surface-bg) !important;
+  padding: var(--hk-space-xs) !important;
+  border-radius: var(--hk-radius) !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+div[data-testid="stMultiSelectDropdown"] [role="option"] {
+  font-family: var(--hk-font-sans) !important;
+  font-size: var(--hk-text-sm) !important;
+  color: var(--hk-slate-700) !important;
+  padding: var(--hk-space-sm) var(--hk-space-md) !important;
+  border-radius: var(--hk-radius-sm) !important;
+  margin: 2px 0 !important;
+  transition: all var(--hk-transition-fast) !important;
+  background-color: transparent !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover,
+div[data-testid="stMultiSelectDropdown"] [role="option"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"]
+  [role="option"][aria-selected="true"],
+div[data-testid="stMultiSelectDropdown"] [role="option"][aria-selected="true"] {
+  background-color: var(--hk-cyan-alpha-10) !important;
+  color: var(--hk-cyan-dark) !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-focused],
+div[data-testid="stMultiSelectDropdown"] [role="option"][data-focused] {
+  background-color: var(--hk-cyan-alpha-15) !important;
+  color: var(--hk-cyan-dark) !important;
+  outline: none !important;
+}
+
+.stApp .stMultiSelect [data-tag] {
+  position: relative !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(6, 182, 212, 0.4) !important;
+  background: rgba(6, 182, 212, 0.08) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 4px rgba(15, 23, 42, 0.05) !important;
+  transition: all 0.2s ease !important;
+}
+
+.stApp .stMultiSelect [data-tag] span {
+  color: var(--hk-cyan-dark) !important;
+  font-weight: 600 !important;
+  font-size: var(--hk-text-sm) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35) !important;
+}
+
+.stApp .stMultiSelect [data-tag]:hover {
+  background: rgba(6, 182, 212, 0.12) !important;
+  border-color: var(--hk-cyan) !important;
+  transform: translateY(-1px) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 8px rgba(6, 182, 212, 0.1) !important;
+}
+
+.stApp div[data-testid="stSelectbox"] button[aria-label="Open"] svg,
+.stApp .stMultiSelect [data-tag] svg {
+  fill: var(--hk-cyan-dark) !important;
+  opacity: 0.9 !important;
+  transition:
+    fill var(--hk-transition-fast),
+    opacity var(--hk-transition-fast) !important;
+}
+
+.stApp .stMultiSelect [data-tag]:hover svg {
+  fill: var(--hk-cyan-dark) !important;
+  opacity: 1 !important;
+}
+
+.stApp div[data-testid="stSelectbox"] div[role="group"] input::placeholder,
+.stApp div[data-testid="stMultiSelect"] div[role="group"] input::placeholder {
+  color: var(--hk-placeholder) !important;
+  opacity: 1 !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.stApp [data-testid="stButtonGroup"] [role="radiogroup"] {
+  gap: 0 !important;
+}
+
+.stApp [data-testid="stButtonGroup"] button[data-variant="segmented_control"] {
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: var(--hk-control-height) !important;
+  background: linear-gradient(
+    180deg,
+    var(--hk-input-bg-top),
+    var(--hk-input-bg-bottom)
+  ) !important;
+  color: var(--hk-slate-600) !important;
+  border: 1px solid var(--hk-input-border) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset), var(--hk-input-shadow-rest) !important;
+  transform: translateY(0) translateZ(0) !important;
+  transition:
+    transform var(--hk-transition-fast),
+    box-shadow var(--hk-transition-fast),
+    border-color var(--hk-transition-fast),
+    color var(--hk-transition-fast) !important;
+  padding: 0.2rem 0.55rem !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:first-child {
+  margin-left: 0 !important;
+  border-top-left-radius: var(--hk-radius-sm) !important;
+  border-bottom-left-radius: var(--hk-radius-sm) !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:last-child {
+  border-top-right-radius: var(--hk-radius-sm) !important;
+  border-bottom-right-radius: var(--hk-radius-sm) !important;
+  z-index: 0 !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]
+  p {
+  color: var(--hk-slate-600) !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:hover {
+  background:
+    linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
+    radial-gradient(
+      160px circle at 30% 20%,
+      rgba(33, 255, 244, 0.1),
+      rgba(33, 255, 244, 0) 62%
+    ) !important;
+  border-color: var(--hk-input-border-hover) !important;
+  color: var(--hk-cyan-dark) !important;
+  transform: translateY(-1px) translateZ(0) !important;
+  box-shadow:
+    var(--hk-input-shadow-inset),
+    0 6px 14px rgba(15, 23, 42, 0.1),
+    0 8px 16px rgba(6, 182, 212, 0.06) !important;
+  z-index: 1 !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:hover
+  p {
+  color: var(--hk-cyan-dark) !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:active {
+  transform: translateY(0) translateZ(0) !important;
+  box-shadow:
+    var(--hk-input-shadow-focus),
+    inset 0 14px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"]:focus-visible {
+  outline: none !important;
+  box-shadow:
+    var(--hk-shadow-focus),
+    0 8px 18px rgba(15, 23, 42, 0.14) !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected] {
+  position: relative !important;
+  overflow: hidden !important;
+  background:
+    linear-gradient(180deg, var(--hk-input-bg-top), var(--hk-input-bg-bottom)),
+    radial-gradient(
+      160px circle at 30% 20%,
+      rgba(33, 255, 244, 0.14),
+      rgba(33, 255, 244, 0) 62%
+    ),
+    linear-gradient(120deg, rgba(6, 182, 212, 0.14), rgba(6, 182, 212, 0.06)) !important;
+  color: var(--hk-cyan-dark) !important;
+  border: 1px solid rgba(6, 182, 212, 0.5) !important;
+  box-shadow:
+    var(--hk-input-shadow-focus),
+    inset 0 14px 20px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(0) translateZ(0) !important;
+  z-index: 1 !important;
+  padding: 0.2rem 0.55rem !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]:last-child {
+  border-right: 1px solid var(--hk-cyan) !important;
+  z-index: 1 !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]
+  p {
+  color: var(--hk-cyan-dark) !important;
+  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]:hover {
+  transform: translateY(-1px) translateZ(0) !important;
+  box-shadow:
+    var(--hk-input-shadow-focus),
+    0 6px 14px rgba(15, 23, 42, 0.1),
+    0 8px 16px rgba(6, 182, 212, 0.07),
+    inset 0 14px 20px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.stApp
+  [data-testid="stButtonGroup"]
+  button[data-variant="segmented_control"][data-selected]:active {
+  transform: translateY(0) translateZ(0) !important;
+  box-shadow:
+    var(--hk-input-shadow-focus),
+    inset 0 18px 24px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.stApp div[data-testid="stExpander"] details,
+.stApp div[data-testid="stExpander"] details > summary {
+  background-color: transparent !important;
+}
+
+.stApp div[data-testid="stExpander"] details > summary {
+  font-family: var(--hk-font-sans) !important;
+  font-size: 0.84rem !important;
+  font-weight: 500 !important;
+  color: var(--hk-slate-600) !important;
+  letter-spacing: 0.01em !important;
+  transition: color var(--hk-transition-fast) !important;
+}
+
+.stApp div[data-testid="stExpander"] details > summary:hover {
+  color: var(--hk-cyan-dark) !important;
+}
+
+.stApp div[data-testid="stExpander"] details[open] > summary {
+  color: var(--hk-slate-800) !important;
+  font-weight: 600 !important;
+}
+
+.stApp div[data-testid="stExpanderDetails"] {
+  border-top: none !important;
+}
+
+/* st.status 的图标钩子。1.63 里有两套容器，testid 互不通用：
+     默认容器  : [data-testid="stExpanderIconSpinner"] / [data-testid="stExpanderIconCheck"]
+     type="step": 外层 [data-testid="stExpanderStepIcon"]，内层换成 stSpinnerIcon
+                  （span，靠 border 画圆）和 stIconMaterial（material 字体，靠 color 上色）
+   另外原选择器写的是 i[data-testid="stExpanderIconSpinner"]，而该元素实际是 span，
+   所以 spinner 那条在换成 type="step" 之前就从未匹配过；这里去掉标签限定并补上 step 版本。 */
+.stApp [data-testid="stExpanderIconSpinner"],
+.stApp [data-testid="stExpanderStepIcon"] [data-testid="stSpinnerIcon"] {
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+  border-top-color: var(--hk-cyan) !important;
+  border-right-color: var(--hk-cyan) !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
+  color: var(--hk-cyan) !important;
+}
+
+.stApp [data-testid="stExpanderIconCheck"],
+.stApp svg[data-testid="stExpanderIconCheck"] path,
+.stApp [data-testid="stExpanderStepIcon"] [data-testid="stIconMaterial"] {
+  color: var(--hk-cyan) !important;
+  fill: var(--hk-cyan) !important;
+  stroke: var(--hk-cyan) !important;
+}
+
+.stApp [data-testid="stIconMaterial"]:hover {
+  color: var(--hk-cyan) !important;
+  outline: none;
+}
+
+.stProgress > div > div > div {
+  border-radius: 999px !important;
+  height: 7px !important;
+  overflow: hidden !important;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08),
+    rgba(255, 255, 255, 0.03)
+  ) !important;
+  border: 1px solid var(--hk-border) !important;
+  box-shadow:
+    inset 0 1px 2px rgba(15, 23, 42, 0.08),
+    0 2px 6px rgba(15, 23, 42, 0.08) !important;
+}
+
+.stProgress .st-bo {
+  background: linear-gradient(
+    90deg,
+    var(--hk-cyan-dark),
+    var(--hk-cyan),
+    rgba(33, 255, 244, 0.85)
+  ) !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.16) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stApp .stMultiSelect [data-tag] {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+[data-testid="stModalContainer"] > div:first-child {
+  background-color: rgba(15, 23, 42, 0.25) !important;
+  backdrop-filter: blur(8px) saturate(180%) !important;
+}
+
+div[role="dialog"] {
+  background: var(--hk-surface-elevated) !important;
+  border: 1px solid var(--hk-border) !important;
+  border-radius: var(--hk-radius-lg) !important;
+  box-shadow:
+    0 20px 60px rgba(15, 23, 42, 0.16),
+    0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+}
+
+div[role="dialog"] button[data-testid="stBaseButton-primary"] {
+  background: var(--hk-surface-elevated) !important;
+  color: var(--hk-cyan) !important;
+  border: 1px solid var(--hk-cyan-alpha-40) !important;
+  border-radius: var(--hk-radius-md) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  transform: none !important;
+  font-weight: 600 !important;
+  transition: all var(--hk-transition-fast) !important;
+}
+div[role="dialog"] button[data-testid="stBaseButton-primary"] p {
+  color: var(--hk-cyan) !important;
+  text-shadow: none !important;
+}
+div[role="dialog"] button[data-testid="stBaseButton-primary"]:hover {
+  background: linear-gradient(
+    135deg,
+    var(--hk-cyan-alpha-12),
+    var(--hk-cyan-alpha-06)
+  ) !important;
+  border-color: var(--hk-cyan) !important;
+  box-shadow:
+    0 4px 12px rgba(6, 182, 212, 0.12),
+    0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  transform: translateY(-1px) !important;
+}
+div[role="dialog"] button[data-testid="stBaseButton-primary"]:active {
+  background: var(--hk-cyan-alpha-15) !important;
+  border-color: var(--hk-cyan-dark) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+  transform: translateY(0) scale(0.985) !important;
+}
+
+div[role="dialog"] [data-testid="stMarkdownContainer"] p {
+  color: var(--hk-slate-700) !important;
+  font-weight: 500 !important;
+}
+
+div[role="dialog"] [data-testid="stMarkdownContainer"] strong {
+  color: var(--hk-cyan-dark) !important;
+  background: rgba(6, 182, 212, 0.08);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.02);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.2);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.4);
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::selection {
+  background: var(--hk-cyan-alpha-30);
+  color: var(--hk-cyan-dark);
+}
+
+@keyframes hk-thought-wait-blink {
+  0%,
+  20%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.stApp .hk-thought-wait {
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.stApp .hk-thought-wait-d1,
+.stApp .hk-thought-wait-d2,
+.stApp .hk-thought-wait-d3 {
+  display: inline-block;
+  animation: hk-thought-wait-blink 1.05s ease-in-out infinite;
+}
+
+.stApp .hk-thought-wait-d1 {
+  animation-delay: 0s;
+}
+
+.stApp .hk-thought-wait-d2 {
+  animation-delay: 0.22s;
+}
+
+.stApp .hk-thought-wait-d3 {
+  animation-delay: 0.44s;
+}

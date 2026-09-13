@@ -1,0 +1,210 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.poker-container {
+  position: relative;
+  width: 100%;
+  height: 420px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 40px;
+  overflow: visible;
+  perspective: 1200px;
+}
+
+.cards-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transform-style: preserve-3d;
+}
+
+.card-wrapper {
+  position: absolute;
+  width: var(--card-width, 180px);
+  height: var(--card-height, 240px);
+  cursor: pointer;
+  transform-origin: center 350px;
+  transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.card-wrapper.pressed .card {
+  transform: scale(1.04) !important;
+  transition: transform 0.1s ease-out;
+  box-shadow: 0 20px 40px -10px rgba(0, 106, 96, 0.3) !important;
+}
+
+.card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(145deg, #ffffff, #f0f4f8);
+  border-radius: 16px;
+  border: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow:
+    0 10px 30px -10px rgba(0, 0, 0, 0.15),
+    0 5px 15px -5px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.glare {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border: 1px solid rgba(0, 106, 96, 0.1);
+  border-radius: 12px;
+  pointer-events: none;
+  transition: border-color 0.3s ease;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 16px;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.3) 45%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.3) 55%,
+    transparent 60%
+  );
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+  padding: 20px;
+  line-height: 1.4;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.cards-wrapper.fan .card-wrapper {
+  position: absolute;
+  bottom: 0;
+}
+
+.cards-wrapper.fan .card-wrapper.active .card {
+  box-shadow:
+    0 25px 50px -12px rgba(0, 106, 96, 0.25),
+    0 15px 30px -8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(0, 106, 96, 0.5);
+}
+
+.cards-wrapper.fan .card-wrapper.active .card::after {
+  opacity: 1;
+  animation: shimmer 0.6s ease-out forwards;
+}
+
+.cards-wrapper.fan .card-wrapper.active .card-text {
+  color: rgb(0, 106, 96);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+.cards-wrapper.linear {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: var(--linear-gap, 40px);
+  height: 100%;
+}
+
+.cards-wrapper.linear .card-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cards-wrapper.linear .card-wrapper.hovered .card {
+  box-shadow:
+    0 30px 60px -15px rgba(0, 106, 96, 0.3),
+    0 20px 40px -10px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 106, 96, 0.1);
+  border-color: rgba(0, 106, 96, 0.6);
+}
+
+.cards-wrapper.linear .card-wrapper.hovered .card::before {
+  border-color: rgba(0, 106, 96, 0.25);
+}
+
+.cards-wrapper.linear .card-wrapper.hovered .card::after {
+  opacity: 1;
+  animation: shimmer 0.8s ease-out forwards;
+}
+
+.cards-wrapper.linear .card-wrapper.hovered .card-text {
+  color: rgb(0, 106, 96);
+  transform: scale(1.02);
+}
+
+.mode-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #94a3b8;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.poker-container:hover .mode-hint {
+  opacity: 1;
+}

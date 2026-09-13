@@ -1,0 +1,34 @@
+Signals
+Copyright 2026 Borislee46
+
+This product includes software developed by Borislee46
+(https://github.com/Borislee46/oylx_pred).
+
+
+许可范围
+========
+
+本仓库中的**源代码**采用 Apache License 2.0（见 LICENSE 文件）。
+
+本许可证**不覆盖**下列内容。它们不属于本项目作者，也不随本仓库分发：
+
+  - 原始录取案例库及其中包含的任何学生个人信息
+  - 由上述数据训练得到的模型权重
+  - 其他相关业务数据、合同信息
+
+从任何渠道获得上述内容的第三方，不因本许可证而取得任何权利。
+这些内容的所有权与授权条件由其各自的权利人决定。
+
+
+第三方组件
+==========
+
+本项目依赖若干第三方开源库，各自遵循其原有许可证，不在 Apache-2.0 的授权范围内：
+
+  - 后端 Python 依赖：见 requirements.txt（pydantic-ai、streamlit、xgboost、
+    pandas、numpy、scikit-learn、reportlab、matplotlib、itsdangerous 等）
+  - 前端运行时依赖：React / React DOM（MIT）、framer-motion（MIT）
+  - 前端构建工具：Vite、esbuild（MIT）、TypeScript（Apache-2.0）
+
+src/pages/prediction/ui/frontend/*/dist/ 下的产物是上述依赖打包后的结果，
+其中保留了各自的版权声明。

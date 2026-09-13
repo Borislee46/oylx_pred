@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="ghost-wrap">
+  <div class="ghost-backdrop" id="backdrop"></div>
+  <textarea
+    class="ghost-textarea"
+    id="textarea"
+    placeholder=""
+    rows="4"
+    spellcheck="false"
+    aria-label="输入学生背景信息"
+  ></textarea>
+  <div class="ghost-status" id="status" aria-live="polite"></div>
+  <div class="ghost-actions">
+    <button class="ghost-accept-chip" id="acceptChip">Tab 接受</button>
+    <button class="ghost-analyze-btn" id="analyzeBtn">
+      <span class="ghost-spark" aria-hidden="true">✦</span>
+      <span id="analyzeLabel">整理<span class="ghost-d">.</span><span class="ghost-d">.</span><span class="ghost-d">.</span></span>
+    </button>
+  </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

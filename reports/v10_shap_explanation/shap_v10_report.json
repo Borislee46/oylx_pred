@@ -1,0 +1,215 @@
+{
+  "metadata": {
+    "version": "V10",
+    "date": "2026-05-14",
+    "method": "SHAP TreeExplainer (tree_path_dependent)",
+    "model": "xgboost_20260316_092608.ubj (375 trees, 10 features)",
+    "samples": 10000,
+    "hardware": "RTX 5090 Laptop GPU, 24GB",
+    "base_logodds": -0.004398,
+    "base_calibrated_prob": 0.12891021981953965,
+    "calibration": {
+      "method": "sigmoid",
+      "a": -2.8715,
+      "b": 1.898
+    },
+    "shap_version": "0.51.0"
+  },
+  "feature_importance": [
+    {
+      "rank": 1,
+      "feature": "background_university",
+      "mean_abs_shap": 0.9202717542648315,
+      "pct_of_total": 29.675594329833984,
+      "tier": "categorical"
+    },
+    {
+      "rank": 2,
+      "feature": "target_major",
+      "mean_abs_shap": 0.5539010167121887,
+      "pct_of_total": 17.861400604248047,
+      "tier": "categorical"
+    },
+    {
+      "rank": 3,
+      "feature": "background_major",
+      "mean_abs_shap": 0.4240354597568512,
+      "pct_of_total": 13.67368221282959,
+      "tier": "categorical"
+    },
+    {
+      "rank": 4,
+      "feature": "target_university",
+      "mean_abs_shap": 0.40205660462379456,
+      "pct_of_total": 12.964940071105957,
+      "tier": "categorical"
+    },
+    {
+      "rank": 5,
+      "feature": "gpa",
+      "mean_abs_shap": 0.3305445611476898,
+      "pct_of_total": 10.658923149108887,
+      "tier": "numeric"
+    },
+    {
+      "rank": 6,
+      "feature": "award_count",
+      "mean_abs_shap": 0.14450141787528992,
+      "pct_of_total": 4.659672737121582,
+      "tier": "numeric"
+    },
+    {
+      "rank": 7,
+      "feature": "research_count",
+      "mean_abs_shap": 0.13008195161819458,
+      "pct_of_total": 4.194694519042969,
+      "tier": "numeric"
+    },
+    {
+      "rank": 8,
+      "feature": "internship_count",
+      "mean_abs_shap": 0.0783793032169342,
+      "pct_of_total": 2.5274624824523926,
+      "tier": "numeric"
+    },
+    {
+      "rank": 9,
+      "feature": "language_score",
+      "mean_abs_shap": 0.06351437419652939,
+      "pct_of_total": 2.0481197834014893,
+      "tier": "numeric"
+    },
+    {
+      "rank": 10,
+      "feature": "paper_count",
+      "mean_abs_shap": 0.05381983518600464,
+      "pct_of_total": 1.735504388809204,
+      "tier": "numeric"
+    }
+  ],
+  "tier_summary": {
+    "categorical_total_pct": 74.17561782005866,
+    "numeric_total_pct": 25.824382179941345,
+    "cat_to_num_ratio": 2.872309482690096
+  },
+  "shap_sum_percentiles": {
+    "P1": {
+      "shap_sum": -3.8648619651794434,
+      "calibrated_prob": 2.2410137421151197e-6
+    },
+    "P5": {
+      "shap_sum": -2.755967378616333,
+      "calibrated_prob": 5.411261073725884e-5
+    },
+    "P10": {
+      "shap_sum": -2.2746548652648926,
+      "calibrated_prob": 0.0002155072873203561
+    },
+    "P25": {
+      "shap_sum": -1.4592481851577759,
+      "calibrated_prob": 0.0022359290540372913
+    },
+    "P50": {
+      "shap_sum": -0.6385982632637024,
+      "calibrated_prob": 0.023104240721343258
+    },
+    "P75": {
+      "shap_sum": 0.3122372329235077,
+      "calibrated_prob": 0.2661900307345152
+    },
+    "P90": {
+      "shap_sum": 1.884824514389038,
+      "calibrated_prob": 0.9707345307519722
+    },
+    "P95": {
+      "shap_sum": 4.117101669311523,
+      "calibrated_prob": 0.9999504078587734
+    },
+    "P99": {
+      "shap_sum": 6.606135368347168,
+      "calibrated_prob": 0.9999999609681904
+    }
+  },
+  "shap_vs_gain_spearman": {
+    "spearman_rho": 0.8909090909090909,
+    "spearman_p": 0.0005421442248338671
+  },
+  "top_interactions": [
+    {
+      "rank": 1,
+      "pair": ["target_major", "background_university"],
+      "mean_abs_interaction": 0.093299
+    },
+    {
+      "rank": 2,
+      "pair": ["target_university", "background_university"],
+      "mean_abs_interaction": 0.088425
+    },
+    {
+      "rank": 3,
+      "pair": ["target_major", "background_major"],
+      "mean_abs_interaction": 0.066087
+    },
+    {
+      "rank": 4,
+      "pair": ["target_university", "background_major"],
+      "mean_abs_interaction": 0.062862
+    },
+    {
+      "rank": 5,
+      "pair": ["background_university", "background_major"],
+      "mean_abs_interaction": 0.054599
+    },
+    {
+      "rank": 6,
+      "pair": ["target_university", "target_major"],
+      "mean_abs_interaction": 0.045033
+    },
+    {
+      "rank": 7,
+      "pair": ["target_major", "gpa"],
+      "mean_abs_interaction": 0.043494
+    },
+    {
+      "rank": 8,
+      "pair": ["background_university", "gpa"],
+      "mean_abs_interaction": 0.038177
+    },
+    {
+      "rank": 9,
+      "pair": ["background_major", "gpa"],
+      "mean_abs_interaction": 0.027049
+    },
+    {
+      "rank": 10,
+      "pair": ["target_university", "gpa"],
+      "mean_abs_interaction": 0.022784
+    },
+    {
+      "rank": 11,
+      "pair": ["background_university", "award_count"],
+      "mean_abs_interaction": 0.022486
+    },
+    {
+      "rank": 12,
+      "pair": ["background_major", "research_count"],
+      "mean_abs_interaction": 0.017845
+    },
+    {
+      "rank": 13,
+      "pair": ["target_major", "award_count"],
+      "mean_abs_interaction": 0.016446
+    },
+    {
+      "rank": 14,
+      "pair": ["target_major", "research_count"],
+      "mean_abs_interaction": 0.016425
+    },
+    {
+      "rank": 15,
+      "pair": ["target_university", "research_count"],
+      "mean_abs_interaction": 0.016409
+    }
+  ],
+  "case_studies": {}
+}

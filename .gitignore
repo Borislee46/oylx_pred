@@ -1,0 +1,122 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+venv312/
+env/
+.pytest_cache/
+.pytest_tmp/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# ---------- 编辑器 / 操作系统 ----------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---------- 本地工具配置（不上传个人偏好） ----------
+.cursor/
+.claude/
+.superpowers/
+.copilot/
+
+# ---------- 密钥与本地配置（只提交模板） ----------
+.env
+.env.*
+!.env.example
+# Streamlit 运行时配置含 cookieSecret，只提交模板
+.streamlit/*
+!.streamlit/config.toml.example
+config/app_config.json
+config/auth_config.json
+config/dev_config.json
+config/hr_permissions.json
+config/demo_users.json
+cookie.txt
+e2_secrets.py
+auth_permissions.xlsx
+log.xlsx
+log.txt
+request.txt
+~$log.xlsx
+
+# ---------- 运行时 / 训练数据（自行准备） ----------
+# 注意：项目根目录专用的路径一律用前导 `/` 锚定。
+# 不锚定的 `pages/` 会连带匹配 `src/pages/`，把核心业务代码一起忽略掉
+# （历史上就是这么误伤了 139 个文件）——改这里之前先想清楚。
+/data/
+/cache/
+src/ml/data/
+src/ml/pre-trained_models/
+src/ml/evaluation_results/
+src/ml/experimental/
+src/ml/logs/
+/static/
+/logs/
+*.log
+/mlruns/
+/catboost_info/
+
+# ---------- 大体积模型产物 ----------
+*.ubj
+*.ubj.gz
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.npy
+*.npz
+*.joblib
+*.pb
+
+# ---------- 内部模块（脱敏后不应出现，防御性忽略） ----------
+src/pages/hr_*/
+src/pages/admin/
+src/utils/admin/
+app_pages/hr_*.py
+app_pages/admin.py
+app_pages/algorithm_lab.py
+app_pages/europe_signals.py
+app_pages/signals_marketing.py
+app_pages/tech_report.py
+app_pages/redirect.py
+src/pages/algorithm_lab/
+src/report/tech/
+assets/hr_*.css
+src/services/
+src/service/
+# 同上：必须锚定，否则会连 src/pages/ 一起吞掉
+/pages/
+/tests/
+/fortune/
+/notes/
+/prototypes/
+/nodegam-main/
+/explorer-agent/
+/pydantic-ai-api/
+/demo_fastapi_react/
+
+# ---------- 前端构建产物之外的杂项 ----------
+node_modules/
+*.tsbuildinfo
+# 只忽略仓库根目录的 npm 清单（前端子项目要提交 package.json 才能重建产物）
+/package.json
+/package-lock.json
+*.tmp.*
+*.bak
+*.backup
+*.bak_*
+*.feather.bak*
+
+# ---------- 文档：只保留手写说明，其余 docs/ 内容不入库 ----------
+docs/*
+!docs/*.md

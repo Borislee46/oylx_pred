@@ -1,0 +1,137 @@
+{
+  "model": "xgboost_20260810_133230.ubj",
+  "n_background": 0,
+  "n_eval": 10000,
+  "expected_value": -0.004398,
+  "compute_time_shap_s": 106.8,
+  "compute_time_interaction_s": 311.9,
+  "feature_importance": [
+    {
+      "rank": 1,
+      "feature": "background_university",
+      "mean_abs_shap": 0.920272
+    },
+    {
+      "rank": 2,
+      "feature": "target_major",
+      "mean_abs_shap": 0.553901
+    },
+    {
+      "rank": 3,
+      "feature": "background_major",
+      "mean_abs_shap": 0.424035
+    },
+    {
+      "rank": 4,
+      "feature": "target_university",
+      "mean_abs_shap": 0.402057
+    },
+    {
+      "rank": 5,
+      "feature": "gpa",
+      "mean_abs_shap": 0.330545
+    },
+    {
+      "rank": 6,
+      "feature": "award_count",
+      "mean_abs_shap": 0.144501
+    },
+    {
+      "rank": 7,
+      "feature": "research_count",
+      "mean_abs_shap": 0.130082
+    },
+    {
+      "rank": 8,
+      "feature": "internship_count",
+      "mean_abs_shap": 0.078379
+    },
+    {
+      "rank": 9,
+      "feature": "language_score",
+      "mean_abs_shap": 0.063514
+    },
+    {
+      "rank": 10,
+      "feature": "paper_count",
+      "mean_abs_shap": 0.05382
+    }
+  ],
+  "top_interactions": [
+    {
+      "rank": 1,
+      "pair": ["target_major", "background_university"],
+      "mean_abs_interaction": 0.093299
+    },
+    {
+      "rank": 2,
+      "pair": ["target_university", "background_university"],
+      "mean_abs_interaction": 0.088425
+    },
+    {
+      "rank": 3,
+      "pair": ["target_major", "background_major"],
+      "mean_abs_interaction": 0.066087
+    },
+    {
+      "rank": 4,
+      "pair": ["target_university", "background_major"],
+      "mean_abs_interaction": 0.062862
+    },
+    {
+      "rank": 5,
+      "pair": ["background_university", "background_major"],
+      "mean_abs_interaction": 0.054599
+    },
+    {
+      "rank": 6,
+      "pair": ["target_university", "target_major"],
+      "mean_abs_interaction": 0.045033
+    },
+    {
+      "rank": 7,
+      "pair": ["target_major", "gpa"],
+      "mean_abs_interaction": 0.043494
+    },
+    {
+      "rank": 8,
+      "pair": ["background_university", "gpa"],
+      "mean_abs_interaction": 0.038177
+    },
+    {
+      "rank": 9,
+      "pair": ["background_major", "gpa"],
+      "mean_abs_interaction": 0.027049
+    },
+    {
+      "rank": 10,
+      "pair": ["target_university", "gpa"],
+      "mean_abs_interaction": 0.022784
+    },
+    {
+      "rank": 11,
+      "pair": ["background_university", "award_count"],
+      "mean_abs_interaction": 0.022486
+    },
+    {
+      "rank": 12,
+      "pair": ["background_major", "research_count"],
+      "mean_abs_interaction": 0.017845
+    },
+    {
+      "rank": 13,
+      "pair": ["target_major", "award_count"],
+      "mean_abs_interaction": 0.016446
+    },
+    {
+      "rank": 14,
+      "pair": ["target_major", "research_count"],
+      "mean_abs_interaction": 0.016425
+    },
+    {
+      "rank": 15,
+      "pair": ["target_university", "research_count"],
+      "mean_abs_interaction": 0.016409
+    }
+  ]
+}

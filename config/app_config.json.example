@@ -1,0 +1,36 @@
+{
+  "_说明": "复制为 config/app_config.json 并按需填写；密钥也可通过环境变量注入（OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL / GHOST_API_KEY / STREAMLIT_APP_BASE_URL），优先级高于本文件。密钥严禁提交到 git。APP_ENV 选择使用哪一段，默认 test。",
+  "_注意": "本文件在缺少 config/app_config.json 时会被当作运行期默认值读取，因此这里只放安全的中性值，不要写占位域名——写错会直接跳到那个域名上。",
+  "test": {
+    "STREAMLIT_APP_BASE_URL": "",
+    "OPEN_AI_BASE_URL": "https://api.deepseek.com/v1/chat/completions",
+    "OPEN_AI_MODEL": "deepseek-v4-flash",
+    "OPEN_AI_API_KEY": "",
+    "ENABLE_LEAD_IN_AGENT": true,
+    "HARNESS_ENABLED": false,
+    "HARNESS_STAGES": {
+      "lead_in": "ui",
+      "prediction": "ui",
+      "explain": "ui"
+    },
+    "GHOST_API_BASE_URL": "https://api.deepseek.com/beta",
+    "GHOST_API_MODEL": "deepseek-v4-flash",
+    "GHOST_API_KEY": ""
+  },
+  "prod": {
+    "STREAMLIT_APP_BASE_URL": "",
+    "OPEN_AI_BASE_URL": "https://api.deepseek.com/v1/chat/completions",
+    "OPEN_AI_MODEL": "deepseek-v4-flash",
+    "OPEN_AI_API_KEY": "",
+    "ENABLE_LEAD_IN_AGENT": true,
+    "HARNESS_ENABLED": false,
+    "HARNESS_STAGES": {
+      "lead_in": "ui",
+      "prediction": "ui",
+      "explain": "ui"
+    },
+    "GHOST_API_BASE_URL": "https://api.deepseek.com/beta",
+    "GHOST_API_MODEL": "deepseek-v4-flash",
+    "GHOST_API_KEY": ""
+  }
+}
